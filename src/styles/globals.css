@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* Fondo negro puro para toda la aplicación */
+html, body {
+  background-color: #000000 !important;
+}
+
+/* Variables CSS */
+:root {
+  --font-size: 16px;
+  --background: black;
+  --foreground: #ffffff;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --radius: 0.625rem;
+}
+
+/* Estilos base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #000000;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+/* Animaciones personalizadas para el login */
+@keyframes subtle-zoom {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes float-logo {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-subtle-zoom {
+  animation: subtle-zoom 20s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-logo {
+  animation: float-logo 3s ease-in-out infinite;
+}
+
+/* Estilos para selects y options - sin fondo blanco en hover */
+select {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+}
+
+select option {
+  background-color: #000000 !important;
+  color: white !important;
+  padding: 8px;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: #1a1a1a !important;
+}
+
+/* Estilos para gráficos Recharts - sin fondos blancos */
+.recharts-wrapper {
+  background: transparent !important;
+}
+
+.recharts-surface {
+  background: transparent !important;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid rgb(0, 0, 0) !important;
+  border-radius: 8px !important;
+  color: white !important;
+}
+
+.recharts-tooltip-label {
+  color: white !important;
+}
+
+.recharts-tooltip-item {
+  color: white !important;
+}
+
+.recharts-legend-wrapper {
+  background: transparent !important;
+}
+
+.recharts-text {
+  fill: #9ca3af !important;
+}
+
+.recharts-label {
+  fill: white !important;
+}
+
+.recharts-pie-label-text {
+  fill: white !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -1px -1px 2px rgba(0, 0, 0, 0.9), 1px -1px 2px rgba(0, 0, 0, 0.9), -1px 1px 2px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Evitar fondos blancos en los sectores del Pie Chart */
+.recharts-pie-sector {
+  outline: none !important;
+}
+
+.recharts-sector {
+  outline: none !important;
+}
+
+/* Eliminar fondos blancos de los textos en general */
+.recharts-layer text {
+  fill: white !important;
+  text-shadow: 2px 2px 4px rgb(0, 0, 0), -1px -1px 2px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Estilos específicos para labels de PieChart */
+.recharts-pie text {
+  fill: white !important;
+  font-weight: 600 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -1px -1px 2px rgba(0, 0, 0, 0.9), 1px -1px 2px rgba(0, 0, 0, 0.9), -1px 1px 2px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Asegurar que ningún elemento tenga fondo blanco */
+.recharts-wrapper * {
+  background: transparent !important;
+}
+
+.recharts-legend-item-text {
+  color: #9ca3af !important;
+}
