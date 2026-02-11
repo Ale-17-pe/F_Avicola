@@ -49,6 +49,8 @@ interface BloquesPeso {
   numero: number;
   tamaño: number;
   peso: number | null;
+  pesoContenedor: number;
+  contenedorTipo: string;
   pesado: boolean;
 }
 
@@ -56,6 +58,9 @@ interface TicketData {
   pedido: PedidoConfirmado;
   bloques: BloquesPeso[];
   pesoTotal: number;
+  pesoContenedores: number;
+  pesoNeto: number;
+  esVivo: boolean;
   conductor: string;
   conductorPlaca: string;
   zona: string;
@@ -189,7 +194,7 @@ function useSerialScale() {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function PesajeOperador() {
-  const { pedidosConfirmados, updatePedidoConfirmado } = useApp();
+  const { pedidosConfirmados, updatePedidoConfirmado, contenedores } = useApp();
   const scale = useSerialScale();
 
   // Estado principal
@@ -200,6 +205,9 @@ export function PesajeOperador() {
   // Bloques
   const [bloques, setBloques] = useState<BloquesPeso[]>([]);
   const [bloqueActual, setBloqueActual] = useState(0);
+
+  // Contenedor seleccionado para el bloque actual
+  const [contenedorBloqueId, setContenedorBloqueId] = useState('');
 
   // Conductor y zona
   const [conductorId, setConductorId] = useState('');
@@ -228,8 +236,15 @@ export function PesajeOperador() {
     .slice(-10)
     .reverse();
 
+  // Detectar si es presentación "Vivo"
+  const esVivo = selectedPedido?.presentacion?.toLowerCase().includes('vivo') ?? false;
+
+  // Obtener peso del contenedor del pedido original
+  const contenedorOriginal = contenedores.find(c => c.tipo === selectedPedido?.contenedor);
+  const pesoContenedorDefault = contenedorOriginal?.peso ?? 0;
+
   // Calcular bloques cuando se cambia el pedido
-  const generarBloques = (cantidad: number): BloquesPeso[] => {
+  const generarBloques = (cantidad: number, contTipo: string, contPeso: number): BloquesPeso[] => {
     const numBloquesFull = Math.floor(cantidad / BLOCK_SIZE);
     const resto = cantidad % BLOCK_SIZE;
     const bloquesArr: BloquesPeso[] = [];
@@ -239,6 +254,8 @@ export function PesajeOperador() {
         numero: i + 1,
         tamaño: BLOCK_SIZE,
         peso: null,
+        pesoContenedor: contPeso,
+        contenedorTipo: contTipo,
         pesado: false,
       });
     }
@@ -248,6 +265,8 @@ export function PesajeOperador() {
         numero: numBloquesFull + 1,
         tamaño: resto,
         peso: null,
+        pesoContenedor: contPeso,
+        contenedorTipo: contTipo,
         pesado: false,
       });
     }
@@ -257,10 +276,12 @@ export function PesajeOperador() {
 
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
     setSelectedPedido(pedido);
-    const nuevos = generarBloques(pedido.cantidad);
+    const cont = contenedores.find(c => c.tipo === pedido.contenedor);
+    const nuevos = generarBloques(pedido.cantidad, cont?.tipo || pedido.contenedor, cont?.peso || 0);
     setBloques(nuevos);
     setBloqueActual(0);
     setPesoManualInput('');
+    setContenedorBloqueId(cont?.id || '');
     setConductorId('');
     setZonaId('');
     setTicketVisible(null);
@@ -297,10 +318,17 @@ export function PesajeOperador() {
       return;
     }
 
+    // Obtener contenedor seleccionado para este bloque
+    const contSeleccionado = contenedores.find(c => c.id === contenedorBloqueId);
+    const contTipo = contSeleccionado?.tipo || bloques[bloqueActual].contenedorTipo;
+    const contPeso = contSeleccionado?.peso || bloques[bloqueActual].pesoContenedor;
+
     const nuevosBloques = [...bloques];
     nuevosBloques[bloqueActual] = {
       ...nuevosBloques[bloqueActual],
       peso,
+      contenedorTipo: contTipo,
+      pesoContenedor: contPeso,
       pesado: true,
     };
     setBloques(nuevosBloques);
@@ -316,6 +344,7 @@ export function PesajeOperador() {
       type: 'bloque-registrado',
       bloque: bloqueActual + 1,
       peso,
+      contenedor: contTipo,
       totalBloques: bloques.length,
       siguienteBloque: siguienteBloque + 1,
       pesoTotal: nuevoTotal,
@@ -340,6 +369,9 @@ export function PesajeOperador() {
     setBloques(nuevosBloques);
     setBloqueActual(index);
     setPesoManualInput('');
+    // Restaurar contenedor del bloque para edición
+    const cont = contenedores.find(c => c.tipo === nuevosBloques[index].contenedorTipo);
+    if (cont) setContenedorBloqueId(cont.id);
     toast.info(`Bloque ${index + 1} listo para repesar`);
   };
 
@@ -366,6 +398,12 @@ export function PesajeOperador() {
     const ahora = new Date();
     const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+    // Calcular peso total de contenedores (solo si es vivo)
+    const totalPesoContenedores = esVivo
+      ? bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)
+      : 0;
+    const pesoNeto = pesoTotalAcumulado - totalPesoContenedores;
+
     const pedidoActualizado: PedidoConfirmado = {
       ...selectedPedido,
       pesoKg: pesoTotalAcumulado,
@@ -381,6 +419,9 @@ export function PesajeOperador() {
       pedido: pedidoActualizado,
       bloques: [...bloques],
       pesoTotal: pesoTotalAcumulado,
+      pesoContenedores: totalPesoContenedores,
+      pesoNeto,
+      esVivo,
       conductor: conductor.nombre,
       conductorPlaca: conductor.placa,
       zona: zona.nombre,
@@ -723,6 +764,43 @@ export function PesajeOperador() {
                   </div>
                 )}
               </div>
+
+              {/* Selector de contenedor (solo para vivos) */}
+              {esVivo && !todosCompletados && bloqueActual < bloques.length && (
+                <div className="rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5" />
+                      Contenedor / Jaba — Bloque {bloqueActual + 1}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                      Tara: {(contenedores.find(c => c.id === contenedorBloqueId)?.peso || 0).toFixed(1)} kg
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {contenedores.map((cont) => (
+                      <button
+                        key={cont.id}
+                        onClick={() => setContenedorBloqueId(cont.id)}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                        style={{
+                          background: contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                          color: contenedorBloqueId === cont.id ? '#f59e0b' : '#888',
+                        }}
+                      >
+                        {cont.tipo}
+                        <span className="ml-1 opacity-60">({cont.peso} kg)</span>
+                      </button>
+                    ))}
+                  </div>
+                  {contenedorBloqueId && contenedores.find(c => c.id === contenedorBloqueId)?.tipo !== selectedPedido?.contenedor && (
+                    <p className="text-[10px] text-amber-400 mt-2">
+                      ⚠ Contenedor diferente al pedido original ({selectedPedido?.contenedor})
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Botón registrar bloque */}
               {!todosCompletados && bloqueActual < bloques.length && (

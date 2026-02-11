@@ -11,6 +11,7 @@ interface SubPedido {
   cantidadMachos?: string;
   cantidadHembras?: string;
   cantidadTotal: string;
+  unidadesPorJaba?: string;
   presentacion: string;
   contenedor: string;
 }
@@ -23,6 +24,7 @@ interface FormularioPedido {
   cantidadMachos?: string;
   cantidadHembras?: string;
   cantidadTotal: string;
+  unidadesPorJaba?: string;
   presentacion: string;
   contenedor: string;
   completado: boolean;
@@ -364,6 +366,7 @@ export function NuevoPedido() {
           cantidadMachos: f.cantidadMachos,
           cantidadHembras: f.cantidadHembras,
           cantidadTotal: f.cantidadTotal,
+          unidadesPorJaba: f.unidadesPorJaba,
           presentacion: f.presentacion,
           contenedor: f.contenedor
         }))
@@ -374,7 +377,7 @@ export function NuevoPedido() {
     
     setFormularios(prev => prev.map(f => 
       f.completado 
-        ? { ...f, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false }
+        ? { ...f, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', presentacion: '', contenedor: '', completado: false }
         : f
     ));
 
@@ -402,15 +405,29 @@ export function NuevoPedido() {
       pedido.subPedidos.map((sub, index) => {
         const variedadInfo = sub.variedad ? ` - ${sub.variedad}` : '';
         
+        // DEBUG: ver qué datos llegan del sub-pedido
+        console.log('SUB-PEDIDO DATA:', JSON.stringify(sub, null, 2));
+        
         let cantidadFinal = 0;
         let detalleSexo = '';
+        let jabas: number | undefined = undefined;
+        let uPorJaba: number | undefined = undefined;
+        const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
+        
         if (sub.cantidadMachos || sub.cantidadHembras) {
           const machos = parseInt(sub.cantidadMachos || '0');
           const hembras = parseInt(sub.cantidadHembras || '0');
           cantidadFinal = machos + hembras;
           detalleSexo = ` (M:${machos}, H:${hembras})`;
+        } else if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
+          // Para Vivo: cantidad = jabas × unidades por jaba
+          jabas = parseInt(sub.cantidadTotal);
+          uPorJaba = parseInt(sub.unidadesPorJaba);
+          cantidadFinal = jabas * uPorJaba;
+          console.log(`VIVO CALC: ${jabas} jabas × ${uPorJaba} = ${cantidadFinal}`);
         } else {
           cantidadFinal = parseInt(sub.cantidadTotal);
+          console.log(`ELSE PATH: cantidadFinal = ${cantidadFinal}, esVivo=${esVivo}, unidadesPorJaba=${sub.unidadesPorJaba}`);
         }
         
         const subNumero = index + 1;
@@ -425,6 +442,8 @@ export function NuevoPedido() {
           variedad: sub.variedad,
           presentacion: sub.presentacion,
           cantidad: cantidadFinal,
+          cantidadJabas: jabas,
+          unidadesPorJaba: uPorJaba,
           contenedor: sub.contenedor,
           fecha,
           hora,
@@ -948,7 +967,7 @@ export function NuevoPedido() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-2">
-                        Total
+                        Total {form.presentacion?.toLowerCase().includes('vivo') ? '(Jabas)' : ''}
                       </label>
                       <input
                         type="text"
@@ -958,23 +977,6 @@ export function NuevoPedido() {
                       />
                     </div>
                   </>
-                )}
-
-                {/* Cantidad Total */}
-                {!necesitaSexo && form.tipoAve && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">
-                      Cantidad Total
-                    </label>
-                    <input
-                      type="number"
-                      value={form.cantidadTotal}
-                      onChange={(e) => actualizarFormulario(form.id, 'cantidadTotal', e.target.value)}
-                      placeholder="0"
-                      min="1"
-                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20 transition-all"
-                    />
-                  </div>
                 )}
 
                 {/* Presentación */}
@@ -997,6 +999,55 @@ export function NuevoPedido() {
                     ))}
                   </select>
                 </div>
+
+                {/* Cantidad Total / Jabas */}
+                {!necesitaSexo && form.tipoAve && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      {form.presentacion?.toLowerCase().includes('vivo') ? 'Cantidad de Jabas' : 'Cantidad Total'}
+                    </label>
+                    <input
+                      type="number"
+                      value={form.cantidadTotal}
+                      onChange={(e) => actualizarFormulario(form.id, 'cantidadTotal', e.target.value)}
+                      placeholder={form.presentacion?.toLowerCase().includes('vivo') ? 'Nº de jabas' : '0'}
+                      min="1"
+                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20 transition-all"
+                    />
+                    {form.presentacion?.toLowerCase().includes('vivo') && form.cantidadTotal && (
+                      <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+                        🐔 {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Unidades por Jaba (solo Vivo) */}
+                {form.presentacion?.toLowerCase().includes('vivo') && form.cantidadTotal && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                      Unidades por Jaba
+                    </label>
+                    <input
+                      type="number"
+                      value={form.unidadesPorJaba || ''}
+                      onChange={(e) => actualizarFormulario(form.id, 'unidadesPorJaba', e.target.value)}
+                      placeholder="Ej: 8, 10, 12..."
+                      min="1"
+                      className="w-full px-4 py-3 bg-black/30 border border-amber-800/30 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                    />
+                    {form.unidadesPorJaba && parseInt(form.unidadesPorJaba) > 0 && (
+                      <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
+                        style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}
+                      >
+                        <span className="text-gray-400">Total aves</span>
+                        <span className="text-green-400 font-bold font-mono">
+                          {parseInt(form.cantidadTotal) * parseInt(form.unidadesPorJaba)} unidades
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Contenedor */}
                 <div>
@@ -1182,13 +1233,13 @@ export function NuevoPedido() {
                                       </div>
                                       <div className="col-span-2 bg-green-900/20 rounded-lg p-2">
                                         <div className="text-xs text-gray-400">Total</div>
-                                        <div className="text-green-400 font-bold">{sub.cantidadTotal} unidades</div>
+                                        <div className="text-green-400 font-bold">{sub.cantidadTotal} {sub.presentacion?.toLowerCase().includes('vivo') ? 'jabas' : 'unidades'}</div>
                                       </div>
                                     </>
                                   ) : (
                                     <div className="col-span-2 bg-green-900/20 rounded-lg p-2">
-                                      <div className="text-xs text-gray-400">Cantidad Total</div>
-                                      <div className="text-green-400 font-bold">{sub.cantidadTotal} unidades</div>
+                                      <div className="text-xs text-gray-400">{sub.presentacion?.toLowerCase().includes('vivo') ? 'Cantidad de Jabas' : 'Cantidad Total'}</div>
+                                      <div className="text-green-400 font-bold">{sub.cantidadTotal} {sub.presentacion?.toLowerCase().includes('vivo') ? 'jabas' : 'unidades'}</div>
                                     </div>
                                   )}
                                 </div>
@@ -1298,14 +1349,14 @@ export function NuevoPedido() {
                             ) : nuevoSubPedido.tipoAve && (
                               <div>
                                 <label className="block text-xs font-medium text-gray-400 mb-2">
-                                  Cantidad Total
+                                  {nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') ? 'Cantidad de Jabas' : 'Cantidad Total'}
                                 </label>
                                 <input
                                   type="number"
                                   value={nuevoSubPedido.cantidadTotal || ''}
                                   onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, cantidadTotal: e.target.value }))}
                                   min="1"
-                                  placeholder="0"
+                                  placeholder={nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') ? 'Nº de jabas' : '0'}
                                   className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm"
                                 />
                               </div>

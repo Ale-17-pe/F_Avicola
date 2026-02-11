@@ -54,6 +54,8 @@ export interface PedidoConfirmado {
   variedad?: string;
   presentacion: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   contenedor: string;
   fecha: string;
   hora: string;

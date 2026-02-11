@@ -11,6 +11,8 @@ interface PedidoConfirmado {
   variedad?: string;
   presentacion: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   contenedor: string;
   fecha: string;
   hora: string;
@@ -29,6 +31,8 @@ interface PedidoLista {
   tipoAve: string;
   variedad?: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   cantidadMachos?: number;
   cantidadHembras?: number;
   presentacion: string;
@@ -374,6 +378,8 @@ export function ListaPedidos() {
       tipoAve: tipoAveBase,
       variedad: variedad || undefined,
       cantidad: pedido.cantidad,
+      cantidadJabas: pedido.cantidadJabas,
+      unidadesPorJaba: pedido.unidadesPorJaba,
       cantidadMachos: infoGenero?.machos,
       cantidadHembras: infoGenero?.hembras,
       presentacion: pedido.presentacion,
@@ -1752,20 +1758,26 @@ export function ListaPedidos() {
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <div className="text-emerald-300 font-bold uppercase tracking-tight">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
                           {pedido.variedad ? (
-                            <div className={`px-3 py-1 rounded-lg text-xs font-black uppercase inline-block shadow-md tracking-wider ${
+                            <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider ${
                               pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined
-                                ? 'bg-emerald-500 text-black border border-emerald-400 animate-pulse-subtle'
-                                : 'bg-emerald-900/40 text-emerald-300 border border-emerald-500/20'
+                                ? 'text-white border-2'
+                                : 'bg-amber-900/40 text-amber-300 border border-amber-500/30'
                             }`}>
                               {pedido.variedad}
                             </div>
                           ) : (
-                            <div className="text-[10px] text-gray-600 italic">Estandar</div>
+                            <div className="text-[10px] text-gray-600 italic">Estándar</div>
                           )}
-                          <div className="text-xs text-gray-500 font-medium">{pedido.presentacion}</div>
+                          <div className={`text-xs font-semibold ${
+                            pedido.presentacion?.toLowerCase().includes('vivo')
+                              ? 'text-orange-400'
+                              : 'text-gray-500'
+                          }`}>
+                            {pedido.presentacion}
+                          </div>
                         </div>
                       </td>
                       
@@ -1785,6 +1797,13 @@ export function ListaPedidos() {
                           <>
                             <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
                             <div className="text-xs text-gray-500">aves</div>
+                            {pedido.cantidadJabas && pedido.unidadesPorJaba && (
+                              <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block"
+                                style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}
+                              >
+                                {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u
+                              </div>
+                            )}
                           </>
                         )}
                       </td>
@@ -2205,6 +2224,11 @@ export function ListaPedidos() {
                       <div>
                         <div className="text-sm text-gray-400">Cantidad actual</div>
                         <div className="text-white font-bold">{pedido.cantidad} aves</div>
+                        {pedido.cantidadJabas && pedido.unidadesPorJaba && (
+                          <div className="text-[10px] mt-0.5" style={{ color: '#f59e0b' }}>
+                            ({pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u)
+                          </div>
+                        )}
                       </div>
                       
                       {(modoEdicion === 'EDITAR' || modoEdicion === 'AUMENTAR') && (
