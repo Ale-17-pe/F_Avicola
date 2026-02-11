@@ -656,10 +656,16 @@ export function PesajeOperador() {
 
           {selectedPedido ? (
             <div className="space-y-4">
-              {/* Info del pedido */}
               <div className="rounded-xl p-4" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)' }}>
                 <div className="flex items-center justify-between">
-                  <p className="text-white font-bold text-base">{selectedPedido.cliente}</p>
+                  <div>
+                    <p className="text-white font-bold text-base">{selectedPedido.cliente}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-white/10 text-gray-300 font-mono">
+                        {selectedPedido.numeroPedido || 'S/N'}
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setModoManual(!modoManual)}
@@ -674,7 +680,7 @@ export function PesajeOperador() {
                     </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                <div className="flex flex-wrap gap-2 mt-3 text-xs">
                   <span className="px-2 py-1 rounded-md" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
                     {selectedPedido.tipoAve}
                   </span>
@@ -682,8 +688,13 @@ export function PesajeOperador() {
                     {selectedPedido.presentacion}
                   </span>
                   <span className="px-2 py-1 rounded-md" style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
-                    {selectedPedido.cantidad} unids. = {bloques.length} bloques
+                    {selectedPedido.cantidad} unids.
                   </span>
+                  {selectedPedido.cantidadJabas && (
+                    <span className="px-2 py-1 rounded-md" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                      {selectedPedido.cantidadJabas} jabas
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -820,21 +831,22 @@ export function PesajeOperador() {
                 </button>
               )}
 
-              {/* Tabla de bloques */}
-              <div
-                className="rounded-xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                <div className="p-3 flex items-center justify-between"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              {/* Tabla de bloques - SOLO mostrar si hay bloques pesados */}
+              {(bloquesCompletados > 0 || todosCompletados) && (
+                <div
+                  className="rounded-xl overflow-hidden mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Bloques ({bloquesCompletados}/{bloques.length})
-                  </span>
-                  <span className="text-sm font-bold font-mono" style={{ color: '#22c55e' }}>
-                    Total: {pesoTotalAcumulado.toFixed(2)} Kg
-                  </span>
-                </div>
+                  <div className="p-3 flex items-center justify-between"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Bloques ({bloquesCompletados}/{bloques.length})
+                    </span>
+                    <span className="text-sm font-bold font-mono" style={{ color: '#22c55e' }}>
+                      Total: {pesoTotalAcumulado.toFixed(2)} Kg
+                    </span>
+                  </div>
                 <div className="max-h-48 overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -914,6 +926,7 @@ export function PesajeOperador() {
                   </table>
                 </div>
               </div>
+              )}
 
               {/* Conductor y Zona (solo cuando todos bloques están pesados) */}
               {todosCompletados && (
