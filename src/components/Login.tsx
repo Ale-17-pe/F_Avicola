@@ -8,7 +8,7 @@ import avicolaBackground from 'figma:asset/fa25e4c6806fdd3db2dbb1c20513fce22ccd8
 
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +45,28 @@ export function Login() {
     
     // Simulación de llamada a API
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Verificar si el usuario es operador (no requiere 2FA)
+    const loginExitosoDirecto = login(email, password);
+    
+    if (loginExitosoDirecto) {
+      // Obtener el rol del usuario que acaba de hacer login
+      const usuarioInfo = [
+        { username: 'admin', rol: 'administrador' },
+        { username: 'secretaria', rol: 'secretaria' },
+        { username: 'operador', rol: 'operador' },
+      ].find(u => u.username === email);
+      
+      if (usuarioInfo?.rol === 'operador') {
+        // Operador: NO requiere 2FA, redirigir directamente
+        setIsLoading(false);
+        navigate('/dashboard-operador');
+        return;
+      }
+      
+      // Para otros roles, hacer logout temporal y continuar con 2FA
+      logout();
+    }
     
     // Guardar credenciales temporales
     setCredencialesTemporales({ username: email, password: password });

@@ -23,6 +23,10 @@ import { DashboardSecretaria } from "./components/DashboardSecretaria";
 import { GestionContenedores } from "./components/GestionContenedores";
 import { PantallaProduccion } from "./components/PantallaProduccion";
 import { Egg, Package, ShoppingCart, Users, Truck, TrendingUp, DollarSign, FileText } from "lucide-react";
+import { LayoutOperador } from "./components/LayoutOperador";
+import { DashboardOperador } from "./components/DashboardOperador";
+import { PesajeOperador } from "./components/PesajeOperador";
+import { PesajeDisplay } from "./components/PesajeDisplay";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +36,10 @@ export const router = createBrowserRouter([
   {
     path: "/pantalla-produccion",
     Component: PantallaProduccion,
+  },
+  {
+    path: "/pesaje-display",
+    Component: PesajeDisplay,
   },
   {
     path: "/dashboard",
@@ -159,6 +167,43 @@ export const router = createBrowserRouter([
       },
       
       // Distribución - Control
+      { 
+        path: "control", 
+        Component: Control 
+      },
+    ],
+  },
+  {
+    path: "/dashboard-operador",
+    Component: LayoutOperador,
+    children: [
+      { index: true, Component: DashboardOperador },
+      
+      // Nuevo Pedido
+      { 
+        path: "nuevo-pedido", 
+        Component: NuevoPedido 
+      },
+      
+      // Lista de Pedidos
+      { 
+        path: "lista-pedidos", 
+        Component: ListaPedidos 
+      },
+      
+      // Pesaje
+      { 
+        path: "pesaje", 
+        Component: PesajeOperador 
+      },
+      
+      // Envíos
+      { 
+        path: "envios", 
+        Component: Envios 
+      },
+      
+      // Control
       { 
         path: "control", 
         Component: Control 

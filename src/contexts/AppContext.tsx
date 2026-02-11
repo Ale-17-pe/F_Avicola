@@ -61,7 +61,12 @@ export interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Completado' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
+  // Campos de pesaje
+  pesoKg?: number;
+  conductor?: string;
+  zonaEntrega?: string;
+  ticketEmitido?: boolean;
 }
 
 export interface Presentacion {

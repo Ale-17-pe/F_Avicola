@@ -18,7 +18,7 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Completado' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
 }
 
 interface PedidoLista {
@@ -40,7 +40,7 @@ interface PedidoLista {
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Completado' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
@@ -926,7 +926,7 @@ export function ListaPedidos() {
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedido.id, {
         ...pedidoOriginal,
-        estado: 'Completado'
+        estado: 'Pesaje'
       });
     }
 
@@ -1827,6 +1827,10 @@ export function ListaPedidos() {
                             ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' 
                             : pedido.estado === 'En Producción'
                             ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
+                            : pedido.estado === 'Pesaje'
+                            ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
+                            : pedido.estado === 'Entregado'
+                            ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300'
                             : pedido.estado === 'Completado'
                             ? 'bg-green-900/20 border border-green-700/30 text-green-300'
                             : 'bg-red-900/20 border border-red-700/30 text-red-300'
@@ -2514,6 +2518,10 @@ export function ListaPedidos() {
                       ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' 
                       : mostrarDetallePedido.estado === 'En Producción'
                       ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
+                      : mostrarDetallePedido.estado === 'Pesaje'
+                      ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
+                      : mostrarDetallePedido.estado === 'Entregado'
+                      ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300'
                       : mostrarDetallePedido.estado === 'Completado'
                       ? 'bg-green-900/20 border border-green-700/30 text-green-300'
                       : 'bg-red-900/20 border border-red-700/30 text-red-300'

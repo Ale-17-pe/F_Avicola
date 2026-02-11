@@ -5,7 +5,7 @@ interface User {
   username: string;
   nombre: string;
   apellido: string;
-  rol: 'administrador' | 'secretaria' | 'vendedor' | 'contador';
+  rol: 'administrador' | 'secretaria' | 'vendedor' | 'contador' | 'operador';
   email?: string;
 }
 
@@ -37,6 +37,15 @@ const usuarios = [
     apellido: 'García López',
     rol: 'secretaria' as const,
     email: 'ana.garcia@avicolajossy.com'
+  },
+  {
+    id: '3',
+    username: 'operador',
+    password: 'operador123',
+    nombre: 'Carlos',
+    apellido: 'Mendoza Torres',
+    rol: 'operador' as const,
+    email: 'carlos.mendoza@avicolajossy.com'
   }
 ];
 
