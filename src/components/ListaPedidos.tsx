@@ -1773,7 +1773,7 @@ export function ListaPedidos() {
                           )}
                           <div className={`text-xs font-semibold ${
                             pedido.presentacion?.toLowerCase().includes('vivo')
-                              ? 'text-orange-400'
+                              ? 'text-white'
                               : 'text-gray-500'
                           }`}>
                             {pedido.presentacion}
