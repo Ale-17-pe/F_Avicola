@@ -277,7 +277,25 @@ export function PesajeOperador() {
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
     setSelectedPedido(pedido);
     const cont = contenedores.find(c => c.tipo === pedido.contenedor);
-    const nuevos = generarBloques(pedido.cantidad, cont?.tipo || pedido.contenedor, cont?.peso || 0);
+    
+    // Para Vivo: 1 bloque por jaba (cada bloque = 1 jaba)
+    const esVivoP = pedido.presentacion?.toLowerCase().includes('vivo');
+    let nuevos: BloquesPeso[];
+    
+    if (esVivoP && pedido.cantidadJabas) {
+      // Cada jaba es un bloque individual
+      nuevos = Array.from({ length: pedido.cantidadJabas }, (_, i) => ({
+        numero: i + 1,
+        tamaño: pedido.unidadesPorJaba || 1,
+        peso: null,
+        pesoContenedor: cont?.peso || 0,
+        contenedorTipo: cont?.tipo || pedido.contenedor,
+        pesado: false,
+      }));
+    } else {
+      nuevos = generarBloques(pedido.cantidad, cont?.tipo || pedido.contenedor, cont?.peso || 0);
+    }
+    
     setBloques(nuevos);
     setBloqueActual(0);
     setPesoManualInput('');
@@ -407,6 +425,7 @@ export function PesajeOperador() {
     const pedidoActualizado: PedidoConfirmado = {
       ...selectedPedido,
       pesoKg: pesoTotalAcumulado,
+      pesoContenedores: totalPesoContenedores,
       conductor: conductor.nombre,
       zonaEntrega: zona.nombre,
       estado: 'Entregado',

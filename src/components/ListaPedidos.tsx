@@ -100,11 +100,14 @@ interface PedidoPesaje {
   cliente: string;
   producto: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   presentacion: string;
-  pesoContenedores: number;
-  numeroContenedores: number;
-  pesoBruto: number;
-  conductor: Conductor;
+  contenedor: string;
+  pesoContenedores?: number;
+  numeroContenedores?: number;
+  pesoBruto?: number;
+  conductor?: Conductor;
   estadoPesaje: 'Pendiente' | 'Completado' | 'Verificado';
   fechaPesaje?: string;
   horaPesaje?: string;
@@ -230,6 +233,46 @@ export function ListaPedidos() {
   useEffect(() => {
     localStorage.setItem('modificacionesHistorial', JSON.stringify(modificacionesHistorial));
   }, [modificacionesHistorial]);
+
+  // Sincronizar datos de pesaje desde PedidoConfirmado (cuando PesajeOperador confirma)
+  useEffect(() => {
+    if (!pedidosConfirmados || pedidosPesaje.length === 0) return;
+    
+    setPedidosPesaje(prev => prev.map(pp => {
+      // Buscar el pedido confirmado correspondiente
+      const original = pedidosConfirmados.find(pc => 
+        pc.numeroPedido === pp.numeroPedido && pc.cliente === pp.cliente
+      );
+      if (!original) return pp;
+      
+      // Si tiene pesoKg y conductor, el pesaje fue completado en PesajeOperador
+      if (original.pesoKg && original.conductor && original.zonaEntrega) {
+        const conductorObj = conductores.find(c => c.nombre === original.conductor);
+        
+        // Calcular contenedores: para Vivo = cantidadJabas, para otros = bloques pesados
+        const esVivoP = original.presentacion?.toLowerCase().includes('vivo');
+        const numCont = esVivoP && original.cantidadJabas 
+          ? original.cantidadJabas 
+          : Math.ceil(original.cantidad / 10);
+        
+        return {
+          ...pp,
+          pesoBruto: original.pesoKg,
+          numeroContenedores: numCont,
+          pesoContenedores: original.pesoContenedores || 0,
+          conductor: conductorObj || {
+            id: 'pesaje',
+            nombre: original.conductor,
+            licencia: '',
+            vehiculo: '',
+            zonaAsignada: original.zonaEntrega || '',
+          },
+          estadoPesaje: 'Completado' as const,
+        };
+      }
+      return pp;
+    }));
+  }, [pedidosConfirmados]);
 
   // Guardar pedidos en pesaje automáticamente
   useEffect(() => {
@@ -906,22 +949,17 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
 
-    // Calcular valores para pesaje
-    const numeroContenedores = Math.ceil(pedido.cantidad / 100); // Ejemplo: 100 aves por contenedor
-    const pesoContenedores = numeroContenedores * pedido.pesoContenedor;
-    const pesoBruto = pedido.pesoTotalPedido + pesoContenedores;
-
+    // NO pre-llenar peso, contenedores ni conductor — se llenarán en Pesaje
     const nuevoPedidoPesaje: PedidoPesaje = {
       id: `pesaje-${Date.now()}-${pedido.id}`,
       numeroPedido: pedido.numeroPedido,
       cliente: pedido.cliente,
       producto: pedido.tipoAve,
       cantidad: pedido.cantidad,
+      cantidadJabas: pedido.cantidadJabas,
+      unidadesPorJaba: pedido.unidadesPorJaba,
       presentacion: pedido.presentacion,
-      pesoContenedores,
-      numeroContenedores,
-      pesoBruto,
-      conductor: conductores[0], // Asignar primer conductor por defecto
+      contenedor: pedido.contenedor,
       estadoPesaje: 'Pendiente',
       fechaPesaje: fecha,
       horaPesaje: hora
@@ -2019,26 +2057,38 @@ export function ListaPedidos() {
                       
                       <td className="px-6 py-4">
                         <div className="space-y-1">
-                          <div className="text-white font-medium">{pedido.numeroContenedores} unidades</div>
-                          <div className="text-xs text-gray-500">
-                            {pedido.pesoContenedores.toFixed(1)} kg total
-                          </div>
+                          <div className="text-white font-medium">{pedido.contenedor}</div>
+                          {pedido.numeroContenedores ? (
+                            <div className="text-xs text-gray-400">
+                              {pedido.numeroContenedores} cont. · {(pedido.pesoContenedores || 0).toFixed(1)} kg
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-600">Pendiente de pesaje</div>
+                          )}
                         </div>
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
+                        {pedido.pesoBruto ? (
+                          <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
                       </td>
                       
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => setConductorSeleccionado(pedido.conductor)}
-                          className="text-left hover:bg-gray-800/30 p-2 rounded-lg transition-colors w-full"
-                        >
-                          <div className="text-white font-medium truncate">{pedido.conductor.nombre}</div>
-                          <div className="text-xs text-gray-400">{pedido.conductor.vehiculo}</div>
-                          <div className="text-xs text-blue-400">{pedido.conductor.zonaAsignada}</div>
-                        </button>
+                        {pedido.conductor ? (
+                          <button
+                            onClick={() => setConductorSeleccionado(pedido.conductor!)}
+                            className="text-left hover:bg-gray-800/30 p-2 rounded-lg transition-colors w-full"
+                          >
+                            <div className="text-white font-medium truncate">{pedido.conductor.nombre}</div>
+                            <div className="text-xs text-gray-400">{pedido.conductor.vehiculo}</div>
+                            <div className="text-xs text-blue-400">{pedido.conductor.zonaAsignada}</div>
+                          </button>
+                        ) : (
+                          <span className="text-gray-600 text-xs">Sin asignar</span>
+                        )}
                       </td>
                       
                       <td className="px-6 py-4">
@@ -2057,7 +2107,7 @@ export function ListaPedidos() {
                         <div className="flex items-center gap-2">
                           {/* Botón para cambiar conductor */}
                           <button
-                            onClick={() => setConductorSeleccionado(pedido.conductor)}
+                            onClick={() => pedido.conductor && setConductorSeleccionado(pedido.conductor)}
                             className="p-2 bg-blue-900/20 border border-blue-700/30 rounded-lg hover:bg-blue-900/30 transition-colors"
                             title="Ver/editar conductor"
                           >

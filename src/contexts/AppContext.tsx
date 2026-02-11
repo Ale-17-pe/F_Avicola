@@ -66,6 +66,7 @@ export interface PedidoConfirmado {
   estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
   // Campos de pesaje
   pesoKg?: number;
+  pesoContenedores?: number;
   conductor?: string;
   zonaEntrega?: string;
   ticketEmitido?: boolean;
