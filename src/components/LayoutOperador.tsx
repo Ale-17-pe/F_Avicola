@@ -50,7 +50,7 @@ export function LayoutOperador() {
       icon: ShoppingCart,
     },
     {
-      label: "Lista de Pedidos",
+      label: "Seguimiento de Pedidos",
       path: "/dashboard-operador/lista-pedidos",
       icon: ClipboardList,
     },

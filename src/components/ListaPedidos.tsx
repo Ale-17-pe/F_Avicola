@@ -20,7 +20,7 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En ProducciÃ³n' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
 }
 
 interface PedidoLista {
@@ -111,6 +111,8 @@ interface PedidoPesaje {
   estadoPesaje: 'Pendiente' | 'Completado' | 'Verificado';
   fechaPesaje?: string;
   horaPesaje?: string;
+  cantidadMachos?: number;
+  cantidadHembras?: number;
 }
 
 interface Conductor {
@@ -697,7 +699,7 @@ export function ListaPedidos() {
 
   const crearNuevoSubPedido = () => {
     if (!nuevoSubPedido.cantidad || nuevoSubPedido.cantidad <= 0) {
-      toast.error('Ingrese una cantidad vÃ¡lida');
+      toast.error('Ingrese una cantidad válida');
       return;
     }
 
@@ -783,11 +785,11 @@ export function ListaPedidos() {
       return;
     }
     if (cantidadTotal <= 0) {
-      toast.error('Ingrese una cantidad vÃ¡lida');
+      toast.error('Ingrese una cantidad válida');
       return;
     }
     if (!nuevoPedidoRapido.presentacion) {
-      toast.error('Seleccione una presentaciÃ³n');
+      toast.error('Seleccione una presentación');
       return;
     }
     if (!nuevoPedidoRapido.contenedor) {
@@ -840,7 +842,7 @@ export function ListaPedidos() {
       cantidadNueva: cantidadTotal,
       fecha,
       hora,
-      motivo: 'Nuevo pedido rÃ¡pido desde Aumentar',
+      motivo: 'Nuevo pedido rápido desde Aumentar',
       detalles: `Pedido ${numeroPedido}: ${cantidadTotal} ${nuevoPedidoRapido.tipoAve} (M:${cantMachos} H:${cantHembras})`
     }]);
 
@@ -864,7 +866,7 @@ export function ListaPedidos() {
     return presentaciones || [];
   };
 
-  // 2. FUNCIÃ“N PARA EDITAR PEDIDO INDIVIDUAL
+  // 2. FUNCIÓN PARA EDITAR PEDIDO INDIVIDUAL
   const abrirEdicionPedido = (pedido: PedidoLista) => {
     if (pedido.estado === 'Completado') {
       toast.error('No se puede editar un pedido completado');
@@ -886,7 +888,7 @@ export function ListaPedidos() {
 
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoAEditar.id);
     if (!pedidoOriginal) {
-      toast.error('No se encontrÃ³ el pedido original');
+      toast.error('No se encontró el pedido original');
       return;
     }
 
@@ -900,7 +902,7 @@ export function ListaPedidos() {
 
     if (formEdicion.presentacion !== pedidoAEditar.presentacion) {
       cambios.presentacion = formEdicion.presentacion;
-      cambiosRealizados.push(`PresentaciÃ³n: ${pedidoAEditar.presentacion} â†’ ${formEdicion.presentacion}`);
+      cambiosRealizados.push(`Presentación: ${pedidoAEditar.presentacion} â†’ ${formEdicion.presentacion}`);
     }
 
     if (formEdicion.contenedor !== pedidoAEditar.contenedor) {
@@ -929,7 +931,7 @@ export function ListaPedidos() {
       cantidadNueva: formEdicion.cantidad,
       fecha: ahora.toISOString().split('T')[0],
       hora: ahora.toTimeString().slice(0, 5),
-      motivo: 'EdiciÃ³n manual de pedido',
+      motivo: 'Edición manual de pedido',
       detalles: `Cambios: ${cambiosRealizados.join(', ')}`
     }]);
 
@@ -938,7 +940,7 @@ export function ListaPedidos() {
     setFormEdicion(null);
   };
 
-  // 3. FUNCIÃ“N PARA MOVER A PESAJE
+  // 3. FUNCIÓN PARA MOVER A PESAJE
   const moverAPesaje = (pedido: PedidoLista) => {
     if (pedido.estado !== 'En Producción') {
       toast.error('Solo se pueden mover a pesaje pedidos en producción');
@@ -987,13 +989,13 @@ export function ListaPedidos() {
       fecha,
       hora,
       motivo: 'Movido a pesaje',
-      detalles: `Pedido ${pedido.numeroPedido} movido a Ã¡rea de pesaje`
+      detalles: `Pedido ${pedido.numeroPedido} movido a área de pesaje`
     }]);
 
     toast.success(`Pedido ${pedido.numeroPedido} movido a pesaje`);
   };
 
-  // 4. FUNCIÃ“N PARA COMPLETAR PESAJE
+  // 4. FUNCIÓN PARA COMPLETAR PESAJE
   const completarPesaje = (pedidoPesajeId: string) => {
     setPedidosPesaje(prev => prev.map(p => 
       p.id === pedidoPesajeId 
@@ -1003,12 +1005,12 @@ export function ListaPedidos() {
     toast.success('Pesaje completado');
   };
 
-  // 5. FUNCIÃ“N PARA ELIMINAR DE PESAJE (volver a producciÃ³n)
+  // 5. FUNCIÓN PARA ELIMINAR DE PESAJE (volver a producción)
   const eliminarDePesaje = (pedidoPesajeId: string) => {
     const pedidoPesaje = pedidosPesaje.find(p => p.id === pedidoPesajeId);
     if (!pedidoPesaje) return;
 
-    // Buscar y actualizar el pedido original a En ProducciÃ³n
+    // Buscar y actualizar el pedido original a En Producción
     const pedidoOriginal = pedidosConfirmados?.find(p => p.numeroPedido === pedidoPesaje.numeroPedido);
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedidoOriginal.id, {
@@ -1019,17 +1021,17 @@ export function ListaPedidos() {
 
     // Eliminar de la lista de pesaje
     setPedidosPesaje(prev => prev.filter(p => p.id !== pedidoPesajeId));
-    toast.success('Pedido regresado a producciÃ³n');
+    toast.success('Pedido regresado a producción');
   };
 
-  // ============ FUNCIONES DE GESTIÃ“N BÃSICA ============
+  // ============ FUNCIONES DE GESTIÓN BÁSICA ============
 
   // Abrir modal para editar todos los pedidos de un cliente
   const abrirEdicionCliente = (cliente: PedidoAgrupado, modo: 'EDITAR' | 'CANCELAR' | 'AUMENTAR' | 'CONSOLIDAR') => {
     setClienteSeleccionado(cliente);
     setModoEdicion(modo);
     
-    // Filtrar pedidos segÃºn el modo
+    // Filtrar pedidos según el modo
     let pedidosFiltrados = cliente.pedidos;
     
     if (modo === 'EDITAR') {
@@ -1053,7 +1055,7 @@ export function ListaPedidos() {
     setMotivoCancelacion('');
   };
 
-  // Aplicar cambios a mÃºltiples pedidos
+  // Aplicar cambios a múltiples pedidos
   const aplicarCambiosMultiples = () => {
     if (!clienteSeleccionado) return;
     
@@ -1175,7 +1177,7 @@ export function ListaPedidos() {
 
   // Eliminar pedido individual
   const eliminarPedido = (id: string) => {
-    if (confirm('Â¿EstÃ¡ seguro de eliminar este pedido? Esta acciÃ³n no se puede deshacer.')) {
+    if (confirm('¿Estás seguro de eliminar este pedido? Esta acción no se puede deshacer.')) {
       removePedidoConfirmado(id);
       
       const ahora = new Date();
@@ -1382,7 +1384,7 @@ export function ListaPedidos() {
                 <ListOrdered className="w-6 h-6 text-amber-400" />
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                <div className="text-white tracking-tight">Lista de ProducciÃ³n</div>
+                <div className="text-white tracking-tight">Lista de Pedidos</div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-gray-900/50 border border-gray-800 rounded-lg shadow-inner">
                   <Calendar className="w-3.5 h-3.5 text-gray-500" />
                   <div className="text-sm font-bold text-gray-400 tracking-wider">
@@ -1421,7 +1423,7 @@ export function ListaPedidos() {
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">ProducciÃ³n</div>
+                <div className="text-sm text-gray-400">Producción</div>
                 <div className="text-2xl font-bold text-blue-400">{enProduccion}</div>
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
@@ -1474,7 +1476,7 @@ export function ListaPedidos() {
             className="px-4 py-2 bg-blue-900/20 border border-blue-700/30 rounded-lg text-blue-400 flex items-center gap-2"
           >
             <Edit2 className="w-4 h-4" />
-            Editar MÃºltiple
+            Editar Múltiple
           </button>
           
           <button
@@ -1482,7 +1484,7 @@ export function ListaPedidos() {
             className="px-4 py-2 bg-amber-900/20 border border-amber-700/30 rounded-lg text-amber-400 flex items-center gap-2 hover:bg-amber-900/30 transition-colors"
           >
             <Eye className="w-4 h-4" />
-            Pantalla ProducciÃ³n
+            Pantalla Producción
           </button>
         </div>
 
@@ -1493,7 +1495,7 @@ export function ListaPedidos() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar cliente, nÃºmero, ave..."
+                placeholder="Buscar cliente, número, ave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-black/30 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
@@ -1541,7 +1543,7 @@ export function ListaPedidos() {
               >
                 <option value="all" className="bg-black">Todos</option>
                 <option value="Pendiente" className="bg-black">Pendiente</option>
-                <option value="En ProducciÃ³n" className="bg-black">En ProducciÃ³n</option>
+                <option value="En Producción" className="bg-black">En Producción</option>
                 <option value="Completado" className="bg-black">Completado</option>
                 <option value="Cancelado" className="bg-black">Cancelado</option>
               </select>
@@ -1550,7 +1552,7 @@ export function ListaPedidos() {
         </div>
       </div>
 
-      {/* Sugerencias de ConsolidaciÃ³n */}
+      {/* Sugerencias de Consolidación */}
       {mostrarSugerencias && consolidacionesSugeridas.length > 0 && (
         <div className="mb-8 bg-green-900/10 border border-green-700/30 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
@@ -1606,13 +1608,13 @@ export function ListaPedidos() {
           
           <div className="mt-4 pt-4 border-t border-gray-800 text-sm text-gray-400">
             <AlertCircle className="w-4 h-4 inline mr-2" />
-            Los pedidos similares se consolidan automÃ¡ticamente sumando sus cantidades en un solo pedido.
+            Los pedidos similares se consolidan automáticamente sumando sus cantidades en un solo pedido.
           </div>
         </div>
       )}
 
       {/* Grupos de Clientes */}
-      {vistaGrupos && pedidosAgrupados.length > 0 && (
+      {/*{vistaGrupos && pedidosAgrupados.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-400" />
@@ -1644,7 +1646,7 @@ export function ListaPedidos() {
                     <span className="text-amber-400 font-bold">{grupo.pedidosPendientes}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">En producciÃ³n:</span>
+                    <span className="text-gray-400">En producción:</span>
                     <span className="text-blue-400 font-bold">
                       {grupo.pedidos.filter(p => p.estado === 'En Producción').length}
                     </span>
@@ -1682,7 +1684,7 @@ export function ListaPedidos() {
             ))}
           </div>
         </div>
-      )}
+      )}*/}
 
       {/* ========== SECCIONES ANTES DE PESAJE ========== */}
       {[
@@ -1716,17 +1718,19 @@ export function ListaPedidos() {
                     <tr style={{ background: `linear-gradient(to right, ${seccion.color}08, transparent)`, borderBottom: `1px solid ${seccion.color}20` }}>
                       {editandoMultiple && (
                         <th className="px-6 py-4 text-left w-12">
-                          <div className="text-xs font-semibold text-gray-400 uppercase">#</div>
+                          <div className="text-xs font-semibold text-white uppercase">#</div>
                         </th>
                       )}
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Orden</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Pedido</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Producto</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Estado</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Cantidad</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Machos</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Hembras</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Acciones</div></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1775,13 +1779,28 @@ export function ListaPedidos() {
                           ) : (
                             <div>
                               <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
-                              {pedido.cantidadMachos !== undefined && pedido.cantidadHembras !== undefined && (
-                                <div className="text-xs space-x-1.5 mt-0.5"><span className="text-blue-300">♂ {pedido.cantidadMachos}</span><span className="text-pink-300">♀ {pedido.cantidadHembras}</span></div>
-                              )}
                               {pedido.cantidadJabas && pedido.unidadesPorJaba && (
                                 <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>{pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u</div>
                               )}
                             </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {pedido.cantidadMachos !== undefined ? (
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
+                              <span className="text-white font-black text-base tabular-nums">{pedido.cantidadMachos}</span>
+                            </div>
+                          ) : (
+                            <span className="text-white font-mono">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {pedido.cantidadHembras !== undefined ? (
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-amber-900/20 border border-amber-700/30">
+                              <span className="text-white font-black text-base tabular-nums">{pedido.cantidadHembras}</span>
+                            </div>
+                          ) : (
+                            <span className="text-white font-mono">—</span>
                           )}
                         </td>
                         <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>
@@ -1832,7 +1851,7 @@ export function ListaPedidos() {
               <thead>
                 <tr className="bg-black border-b border-purple-800/30">
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">NÂ° Pedido</div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase">N° Pedido</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div>
@@ -1844,7 +1863,13 @@ export function ListaPedidos() {
                     <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">PresentaciÃ³n</div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase">Presentación</div>
+                  </th>
+                  <th className="px-6 py-4 text-center">
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Machos</div>
+                  </th>
+                  <th className="px-6 py-4 text-center">
+                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Hembras</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-gray-400 uppercase">Contenedores</div>
@@ -1866,7 +1891,7 @@ export function ListaPedidos() {
               <tbody>
                 {pedidosPesaje.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center">
+                    <td colSpan={12} className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         No hay pedidos en proceso de pesaje
                       </div>
@@ -1899,12 +1924,33 @@ export function ListaPedidos() {
                         <div className="text-white">{pedido.presentacion}</div>
                       </td>
                       
+                      <td className="px-6 py-4 text-center">
+                        {pedido.cantidadMachos !== undefined ? (
+                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
+                            <span className="text-blue-300 font-black text-base tabular-nums">{pedido.cantidadMachos}</span>
+                            <div className="text-[9px] text-blue-400/80 uppercase tracking-wider font-bold">M</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {pedido.cantidadHembras !== undefined ? (
+                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-amber-900/20 border border-amber-700/30">
+                            <span className="text-amber-300 font-black text-base tabular-nums">{pedido.cantidadHembras}</span>
+                            <div className="text-[9px] text-amber-400/80 uppercase tracking-wider font-bold">H</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 font-mono">—</span>
+                        )}
+                      </td>
+                      
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="text-white font-medium">{pedido.contenedor}</div>
                           {pedido.numeroContenedores ? (
                             <div className="text-xs text-gray-400">
-                              {pedido.numeroContenedores} cont. Â· {(pedido.pesoContenedores || 0).toFixed(1)} kg
+                              {pedido.numeroContenedores} cont. · {(pedido.pesoContenedores || 0).toFixed(1)} kg
                             </div>
                           ) : (
                             <div className="text-xs text-gray-600">Pendiente de pesaje</div>
@@ -1916,7 +1962,7 @@ export function ListaPedidos() {
                         {pedido.pesoBruto ? (
                           <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
                         ) : (
-                          <span className="text-gray-600">â€”</span>
+                          <span className="text-gray-600">—</span>
                         )}
                       </td>
                       
@@ -2023,13 +2069,15 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Machos</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Hembras</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {seccion.datos.map((pedido) => (
+                    {seccion.datos.map((pedido: PedidoLista) => (
                       <tr key={pedido.id} className="border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors duration-200">
                         <td className="px-6 py-4">
                           <div className={`w-10 h-10 rounded-xl ${pedido.prioridadBase <= 3 ? 'bg-gradient-to-br from-red-900/20 to-red-800/20 border border-red-700/30 text-red-300' : pedido.prioridadBase <= 6 ? 'bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border border-yellow-700/30 text-yellow-300' : 'bg-gradient-to-br from-green-900/20 to-green-800/20 border border-green-700/30 text-green-300'} flex items-center justify-center font-bold`}>
@@ -2052,6 +2100,24 @@ export function ListaPedidos() {
                           <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
                           {pedido.cantidadJabas && pedido.unidadesPorJaba && (
                             <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>{pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {pedido.cantidadMachos !== undefined ? (
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
+                              <span className="text-white font-black text-base tabular-nums">{pedido.cantidadMachos}</span>
+                            </div>
+                          ) : (
+                            <span className="text-white font-mono">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {pedido.cantidadHembras !== undefined ? (
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-amber-900/20 border border-amber-700/30">
+                              <span className="text-white font-black text-base tabular-nums">{pedido.cantidadHembras}</span>
+                            </div>
+                          ) : (
+                            <span className="text-white font-mono">—</span>
                           )}
                         </td>
                         <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>

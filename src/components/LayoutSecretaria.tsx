@@ -53,7 +53,7 @@ export function LayoutSecretaria() {
       icon: ShoppingCart,
     },
     {
-      label: "Lista Pedidos",
+      label: "Seguimiento de Pedidos",
       path: "/dashboard-secretaria/lista-pedidos",
       icon: ClipboardList,
     },
