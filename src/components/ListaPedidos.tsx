@@ -210,10 +210,10 @@ export function ListaPedidos() {
 
   // Estados para conductores
   const [conductores, setConductores] = useState<Conductor[]>([
-    { id: '1', nombre: 'Juan PÃ©rez', licencia: 'A1234567', vehiculo: 'CamiÃ³n F350', zonaAsignada: 'Zona Norte', telefono: '555-0101' },
-    { id: '2', nombre: 'MarÃ­a GarcÃ­a', licencia: 'B2345678', vehiculo: 'CamiÃ³n F250', zonaAsignada: 'Zona Sur', telefono: '555-0102' },
-    { id: '3', nombre: 'Carlos LÃ³pez', licencia: 'C3456789', vehiculo: 'CamiÃ³n F150', zonaAsignada: 'Zona Este', telefono: '555-0103' },
-    { id: '4', nombre: 'Ana MartÃ­nez', licencia: 'D4567890', vehiculo: 'CamiÃ³n F450', zonaAsignada: 'Zona Oeste', telefono: '555-0104' }
+    { id: '1', nombre: 'Juan Pérez', licencia: 'A1234567', vehiculo: 'CamiÃ³n F350', zonaAsignada: 'Zona Norte', telefono: '555-0101' },
+    { id: '2', nombre: 'María García', licencia: 'B2345678', vehiculo: 'CamiÃ³n F250', zonaAsignada: 'Zona Sur', telefono: '555-0102' },
+    { id: '3', nombre: 'Carlos López', licencia: 'C3456789', vehiculo: 'CamiÃ³n F150', zonaAsignada: 'Zona Este', telefono: '555-0103' },
+    { id: '4', nombre: 'Ana Martínez', licencia: 'D4567890', vehiculo: 'CamiÃ³n F450', zonaAsignada: 'Zona Oeste', telefono: '555-0104' }
   ]);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState<Conductor | null>(null);
@@ -270,6 +270,8 @@ export function ListaPedidos() {
             zonaAsignada: original.zonaEntrega || '',
           },
           estadoPesaje: 'Completado' as const,
+          cantidadMachos: extraerInfoGenero(original.tipoAve)?.machos,
+          cantidadHembras: extraerInfoGenero(original.tipoAve)?.hembras
         };  
       }
       return pp;
@@ -1928,7 +1930,6 @@ export function ListaPedidos() {
                         {pedido.cantidadMachos !== undefined ? (
                           <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
                             <span className="text-blue-300 font-black text-base tabular-nums">{pedido.cantidadMachos}</span>
-                            <div className="text-[9px] text-blue-400/80 uppercase tracking-wider font-bold">M</div>
                           </div>
                         ) : (
                           <span className="text-white-600 font-mono">—</span>
@@ -1938,7 +1939,6 @@ export function ListaPedidos() {
                         {pedido.cantidadHembras !== undefined ? (
                           <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-amber-900/20 border border-amber-700/30">
                             <span className="text-amber-300 font-black text-base tabular-nums">{pedido.cantidadHembras}</span>
-                            <div className="text-[9px] text-amber-400/80 uppercase tracking-wider font-bold">H</div>
                           </div>
                         ) : (
                           <span className="text-white-600 font-mono">—</span>
@@ -2432,7 +2432,7 @@ export function ListaPedidos() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">PresentaciÃ³n</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Presentación</label>
                 <select
                   value={formEdicion.presentacion}
                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, presentacion: e.target.value } : null)}
@@ -2510,7 +2510,7 @@ export function ListaPedidos() {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-400 mb-1">VehÃ­culo</div>
+                <div className="text-sm font-medium text-gray-400 mb-1">Vehículo</div>
                 <div className="text-white font-medium">{conductorSeleccionado.vehiculo}</div>
               </div>
 
@@ -2521,7 +2521,7 @@ export function ListaPedidos() {
 
               {conductorSeleccionado.telefono && (
                 <div>
-                  <div className="text-sm font-medium text-gray-400 mb-1">TelÃ©fono</div>
+                  <div className="text-sm font-medium text-gray-400 mb-1">Teléfono</div>
                   <div className="text-white">{conductorSeleccionado.telefono}</div>
                 </div>
               )}
@@ -2551,7 +2551,7 @@ export function ListaPedidos() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-gray-400">NÃºmero de Pedido</div>
+                  <div className="text-xs text-gray-400">Número de Pedido</div>
                   <div className="text-white font-mono font-bold">{mostrarDetallePedido.numeroPedido}</div>
                 </div>
                 <div>
@@ -2567,7 +2567,7 @@ export function ListaPedidos() {
                   <div className="text-white font-bold">{mostrarDetallePedido.cantidad} aves</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">PresentaciÃ³n</div>
+                  <div className="text-xs text-gray-400">Presentación</div>
                   <div className="text-white">{mostrarDetallePedido.presentacion}</div>
                 </div>
                 <div>
