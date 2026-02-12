@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Search, Filter, Package, ListOrdered, User, Tag, Edit2, Trash2, Plus, X, Truck, Box, Users, Layers, History, Calendar, Merge, Check, AlertCircle, Save, RotateCcw, Eye, Weight, CheckCircle, User as UserIcon, Truck as TruckIcon, Wrench } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner'
@@ -20,7 +20,7 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
+  estado?: 'Pendiente' | 'En ProducciÃ³n' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
 }
 
 interface PedidoLista {
@@ -81,7 +81,7 @@ interface ConsolidacionSugerida {
   motivo?: string;
 }
 
-// Interface para formulario de pedido rápido
+// Interface para formulario de pedido rÃ¡pido
 interface NuevoPedidoRapido {
   cliente: string;
   numeroCliente: string;
@@ -130,7 +130,7 @@ interface EdicionPedidoForm {
   tipoAve?: string;
 }
 
-// Función helper para extraer información de género del string tipoAve
+// FunciÃ³n helper para extraer informaciÃ³n de gÃ©nero del string tipoAve
 const extraerInfoGenero = (tipoAve: string): { machos: number; hembras: number } | null => {
   const match = tipoAve.match(/\(M:(\d+),\s*H:(\d+)\)/);
   if (match) {
@@ -153,14 +153,14 @@ export function ListaPedidos() {
   const [pedidosLista, setPedidosLista] = useState<PedidoLista[]>([]);
   const [pedidosAgrupados, setPedidosAgrupados] = useState<PedidoAgrupado[]>([]);
   
-  // Estados para gestión de pedidos
+  // Estados para gestiÃ³n de pedidos
   const [clienteSeleccionado, setClienteSeleccionado] = useState<PedidoAgrupado | null>(null);
   const [modoEdicion, setModoEdicion] = useState<'EDITAR' | 'CANCELAR' | 'AUMENTAR' | 'CONSOLIDAR' | 'NUEVO_SUB' | null>(null);
   const [pedidosSeleccionados, setPedidosSeleccionados] = useState<PedidoLista[]>([]);
   const [cantidadesEditadas, setCantidadesEditadas] = useState<{[key: string]: string}>({});
   const [motivoCancelacion, setMotivoCancelacion] = useState<string>('');
   
-  // Estados para consolidación inteligente
+  // Estados para consolidaciÃ³n inteligente
   const [consolidacionesSugeridas, setConsolidacionesSugeridas] = useState<ConsolidacionSugerida[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [pedidosAEditar, setPedidosAEditar] = useState<PedidoLista[]>([]);
@@ -179,7 +179,7 @@ export function ListaPedidos() {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarDetallePedido, setMostrarDetallePedido] = useState<PedidoLista | null>(null);
   
-  // NUEVOS ESTADOS PARA PESAJE Y EDICIÓN
+  // NUEVOS ESTADOS PARA PESAJE Y EDICIÃ“N
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoLista | null>(null);
   const [formEdicion, setFormEdicion] = useState<EdicionPedidoForm | null>(null);
   
@@ -208,15 +208,15 @@ export function ListaPedidos() {
 
   // Estados para conductores
   const [conductores, setConductores] = useState<Conductor[]>([
-    { id: '1', nombre: 'Juan Pérez', licencia: 'A1234567', vehiculo: 'Camión F350', zonaAsignada: 'Zona Norte', telefono: '555-0101' },
-    { id: '2', nombre: 'María García', licencia: 'B2345678', vehiculo: 'Camión F250', zonaAsignada: 'Zona Sur', telefono: '555-0102' },
-    { id: '3', nombre: 'Carlos López', licencia: 'C3456789', vehiculo: 'Camión F150', zonaAsignada: 'Zona Este', telefono: '555-0103' },
-    { id: '4', nombre: 'Ana Martínez', licencia: 'D4567890', vehiculo: 'Camión F450', zonaAsignada: 'Zona Oeste', telefono: '555-0104' }
+    { id: '1', nombre: 'Juan PÃ©rez', licencia: 'A1234567', vehiculo: 'CamiÃ³n F350', zonaAsignada: 'Zona Norte', telefono: '555-0101' },
+    { id: '2', nombre: 'MarÃ­a GarcÃ­a', licencia: 'B2345678', vehiculo: 'CamiÃ³n F250', zonaAsignada: 'Zona Sur', telefono: '555-0102' },
+    { id: '3', nombre: 'Carlos LÃ³pez', licencia: 'C3456789', vehiculo: 'CamiÃ³n F150', zonaAsignada: 'Zona Este', telefono: '555-0103' },
+    { id: '4', nombre: 'Ana MartÃ­nez', licencia: 'D4567890', vehiculo: 'CamiÃ³n F450', zonaAsignada: 'Zona Oeste', telefono: '555-0104' }
   ]);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState<Conductor | null>(null);
   
-  // Estados para modal de nuevo pedido rápido (Aumentar)
+  // Estados para modal de nuevo pedido rÃ¡pido (Aumentar)
   const [mostrarModalNuevoPedido, setMostrarModalNuevoPedido] = useState(false);
   const [nuevoPedidoRapido, setNuevoPedidoRapido] = useState<NuevoPedidoRapido>({
     cliente: '',
@@ -229,7 +229,7 @@ export function ListaPedidos() {
     contenedor: ''
   });
   
-  // Guardar historial automáticamente
+  // Guardar historial automÃ¡ticamente
   useEffect(() => {
     localStorage.setItem('modificacionesHistorial', JSON.stringify(modificacionesHistorial));
   }, [modificacionesHistorial]);
@@ -268,13 +268,13 @@ export function ListaPedidos() {
             zonaAsignada: original.zonaEntrega || '',
           },
           estadoPesaje: 'Completado' as const,
-        };
+        };  
       }
       return pp;
     }));
   }, [pedidosConfirmados]);
 
-  // Guardar pedidos en pesaje automáticamente
+  // Guardar pedidos en pesaje automÃ¡ticamente
   useEffect(() => {
     localStorage.setItem('pedidosPesaje', JSON.stringify(pedidosPesaje));
   }, [pedidosPesaje]);
@@ -393,12 +393,12 @@ export function ListaPedidos() {
     const pesoPromedioAve = 1.8;
     const pesoTotalPedido = (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
     
-    // Extraer información de género
+    // Extraer informaciÃ³n de gÃ©nero
     const infoGenero = extraerInfoGenero(pedido.tipoAve);
     
     // Extraer variedad si existe
     const extraerVariedad = (tipo: string): string | null => {
-      // Intentar extraer de paréntesis (viejo formato)
+      // Intentar extraer de parÃ©ntesis (viejo formato)
       const matchParen = tipo.match(/\((?!M:|H:)(.*?)\)/);
       if (matchParen) return matchParen[1];
       
@@ -443,9 +443,9 @@ export function ListaPedidos() {
     };
   };
 
-  // ============ FUNCIONES DE GESTIÓN INTELIGENTE ============
+  // ============ FUNCIONES DE GESTIÃ“N INTELIGENTE ============
 
-  // Función para verificar si pedidos son similares (para consolidar)
+  // FunciÃ³n para verificar si pedidos son similares (para consolidar)
   const sonPedidosSimilares = (pedido1: PedidoLista, pedido2: PedidoLista): boolean => {
     // Solo consolidar pedidos pendientes
     if (pedido1.estado !== 'Pendiente' || pedido2.estado !== 'Pendiente') {
@@ -457,11 +457,11 @@ export function ListaPedidos() {
       return false;
     }
     
-    // Extraer información base del tipo de ave (sin sexo/variedad)
+    // Extraer informaciÃ³n base del tipo de ave (sin sexo/variedad)
     const tipoAve1 = pedido1.tipoAve.toLowerCase();
     const tipoAve2 = pedido2.tipoAve.toLowerCase();
     
-    // Verificar tipo de ave, presentación y contenedor
+    // Verificar tipo de ave, presentaciÃ³n y contenedor
     return (
       tipoAve1 === tipoAve2 &&
       pedido1.presentacion === pedido2.presentacion &&
@@ -469,7 +469,7 @@ export function ListaPedidos() {
     );
   };
 
-  // Buscar consolidaciones sugeridas automáticamente
+  // Buscar consolidaciones sugeridas automÃ¡ticamente
   const buscarConsolidacionesSugeridas = (pedidos: PedidoLista[]) => {
     const grupos: { [key: string]: PedidoLista[] } = {};
     
@@ -503,7 +503,7 @@ export function ListaPedidos() {
     setConsolidacionesSugeridas(sugerencias);
   };
 
-  // Consolidar pedidos automáticamente
+  // Consolidar pedidos automÃ¡ticamente
   const consolidarPedidosAutomaticamente = () => {
     if (consolidacionesSugeridas.length === 0) {
       toast.info('No hay pedidos similares para consolidar');
@@ -549,7 +549,7 @@ export function ListaPedidos() {
             cantidadNueva: nuevaCantidad,
             fecha,
             hora,
-            motivo: 'Consolidación automática de pedidos similares',
+            motivo: 'ConsolidaciÃ³n automÃ¡tica de pedidos similares',
             detalles: `Se consolidaron ${sugerencia.pedidos.length} pedidos`,
             pedidosAfectados: sugerencia.pedidos.map(p => p.numeroPedido)
           }]);
@@ -601,7 +601,7 @@ export function ListaPedidos() {
         cantidad: nuevaCantidad
       });
       
-      // Eliminar los demás pedidos
+      // Eliminar los demÃ¡s pedidos
       pedidosSeleccionados.slice(1).forEach(pedido => {
         removePedidoConfirmado(pedido.id);
       });
@@ -615,7 +615,7 @@ export function ListaPedidos() {
         cantidadNueva: nuevaCantidad,
         fecha,
         hora,
-        motivo: 'Consolidación manual de pedidos seleccionados',
+        motivo: 'ConsolidaciÃ³n manual de pedidos seleccionados',
         detalles: `Se consolidaron ${pedidosSeleccionados.length} pedidos`,
         pedidosAfectados: pedidosSeleccionados.map(p => p.numeroPedido)
       }]);
@@ -626,7 +626,7 @@ export function ListaPedidos() {
     }
   };
 
-  // Aumentar pedido con verificación de similares
+  // Aumentar pedido con verificaciÃ³n de similares
   const manejarAumentoPedido = (pedidoExistente: PedidoLista, cantidadAumento: number): boolean => {
     // Buscar pedidos similares pendientes
     const pedidosSimilares = pedidosLista.filter(p => 
@@ -637,7 +637,7 @@ export function ListaPedidos() {
     
     if (pedidosSimilares.length > 0) {
       const confirmarSuma = window.confirm(
-        `Se encontraron ${pedidosSimilares.length} pedido(s) similares pendientes.\n\n¿Desea sumar la cantidad a uno existente en lugar de crear uno nuevo?\n\nPedidos similares:\n${pedidosSimilares.map(p => `• ${p.numeroPedido} - ${p.cantidad} aves`).join('\n')}`
+        `Se encontraron ${pedidosSimilares.length} pedido(s) similares pendientes.\n\nÂ¿Desea sumar la cantidad a uno existente en lugar de crear uno nuevo?\n\nPedidos similares:\n${pedidosSimilares.map(p => `â€¢ ${p.numeroPedido} - ${p.cantidad} aves`).join('\n')}`
       );
       
       if (confirmarSuma) {
@@ -679,7 +679,7 @@ export function ListaPedidos() {
 
   // ============ NUEVAS FUNCIONALIDADES PARA PESAJE ============
 
-  // 1. FUNCIÓN PARA CREAR NUEVO SUB-PEDIDO
+  // 1. FUNCIÃ“N PARA CREAR NUEVO SUB-PEDIDO
   const abrirNuevoSubPedido = (pedidoBase: PedidoLista) => {
     setNuevoSubPedido({
       cliente: pedidoBase.cliente,
@@ -697,7 +697,7 @@ export function ListaPedidos() {
 
   const crearNuevoSubPedido = () => {
     if (!nuevoSubPedido.cantidad || nuevoSubPedido.cantidad <= 0) {
-      toast.error('Ingrese una cantidad válida');
+      toast.error('Ingrese una cantidad vÃ¡lida');
       return;
     }
 
@@ -705,7 +705,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
     
-    // Obtener el siguiente número de sub-pedido
+    // Obtener el siguiente nÃºmero de sub-pedido
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoSubPedido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
     const nuevoSubNumero = ultimoSubNumero + 1;
@@ -757,7 +757,7 @@ export function ListaPedidos() {
     });
   };
 
-  // Función para abrir modal de nuevo pedido rápido (Aumentar)
+  // FunciÃ³n para abrir modal de nuevo pedido rÃ¡pido (Aumentar)
   const abrirModalNuevoPedido = (grupo: PedidoAgrupado) => {
     setNuevoPedidoRapido({
       cliente: grupo.cliente,
@@ -772,7 +772,7 @@ export function ListaPedidos() {
     setMostrarModalNuevoPedido(true);
   };
 
-  // Función para confirmar pedido rápido desde modal
+  // FunciÃ³n para confirmar pedido rÃ¡pido desde modal
   const confirmarPedidoRapido = () => {
     const cantMachos = parseInt(nuevoPedidoRapido.cantidadMachos) || 0;
     const cantHembras = parseInt(nuevoPedidoRapido.cantidadHembras) || 0;
@@ -783,11 +783,11 @@ export function ListaPedidos() {
       return;
     }
     if (cantidadTotal <= 0) {
-      toast.error('Ingrese una cantidad válida');
+      toast.error('Ingrese una cantidad vÃ¡lida');
       return;
     }
     if (!nuevoPedidoRapido.presentacion) {
-      toast.error('Seleccione una presentación');
+      toast.error('Seleccione una presentaciÃ³n');
       return;
     }
     if (!nuevoPedidoRapido.contenedor) {
@@ -799,7 +799,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
     
-    // Obtener el siguiente número de sub-pedido para este cliente
+    // Obtener el siguiente nÃºmero de sub-pedido para este cliente
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoPedidoRapido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
     const nuevoSubNumero = ultimoSubNumero + 1;
@@ -840,7 +840,7 @@ export function ListaPedidos() {
       cantidadNueva: cantidadTotal,
       fecha,
       hora,
-      motivo: 'Nuevo pedido rápido desde Aumentar',
+      motivo: 'Nuevo pedido rÃ¡pido desde Aumentar',
       detalles: `Pedido ${numeroPedido}: ${cantidadTotal} ${nuevoPedidoRapido.tipoAve} (M:${cantMachos} H:${cantHembras})`
     }]);
 
@@ -864,7 +864,7 @@ export function ListaPedidos() {
     return presentaciones || [];
   };
 
-  // 2. FUNCIÓN PARA EDITAR PEDIDO INDIVIDUAL
+  // 2. FUNCIÃ“N PARA EDITAR PEDIDO INDIVIDUAL
   const abrirEdicionPedido = (pedido: PedidoLista) => {
     if (pedido.estado === 'Completado') {
       toast.error('No se puede editar un pedido completado');
@@ -886,7 +886,7 @@ export function ListaPedidos() {
 
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoAEditar.id);
     if (!pedidoOriginal) {
-      toast.error('No se encontró el pedido original');
+      toast.error('No se encontrÃ³ el pedido original');
       return;
     }
 
@@ -895,17 +895,17 @@ export function ListaPedidos() {
 
     if (formEdicion.cantidad !== pedidoAEditar.cantidad) {
       cambios.cantidad = formEdicion.cantidad;
-      cambiosRealizados.push(`Cantidad: ${pedidoAEditar.cantidad} → ${formEdicion.cantidad}`);
+      cambiosRealizados.push(`Cantidad: ${pedidoAEditar.cantidad} â†’ ${formEdicion.cantidad}`);
     }
 
     if (formEdicion.presentacion !== pedidoAEditar.presentacion) {
       cambios.presentacion = formEdicion.presentacion;
-      cambiosRealizados.push(`Presentación: ${pedidoAEditar.presentacion} → ${formEdicion.presentacion}`);
+      cambiosRealizados.push(`PresentaciÃ³n: ${pedidoAEditar.presentacion} â†’ ${formEdicion.presentacion}`);
     }
 
     if (formEdicion.contenedor !== pedidoAEditar.contenedor) {
       cambios.contenedor = formEdicion.contenedor;
-      cambiosRealizados.push(`Contenedor: ${pedidoAEditar.contenedor} → ${formEdicion.contenedor}`);
+      cambiosRealizados.push(`Contenedor: ${pedidoAEditar.contenedor} â†’ ${formEdicion.contenedor}`);
     }
 
     if (cambiosRealizados.length === 0) {
@@ -929,7 +929,7 @@ export function ListaPedidos() {
       cantidadNueva: formEdicion.cantidad,
       fecha: ahora.toISOString().split('T')[0],
       hora: ahora.toTimeString().slice(0, 5),
-      motivo: 'Edición manual de pedido',
+      motivo: 'EdiciÃ³n manual de pedido',
       detalles: `Cambios: ${cambiosRealizados.join(', ')}`
     }]);
 
@@ -938,7 +938,7 @@ export function ListaPedidos() {
     setFormEdicion(null);
   };
 
-  // 3. FUNCIÓN PARA MOVER A PESAJE
+  // 3. FUNCIÃ“N PARA MOVER A PESAJE
   const moverAPesaje = (pedido: PedidoLista) => {
     if (pedido.estado !== 'En Producción') {
       toast.error('Solo se pueden mover a pesaje pedidos en producción');
@@ -949,7 +949,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
 
-    // NO pre-llenar peso, contenedores ni conductor — se llenarán en Pesaje
+    // NO pre-llenar peso, contenedores ni conductor â€” se llenarÃ¡n en Pesaje
     const nuevoPedidoPesaje: PedidoPesaje = {
       id: `pesaje-${Date.now()}-${pedido.id}`,
       numeroPedido: pedido.numeroPedido,
@@ -987,13 +987,13 @@ export function ListaPedidos() {
       fecha,
       hora,
       motivo: 'Movido a pesaje',
-      detalles: `Pedido ${pedido.numeroPedido} movido a área de pesaje`
+      detalles: `Pedido ${pedido.numeroPedido} movido a Ã¡rea de pesaje`
     }]);
 
     toast.success(`Pedido ${pedido.numeroPedido} movido a pesaje`);
   };
 
-  // 4. FUNCIÓN PARA COMPLETAR PESAJE
+  // 4. FUNCIÃ“N PARA COMPLETAR PESAJE
   const completarPesaje = (pedidoPesajeId: string) => {
     setPedidosPesaje(prev => prev.map(p => 
       p.id === pedidoPesajeId 
@@ -1003,12 +1003,12 @@ export function ListaPedidos() {
     toast.success('Pesaje completado');
   };
 
-  // 5. FUNCIÓN PARA ELIMINAR DE PESAJE (volver a producción)
+  // 5. FUNCIÃ“N PARA ELIMINAR DE PESAJE (volver a producciÃ³n)
   const eliminarDePesaje = (pedidoPesajeId: string) => {
     const pedidoPesaje = pedidosPesaje.find(p => p.id === pedidoPesajeId);
     if (!pedidoPesaje) return;
 
-    // Buscar y actualizar el pedido original a En Producción
+    // Buscar y actualizar el pedido original a En ProducciÃ³n
     const pedidoOriginal = pedidosConfirmados?.find(p => p.numeroPedido === pedidoPesaje.numeroPedido);
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedidoOriginal.id, {
@@ -1019,17 +1019,17 @@ export function ListaPedidos() {
 
     // Eliminar de la lista de pesaje
     setPedidosPesaje(prev => prev.filter(p => p.id !== pedidoPesajeId));
-    toast.success('Pedido regresado a producción');
+    toast.success('Pedido regresado a producciÃ³n');
   };
 
-  // ============ FUNCIONES DE GESTIÓN BÁSICA ============
+  // ============ FUNCIONES DE GESTIÃ“N BÃSICA ============
 
   // Abrir modal para editar todos los pedidos de un cliente
   const abrirEdicionCliente = (cliente: PedidoAgrupado, modo: 'EDITAR' | 'CANCELAR' | 'AUMENTAR' | 'CONSOLIDAR') => {
     setClienteSeleccionado(cliente);
     setModoEdicion(modo);
     
-    // Filtrar pedidos según el modo
+    // Filtrar pedidos segÃºn el modo
     let pedidosFiltrados = cliente.pedidos;
     
     if (modo === 'EDITAR') {
@@ -1053,7 +1053,7 @@ export function ListaPedidos() {
     setMotivoCancelacion('');
   };
 
-  // Aplicar cambios a múltiples pedidos
+  // Aplicar cambios a mÃºltiples pedidos
   const aplicarCambiosMultiples = () => {
     if (!clienteSeleccionado) return;
     
@@ -1099,7 +1099,7 @@ export function ListaPedidos() {
             const sumado = manejarAumentoPedido(pedido, diferencia);
             
             if (!sumado) {
-              // Si no se sumó, actualizar el pedido original
+              // Si no se sumÃ³, actualizar el pedido original
               updatePedidoConfirmado(pedido.id, {
                 ...pedidoOriginal,
                 cantidad: aumentoCantidad
@@ -1147,7 +1147,7 @@ export function ListaPedidos() {
           break;
           
         case 'CONSOLIDAR':
-          // La consolidación se maneja en otra función
+          // La consolidaciÃ³n se maneja en otra funciÃ³n
           break;
       }
     });
@@ -1175,7 +1175,7 @@ export function ListaPedidos() {
 
   // Eliminar pedido individual
   const eliminarPedido = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este pedido? Esta acción no se puede deshacer.')) {
+    if (confirm('Â¿EstÃ¡ seguro de eliminar este pedido? Esta acciÃ³n no se puede deshacer.')) {
       removePedidoConfirmado(id);
       
       const ahora = new Date();
@@ -1227,7 +1227,7 @@ export function ListaPedidos() {
     }
   };
 
-  // Editar múltiples pedidos manualmente (seleccionando checkboxes)
+  // Editar mÃºltiples pedidos manualmente (seleccionando checkboxes)
   const iniciarEdicionMultiple = () => {
     const pedidosPendientes = pedidosLista.filter(p => p.estado === 'Pendiente');
     if (pedidosPendientes.length === 0) {
@@ -1279,7 +1279,7 @@ export function ListaPedidos() {
         cantidadNueva: 0,
         fecha,
         hora,
-        motivo: 'Edición múltiple de pedidos',
+        motivo: 'EdiciÃ³n mÃºltiple de pedidos',
         detalles: `${cambiosAplicados} pedidos modificados`,
         pedidosAfectados: pedidosModificados
       }]);
@@ -1307,7 +1307,7 @@ export function ListaPedidos() {
     return matchesSearch && matchesCliente && matchesTipoAve && matchesEstado;
   });
 
-  // Consolidar pedidos automáticamente para mostrar
+  // Consolidar pedidos automÃ¡ticamente para mostrar
   const pedidosConsolidados = (() => {
     if (!vistaGrupos) return pedidosFiltrados;
     
@@ -1348,10 +1348,16 @@ export function ListaPedidos() {
 
   const pedidosMostrar = pedidosConsolidados;
 
-  // Filtrar pedidos para tabla de producción (excluyendo los completados)
+  // Filtrar pedidos por estado para cada secciÃ³n
+  const pedidosPendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente');
+  const pedidosEnProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción');
+  const pedidosEnEntrega = pedidosMostrar.filter(p => p.estado === 'Entregado');
+  const pedidosEntregados = pedidosMostrar.filter(p => p.estado === 'Completado');
+
+  // Tabla de producciÃ³n combinada (para backward compat)
   const pedidosProduccion = pedidosLista.filter(p => p.estado !== 'Completado');
 
-  // ============ ESTADÍSTICAS ============
+  // ============ ESTADÃ STICAS ============
   const totalPedidos = pedidosMostrar.length;
   const cantidadTotal = pedidosMostrar.reduce((acc, p) => acc + p.cantidad, 0);
   const clientesUnicos = Array.from(new Set(pedidosMostrar.map(p => p.cliente)));
@@ -1361,7 +1367,7 @@ export function ListaPedidos() {
   const completados = pedidosLista.filter(p => p.estado === 'Completado').length;
   const enPesaje = pedidosPesaje.length;
 
-  // Obtener clientes únicos para filtro
+  // Obtener clientes Ãºnicos para filtro
   const clientesParaFiltro = Array.from(new Set(pedidosLista.map(p => p.cliente)));
   const tiposAveParaFiltro = Array.from(new Set(pedidosLista.map(p => p.tipoAve)));
 
@@ -1376,7 +1382,7 @@ export function ListaPedidos() {
                 <ListOrdered className="w-6 h-6 text-amber-400" />
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                <div className="text-white tracking-tight">Lista de Producción</div>
+                <div className="text-white tracking-tight">Lista de ProducciÃ³n</div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-gray-900/50 border border-gray-800 rounded-lg shadow-inner">
                   <Calendar className="w-3.5 h-3.5 text-gray-500" />
                   <div className="text-sm font-bold text-gray-400 tracking-wider">
@@ -1415,7 +1421,7 @@ export function ListaPedidos() {
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Producción</div>
+                <div className="text-sm text-gray-400">ProducciÃ³n</div>
                 <div className="text-2xl font-bold text-blue-400">{enProduccion}</div>
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
@@ -1468,7 +1474,7 @@ export function ListaPedidos() {
             className="px-4 py-2 bg-blue-900/20 border border-blue-700/30 rounded-lg text-blue-400 flex items-center gap-2"
           >
             <Edit2 className="w-4 h-4" />
-            Editar Múltiple
+            Editar MÃºltiple
           </button>
           
           <button
@@ -1476,7 +1482,7 @@ export function ListaPedidos() {
             className="px-4 py-2 bg-amber-900/20 border border-amber-700/30 rounded-lg text-amber-400 flex items-center gap-2 hover:bg-amber-900/30 transition-colors"
           >
             <Eye className="w-4 h-4" />
-            Pantalla Producción
+            Pantalla ProducciÃ³n
           </button>
         </div>
 
@@ -1487,7 +1493,7 @@ export function ListaPedidos() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar cliente, número, ave..."
+                placeholder="Buscar cliente, nÃºmero, ave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-black/30 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
@@ -1535,7 +1541,7 @@ export function ListaPedidos() {
               >
                 <option value="all" className="bg-black">Todos</option>
                 <option value="Pendiente" className="bg-black">Pendiente</option>
-                <option value="En Producción" className="bg-black">En Producción</option>
+                <option value="En ProducciÃ³n" className="bg-black">En ProducciÃ³n</option>
                 <option value="Completado" className="bg-black">Completado</option>
                 <option value="Cancelado" className="bg-black">Cancelado</option>
               </select>
@@ -1544,7 +1550,7 @@ export function ListaPedidos() {
         </div>
       </div>
 
-      {/* Sugerencias de Consolidación */}
+      {/* Sugerencias de ConsolidaciÃ³n */}
       {mostrarSugerencias && consolidacionesSugeridas.length > 0 && (
         <div className="mb-8 bg-green-900/10 border border-green-700/30 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
@@ -1572,7 +1578,7 @@ export function ListaPedidos() {
                     <div>
                       <div className="text-white font-medium">{sugerencia.pedidos[0].cliente}</div>
                       <div className="text-xs text-gray-400">
-                        {sugerencia.pedidos[0].tipoAve} • {sugerencia.pedidos[0].presentacion} • {sugerencia.pedidos[0].contenedor}
+                        {sugerencia.pedidos[0].tipoAve} â€¢ {sugerencia.pedidos[0].presentacion} â€¢ {sugerencia.pedidos[0].contenedor}
                       </div>
                     </div>
                   </div>
@@ -1588,7 +1594,7 @@ export function ListaPedidos() {
                     {sugerencia.pedidos.map(pedido => (
                       <div key={pedido.id} className="px-2 py-1 bg-black border border-gray-800 rounded text-xs">
                         <span className="text-blue-400">{pedido.numeroPedido}</span>
-                        <span className="text-gray-400 mx-1">•</span>
+                        <span className="text-gray-400 mx-1">â€¢</span>
                         <span className="text-white">{pedido.cantidad} aves</span>
                       </div>
                     ))}
@@ -1600,7 +1606,7 @@ export function ListaPedidos() {
           
           <div className="mt-4 pt-4 border-t border-gray-800 text-sm text-gray-400">
             <AlertCircle className="w-4 h-4 inline mr-2" />
-            Los pedidos similares se consolidan automáticamente sumando sus cantidades en un solo pedido.
+            Los pedidos similares se consolidan automÃ¡ticamente sumando sus cantidades en un solo pedido.
           </div>
         </div>
       )}
@@ -1638,7 +1644,7 @@ export function ListaPedidos() {
                     <span className="text-amber-400 font-bold">{grupo.pedidosPendientes}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">En producción:</span>
+                    <span className="text-gray-400">En producciÃ³n:</span>
                     <span className="text-blue-400 font-bold">
                       {grupo.pedidos.filter(p => p.estado === 'En Producción').length}
                     </span>
@@ -1678,317 +1684,155 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* Tabla de Pedidos en Producción */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-blue-400" />
-          Pedidos en Producción ({pedidosProduccion.length})
-        </h2>
-        
-        <div className="bg-black border border-gray-800 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-black border-b border-gray-800">
-                  {editandoMultiple && (
-                    <th className="px-6 py-4 text-left w-12">
-                      <div className="text-xs font-semibold text-gray-400 uppercase">#</div>
-                    </th>
-                  )}
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Orden</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">N° Pedido</div>
-                  </th>
-                  <th className="px6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Producto</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
-                  </th>
-                  <th className="px-6 py-4 text-center">
-                    <div className="text-xs font-semibold text-blue-400 uppercase">M</div>
-                  </th>
-                  <th className="px-6 py-4 text-center">
-                    <div className="text-xs font-semibold text-amber-400 uppercase">H</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Estado</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {pedidosProduccion.length === 0 ? (
-                  <tr>
-                    <td colSpan={editandoMultiple ? 11 : 10} className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        {pedidosConfirmados?.length === 0 
-                          ? 'No hay pedidos confirmados' 
-                          : 'No hay pedidos que coincidan con los filtros'}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  pedidosProduccion.map((pedido) => (
-                    <tr 
-                      key={pedido.id}
-                      className={`border-b border-gray-800/50 hover:bg-gray-900/30 ${
-                        pedido.estado === 'Cancelado' ? 'opacity-60' : ''
-                      } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/10' : ''}`}
-                    >
+      {/* ========== SECCIONES ANTES DE PESAJE ========== */}
+      {[
+        { titulo: '\uD83D\uDCCB Pedidos Pendientes', datos: pedidosPendientes, color: '#f59e0b', borderColor: 'border-amber-500/40', bgGlow: 'rgba(245,158,11,0.05)', iconColor: 'text-amber-400', emptyMsg: 'No hay pedidos pendientes', dotColor: 'bg-amber-500' },
+        { titulo: '\uD83C\uDFED Pedidos en Producción', datos: pedidosEnProduccion, color: '#3b82f6', borderColor: 'border-blue-500/40', bgGlow: 'rgba(59,130,246,0.05)', iconColor: 'text-blue-400', emptyMsg: 'No hay pedidos en producción', dotColor: 'bg-blue-500' },
+      ].map((seccion) => (
+        <div key={seccion.titulo} className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+              <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110" style={{ background: `${seccion.bgGlow}`, border: `1px solid ${seccion.color}33`, boxShadow: `0 0 20px ${seccion.color}15` }}>
+                <Package className={`w-5 h-5 ${seccion.iconColor}`} />
+              </div>
+              <span className="tracking-tight">{seccion.titulo}</span>
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: `${seccion.color}15`, border: `1px solid ${seccion.color}30` }}>
+              <div className={`w-2 h-2 rounded-full ${seccion.dotColor} animate-pulse`}></div>
+              <span className="text-sm font-bold" style={{ color: seccion.color }}>{seccion.datos.length}</span>
+            </div>
+          </div>
+          
+          <div className={`bg-black/80 backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg`} style={{ boxShadow: `0 0 30px ${seccion.color}08` }}>
+            {seccion.datos.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="text-gray-600 text-lg mb-1">∅</div>
+                <div className="text-gray-500 text-sm">{seccion.emptyMsg}</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ background: `linear-gradient(to right, ${seccion.color}08, transparent)`, borderBottom: `1px solid ${seccion.color}20` }}>
                       {editandoMultiple && (
+                        <th className="px-6 py-4 text-left w-12">
+                          <div className="text-xs font-semibold text-gray-400 uppercase">#</div>
+                        </th>
+                      )}
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seccion.datos.map((pedido) => (
+                      <tr 
+                        key={pedido.id}
+                        className={`border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors duration-200 ${
+                          pedido.estado === 'Cancelado' ? 'opacity-60' : ''
+                        } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/10' : ''}`}
+                      >
+                        {editandoMultiple && (
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <input type="checkbox" checked={pedidosAEditar.some(p => p.id === pedido.id)} onChange={(e) => { if (e.target.checked) { setPedidosAEditar(prev => [...prev, pedido]); } else { setPedidosAEditar(prev => prev.filter(p => p.id !== pedido.id)); } }} className="w-4 h-4 rounded border-gray-700 bg-gray-800" />
+                            </div>
+                          </td>
+                        )}
                         <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={pedidosAEditar.some(p => p.id === pedido.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setPedidosAEditar(prev => [...prev, pedido]);
-                                } else {
-                                  setPedidosAEditar(prev => prev.filter(p => p.id !== pedido.id));
-                                }
-                              }}
-                              className="w-4 h-4 rounded border-gray-700 bg-gray-800"
-                            />
+                          <div className={`w-10 h-10 rounded-xl ${pedido.prioridadBase <= 3 ? 'bg-gradient-to-br from-red-900/20 to-red-800/20 border border-red-700/30 text-red-300' : pedido.prioridadBase <= 6 ? 'bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border border-yellow-700/30 text-yellow-300' : 'bg-gradient-to-br from-green-900/20 to-green-800/20 border border-green-700/30 text-green-300'} flex items-center justify-center font-bold`}>
+                            {pedido.ordenProduccion}
                           </div>
                         </td>
-                      )}
-                      
-                      <td className="px-6 py-4">
-                        <div className={`w-10 h-10 rounded-xl ${
-                          pedido.prioridadBase <= 3
-                            ? 'bg-gradient-to-br from-red-900/20 to-red-800/20 border border-red-700/30 text-red-300'
-                            : pedido.prioridadBase <= 6
-                            ? 'bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border border-yellow-700/30 text-yellow-300'
-                            : 'bg-gradient-to-br from-green-900/20 to-green-800/20 border border-green-700/30 text-green-300'
-                        } flex items-center justify-center font-bold`}>
-                          {pedido.ordenProduccion}
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
-                          <div className="text-xs text-gray-500">{pedido.fecha} {pedido.hora}</div>
-                          {pedido.esSubPedido && vistaGrupos && (
-                            <div className="text-xs text-green-400 flex items-center gap-1">
-                              <Merge className="w-3 h-3" />
-                              Consolidado
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className="text-white font-medium">{pedido.cliente}</div>
-                        <div className="text-xs text-gray-500">Cliente {pedido.numeroCliente}</div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className="space-y-1.5">
-                          <div className="text-emerald-300 font-bold uppercase tracking-tight">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
-                          {pedido.variedad ? (
-                            <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider ${
-                              pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined
-                                ? 'text-white border-2'
-                                : 'bg-amber-900/40 text-amber-300 border border-amber-500/30'
-                            }`}>
-                              {pedido.variedad}
-                            </div>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
+                            <div className="text-xs text-gray-500">{pedido.fecha} {pedido.hora}</div>
+                            {pedido.esSubPedido && vistaGrupos && (<div className="text-xs text-green-400 flex items-center gap-1"><Merge className="w-3 h-3" />Consolidado</div>)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">{pedido.cliente}</div>
+                          <div className="text-xs text-gray-500">Cliente {pedido.numeroCliente}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1.5">
+                            <div className="text-emerald-300 font-bold uppercase tracking-tight">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                            {pedido.variedad ? (
+                              <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider ${pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined ? 'text-white border-2' : 'bg-amber-900/40 text-amber-300 border border-amber-500/30'}`}>{pedido.variedad}</div>
+                            ) : (<div className="text-[10px] text-gray-600 italic">Estándar</div>)}
+                            <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-white' : 'text-gray-500'}`}>{pedido.presentacion}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
+                            <input type="number" value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad} onChange={(e) => setFormEdicion(prev => prev ? {...prev, cantidad: parseInt(e.target.value) || 0} : null)} className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-center" />
                           ) : (
-                            <div className="text-[10px] text-gray-600 italic">Estándar</div>
+                            <div>
+                              <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
+                              {pedido.cantidadMachos !== undefined && pedido.cantidadHembras !== undefined && (
+                                <div className="text-xs space-x-1.5 mt-0.5"><span className="text-blue-300">♂ {pedido.cantidadMachos}</span><span className="text-pink-300">♀ {pedido.cantidadHembras}</span></div>
+                              )}
+                              {pedido.cantidadJabas && pedido.unidadesPorJaba && (
+                                <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>{pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u</div>
+                              )}
+                            </div>
                           )}
-                          <div className={`text-xs font-semibold ${
-                            pedido.presentacion?.toLowerCase().includes('vivo')
-                              ? 'text-white'
-                              : 'text-gray-500'
-                          }`}>
-                            {pedido.presentacion}
+                        </td>
+                        <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>
+                        <td className="px-6 py-4">
+                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Pendiente' ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' : pedido.estado === 'En Producción' ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300' : pedido.estado === 'Entregado' ? 'bg-orange-900/20 border border-orange-700/30 text-orange-300' : pedido.estado === 'Completado' ? 'bg-green-900/20 border border-green-700/30 text-green-300' : pedido.estado === 'Cancelado' ? 'bg-red-900/20 border border-red-700/30 text-red-300' : 'bg-gray-900/20 border border-gray-700/30 text-gray-300'}`}>
+                            {pedido.estado}
                           </div>
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        {editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
-                          <input
-                            type="number"
-                            value={cantidadesEditadas[pedido.id] || pedido.cantidad}
-                            onChange={(e) => setCantidadesEditadas(prev => ({
-                              ...prev,
-                              [pedido.id]: e.target.value
-                            }))}
-                            min="1"
-                            className="w-24 px-3 py-2 bg-black border border-blue-700/30 rounded-lg text-white text-center"
-                          />
-                        ) : (
-                          <>
-                            <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
-                            <div className="text-xs text-gray-500">aves</div>
-                            {pedido.cantidadJabas && pedido.unidadesPorJaba && (
-                              <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block"
-                                style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}
-                              >
-                                {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </td>
-                      
-                      {/* Columna Machos */}
-                      <td className="px-6 py-4 text-center">
-                        {pedido.cantidadMachos !== undefined ? (
-                          <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-900/30 border border-blue-700/40 rounded-lg">
-                            <span className="text-blue-300 font-bold">{pedido.cantidadMachos}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5">
+                            {pedido.estado === 'Pendiente' && !editandoMultiple && (<button onClick={() => moverAProduccion(pedido)} className="p-2 bg-amber-900/20 border border-amber-700/30 rounded-lg hover:bg-amber-900/30 transition-colors" title="Enviar a producción"><Truck className="w-4 h-4 text-amber-400" /></button>)}
+                            {pedido.estado === 'En Producción' && !editandoMultiple && (<button onClick={() => moverAPesaje(pedido)} className="p-2 bg-purple-900/20 border border-purple-700/30 rounded-lg hover:bg-purple-900/30 transition-colors" title="Mover a pesaje"><Weight className="w-4 h-4 text-purple-400" /></button>)}
+                            {!editandoMultiple && (<button onClick={() => setMostrarDetallePedido(pedido)} className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors" title="Ver detalles"><Eye className="w-4 h-4 text-gray-400" /></button>)}
+                            {!editandoMultiple && (<button onClick={() => eliminarPedido(pedido.id)} className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors" title="Eliminar pedido"><Trash2 className="w-4 h-4 text-gray-400" /></button>)}
                           </div>
-                        ) : (
-                          <span className="text-gray-600">-</span>
-                        )}
-                      </td>
-                      
-                      {/* Columna Hembras */}
-                      <td className="px-6 py-4 text-center">
-                        {pedido.cantidadHembras !== undefined ? (
-                          <div className="inline-flex items-center gap-1 px-2 py-1 bg-amber-900/30 border border-amber-700/40 rounded-lg">
-                            <span className="text-amber-300 font-bold">{pedido.cantidadHembras}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-600">-</span>
-                        )}
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Box className="w-4 h-4 text-blue-400" />
-                          <div className="text-white">{pedido.contenedor}</div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {pedido.pesoContenedor.toFixed(1)} kg
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${
-                          pedido.estado === 'Pendiente' 
-                            ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' 
-                            : pedido.estado === 'En Producción'
-                            ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
-                            : pedido.estado === 'Pesaje'
-                            ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
-                            : pedido.estado === 'Entregado'
-                            ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300'
-                            : pedido.estado === 'Completado'
-                            ? 'bg-green-900/20 border border-green-700/30 text-green-300'
-                            : 'bg-red-900/20 border border-red-700/30 text-red-300'
-                        }`}>
-                          {pedido.estado}
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {/* Botón para crear nuevo sub-pedido */}
-                          <button
-                            onClick={() => abrirNuevoSubPedido(pedido)}
-                            className="p-2 bg-green-900/20 border border-green-700/30 rounded-lg hover:bg-green-900/30 transition-colors"
-                            title="Nuevo pedido para este cliente"
-                          >
-                            <Plus className="w-4 h-4 text-green-400" />
-                          </button>
-                          
-                          {/* Botón para editar pedido */}
-                          {pedido.estado !== 'Cancelado' && pedido.estado !== 'Completado' && (
-                            <button
-                              onClick={() => abrirEdicionPedido(pedido)}
-                              className="p-2 bg-blue-900/20 border border-blue-700/30 rounded-lg hover:bg-blue-900/30 transition-colors"
-                              title="Editar pedido"
-                            >
-                              <Wrench className="w-4 h-4 text-blue-400" />
-                            </button>
-                          )}
-                          
-                          {/* Botón para mover a producción */}
-                          {pedido.estado === 'Pendiente' && !editandoMultiple && (
-                            <button
-                              onClick={() => moverAProduccion(pedido)}
-                              className="p-2 bg-amber-900/20 border border-amber-700/30 rounded-lg hover:bg-amber-900/30 transition-colors"
-                              title="Enviar a producción"
-                            >
-                              <Truck className="w-4 h-4 text-amber-400" />
-                            </button>
-                          )}
-                          
-                          {/* Botón para mover a pesaje */}
-                          {pedido.estado === 'En Producción' && !editandoMultiple && (
-                            <button
-                              onClick={() => moverAPesaje(pedido)}
-                              className="p-2 bg-purple-900/20 border border-purple-700/30 rounded-lg hover:bg-purple-900/30 transition-colors"
-                              title="Mover a pesaje"
-                            >
-                              <Weight className="w-4 h-4 text-purple-400" />
-                            </button>
-                          )}
-                          
-                          {!editandoMultiple && (
-                            <button
-                              onClick={() => setMostrarDetallePedido(pedido)}
-                              className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors"
-                              title="Ver detalles"
-                            >
-                              <Eye className="w-4 h-4 text-gray-400" />
-                            </button>
-                          )}
-                          
-                          {!editandoMultiple && (
-                            <button
-                              onClick={() => eliminarPedido(pedido.id)}
-                              className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors"
-                              title="Eliminar pedido"
-                            >
-                              <Trash2 className="w-4 h-4 text-gray-400" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      ))}
 
-      {/* TABLA 2: PEDIDOS EN PESAJE */}
-      <div className="mb-8">
+      {/* ========== 3. PEDIDOS EN PESAJE ========== */}
+      <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Weight className="w-5 h-5 text-purple-400" />
-            Pedidos en Pesaje ({pedidosPesaje.length})
+          <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+            <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 0 20px rgba(168,85,247,0.1)' }}>
+              <Weight className="w-5 h-5 text-purple-400" />
+            </div>
+            <span className="tracking-tight"> Pedidos en Pesaje</span>
           </h2>
-          <div className="text-sm text-gray-400">
-            {pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0)} aves totales
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-400">{pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0)} aves totales</div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)' }}>
+              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+              <span className="text-sm font-bold text-purple-400">{pedidosPesaje.length}</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-black border border-purple-800/30 rounded-2xl overflow-hidden">
+        <div className="bg-black/80 backdrop-blur-sm border border-purple-500/40 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg" style={{ boxShadow: '0 0 30px rgba(168,85,247,0.06)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-black border-b border-purple-800/30">
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">N° Pedido</div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase">NÂ° Pedido</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div>
@@ -2000,7 +1844,7 @@ export function ListaPedidos() {
                     <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Presentación</div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase">PresentaciÃ³n</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-gray-400 uppercase">Contenedores</div>
@@ -2060,7 +1904,7 @@ export function ListaPedidos() {
                           <div className="text-white font-medium">{pedido.contenedor}</div>
                           {pedido.numeroContenedores ? (
                             <div className="text-xs text-gray-400">
-                              {pedido.numeroContenedores} cont. · {(pedido.pesoContenedores || 0).toFixed(1)} kg
+                              {pedido.numeroContenedores} cont. Â· {(pedido.pesoContenedores || 0).toFixed(1)} kg
                             </div>
                           ) : (
                             <div className="text-xs text-gray-600">Pendiente de pesaje</div>
@@ -2072,7 +1916,7 @@ export function ListaPedidos() {
                         {pedido.pesoBruto ? (
                           <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
                         ) : (
-                          <span className="text-gray-600">—</span>
+                          <span className="text-gray-600">â€”</span>
                         )}
                       </td>
                       
@@ -2105,7 +1949,7 @@ export function ListaPedidos() {
                       
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {/* Botón para cambiar conductor */}
+                          {/* BotÃ³n para cambiar conductor */}
                           <button
                             onClick={() => pedido.conductor && setConductorSeleccionado(pedido.conductor)}
                             className="p-2 bg-blue-900/20 border border-blue-700/30 rounded-lg hover:bg-blue-900/30 transition-colors"
@@ -2114,7 +1958,7 @@ export function ListaPedidos() {
                             <UserIcon className="w-4 h-4 text-blue-400" />
                           </button>
                           
-                          {/* Botón para completar pesaje */}
+                          {/* BotÃ³n para completar pesaje */}
                           {pedido.estadoPesaje === 'Pendiente' && (
                             <button
                               onClick={() => completarPesaje(pedido.id)}
@@ -2125,11 +1969,11 @@ export function ListaPedidos() {
                             </button>
                           )}
                           
-                          {/* Botón para regresar a producción */}
+                          {/* BotÃ³n para regresar a producciÃ³n */}
                           <button
                             onClick={() => eliminarDePesaje(pedido.id)}
                             className="p-2 bg-amber-900/20 border border-amber-700/30 rounded-lg hover:bg-amber-900/30 transition-colors"
-                            title="Regresar a producción"
+                            title="Regresar a producciÃ³n"
                           >
                             <RotateCcw className="w-4 h-4 text-amber-400" />
                           </button>
@@ -2144,7 +1988,94 @@ export function ListaPedidos() {
         </div>
       </div>
 
-      {/* Barra de edición múltiple */}
+      {/* ========== 4 & 5. SECCIONES DESPUÉS DE PESAJE ========== */}
+      {[
+        { titulo: '\uD83D\uDE9A Pedidos en Entrega', datos: pedidosEnEntrega, color: '#f97316', borderColor: 'border-orange-500/40', bgGlow: 'rgba(249,115,22,0.05)', iconColor: 'text-orange-400', emptyMsg: 'No hay pedidos en entrega', dotColor: 'bg-orange-500' },
+        { titulo: '\u2705 Pedidos Entregados', datos: pedidosEntregados, color: '#22c55e', borderColor: 'border-green-500/40', bgGlow: 'rgba(34,197,94,0.05)', iconColor: 'text-green-400', emptyMsg: 'No hay pedidos entregados', dotColor: 'bg-green-500' },
+      ].map((seccion) => (
+        <div key={seccion.titulo} className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+              <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110" style={{ background: `${seccion.bgGlow}`, border: `1px solid ${seccion.color}33`, boxShadow: `0 0 20px ${seccion.color}15` }}>
+                <Package className={`w-5 h-5 ${seccion.iconColor}`} />
+              </div>
+              <span className="tracking-tight">{seccion.titulo}</span>
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: `${seccion.color}15`, border: `1px solid ${seccion.color}30` }}>
+              <div className={`w-2 h-2 rounded-full ${seccion.dotColor} animate-pulse`}></div>
+              <span className="text-sm font-bold" style={{ color: seccion.color }}>{seccion.datos.length}</span>
+            </div>
+          </div>
+          
+          <div className={`bg-black/80 backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg`} style={{ boxShadow: `0 0 30px ${seccion.color}08` }}>
+            {seccion.datos.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="text-gray-600 text-lg mb-1">∅</div>
+                <div className="text-gray-500 text-sm">{seccion.emptyMsg}</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ background: `linear-gradient(to right, ${seccion.color}08, transparent)`, borderBottom: `1px solid ${seccion.color}20` }}>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seccion.datos.map((pedido) => (
+                      <tr key={pedido.id} className="border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors duration-200">
+                        <td className="px-6 py-4">
+                          <div className={`w-10 h-10 rounded-xl ${pedido.prioridadBase <= 3 ? 'bg-gradient-to-br from-red-900/20 to-red-800/20 border border-red-700/30 text-red-300' : pedido.prioridadBase <= 6 ? 'bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border border-yellow-700/30 text-yellow-300' : 'bg-gradient-to-br from-green-900/20 to-green-800/20 border border-green-700/30 text-green-300'} flex items-center justify-center font-bold`}>
+                            {pedido.ordenProduccion}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
+                          <div className="text-xs text-gray-500">{pedido.fecha} {pedido.hora}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">{pedido.cliente}</div>
+                          <div className="text-xs text-gray-500">Cliente {pedido.numeroCliente}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-emerald-300 font-bold uppercase tracking-tight">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                          <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-white' : 'text-gray-500'}`}>{pedido.presentacion}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
+                          {pedido.cantidadJabas && pedido.unidadesPorJaba && (
+                            <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>{pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>
+                        <td className="px-6 py-4">
+                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Entregado' ? 'bg-orange-900/20 border border-orange-700/30 text-orange-300' : 'bg-green-900/20 border border-green-700/30 text-green-300'}`}>
+                            {pedido.estado}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => setMostrarDetallePedido(pedido)} className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors" title="Ver detalles"><Eye className="w-4 h-4 text-gray-400" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Barra de ediciÃ³n mÃºltiple */}
       {editandoMultiple && (
         <div className="fixed bottom-0 left-0 right-0 bg-black/90 border-t border-gray-800 p-4">
           <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -2181,7 +2112,7 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* Modal de Edición Múltiple */}
+      {/* Modal de EdiciÃ³n MÃºltiple */}
       {modoEdicion && clienteSeleccionado && modoEdicion !== 'NUEVO_SUB' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
           background: 'rgba(0, 0, 0, 0.85)'
@@ -2197,7 +2128,7 @@ export function ListaPedidos() {
                     {modoEdicion === 'CONSOLIDAR' && `Consolidar Pedidos - ${clienteSeleccionado.cliente}`}
                   </h3>
                   <p className="text-sm text-gray-400 mt-1">
-                    Cliente: {clienteSeleccionado.numeroCliente} • {pedidosSeleccionados.length} pedidos seleccionados
+                    Cliente: {clienteSeleccionado.numeroCliente} â€¢ {pedidosSeleccionados.length} pedidos seleccionados
                   </p>
                 </div>
                 <button
@@ -2216,7 +2147,7 @@ export function ListaPedidos() {
               {modoEdicion === 'CANCELAR' && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Motivo de Cancelación
+                    Motivo de CancelaciÃ³n
                   </label>
                   <textarea
                     value={motivoCancelacion}
@@ -2235,7 +2166,7 @@ export function ListaPedidos() {
                     <h4 className="text-white font-medium">Consolidar Pedidos Similares</h4>
                   </div>
                   <p className="text-sm text-gray-400 mb-3">
-                    Los pedidos similares se sumarán en un solo pedido. Esto reduce duplicados.
+                    Los pedidos similares se sumarÃ¡n en un solo pedido. Esto reduce duplicados.
                   </p>
                   <button
                     onClick={consolidarPedidosSeleccionados}
@@ -2256,7 +2187,7 @@ export function ListaPedidos() {
                       <div className="space-y-1">
                         <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
                         <div className="text-xs text-gray-500">
-                          {pedido.tipoAve} • {pedido.presentacion} • {pedido.contenedor}
+                          {pedido.tipoAve} â€¢ {pedido.presentacion} â€¢ {pedido.contenedor}
                         </div>
                       </div>
                       <div className="text-sm text-gray-400">
@@ -2276,7 +2207,7 @@ export function ListaPedidos() {
                         <div className="text-white font-bold">{pedido.cantidad} aves</div>
                         {pedido.cantidadJabas && pedido.unidadesPorJaba && (
                           <div className="text-[10px] mt-0.5" style={{ color: '#f59e0b' }}>
-                            ({pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u)
+                            ({pedido.cantidadJabas} jabas Ã— {pedido.unidadesPorJaba} c/u)
                           </div>
                         )}
                       </div>
@@ -2435,7 +2366,7 @@ export function ListaPedidos() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">Presentación</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">PresentaciÃ³n</label>
                 <select
                   value={formEdicion.presentacion}
                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, presentacion: e.target.value } : null)}
@@ -2475,7 +2406,7 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* MODAL PARA INFORMACIÓN DEL CONDUCTOR */}
+      {/* MODAL PARA INFORMACIÃ“N DEL CONDUCTOR */}
       {conductorSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
           background: 'rgba(0, 0, 0, 0.85)'
@@ -2486,7 +2417,7 @@ export function ListaPedidos() {
                 <div className="flex items-center gap-3">
                   <TruckIcon className="w-6 h-6 text-blue-400" />
                   <div>
-                    <h3 className="text-xl font-bold text-white">Información del Conductor</h3>
+                    <h3 className="text-xl font-bold text-white">InformaciÃ³n del Conductor</h3>
                     <p className="text-sm text-gray-400">Datos completos</p>
                   </div>
                 </div>
@@ -2513,7 +2444,7 @@ export function ListaPedidos() {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-400 mb-1">Vehículo</div>
+                <div className="text-sm font-medium text-gray-400 mb-1">VehÃ­culo</div>
                 <div className="text-white font-medium">{conductorSeleccionado.vehiculo}</div>
               </div>
 
@@ -2524,7 +2455,7 @@ export function ListaPedidos() {
 
               {conductorSeleccionado.telefono && (
                 <div>
-                  <div className="text-sm font-medium text-gray-400 mb-1">Teléfono</div>
+                  <div className="text-sm font-medium text-gray-400 mb-1">TelÃ©fono</div>
                   <div className="text-white">{conductorSeleccionado.telefono}</div>
                 </div>
               )}
@@ -2554,7 +2485,7 @@ export function ListaPedidos() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-gray-400">Número de Pedido</div>
+                  <div className="text-xs text-gray-400">NÃºmero de Pedido</div>
                   <div className="text-white font-mono font-bold">{mostrarDetallePedido.numeroPedido}</div>
                 </div>
                 <div>
@@ -2570,7 +2501,7 @@ export function ListaPedidos() {
                   <div className="text-white font-bold">{mostrarDetallePedido.cantidad} aves</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Presentación</div>
+                  <div className="text-xs text-gray-400">PresentaciÃ³n</div>
                   <div className="text-white">{mostrarDetallePedido.presentacion}</div>
                 </div>
                 <div>
@@ -2658,11 +2589,11 @@ export function ListaPedidos() {
                             mod.tipo === 'AUMENTO' ? 'text-green-400' :
                             mod.tipo === 'CONSOLIDACION' ? 'text-purple-400' : 'text-amber-400'
                           }`}>
-                            {mod.tipo === 'CANCELACION' && '❌ Cancelación'}
-                            {mod.tipo === 'MODIFICACION' && '✏️ Modificación'}
-                            {mod.tipo === 'AUMENTO' && '📈 Aumento'}
-                            {mod.tipo === 'CONSOLIDACION' && '🔄 Consolidación'}
-                            {mod.tipo === 'EDICION_MULTIPLE' && '📋 Edición Múltiple'}
+                            {mod.tipo === 'CANCELACION' && 'âŒ CancelaciÃ³n'}
+                            {mod.tipo === 'MODIFICACION' && 'âœï¸ ModificaciÃ³n'}
+                            {mod.tipo === 'AUMENTO' && 'ðŸ“ˆ Aumento'}
+                            {mod.tipo === 'CONSOLIDACION' && 'ðŸ”„ ConsolidaciÃ³n'}
+                            {mod.tipo === 'EDICION_MULTIPLE' && 'ðŸ“‹ EdiciÃ³n MÃºltiple'}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             {mod.fecha} {mod.hora}
@@ -2673,7 +2604,7 @@ export function ListaPedidos() {
                             <>
                               <div className="text-sm text-gray-400">Cantidad</div>
                               <div className="text-white font-bold">
-                                {mod.cantidadAnterior} → {mod.cantidadNueva}
+                                {mod.cantidadAnterior} â†’ {mod.cantidadNueva}
                               </div>
                             </>
                           )}
@@ -2715,7 +2646,7 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* Footer con estadísticas */}
+      {/* Footer con estadÃ­sticas */}
       <div className="mt-8 bg-black border border-gray-800 rounded-xl p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <div className="text-center p-3">
@@ -2746,12 +2677,12 @@ export function ListaPedidos() {
         
         <div className="mt-4 pt-4 border-t border-gray-800 text-center">
           <div className="text-xs text-gray-500">
-            Sistema inteligente de gestión de pedidos • Los datos se guardan automáticamente
+            Sistema inteligente de gestiÃ³n de pedidos â€¢ Los datos se guardan automÃ¡ticamente
           </div>
         </div>
       </div>
 
-      {/* Modal de Nuevo Pedido Rápido */}
+      {/* Modal de Nuevo Pedido RÃ¡pido */}
       {mostrarModalNuevoPedido && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -2760,7 +2691,7 @@ export function ListaPedidos() {
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Plus className="w-6 h-6 text-green-400" />
-                  Nuevo Pedido Rápido
+                  Nuevo Pedido RÃ¡pido
                 </h2>
                 <p className="text-sm text-gray-400 mt-1">
                   Cliente: <span className="text-amber-400 font-medium">{nuevoPedidoRapido.cliente}</span>
@@ -2875,15 +2806,15 @@ export function ListaPedidos() {
                 ) : null;
               })()}
 
-              {/* Presentación */}
+              {/* PresentaciÃ³n */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Presentación *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">PresentaciÃ³n *</label>
                 <select
                   value={nuevoPedidoRapido.presentacion}
                   onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, presentacion: e.target.value }))}
                   className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 >
-                  <option value="">Seleccionar presentación...</option>
+                  <option value="">Seleccionar presentaciÃ³n...</option>
                   {getPresentacionesPorTipoAve(nuevoPedidoRapido.tipoAve).map((pres: any) => (
                     <option key={pres.nombre || pres} value={pres.nombre || pres}>{pres.nombre || pres}</option>
                   ))}
