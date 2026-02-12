@@ -23,10 +23,14 @@ import { DashboardSecretaria } from "./components/DashboardSecretaria";
 import { GestionContenedores } from "./components/GestionContenedores";
 import { PantallaProduccion } from "./components/PantallaProduccion";
 import { Egg, Package, ShoppingCart, Users, Truck, TrendingUp, DollarSign, FileText } from "lucide-react";
-import { LayoutOperador } from "./components/LayoutOperador";
-import { DashboardOperador } from "./components/DashboardOperador";
 import { PesajeOperador } from "./components/PesajeOperador";
 import { PesajeDisplay } from "./components/PesajeDisplay";
+import { LayoutOperador } from "./components/LayoutOperador";
+import { LayoutConductor } from "./components/LayoutConductor";
+import { GestionConductor } from "./components/GestionConductor";
+import { LayoutCobranza } from "./components/LayoutCobranza";
+import { GestionCobranza } from "./components/GestionCobranza";
+import { History as HistoryIcon } from "lucide-react";
 
 export const router = createBrowserRouter([
   {
@@ -177,7 +181,6 @@ export const router = createBrowserRouter([
     path: "/dashboard-operador",
     Component: LayoutOperador,
     children: [
-      { index: true, Component: DashboardOperador },
       
       // Nuevo Pedido
       { 
@@ -209,5 +212,49 @@ export const router = createBrowserRouter([
         Component: Control 
       },
     ],
+  },
+  {
+    path: "/dashboard-conductor",
+    Component: LayoutConductor,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard-conductor/entregas" replace />
+      },
+      {
+        path: "entregas",
+        Component: GestionConductor
+      },
+      {
+        path: "repesadas",
+        Component: GestionConductor
+      },
+      {
+        path: "devoluciones",
+        Component: GestionConductor
+      },
+      {
+        path: "historial",
+        element: <ComingSoon title="Historial de Entregas" description="Próximamente: Consulta tus entregas pasadas" icon={HistoryIcon} />
+      }
+    ]
+  },
+  {
+    path: "/dashboard-cobranza",
+    Component: LayoutCobranza,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard-cobranza/gestion" replace />
+      },
+      {
+        path: "gestion",
+        Component: GestionCobranza
+      },
+      {
+        path: "historial",
+        element: <ComingSoon title="Historial de Pagos" description="Próximamente: Historial detallado de transacciones" icon={HistoryIcon} />
+      }
+    ]
   },
 ]);

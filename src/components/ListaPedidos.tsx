@@ -1688,8 +1688,8 @@ export function ListaPedidos() {
 
       {/* ========== SECCIONES ANTES DE PESAJE ========== */}
       {[
-        { titulo: '\uD83D\uDCCB Pedidos Pendientes', datos: pedidosPendientes, color: '#f59e0b', borderColor: 'border-amber-500/40', bgGlow: 'rgba(245,158,11,0.05)', iconColor: 'text-amber-400', emptyMsg: 'No hay pedidos pendientes', dotColor: 'bg-amber-500' },
-        { titulo: '\uD83C\uDFED Pedidos en Producción', datos: pedidosEnProduccion, color: '#3b82f6', borderColor: 'border-blue-500/40', bgGlow: 'rgba(59,130,246,0.05)', iconColor: 'text-blue-400', emptyMsg: 'No hay pedidos en producción', dotColor: 'bg-blue-500' },
+        { titulo: 'Pedidos Pendientes', datos: pedidosPendientes, color: '#f59e0b', borderColor: 'border-amber-500/40', bgGlow: 'rgba(245,158,11,0.05)', iconColor: 'text-amber-400', emptyMsg: 'No hay pedidos pendientes', dotColor: 'bg-amber-500' },
+        { titulo: 'Pedidos en Producción', datos: pedidosEnProduccion, color: '#3b82f6', borderColor: 'border-blue-500/40', bgGlow: 'rgba(59,130,246,0.05)', iconColor: 'text-blue-400', emptyMsg: 'No hay pedidos en producción', dotColor: 'bg-blue-500' },
       ].map((seccion) => (
         <div key={seccion.titulo} className="mb-10">
           <div className="flex items-center justify-between mb-4">
@@ -1851,19 +1851,19 @@ export function ListaPedidos() {
               <thead>
                 <tr className="bg-black border-b border-purple-800/30">
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">N° Pedido</div>
+                    <div className="text-xs font-semibold text-white uppercase">N° Pedido</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div>
+                    <div className="text-xs font-semibold text-white uppercase">Cliente</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Producto</div>
+                    <div className="text-xs font-semibold text-white uppercase">Producto</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
+                    <div className="text-xs font-semibold text-white uppercase">Cantidad</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Presentación</div>
+                    <div className="text-xs font-semibold text-white uppercase">Presentación</div>
                   </th>
                   <th className="px-6 py-4 text-center">
                     <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Machos</div>
@@ -1872,19 +1872,19 @@ export function ListaPedidos() {
                     <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Hembras</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Contenedores</div>
+                    <div className="text-xs font-semibold text-white uppercase">Contenedores</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Peso Bruto</div>
+                    <div className="text-xs font-semibold text-white uppercase">Peso Bruto</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Conductor</div>
+                    <div className="text-xs font-semibold text-white uppercase">Conductor</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Estado</div>
+                    <div className="text-xs font-semibold text-white uppercase">Estado</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div>
+                    <div className="text-xs font-semibold text-white uppercase">Acciones</div>
                   </th>
                 </tr>
               </thead>
@@ -1892,7 +1892,7 @@ export function ListaPedidos() {
                 {pedidosPesaje.length === 0 ? (
                   <tr>
                     <td colSpan={12} className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
+                      <div className="text-white-500">
                         No hay pedidos en proceso de pesaje
                       </div>
                     </td>
@@ -1917,7 +1917,7 @@ export function ListaPedidos() {
                       
                       <td className="px-6 py-4">
                         <div className="text-white font-bold">{pedido.cantidad}</div>
-                        <div className="text-xs text-gray-500">aves</div>
+                        <div className="text-xs text-white-500">aves</div>
                       </td>
                       
                       <td className="px-6 py-4">
@@ -1931,7 +1931,7 @@ export function ListaPedidos() {
                             <div className="text-[9px] text-blue-400/80 uppercase tracking-wider font-bold">M</div>
                           </div>
                         ) : (
-                          <span className="text-gray-600 font-mono">—</span>
+                          <span className="text-white-600 font-mono">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -1941,7 +1941,7 @@ export function ListaPedidos() {
                             <div className="text-[9px] text-amber-400/80 uppercase tracking-wider font-bold">H</div>
                           </div>
                         ) : (
-                          <span className="text-gray-600 font-mono">—</span>
+                          <span className="text-white-600 font-mono">—</span>
                         )}
                       </td>
                       
@@ -1949,11 +1949,11 @@ export function ListaPedidos() {
                         <div className="space-y-1">
                           <div className="text-white font-medium">{pedido.contenedor}</div>
                           {pedido.numeroContenedores ? (
-                            <div className="text-xs text-gray-400">
+                            <div className="text-xs text-white-400">
                               {pedido.numeroContenedores} cont. · {(pedido.pesoContenedores || 0).toFixed(1)} kg
                             </div>
                           ) : (
-                            <div className="text-xs text-gray-600">Pendiente de pesaje</div>
+                            <div className="text-xs text-white-600">Pendiente de pesaje</div>
                           )}
                         </div>
                       </td>
@@ -1962,7 +1962,7 @@ export function ListaPedidos() {
                         {pedido.pesoBruto ? (
                           <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
                         ) : (
-                          <span className="text-gray-600">—</span>
+                          <span className="text-white-600">—</span>
                         )}
                       </td>
                       
@@ -1973,11 +1973,11 @@ export function ListaPedidos() {
                             className="text-left hover:bg-gray-800/30 p-2 rounded-lg transition-colors w-full"
                           >
                             <div className="text-white font-medium truncate">{pedido.conductor.nombre}</div>
-                            <div className="text-xs text-gray-400">{pedido.conductor.vehiculo}</div>
+                            <div className="text-xs text-white-400">{pedido.conductor.vehiculo}</div>
                             <div className="text-xs text-blue-400">{pedido.conductor.zonaAsignada}</div>
                           </button>
                         ) : (
-                          <span className="text-gray-600 text-xs">Sin asignar</span>
+                          <span className="text-white-600 text-xs">Sin asignar</span>
                         )}
                       </td>
                       
@@ -2036,8 +2036,8 @@ export function ListaPedidos() {
 
       {/* ========== 4 & 5. SECCIONES DESPUÉS DE PESAJE ========== */}
       {[
-        { titulo: '\uD83D\uDE9A Pedidos en Entrega', datos: pedidosEnEntrega, color: '#f97316', borderColor: 'border-orange-500/40', bgGlow: 'rgba(249,115,22,0.05)', iconColor: 'text-orange-400', emptyMsg: 'No hay pedidos en entrega', dotColor: 'bg-orange-500' },
-        { titulo: '\u2705 Pedidos Entregados', datos: pedidosEntregados, color: '#22c55e', borderColor: 'border-green-500/40', bgGlow: 'rgba(34,197,94,0.05)', iconColor: 'text-green-400', emptyMsg: 'No hay pedidos entregados', dotColor: 'bg-green-500' },
+        { titulo: 'Pedidos en Entrega', datos: pedidosEnEntrega, color: '#f97316', borderColor: 'border-orange-500/40', bgGlow: 'rgba(249,115,22,0.05)', iconColor: 'text-orange-400', emptyMsg: 'No hay pedidos en entrega', dotColor: 'bg-orange-500' },
+        { titulo: 'Pedidos Entregados', datos: pedidosEntregados, color: '#22c55e', borderColor: 'border-green-500/40', bgGlow: 'rgba(34,197,94,0.05)', iconColor: 'text-green-400', emptyMsg: 'No hay pedidos entregados', dotColor: 'bg-green-500' },
       ].map((seccion) => (
         <div key={seccion.titulo} className="mb-10">
           <div className="flex items-center justify-between mb-4">
@@ -2064,16 +2064,16 @@ export function ListaPedidos() {
                 <table className="w-full">
                   <thead>
                     <tr style={{ background: `linear-gradient(to right, ${seccion.color}08, transparent)`, borderBottom: `1px solid ${seccion.color}20` }}>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Orden</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Pedido</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Producto</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Cantidad</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Machos</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Hembras</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Estado</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase">Acciones</div></th>
                     </tr>
                   </thead>
                   <tbody>

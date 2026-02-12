@@ -55,12 +55,28 @@ export function Login() {
         { username: 'admin', rol: 'administrador' },
         { username: 'secretaria', rol: 'secretaria' },
         { username: 'operador', rol: 'operador' },
+        { username: 'conductor', rol: 'conductor' },
+        { username: 'cobranza', rol: 'cobranza' },
       ].find(u => u.username === email);
       
       if (usuarioInfo?.rol === 'operador') {
         // Operador: NO requiere 2FA, redirigir directamente
         setIsLoading(false);
         navigate('/dashboard-operador');
+        return;
+      }
+
+      if (usuarioInfo?.rol === 'conductor') {
+        // Conductor: NO requiere 2FA, redirigir directamente
+        setIsLoading(false);
+        navigate('/dashboard-conductor');
+        return;
+      }
+
+      if (usuarioInfo?.rol === 'cobranza') {
+        // Cobranza: NO requiere 2FA, redirigir directamente
+        setIsLoading(false);
+        navigate('/dashboard-cobranza');
         return;
       }
       
@@ -107,6 +123,10 @@ export function Login() {
           // Redirigir según el rol
           if (credencialesTemporales.username === 'secretaria') {
             navigate('/dashboard-secretaria');
+          } else if (credencialesTemporales.username === 'conductor') {
+            navigate('/dashboard-conductor');
+          } else if (credencialesTemporales.username === 'cobranza') {
+            navigate('/dashboard-cobranza');
           } else {
             navigate('/dashboard');
           }

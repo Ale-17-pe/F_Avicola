@@ -16,9 +16,9 @@ import {
   Wrench,
   ShoppingCart,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import logoImage from "figma:asset/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png";
+import logoImage from "../assets/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png";
 
 interface MenuItem {
   label: string;
@@ -33,17 +33,26 @@ export function LayoutOperador() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Detectar si es pantalla pequeña para ajustar el estado inicial del sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsSidebarOpen(false); // en móvil/tablet el sidebar desktop está colapsado
+      } else {
+        setIsSidebarOpen(true); // en desktop lo dejamos abierto por defecto
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
   const navigationItems: MenuItem[] = [
-    {
-      label: "Dashboard",
-      path: "/dashboard-operador",
-      icon: LayoutDashboard,
-    },
     {
       label: "Nuevo Pedido",
       path: "/dashboard-operador/nuevo-pedido",
@@ -77,7 +86,7 @@ export function LayoutOperador() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div
-        className="p-4 sm:p-6 border-b"
+        className="p-4 sm:p-6 border-b flex-shrink-0"
         style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
       >
         <div className="flex items-center gap-3">
@@ -90,12 +99,12 @@ export function LayoutOperador() {
             }}
           />
           {(isSidebarOpen || isMobileSidebarOpen) && (
-            <div className="lg:block">
+            <div className="lg:block truncate">
               <h1 className="font-bold text-base sm:text-lg">
                 <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                 <span style={{ color: "#ccaa00" }}>JOSSY</span>
               </h1>
-              <p className="text-xs text-gray-400 hidden sm:block">
+              <p className="text-xs text-white hidden sm:block">
                 Panel de Operador
               </p>
             </div>
@@ -103,26 +112,8 @@ export function LayoutOperador() {
         </div>
       </div>
 
-      {/* Rol badge */}
-      {(isSidebarOpen || isMobileSidebarOpen) && (
-        <div className="px-4 pt-4">
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg"
-            style={{
-              background: "rgba(34, 197, 94, 0.1)",
-              border: "1px solid rgba(34, 197, 94, 0.3)",
-            }}
-          >
-            <Wrench className="w-4 h-4" style={{ color: "#22c55e" }} />
-            <span className="text-xs font-medium" style={{ color: "#22c55e" }}>
-              Acceso directo — Sin 2FA
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1">
+      {/* Navigation - Scrollable */}
+      <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1 custom-scrollbar">
         {navigationItems.map((item) => {
           const Icon = item.icon;
 
@@ -141,7 +132,7 @@ export function LayoutOperador() {
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
               {(isSidebarOpen || isMobileSidebarOpen) && (
-                <span className="font-medium text-sm sm:text-base">
+                <span className="font-medium text-sm sm:text-base whitespace-nowrap">
                   {item.label}
                 </span>
               )}
@@ -152,26 +143,31 @@ export function LayoutOperador() {
 
       {/* User Section */}
       <div
-        className="p-3 sm:p-4 border-t space-y-2"
+        className="p-3 sm:p-4 border-t space-y-2 flex-shrink-0"
         style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
       >
-        {/* User Info */}
+        {/* User Info - Solo cuando el sidebar está expandido */}
         {(isSidebarOpen || isMobileSidebarOpen) && user && (
-          <div className="px-3 py-2 rounded-lg" style={{ background: "rgba(204, 170, 0, 0.1)" }}>
+          <div
+            className="px-3 py-2 rounded-lg"
+            style={{ background: "rgba(204, 170, 0, 0.1)" }}
+          >
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
                   background: "linear-gradient(135deg, #22c55e, #166534)",
                 }}
               >
                 <Wrench className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-white">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white truncate">
                   {user.nombre} {user.apellido}
                 </p>
-                <p className="text-xs text-gray-400 capitalize">{user.rol}</p>
+                <p className="text-xs text-gray-400 capitalize truncate">
+                  {user.rol}
+                </p>
               </div>
             </div>
           </div>
@@ -189,7 +185,7 @@ export function LayoutOperador() {
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {(isSidebarOpen || isMobileSidebarOpen) && (
-            <span className="font-medium text-sm sm:text-base">
+            <span className="font-medium text-sm sm:text-base whitespace-nowrap">
               Cerrar Sesión
             </span>
           )}
@@ -198,6 +194,30 @@ export function LayoutOperador() {
     </div>
   );
 
+  // Estilo de animación para el sidebar móvil (inline keyframes)
+  const slideInStyle = {
+    animation: 'slideIn 0.3s ease-out',
+  };
+
+  // Inyectar keyframes globalmente (solo una vez)
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div
       className="min-h-screen flex"
@@ -205,9 +225,11 @@ export function LayoutOperador() {
         background: "#000000",
       }}
     >
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - visible en lg y up */}
       <aside
-        className={`hidden lg:flex flex-col backdrop-blur-xl border-r transition-all duration-300 fixed left-0 top-0 bottom-0 z-40 ${isSidebarOpen ? "w-[280px]" : "w-[80px]"}`}
+        className={`hidden lg:flex flex-col backdrop-blur-xl border-r transition-all duration-300 fixed left-0 top-0 bottom-0 z-40 ${
+          isSidebarOpen ? "w-[280px]" : "w-[80px]"
+        }`}
         style={{
           background: "rgba(0, 0, 0, 0.6)",
           borderColor: "rgba(204, 170, 0, 0.2)",
@@ -216,7 +238,7 @@ export function LayoutOperador() {
         <SidebarContent />
       </aside>
 
-      {/* Mobile & Tablet Sidebar */}
+      {/* Mobile & Tablet Sidebar (overlay) */}
       {isMobileSidebarOpen && (
         <>
           <div
@@ -224,10 +246,11 @@ export function LayoutOperador() {
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <aside
-            className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r animate-slide-in"
+            className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r"
             style={{
               background: "rgba(0, 0, 0, 0.95)",
               borderColor: "rgba(204, 170, 0, 0.2)",
+              ...slideInStyle,
             }}
           >
             <SidebarContent />
@@ -237,23 +260,28 @@ export function LayoutOperador() {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+          isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-[80px]"
+        }`}
       >
         {/* Top Header */}
         <header
-          className={`backdrop-blur-xl border-b fixed top-0 z-30 right-0 transition-all duration-300 ${isSidebarOpen ? "lg:left-[280px]" : "lg:left-[80px]"} left-0`}
+          className={`backdrop-blur-xl border-b fixed top-0 z-30 right-0 transition-all duration-300 ${
+            isSidebarOpen ? "lg:left-[280px]" : "lg:left-[80px]"
+          } left-0`}
           style={{
             background: "rgba(0, 0, 0, 0.6)",
             borderColor: "rgba(204, 170, 0, 0.2)",
           }}
         >
-          <div className="px-3 sm:px-6 lg:px-8">
+          <div className="px-3 sm:px-5 lg:px-6">
             <div className="flex items-center justify-between h-14 sm:h-16">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors"
                 style={{ color: "#ccaa00" }}
+                aria-label="Abrir menú"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
@@ -263,12 +291,16 @@ export function LayoutOperador() {
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className="hidden lg:block p-2 rounded-lg hover:bg-white/5 transition-colors"
                 style={{ color: "#ccaa00" }}
+                aria-label={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
               >
                 <Menu className="w-6 h-6" />
               </button>
 
-              <div className="flex items-center gap-2 sm:gap-4">
-                {/* Sin 2FA badge */}
+              {/* Espaciador para mantener el layout cuando no hay botón izquierdo */}
+              <div className="lg:hidden w-10" />
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Badge de rol - visible solo en sm y up */}
                 <div
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                   style={{
@@ -277,21 +309,27 @@ export function LayoutOperador() {
                   }}
                 >
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-xs font-medium" style={{ color: "#22c55e" }}>
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: "#22c55e" }}
+                  >
                     Operador
                   </span>
                 </div>
 
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs sm:text-sm font-medium text-white">
+                {/* Info usuario - visible en md y up (tablet landscape) */}
+                <div className="hidden md:block text-right">
+                  <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[150px]">
                     {user?.nombre} {user?.apellido}
                   </p>
-                  <p className="text-xs text-gray-400 capitalize">
+                  <p className="text-xs text-gray-400 capitalize truncate">
                     {user?.rol}
                   </p>
                 </div>
+
+                {/* Avatar */}
                 <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{
                     background: "linear-gradient(135deg, #22c55e, #166534)",
                   }}
@@ -304,7 +342,7 @@ export function LayoutOperador() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 mt-14 sm:mt-16">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-6 lg:py-8 mt-14 sm:mt-16">
           <Outlet />
         </main>
       </div>

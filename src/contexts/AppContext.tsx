@@ -11,6 +11,7 @@ export interface Cliente {
   totalPedidos: number;
   ultimoPedido: string;
   estado: 'Activo' | 'Inactivo';
+  saldoPendiente?: number;
 }
 
 export interface TipoAve {
@@ -85,6 +86,20 @@ export interface Contenedor {
   peso: number;
 }
 
+export interface Pago {
+  id: string;
+  clienteId: string;
+  clienteNombre: string;
+  monto: number;
+  metodo: 'Efectivo' | 'Transferencia' | 'Yape' | 'Plin' | 'Otro';
+  fecha: string;
+  hora: string;
+  referencia?: string; // Para números de operación o notas
+  foto?: string; // URL de la foto del comprobante
+  estado: 'Pendiente' | 'Confirmado' | 'Rechazado';
+  registradoPor: string;
+}
+
 interface AppContextType {
   // Clientes
   clientes: Cliente[];
@@ -135,6 +150,13 @@ interface AppContextType {
   addContenedor: (contenedor: Contenedor) => void;
   updateContenedor: (contenedor: Contenedor) => void;
   deleteContenedor: (id: string) => void;
+
+  // Pagos
+  pagos: Pago[];
+  setPagos: (pagos: Pago[]) => void;
+  addPago: (pago: Pago) => void;
+  updatePago: (pago: Pago) => void;
+  deletePago: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -163,7 +185,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         zona: '1',
         totalPedidos: 45,
         ultimoPedido: '2025-02-01',
-        estado: 'Activo'
+        estado: 'Activo',
+        saldoPendiente: 1500.50
       },
       {
         id: '2',
@@ -174,7 +197,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         zona: '2',
         totalPedidos: 32,
         ultimoPedido: '2025-01-30',
-        estado: 'Activo'
+        estado: 'Activo',
+        saldoPendiente: 320.00
       },
       {
         id: '3',
@@ -185,7 +209,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         zona: '3',
         totalPedidos: 18,
         ultimoPedido: '2025-01-25',
-        estado: 'Inactivo'
+        estado: 'Inactivo',
+        saldoPendiente: 0
       }
     ])
   );
@@ -299,6 +324,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ])
   );
 
+  // Estado inicial de Pagos
+  const [pagos, setPagos] = useState<Pago[]>(() => 
+    loadFromStorage('avicola_pagos', [])
+  );
+
   // Efectos para guardar en localStorage cuando cambian los estados
   useEffect(() => localStorage.setItem('avicola_clientes', JSON.stringify(clientes)), [clientes]);
   useEffect(() => localStorage.setItem('avicola_tiposAve', JSON.stringify(tiposAve)), [tiposAve]);
@@ -307,6 +337,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_pedidosConfirmados', JSON.stringify(pedidosConfirmados)), [pedidosConfirmados]);
   useEffect(() => localStorage.setItem('avicola_presentaciones', JSON.stringify(presentaciones)), [presentaciones]);
   useEffect(() => localStorage.setItem('avicola_contenedores', JSON.stringify(contenedores)), [contenedores]);
+  useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
 
   // Escuchar cambios desde otras pestañas
   useEffect(() => {
@@ -324,6 +355,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           case 'avicola_tiposAve':
             setTiposAve(data);
+            break;
+          case 'avicola_pagos':
+            setPagos(data);
             break;
           // ... se pueden agregar más si es necesario
         }
@@ -449,6 +483,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setContenedores(prev => prev.filter(c => c.id !== id));
   };
 
+  // ============ FUNCIONES PARA PAGOS ============
+  const addPago = (pago: Pago) => {
+    setPagos(prev => [...prev, pago]);
+  };
+
+  const updatePago = (pago: Pago) => {
+    setPagos(prev => prev.map(p => p.id === pago.id ? pago : p));
+  };
+
+  const deletePago = (id: string) => {
+    setPagos(prev => prev.filter(p => p.id !== id));
+  };
+
   const value: AppContextType = {
     // Clientes
     clientes,
@@ -499,6 +546,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addContenedor,
     updateContenedor,
     deleteContenedor,
+
+    // Pagos
+    pagos,
+    setPagos,
+    addPago,
+    updatePago,
+    deletePago,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
