@@ -146,7 +146,7 @@ const extraerInfoGenero = (tipoAve: string): { machos: number; hembras: number }
 
 export function ListaPedidos() {
   const { pedidosConfirmados, tiposAve, presentaciones, contenedores, clientes, updatePedidoConfirmado, removePedidoConfirmado, addPedidoConfirmado } = useApp();
-  
+
   // Estados principales
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState<string>('all');
@@ -154,20 +154,20 @@ export function ListaPedidos() {
   const [filterEstado, setFilterEstado] = useState<string>('all');
   const [pedidosLista, setPedidosLista] = useState<PedidoLista[]>([]);
   const [pedidosAgrupados, setPedidosAgrupados] = useState<PedidoAgrupado[]>([]);
-  
+
   // Estados para gestiÃ³n de pedidos
   const [clienteSeleccionado, setClienteSeleccionado] = useState<PedidoAgrupado | null>(null);
   const [modoEdicion, setModoEdicion] = useState<'EDITAR' | 'CANCELAR' | 'AUMENTAR' | 'CONSOLIDAR' | 'NUEVO_SUB' | null>(null);
   const [pedidosSeleccionados, setPedidosSeleccionados] = useState<PedidoLista[]>([]);
-  const [cantidadesEditadas, setCantidadesEditadas] = useState<{[key: string]: string}>({});
+  const [cantidadesEditadas, setCantidadesEditadas] = useState<{ [key: string]: string }>({});
   const [motivoCancelacion, setMotivoCancelacion] = useState<string>('');
-  
+
   // Estados para consolidaciÃ³n inteligente
   const [consolidacionesSugeridas, setConsolidacionesSugeridas] = useState<ConsolidacionSugerida[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [pedidosAEditar, setPedidosAEditar] = useState<PedidoLista[]>([]);
   const [editandoMultiple, setEditandoMultiple] = useState(false);
-  
+
   // Estados para UI
   const [modificacionesHistorial, setModificacionesHistorial] = useState<ModificacionPedido[]>(() => {
     try {
@@ -180,11 +180,11 @@ export function ListaPedidos() {
   const [vistaGrupos, setVistaGrupos] = useState(true);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarDetallePedido, setMostrarDetallePedido] = useState<PedidoLista | null>(null);
-  
+
   // NUEVOS ESTADOS PARA PESAJE Y EDICIÃ“N
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoLista | null>(null);
   const [formEdicion, setFormEdicion] = useState<EdicionPedidoForm | null>(null);
-  
+
   // Estado para nuevo sub-pedido
   const [nuevoSubPedido, setNuevoSubPedido] = useState<Partial<PedidoConfirmado>>({
     cliente: '',
@@ -217,7 +217,7 @@ export function ListaPedidos() {
   ]);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState<Conductor | null>(null);
-  
+
   // Estados para modal de nuevo pedido rÃ¡pido (Aumentar)
   const [mostrarModalNuevoPedido, setMostrarModalNuevoPedido] = useState(false);
   const [nuevoPedidoRapido, setNuevoPedidoRapido] = useState<NuevoPedidoRapido>({
@@ -230,7 +230,7 @@ export function ListaPedidos() {
     presentacion: '',
     contenedor: ''
   });
-  
+
   // Guardar historial automÃ¡ticamente
   useEffect(() => {
     localStorage.setItem('modificacionesHistorial', JSON.stringify(modificacionesHistorial));
@@ -239,24 +239,24 @@ export function ListaPedidos() {
   // Sincronizar datos de pesaje desde PedidoConfirmado (cuando PesajeOperador confirma)
   useEffect(() => {
     if (!pedidosConfirmados || pedidosPesaje.length === 0) return;
-    
+
     setPedidosPesaje(prev => prev.map(pp => {
       // Buscar el pedido confirmado correspondiente
-      const original = pedidosConfirmados.find(pc => 
+      const original = pedidosConfirmados.find(pc =>
         pc.numeroPedido === pp.numeroPedido && pc.cliente === pp.cliente
       );
       if (!original) return pp;
-      
+
       // Si tiene pesoKg y conductor, el pesaje fue completado en PesajeOperador
       if (original.pesoKg && original.conductor && original.zonaEntrega) {
         const conductorObj = conductores.find(c => c.nombre === original.conductor);
-        
+
         // Calcular contenedores: para Vivo = cantidadJabas, para otros = bloques pesados
         const esVivoP = original.presentacion?.toLowerCase().includes('vivo');
-        const numCont = esVivoP && original.cantidadJabas 
-          ? original.cantidadJabas 
+        const numCont = esVivoP && original.cantidadJabas
+          ? original.cantidadJabas
           : Math.ceil(original.cantidad / 10);
-        
+
         return {
           ...pp,
           pesoBruto: original.pesoKg,
@@ -270,7 +270,7 @@ export function ListaPedidos() {
             zonaAsignada: original.zonaEntrega || '',
           },
           estadoPesaje: 'Completado' as const,
-        };  
+        };
       }
       return pp;
     }));
@@ -281,24 +281,40 @@ export function ListaPedidos() {
     localStorage.setItem('pedidosPesaje', JSON.stringify(pedidosPesaje));
   }, [pedidosPesaje]);
 
+  // Sincronizar pedidosPesaje entre pestañas
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pedidosPesaje' && e.newValue) {
+        try {
+          const nuevos = JSON.parse(e.newValue);
+          setPedidosPesaje(nuevos);
+        } catch (error) {
+          console.error('Error al sincronizar pedidos de pesaje:', error);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   // ============ PROCESAR PEDIDOS DESDE EL CONTEXTO ============
   useEffect(() => {
     const procesarPedidos = () => {
       const pedidosProcesados: PedidoLista[] = [];
-      
+
       if (!pedidosConfirmados || pedidosConfirmados.length === 0) {
         setPedidosLista([]);
         setPedidosAgrupados([]);
         return;
       }
-      
+
       pedidosConfirmados.forEach((pedido, index) => {
         let numeroPedido = '';
         let numeroCliente = '';
         let prioridadBase = 1;
         let subNumero = 1;
         let esSubPedido = false;
-        
+
         if (pedido.numeroPedido && pedido.numeroPedido.includes('C')) {
           const match = pedido.numeroPedido.match(/^C(\d{3})\.(\d+)$/);
           if (match) {
@@ -309,14 +325,14 @@ export function ListaPedidos() {
             esSubPedido = subNumero > 1;
           }
         }
-        
+
         if (!numeroPedido) {
           numeroCliente = `C${pedido.prioridad.toString().padStart(3, '0')}`;
           prioridadBase = pedido.prioridad;
           subNumero = 1;
           numeroPedido = `${numeroCliente}.${subNumero}`;
         }
-        
+
         const pedidoProcesado = crearPedidoLista(pedido, index, {
           numeroPedido,
           numeroCliente,
@@ -324,27 +340,27 @@ export function ListaPedidos() {
           subNumero,
           esSubPedido
         });
-        
+
         pedidosProcesados.push(pedidoProcesado);
       });
-      
+
       const pedidosOrdenados = pedidosProcesados.sort((a, b) => {
         if (a.prioridadBase !== b.prioridadBase) {
           return a.prioridadBase - b.prioridadBase;
         }
         return a.subNumero - b.subNumero;
       });
-      
+
       const pedidosConOrden = pedidosOrdenados.map((pedido, index) => ({
         ...pedido,
         ordenProduccion: index + 1
       }));
-      
+
       setPedidosLista(pedidosConOrden);
-      
+
       // Agrupar por cliente
-      const agrupados: {[key: string]: PedidoAgrupado} = {};
-      
+      const agrupados: { [key: string]: PedidoAgrupado } = {};
+
       pedidosConOrden.forEach(pedido => {
         if (!agrupados[pedido.numeroCliente]) {
           agrupados[pedido.numeroCliente] = {
@@ -355,26 +371,26 @@ export function ListaPedidos() {
             pedidosPendientes: 0
           };
         }
-        
+
         agrupados[pedido.numeroCliente].pedidos.push(pedido);
         agrupados[pedido.numeroCliente].totalAves += pedido.cantidad;
         if (pedido.estado === 'Pendiente') {
           agrupados[pedido.numeroCliente].pedidosPendientes++;
         }
       });
-      
+
       setPedidosAgrupados(Object.values(agrupados));
-      
+
       // Buscar consolidaciones sugeridas
       buscarConsolidacionesSugeridas(pedidosConOrden);
     };
-    
+
     procesarPedidos();
   }, [pedidosConfirmados]);
 
   const crearPedidoLista = (
-    pedido: PedidoConfirmado, 
-    index: number, 
+    pedido: PedidoConfirmado,
+    index: number,
     numeracion: {
       numeroPedido: string,
       numeroCliente: string,
@@ -387,34 +403,34 @@ export function ListaPedidos() {
       const presentacionEncontrada = presentaciones?.find(p => p.nombre === presentacion);
       return presentacionEncontrada ? presentacionEncontrada.mermaKg : 0;
     };
-    
+
     const mermaUnitaria = mermaPorPresentacion(pedido.presentacion);
     const mermaTotal = pedido.cantidad * mermaUnitaria;
     const contenedorInfo = contenedores?.find(c => c.tipo === pedido.contenedor);
     const pesoContenedor = contenedorInfo?.peso || 2.5;
     const pesoPromedioAve = 1.8;
     const pesoTotalPedido = (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
-    
+
     // Extraer informaciÃ³n de gÃ©nero
     const infoGenero = extraerInfoGenero(pedido.tipoAve);
-    
+
     // Extraer variedad si existe
     const extraerVariedad = (tipo: string): string | null => {
       // Intentar extraer de parÃ©ntesis (viejo formato)
       const matchParen = tipo.match(/\((?!M:|H:)(.*?)\)/);
       if (matchParen) return matchParen[1];
-      
+
       // Intentar extraer de " - Variedad" (nuevo formato)
       const matchDash = tipo.match(/ - ([^(]+)/);
       if (matchDash) return matchDash[1].trim();
-      
+
       return null;
     };
     const variedad = pedido.variedad || extraerVariedad(pedido.tipoAve);
-    
+
     // Extraer tipo de ave base (sin sexo/variedad)
     const tipoAveBase = pedido.tipoAve.replace(/\(M:\d+,\s*H:\d+\)/g, '').replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim();
-    
+
     return {
       id: pedido.id,
       numeroPedido: numeracion.numeroPedido,
@@ -453,16 +469,16 @@ export function ListaPedidos() {
     if (pedido1.estado !== 'Pendiente' || pedido2.estado !== 'Pendiente') {
       return false;
     }
-    
+
     // Verificar si son del mismo cliente
     if (pedido1.cliente !== pedido2.cliente) {
       return false;
     }
-    
+
     // Extraer informaciÃ³n base del tipo de ave (sin sexo/variedad)
     const tipoAve1 = pedido1.tipoAve.toLowerCase();
     const tipoAve2 = pedido2.tipoAve.toLowerCase();
-    
+
     // Verificar tipo de ave, presentaciÃ³n y contenedor
     return (
       tipoAve1 === tipoAve2 &&
@@ -474,24 +490,24 @@ export function ListaPedidos() {
   // Buscar consolidaciones sugeridas automÃ¡ticamente
   const buscarConsolidacionesSugeridas = (pedidos: PedidoLista[]) => {
     const grupos: { [key: string]: PedidoLista[] } = {};
-    
+
     pedidos.forEach(pedido => {
       if (pedido.estado !== 'Pendiente') return;
-      
+
       const clave = `${pedido.cliente}-${pedido.tipoAve}-${pedido.presentacion}-${pedido.contenedor}`;
-      
+
       if (!grupos[clave]) {
         grupos[clave] = [];
       }
       grupos[clave].push(pedido);
     });
-    
+
     const sugerencias: ConsolidacionSugerida[] = [];
-    
+
     Object.entries(grupos).forEach(([clave, grupoPedidos]) => {
       if (grupoPedidos.length > 1) {
         const totalCantidad = grupoPedidos.reduce((sum, p) => sum + p.cantidad, 0);
-        
+
         sugerencias.push({
           clave,
           pedidos: grupoPedidos,
@@ -501,7 +517,7 @@ export function ListaPedidos() {
         });
       }
     });
-    
+
     setConsolidacionesSugeridas(sugerencias);
   };
 
@@ -511,37 +527,37 @@ export function ListaPedidos() {
       toast.info('No hay pedidos similares para consolidar');
       return;
     }
-    
+
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-    
+
     let consolidadosCount = 0;
-    
+
     consolidacionesSugeridas.forEach(sugerencia => {
       if (sugerencia.pedidos.length > 1) {
         // Tomar el primer pedido como base
         const pedidoBase = sugerencia.pedidos[0];
         const pedidosParaConsolidar = sugerencia.pedidos.slice(1);
-        
+
         // Calcular nueva cantidad
         const nuevaCantidad = sugerencia.totalCantidad;
-        
+
         // Buscar pedido original en el contexto
         const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoBase.id);
-        
+
         if (pedidoOriginal) {
           // Actualizar el pedido base con la suma total
           updatePedidoConfirmado(pedidoBase.id, {
             ...pedidoOriginal,
             cantidad: nuevaCantidad
           });
-          
+
           // Eliminar los pedidos consolidados
           pedidosParaConsolidar.forEach(pedido => {
             removePedidoConfirmado(pedido.id);
           });
-          
+
           // Registrar en historial
           setModificacionesHistorial(prev => [...prev, {
             id: `consolidado-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -555,12 +571,12 @@ export function ListaPedidos() {
             detalles: `Se consolidaron ${sugerencia.pedidos.length} pedidos`,
             pedidosAfectados: sugerencia.pedidos.map(p => p.numeroPedido)
           }]);
-          
+
           consolidadosCount++;
         }
       }
     });
-    
+
     if (consolidadosCount > 0) {
       toast.success(`${consolidadosCount} grupos de pedidos consolidados`);
       setConsolidacionesSugeridas([]);
@@ -574,40 +590,40 @@ export function ListaPedidos() {
       toast.error('Seleccione al menos 2 pedidos para consolidar');
       return;
     }
-    
+
     // Verificar que todos sean similares
     const primerPedido = pedidosSeleccionados[0];
-    const todosSimilares = pedidosSeleccionados.every(pedido => 
+    const todosSimilares = pedidosSeleccionados.every(pedido =>
       sonPedidosSimilares(primerPedido, pedido)
     );
-    
+
     if (!todosSimilares) {
       toast.error('Los pedidos seleccionados no son similares');
       return;
     }
-    
+
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-    
+
     // Calcular nueva cantidad
     const nuevaCantidad = pedidosSeleccionados.reduce((sum, p) => sum + p.cantidad, 0);
-    
+
     // Buscar pedido original del primero
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === primerPedido.id);
-    
+
     if (pedidoOriginal) {
       // Actualizar el primer pedido con la suma total
       updatePedidoConfirmado(primerPedido.id, {
         ...pedidoOriginal,
         cantidad: nuevaCantidad
       });
-      
+
       // Eliminar los demÃ¡s pedidos
       pedidosSeleccionados.slice(1).forEach(pedido => {
         removePedidoConfirmado(pedido.id);
       });
-      
+
       // Registrar en historial
       setModificacionesHistorial(prev => [...prev, {
         id: `consolidado-manual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -621,7 +637,7 @@ export function ListaPedidos() {
         detalles: `Se consolidaron ${pedidosSeleccionados.length} pedidos`,
         pedidosAfectados: pedidosSeleccionados.map(p => p.numeroPedido)
       }]);
-      
+
       toast.success(`Se consolidaron ${pedidosSeleccionados.length} pedidos`);
       setModoEdicion(null);
       setPedidosSeleccionados([]);
@@ -631,33 +647,33 @@ export function ListaPedidos() {
   // Aumentar pedido con verificaciÃ³n de similares
   const manejarAumentoPedido = (pedidoExistente: PedidoLista, cantidadAumento: number): boolean => {
     // Buscar pedidos similares pendientes
-    const pedidosSimilares = pedidosLista.filter(p => 
-      sonPedidosSimilares(p, pedidoExistente) && 
+    const pedidosSimilares = pedidosLista.filter(p =>
+      sonPedidosSimilares(p, pedidoExistente) &&
       p.id !== pedidoExistente.id &&
       p.estado === 'Pendiente'
     );
-    
+
     if (pedidosSimilares.length > 0) {
       const confirmarSuma = window.confirm(
         `Se encontraron ${pedidosSimilares.length} pedido(s) similares pendientes.\n\nÂ¿Desea sumar la cantidad a uno existente en lugar de crear uno nuevo?\n\nPedidos similares:\n${pedidosSimilares.map(p => `â€¢ ${p.numeroPedido} - ${p.cantidad} aves`).join('\n')}`
       );
-      
+
       if (confirmarSuma) {
         // Sumar al primer pedido similar encontrado
         const pedidoASumar = pedidosSimilares[0];
         const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoASumar.id);
-        
+
         if (pedidoOriginal) {
           const nuevaCantidad = pedidoASumar.cantidad + cantidadAumento;
           const ahora = new Date();
           const fecha = ahora.toISOString().split('T')[0];
           const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-          
+
           updatePedidoConfirmado(pedidoASumar.id, {
             ...pedidoOriginal,
             cantidad: nuevaCantidad
           });
-          
+
           setModificacionesHistorial(prev => [...prev, {
             id: `suma-${Date.now()}-${pedidoASumar.id}`,
             pedidoOriginalId: pedidoASumar.id,
@@ -669,13 +685,13 @@ export function ListaPedidos() {
             motivo: `Sumado desde pedido similar ${pedidoExistente.numeroPedido}`,
             detalles: `Se sumaron ${cantidadAumento} aves al pedido existente`
           }]);
-          
+
           toast.success(`Cantidad sumada al pedido existente ${pedidoASumar.numeroPedido}`);
           return true;
         }
       }
     }
-    
+
     return false;
   };
 
@@ -706,7 +722,7 @@ export function ListaPedidos() {
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
-    
+
     // Obtener el siguiente nÃºmero de sub-pedido
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoSubPedido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
@@ -800,7 +816,7 @@ export function ListaPedidos() {
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
-    
+
     // Obtener el siguiente nÃºmero de sub-pedido para este cliente
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoPedidoRapido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
@@ -811,8 +827,8 @@ export function ListaPedidos() {
     const prioridadBase = pedidosDelCliente[0]?.prioridadBase || pedidosAgrupados.length + 1;
 
     const variedadInfo = nuevoPedidoRapido.variedad ? ` - ${nuevoPedidoRapido.variedad}` : '';
-    const detalleSexo = cantidadTotal > 0 && (cantMachos > 0 || cantHembras > 0) 
-      ? ` (M:${cantMachos}, H:${cantHembras})` 
+    const detalleSexo = cantidadTotal > 0 && (cantMachos > 0 || cantHembras > 0)
+      ? ` (M:${cantMachos}, H:${cantHembras})`
       : '';
 
     const nuevoPedido: PedidoConfirmado = {
@@ -960,6 +976,8 @@ export function ListaPedidos() {
       cantidad: pedido.cantidad,
       cantidadJabas: pedido.cantidadJabas,
       unidadesPorJaba: pedido.unidadesPorJaba,
+      cantidadMachos: pedido.cantidadMachos,
+      cantidadHembras: pedido.cantidadHembras,
       presentacion: pedido.presentacion,
       contenedor: pedido.contenedor,
       estadoPesaje: 'Pendiente',
@@ -997,8 +1015,8 @@ export function ListaPedidos() {
 
   // 4. FUNCIÓN PARA COMPLETAR PESAJE
   const completarPesaje = (pedidoPesajeId: string) => {
-    setPedidosPesaje(prev => prev.map(p => 
-      p.id === pedidoPesajeId 
+    setPedidosPesaje(prev => prev.map(p =>
+      p.id === pedidoPesajeId
         ? { ...p, estadoPesaje: 'Completado' }
         : p
     ));
@@ -1030,10 +1048,10 @@ export function ListaPedidos() {
   const abrirEdicionCliente = (cliente: PedidoAgrupado, modo: 'EDITAR' | 'CANCELAR' | 'AUMENTAR' | 'CONSOLIDAR') => {
     setClienteSeleccionado(cliente);
     setModoEdicion(modo);
-    
+
     // Filtrar pedidos según el modo
     let pedidosFiltrados = cliente.pedidos;
-    
+
     if (modo === 'EDITAR') {
       pedidosFiltrados = cliente.pedidos.filter(p => p.estado === 'Pendiente');
     } else if (modo === 'AUMENTAR') {
@@ -1043,11 +1061,11 @@ export function ListaPedidos() {
     } else if (modo === 'CONSOLIDAR') {
       pedidosFiltrados = cliente.pedidos.filter(p => p.estado === 'Pendiente');
     }
-    
+
     setPedidosSeleccionados(pedidosFiltrados);
-    
+
     // Inicializar cantidades editadas
-    const nuevasCantidades: {[key: string]: string} = {};
+    const nuevasCantidades: { [key: string]: string } = {};
     pedidosFiltrados.forEach(pedido => {
       nuevasCantidades[pedido.id] = pedido.cantidad.toString();
     });
@@ -1058,16 +1076,16 @@ export function ListaPedidos() {
   // Aplicar cambios a múltiples pedidos
   const aplicarCambiosMultiples = () => {
     if (!clienteSeleccionado) return;
-    
+
     let cambiosAplicados = 0;
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-    
+
     pedidosSeleccionados.forEach(pedido => {
       const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedido.id);
       if (!pedidoOriginal) return;
-      
+
       switch (modoEdicion) {
         case 'EDITAR':
           const nuevaCantidad = parseInt(cantidadesEditadas[pedido.id] || '0');
@@ -1076,7 +1094,7 @@ export function ListaPedidos() {
               ...pedidoOriginal,
               cantidad: nuevaCantidad
             });
-            
+
             setModificacionesHistorial(prev => [...prev, {
               id: `mod-${Date.now()}-${pedido.id}`,
               pedidoOriginalId: pedido.id,
@@ -1091,22 +1109,22 @@ export function ListaPedidos() {
             cambiosAplicados++;
           }
           break;
-          
+
         case 'AUMENTAR':
           const aumentoCantidad = parseInt(cantidadesEditadas[pedido.id] || '0');
           const diferencia = aumentoCantidad - pedido.cantidad;
-          
+
           if (diferencia > 0) {
             // Verificar si hay pedidos similares para sumar
             const sumado = manejarAumentoPedido(pedido, diferencia);
-            
+
             if (!sumado) {
               // Si no se sumÃ³, actualizar el pedido original
               updatePedidoConfirmado(pedido.id, {
                 ...pedidoOriginal,
                 cantidad: aumentoCantidad
               });
-              
+
               setModificacionesHistorial(prev => [...prev, {
                 id: `aumento-${Date.now()}-${pedido.id}`,
                 pedidoOriginalId: pedido.id,
@@ -1122,18 +1140,18 @@ export function ListaPedidos() {
             }
           }
           break;
-          
+
         case 'CANCELAR':
           if (!motivoCancelacion.trim()) {
             toast.error('Debe ingresar un motivo para cancelar');
             return;
           }
-          
+
           updatePedidoConfirmado(pedido.id, {
             ...pedidoOriginal,
             estado: 'Cancelado'
           });
-          
+
           setModificacionesHistorial(prev => [...prev, {
             id: `cancel-${Date.now()}-${pedido.id}`,
             pedidoOriginalId: pedido.id,
@@ -1147,13 +1165,13 @@ export function ListaPedidos() {
           }]);
           cambiosAplicados++;
           break;
-          
+
         case 'CONSOLIDAR':
           // La consolidaciÃ³n se maneja en otra funciÃ³n
           break;
       }
     });
-    
+
     // Notificar resultado
     if (cambiosAplicados > 0) {
       if (modoEdicion === 'AUMENTAR') {
@@ -1166,7 +1184,7 @@ export function ListaPedidos() {
     } else {
       toast.info('No se realizaron cambios');
     }
-    
+
     // Limpiar estado
     setModoEdicion(null);
     setClienteSeleccionado(null);
@@ -1179,11 +1197,11 @@ export function ListaPedidos() {
   const eliminarPedido = (id: string) => {
     if (confirm('¿Estás seguro de eliminar este pedido? Esta acción no se puede deshacer.')) {
       removePedidoConfirmado(id);
-      
+
       const ahora = new Date();
       const fecha = ahora.toISOString().split('T')[0];
       const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-      
+
       setModificacionesHistorial(prev => [...prev, {
         id: `eliminado-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         pedidoOriginalId: id,
@@ -1195,7 +1213,7 @@ export function ListaPedidos() {
         motivo: 'Eliminación manual',
         detalles: 'Pedido eliminado del sistema'
       }]);
-      
+
       toast.success('Pedido eliminado correctamente');
     }
   };
@@ -1208,11 +1226,11 @@ export function ListaPedidos() {
         ...pedidoOriginal,
         estado: 'En Producción'
       });
-      
+
       const ahora = new Date();
       const fecha = ahora.toISOString().split('T')[0];
       const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-      
+
       setModificacionesHistorial(prev => [...prev, {
         id: `produccion-${Date.now()}-${pedido.id}`,
         pedidoOriginalId: pedido.id,
@@ -1224,7 +1242,7 @@ export function ListaPedidos() {
         motivo: 'Enviado a producción',
         detalles: 'Estado cambiado a "En Producción"'
       }]);
-      
+
       toast.success(`Pedido ${pedido.numeroPedido} enviado a producción`);
     }
   };
@@ -1236,12 +1254,12 @@ export function ListaPedidos() {
       toast.error('No hay pedidos pendientes para editar');
       return;
     }
-    
+
     setPedidosAEditar(pedidosPendientes);
     setEditandoMultiple(true);
-    
+
     // Inicializar cantidades editadas
-    const nuevasCantidades: {[key: string]: string} = {};
+    const nuevasCantidades: { [key: string]: string } = {};
     pedidosPendientes.forEach(pedido => {
       nuevasCantidades[pedido.id] = pedido.cantidad.toString();
     });
@@ -1253,9 +1271,9 @@ export function ListaPedidos() {
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
-    
+
     const pedidosModificados: string[] = [];
-    
+
     pedidosAEditar.forEach(pedido => {
       const nuevaCantidad = parseInt(cantidadesEditadas[pedido.id] || '0');
       if (nuevaCantidad !== pedido.cantidad && nuevaCantidad > 0) {
@@ -1265,13 +1283,13 @@ export function ListaPedidos() {
             ...pedidoOriginal,
             cantidad: nuevaCantidad
           });
-          
+
           pedidosModificados.push(pedido.numeroPedido);
           cambiosAplicados++;
         }
       }
     });
-    
+
     if (cambiosAplicados > 0) {
       setModificacionesHistorial(prev => [...prev, {
         id: `edicion-multiple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1285,12 +1303,12 @@ export function ListaPedidos() {
         detalles: `${cambiosAplicados} pedidos modificados`,
         pedidosAfectados: pedidosModificados
       }]);
-      
+
       toast.success(`${cambiosAplicados} pedido(s) actualizado(s)`);
     } else {
       toast.info('No se realizaron cambios');
     }
-    
+
     setEditandoMultiple(false);
     setPedidosAEditar([]);
     setCantidadesEditadas({});
@@ -1298,7 +1316,7 @@ export function ListaPedidos() {
 
   // ============ FILTRAR Y BUSCAR ============
   const pedidosFiltrados = pedidosLista.filter(pedido => {
-    const matchesSearch = 
+    const matchesSearch =
       pedido.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1312,24 +1330,24 @@ export function ListaPedidos() {
   // Consolidar pedidos automÃ¡ticamente para mostrar
   const pedidosConsolidados = (() => {
     if (!vistaGrupos) return pedidosFiltrados;
-    
+
     const grupos: { [key: string]: PedidoLista[] } = {};
     const consolidados: PedidoLista[] = [];
-    
+
     pedidosFiltrados.forEach(pedido => {
       if (pedido.estado !== 'Pendiente') {
         consolidados.push(pedido);
         return;
       }
-      
+
       const clave = `${pedido.cliente}-${pedido.tipoAve}-${pedido.presentacion}-${pedido.contenedor}`;
-      
+
       if (!grupos[clave]) {
         grupos[clave] = [];
       }
       grupos[clave].push(pedido);
     });
-    
+
     Object.values(grupos).forEach(grupo => {
       if (grupo.length > 1) {
         const pedidoConsolidado = {
@@ -1344,7 +1362,7 @@ export function ListaPedidos() {
         consolidados.push(grupo[0]);
       }
     });
-    
+
     return consolidados;
   })();
 
@@ -1414,7 +1432,7 @@ export function ListaPedidos() {
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <div className="bg-black border border-gray-800 rounded-xl px-4 py-2 flex items-center gap-3">
               <div className="text-center">
@@ -1439,16 +1457,15 @@ export function ListaPedidos() {
         <div className="flex flex-wrap gap-3 mb-4">
           <button
             onClick={() => setVistaGrupos(!vistaGrupos)}
-            className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${
-              vistaGrupos
-                ? 'bg-amber-900/20 border-amber-700/30 text-amber-400'
-                : 'bg-blue-900/20 border-blue-700/30 text-blue-400'
-            }`}
+            className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${vistaGrupos
+              ? 'bg-amber-900/20 border-amber-700/30 text-amber-400'
+              : 'bg-blue-900/20 border-blue-700/30 text-blue-400'
+              }`}
           >
             <Layers className="w-4 h-4" />
             {vistaGrupos ? 'Vista Consolidada' : 'Vista Individual'}
           </button>
-          
+
           <button
             onClick={() => setMostrarHistorial(!mostrarHistorial)}
             className="px-4 py-2 bg-black border border-gray-800 rounded-lg text-white flex items-center gap-2"
@@ -1456,21 +1473,20 @@ export function ListaPedidos() {
             <History className="w-4 h-4" />
             Historial ({modificacionesHistorial.length})
           </button>
-          
+
           {consolidacionesSugeridas.length > 0 && (
             <button
               onClick={() => setMostrarSugerencias(!mostrarSugerencias)}
-              className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${
-                mostrarSugerencias
-                  ? 'bg-green-900/30 border-green-700/30 text-green-400'
-                  : 'bg-green-900/20 border-green-700/20 text-green-300'
-              }`}
+              className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${mostrarSugerencias
+                ? 'bg-green-900/30 border-green-700/30 text-green-400'
+                : 'bg-green-900/20 border-green-700/20 text-green-300'
+                }`}
             >
               <Merge className="w-4 h-4" />
               Consolidaciones ({consolidacionesSugeridas.length})
             </button>
           )}
-          
+
           <button
             onClick={iniciarEdicionMultiple}
             className="px-4 py-2 bg-blue-900/20 border border-blue-700/30 rounded-lg text-blue-400 flex items-center gap-2"
@@ -1478,7 +1494,7 @@ export function ListaPedidos() {
             <Edit2 className="w-4 h-4" />
             Editar Múltiple
           </button>
-          
+
           <button
             onClick={() => window.open('/pantalla-produccion', '_blank')}
             className="px-4 py-2 bg-amber-900/20 border border-amber-700/30 rounded-lg text-amber-400 flex items-center gap-2 hover:bg-amber-900/30 transition-colors"
@@ -1568,7 +1584,7 @@ export function ListaPedidos() {
               Consolidar Todos
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {consolidacionesSugeridas.map((sugerencia, index) => (
               <div key={sugerencia.clave} className="bg-black/30 border border-gray-800 rounded-xl p-4">
@@ -1589,7 +1605,7 @@ export function ListaPedidos() {
                     <div className="text-green-400 font-bold text-xl">{sugerencia.totalCantidad} aves</div>
                   </div>
                 </div>
-                
+
                 <div className="mt-3 pt-3 border-t border-gray-800">
                   <div className="text-xs text-gray-400 mb-1">Pedidos individuales:</div>
                   <div className="flex flex-wrap gap-2">
@@ -1605,7 +1621,7 @@ export function ListaPedidos() {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-800 text-sm text-gray-400">
             <AlertCircle className="w-4 h-4 inline mr-2" />
             Los pedidos similares se consolidan automáticamente sumando sus cantidades en un solo pedido.
@@ -1704,7 +1720,7 @@ export function ListaPedidos() {
               <span className="text-sm font-bold" style={{ color: seccion.color }}>{seccion.datos.length}</span>
             </div>
           </div>
-          
+
           <div className={`bg-black/80 backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg`} style={{ boxShadow: `0 0 30px ${seccion.color}08` }}>
             {seccion.datos.length === 0 ? (
               <div className="px-6 py-12 text-center">
@@ -1735,11 +1751,10 @@ export function ListaPedidos() {
                   </thead>
                   <tbody>
                     {seccion.datos.map((pedido) => (
-                      <tr 
+                      <tr
                         key={pedido.id}
-                        className={`border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors duration-200 ${
-                          pedido.estado === 'Cancelado' ? 'opacity-60' : ''
-                        } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/10' : ''}`}
+                        className={`border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors duration-200 ${pedido.estado === 'Cancelado' ? 'opacity-60' : ''
+                          } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/10' : ''}`}
                       >
                         {editandoMultiple && (
                           <td className="px-6 py-4">
@@ -1775,7 +1790,7 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4">
                           {editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
-                            <input type="number" value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad} onChange={(e) => setFormEdicion(prev => prev ? {...prev, cantidad: parseInt(e.target.value) || 0} : null)} className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-center" />
+                            <input type="number" value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad} onChange={(e) => setFormEdicion(prev => prev ? { ...prev, cantidad: parseInt(e.target.value) || 0 } : null)} className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-center" />
                           ) : (
                             <div>
                               <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
@@ -1899,31 +1914,31 @@ export function ListaPedidos() {
                   </tr>
                 ) : (
                   pedidosPesaje.map((pedido) => (
-                    <tr 
+                    <tr
                       key={pedido.id}
                       className="border-b border-purple-800/20 hover:bg-purple-900/10"
                     >
                       <td className="px-6 py-4">
                         <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="text-white font-medium">{pedido.cliente}</div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="text-emerald-300 font-medium">{pedido.producto}</div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="text-white font-bold">{pedido.cantidad}</div>
                         <div className="text-xs text-white-500">aves</div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="text-white">{pedido.presentacion}</div>
                       </td>
-                      
+
                       <td className="px-6 py-4 text-center">
                         {pedido.cantidadMachos !== undefined ? (
                           <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
@@ -1944,7 +1959,7 @@ export function ListaPedidos() {
                           <span className="text-white-600 font-mono">—</span>
                         )}
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="text-white font-medium">{pedido.contenedor}</div>
@@ -1957,7 +1972,7 @@ export function ListaPedidos() {
                           )}
                         </div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         {pedido.pesoBruto ? (
                           <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
@@ -1965,7 +1980,7 @@ export function ListaPedidos() {
                           <span className="text-white-600">—</span>
                         )}
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         {pedido.conductor ? (
                           <button
@@ -1980,19 +1995,18 @@ export function ListaPedidos() {
                           <span className="text-white-600 text-xs">Sin asignar</span>
                         )}
                       </td>
-                      
+
                       <td className="px-6 py-4">
-                        <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${
-                          pedido.estadoPesaje === 'Pendiente'
-                            ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300'
-                            : pedido.estadoPesaje === 'Completado'
+                        <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estadoPesaje === 'Pendiente'
+                          ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300'
+                          : pedido.estadoPesaje === 'Completado'
                             ? 'bg-green-900/20 border border-green-700/30 text-green-300'
                             : 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
-                        }`}>
+                          }`}>
                           {pedido.estadoPesaje}
                         </div>
                       </td>
-                      
+
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {/* BotÃ³n para cambiar conductor */}
@@ -2003,7 +2017,7 @@ export function ListaPedidos() {
                           >
                             <UserIcon className="w-4 h-4 text-blue-400" />
                           </button>
-                          
+
                           {/* BotÃ³n para completar pesaje */}
                           {pedido.estadoPesaje === 'Pendiente' && (
                             <button
@@ -2014,7 +2028,7 @@ export function ListaPedidos() {
                               <CheckCircle className="w-4 h-4 text-green-400" />
                             </button>
                           )}
-                          
+
                           {/* BotÃ³n para regresar a producciÃ³n */}
                           <button
                             onClick={() => eliminarDePesaje(pedido.id)}
@@ -2052,7 +2066,7 @@ export function ListaPedidos() {
               <span className="text-sm font-bold" style={{ color: seccion.color }}>{seccion.datos.length}</span>
             </div>
           </div>
-          
+
           <div className={`bg-black/80 backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg`} style={{ boxShadow: `0 0 30px ${seccion.color}08` }}>
             {seccion.datos.length === 0 ? (
               <div className="px-6 py-12 text-center">
@@ -2154,7 +2168,7 @@ export function ListaPedidos() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={guardarEdicionMultiple}
@@ -2257,11 +2271,10 @@ export function ListaPedidos() {
                         </div>
                       </div>
                       <div className="text-sm text-gray-400">
-                        Estado: <span className={`${
-                          pedido.estado === 'Pendiente' ? 'text-amber-400' :
+                        Estado: <span className={`${pedido.estado === 'Pendiente' ? 'text-amber-400' :
                           pedido.estado === 'En Producción' ? 'text-blue-400' :
-                          pedido.estado === 'Completado' ? 'text-green-400' : 'text-red-400'
-                        }`}>
+                            pedido.estado === 'Completado' ? 'text-green-400' : 'text-red-400'
+                          }`}>
                           {pedido.estado}
                         </span>
                       </div>
@@ -2277,7 +2290,7 @@ export function ListaPedidos() {
                           </div>
                         )}
                       </div>
-                      
+
                       {(modoEdicion === 'EDITAR' || modoEdicion === 'AUMENTAR') && (
                         <div className="flex items-center gap-2">
                           <div className="text-sm text-gray-400">Nueva cantidad:</div>
@@ -2302,17 +2315,16 @@ export function ListaPedidos() {
                 <div className="flex gap-3">
                   <button
                     onClick={aplicarCambiosMultiples}
-                    className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] ${
-                      modoEdicion === 'CANCELAR'
-                        ? 'bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-700/30 hover:from-red-900/40 hover:to-red-800/40 text-white'
-                        : modoEdicion === 'AUMENTAR'
+                    className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] ${modoEdicion === 'CANCELAR'
+                      ? 'bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-700/30 hover:from-red-900/40 hover:to-red-800/40 text-white'
+                      : modoEdicion === 'AUMENTAR'
                         ? 'bg-gradient-to-r from-green-900/30 to-green-800/30 border border-green-700/30 hover:from-green-900/40 hover:to-green-800/40 text-white'
                         : 'bg-gradient-to-r from-blue-900/30 to-blue-800/30 border border-blue-700/30 hover:from-blue-900/40 hover:to-blue-800/40 text-white'
-                    }`}
+                      }`}
                   >
                     {modoEdicion === 'CANCELAR' ? 'Confirmar Cancelación' :
-                     modoEdicion === 'AUMENTAR' ? 'Aplicar Aumentos' :
-                     modoEdicion === 'CONSOLIDAR' ? 'Consolidar Pedidos' : 'Aplicar Cambios'}
+                      modoEdicion === 'AUMENTAR' ? 'Aplicar Aumentos' :
+                        modoEdicion === 'CONSOLIDAR' ? 'Consolidar Pedidos' : 'Aplicar Cambios'}
                   </button>
                   <button
                     onClick={() => {
@@ -2502,7 +2514,7 @@ export function ListaPedidos() {
                   <div className="text-sm font-medium text-gray-400 mb-1">Nombre</div>
                   <div className="text-white font-medium">{conductorSeleccionado.nombre}</div>
                 </div>
-                
+
                 <div>
                   <div className="text-sm font-medium text-gray-400 mb-1">Licencia</div>
                   <div className="text-white font-mono">{conductorSeleccionado.licencia}</div>
@@ -2547,7 +2559,7 @@ export function ListaPedidos() {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -2584,24 +2596,23 @@ export function ListaPedidos() {
                 </div>
                 <div className="col-span-2">
                   <div className="text-xs text-gray-400">Estado</div>
-                  <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${
-                    mostrarDetallePedido.estado === 'Pendiente' 
-                      ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' 
-                      : mostrarDetallePedido.estado === 'En Producción'
+                  <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${mostrarDetallePedido.estado === 'Pendiente'
+                    ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300'
+                    : mostrarDetallePedido.estado === 'En Producción'
                       ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
                       : mostrarDetallePedido.estado === 'Pesaje'
-                      ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
-                      : mostrarDetallePedido.estado === 'Entregado'
-                      ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300'
-                      : mostrarDetallePedido.estado === 'Completado'
-                      ? 'bg-green-900/20 border border-green-700/30 text-green-300'
-                      : 'bg-red-900/20 border border-red-700/30 text-red-300'
-                  }`}>
+                        ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
+                        : mostrarDetallePedido.estado === 'Entregado'
+                          ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300'
+                          : mostrarDetallePedido.estado === 'Completado'
+                            ? 'bg-green-900/20 border border-green-700/30 text-green-300'
+                            : 'bg-red-900/20 border border-red-700/30 text-red-300'
+                    }`}>
                     {mostrarDetallePedido.estado}
                   </div>
                 </div>
               </div>
-              
+
               <div className="pt-4 border-t border-gray-800">
                 <div className="text-xs text-gray-400">Fecha y Hora</div>
                 <div className="text-white">{mostrarDetallePedido.fecha} {mostrarDetallePedido.hora}</div>
@@ -2634,7 +2645,7 @@ export function ListaPedidos() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               {modificacionesHistorial.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
@@ -2649,12 +2660,11 @@ export function ListaPedidos() {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className={`text-sm font-medium flex items-center gap-2 ${
-                            mod.tipo === 'CANCELACION' ? 'text-red-400' :
+                          <div className={`text-sm font-medium flex items-center gap-2 ${mod.tipo === 'CANCELACION' ? 'text-red-400' :
                             mod.tipo === 'MODIFICACION' ? 'text-blue-400' :
-                            mod.tipo === 'AUMENTO' ? 'text-green-400' :
-                            mod.tipo === 'CONSOLIDACION' ? 'text-purple-400' : 'text-amber-400'
-                          }`}>
+                              mod.tipo === 'AUMENTO' ? 'text-green-400' :
+                                mod.tipo === 'CONSOLIDACION' ? 'text-purple-400' : 'text-amber-400'
+                            }`}>
                             {mod.tipo === 'CANCELACION' && 'âŒ CancelaciÃ³n'}
                             {mod.tipo === 'MODIFICACION' && 'âœï¸ ModificaciÃ³n'}
                             {mod.tipo === 'AUMENTO' && 'ðŸ“ˆ Aumento'}
@@ -2676,21 +2686,21 @@ export function ListaPedidos() {
                           )}
                         </div>
                       </div>
-                      
+
                       {mod.motivo && (
                         <div className="mt-2 pt-2 border-t border-gray-800/50">
                           <div className="text-xs text-gray-400">Motivo:</div>
                           <div className="text-sm text-gray-300">{mod.motivo}</div>
                         </div>
                       )}
-                      
+
                       {mod.detalles && (
                         <div className="mt-2">
                           <div className="text-xs text-gray-400">Detalles:</div>
                           <div className="text-sm text-gray-300">{mod.detalles}</div>
                         </div>
                       )}
-                      
+
                       {mod.pedidosAfectados && mod.pedidosAfectados.length > 0 && (
                         <div className="mt-2">
                           <div className="text-xs text-gray-400">Pedidos afectados:</div>
@@ -2740,7 +2750,7 @@ export function ListaPedidos() {
             <div className="text-2xl font-bold text-purple-400">{enPesaje}</div>
           </div>
         </div>
-        
+
         <div className="mt-4 pt-4 border-t border-gray-800 text-center">
           <div className="text-xs text-gray-500">
             Sistema inteligente de gestiÃ³n de pedidos â€¢ Los datos se guardan automÃ¡ticamente
