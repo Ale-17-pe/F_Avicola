@@ -59,7 +59,7 @@ export function NuevoPedido() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           // Encontrar el número más alto de cliente
-          const maxNum = Math.max(...parsed.map(c => 
+          const maxNum = Math.max(...parsed.map(c =>
             parseInt(c.numeroCliente.replace('C', '')) || 0
           ));
           setNumeroClienteActual(maxNum + 1);
@@ -69,7 +69,7 @@ export function NuevoPedido() {
     } catch (error) {
       console.error('Error al cargar clientes numerados:', error);
     }
-    
+
     // Inicializar desde clientes del contexto
     return clientes.map((cliente, index) => ({
       nombre: cliente.nombre,
@@ -87,7 +87,7 @@ export function NuevoPedido() {
         console.error('Error al guardar clientes numerados:', error);
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [clientesNumerados]);
 
@@ -104,7 +104,7 @@ export function NuevoPedido() {
     } catch (error) {
       console.error('Error al cargar datos guardados:', error);
     }
-    
+
     // Datos por defecto
     return [
       { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
@@ -123,7 +123,7 @@ export function NuevoPedido() {
         console.error('Error al guardar datos:', error);
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [formularios]);
 
@@ -152,7 +152,7 @@ export function NuevoPedido() {
         console.error('Error al guardar cola:', error);
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [pedidosEnCola]);
 
@@ -175,14 +175,14 @@ export function NuevoPedido() {
       localStorage.removeItem('nuevoPedidoDraft');
       localStorage.removeItem('pedidosEnCola');
       localStorage.removeItem('clientesNumerados');
-      
+
       setFormularios([
         { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
         { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
         { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
         { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false }
       ]);
-      
+
       setPedidosEnCola([]);
       setNumeroClienteActual(1);
       setClientesNumerados(
@@ -192,7 +192,7 @@ export function NuevoPedido() {
           siguienteSubNumero: 1
         }))
       );
-      
+
       toast.success('Todos los datos han sido limpiados');
     }
   };
@@ -212,30 +212,30 @@ export function NuevoPedido() {
 
   const obtenerNumeroCliente = (nombreCliente: string): string => {
     const clienteExistente = clientesNumerados.find(c => c.nombre === nombreCliente);
-    
+
     if (clienteExistente) {
       return clienteExistente.numeroCliente;
     }
-    
+
     const nuevoNumero = `C${String(numeroClienteActual).padStart(3, '0')}`;
     const nuevoCliente: ClienteNumerado = {
       nombre: nombreCliente,
       numeroCliente: nuevoNumero,
       siguienteSubNumero: 1
     };
-    
+
     setClientesNumerados(prev => [...prev, nuevoCliente]);
     setNumeroClienteActual(prev => prev + 1);
-    
+
     return nuevoNumero;
   };
 
-  const obtenerNumeracionPedido = (cliente: string): {numeroCliente: string, numeroPedido: string, prioridadBase: number, subNumero: number} => {
+  const obtenerNumeracionPedido = (cliente: string): { numeroCliente: string, numeroPedido: string, prioridadBase: number, subNumero: number } => {
     const numeroCliente = obtenerNumeroCliente(cliente);
     const prioridadBase = parseInt(numeroCliente.replace('C', ''));
-    
+
     let clienteIndex = clientesNumerados.findIndex(c => c.nombre === cliente);
-    
+
     if (clienteIndex === -1) {
       const nuevoCliente: ClienteNumerado = {
         nombre: cliente,
@@ -245,22 +245,22 @@ export function NuevoPedido() {
       setClientesNumerados(prev => [...prev, nuevoCliente]);
       clienteIndex = clientesNumerados.length;
     }
-    
+
     const clienteData = clientesNumerados.find(c => c.nombre === cliente);
     let subNumero = clienteData ? clienteData.siguienteSubNumero : 1;
-    
+
     if (clienteData) {
-      setClientesNumerados(prev => 
-        prev.map(c => 
-          c.nombre === cliente 
+      setClientesNumerados(prev =>
+        prev.map(c =>
+          c.nombre === cliente
             ? { ...c, siguienteSubNumero: subNumero + 1 }
             : c
         )
       );
     }
-    
+
     const numeroPedido = `${numeroCliente}.${subNumero}`;
-    
+
     return {
       numeroCliente,
       numeroPedido,
@@ -297,7 +297,7 @@ export function NuevoPedido() {
     setFormularios(prev => prev.map(form => {
       if (form.id === id) {
         const formActualizado = { ...form, [campo]: valor };
-        
+
         if (campo === 'tipoAve') {
           formActualizado.variedad = '';
           formActualizado.cantidadMachos = '';
@@ -312,12 +312,12 @@ export function NuevoPedido() {
             campo === 'cantidadHembras' ? valor : formActualizado.cantidadHembras || ''
           );
         }
-        
+
         const tipoAveInfo = getTipoAveInfo(formActualizado.tipoAve);
         const necesitaVariedad = tipoAveInfo?.tieneVariedad;
         const necesitaSexo = tipoAveInfo?.tieneSexo;
-        
-        const completado = 
+
+        const completado =
           formActualizado.cliente !== '' &&
           formActualizado.tipoAve !== '' &&
           formActualizado.presentacion !== '' &&
@@ -325,16 +325,16 @@ export function NuevoPedido() {
           (!necesitaVariedad || formActualizado.variedad !== '') &&
           (!necesitaSexo || (formActualizado.cantidadMachos !== '' || formActualizado.cantidadHembras !== '')) &&
           (necesitaSexo || formActualizado.cantidadTotal !== '');
-          
+
         return { ...formActualizado, completado };
       }
       return form;
     }));
   };
-  
+
   const mandarACola = () => {
     const formulariosCompletados = formularios.filter(f => f.completado);
-    
+
     if (formulariosCompletados.length === 0) {
       toast.error('No hay pedidos completados para enviar a la cola');
       return;
@@ -350,7 +350,7 @@ export function NuevoPedido() {
 
     const nuevosPedidos: PedidoEnCola[] = Object.entries(pedidosPorCliente).map(([cliente, forms]) => {
       const numeracion = obtenerNumeracionPedido(cliente);
-      
+
       return {
         id: `pedido-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         cliente,
@@ -374,9 +374,9 @@ export function NuevoPedido() {
     });
 
     setPedidosEnCola(prev => [...prev, ...nuevosPedidos]);
-    
-    setFormularios(prev => prev.map(f => 
-      f.completado 
+
+    setFormularios(prev => prev.map(f =>
+      f.completado
         ? { ...f, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', presentacion: '', contenedor: '', completado: false }
         : f
     ));
@@ -401,19 +401,19 @@ export function NuevoPedido() {
       return a.subNumero - b.subNumero;
     });
 
-    const pedidosConfirmar = pedidosOrdenados.flatMap((pedido) => 
+    const pedidosConfirmar = pedidosOrdenados.flatMap((pedido) =>
       pedido.subPedidos.map((sub, index) => {
         const variedadInfo = sub.variedad ? ` - ${sub.variedad}` : '';
-        
+
         // DEBUG: ver qué datos llegan del sub-pedido
         console.log('SUB-PEDIDO DATA:', JSON.stringify(sub, null, 2));
-        
+
         let cantidadFinal = 0;
         let detalleSexo = '';
         let jabas: number | undefined = undefined;
         let uPorJaba: number | undefined = undefined;
         const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
-        
+
         if (sub.cantidadMachos || sub.cantidadHembras) {
           const machos = parseInt(sub.cantidadMachos || '0');
           const hembras = parseInt(sub.cantidadHembras || '0');
@@ -429,10 +429,10 @@ export function NuevoPedido() {
           cantidadFinal = parseInt(sub.cantidadTotal);
           console.log(`ELSE PATH: cantidadFinal = ${cantidadFinal}, esVivo=${esVivo}, unidadesPorJaba=${sub.unidadesPorJaba}`);
         }
-        
+
         const subNumero = index + 1;
         const numeroPedidoCompleto = `${pedido.numeroCliente}.${subNumero}`;
-        
+
         return {
           id: `confirmed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           numeroPedido: numeroPedidoCompleto,
@@ -454,12 +454,12 @@ export function NuevoPedido() {
     );
 
     addMultiplePedidosConfirmados(pedidosConfirmar);
-    
+
     // Limpiar datos guardados después de confirmar
     localStorage.removeItem('nuevoPedidoDraft');
     localStorage.removeItem('pedidosEnCola');
     setPedidosEnCola([]);
-    
+
     toast.success(`${pedidosConfirmar.length} pedido(s) confirmado(s) y enviado(s) a Lista de Pedidos`);
   };
 
@@ -490,11 +490,11 @@ export function NuevoPedido() {
       setPedidosEnCola(prev => prev.map(pedido => {
         if (pedido.id === pedidoSeleccionado.id) {
           const nuevosSubPedidos = pedido.subPedidos.filter(sub => sub.id !== subPedidoId);
-          
+
           if (nuevosSubPedidos.length === 0) {
             return null;
           }
-          
+
           return {
             ...pedido,
             subPedidos: nuevosSubPedidos
@@ -526,7 +526,7 @@ export function NuevoPedido() {
     }
 
     const tipoAveInfo = getTipoAveInfo(nuevoSubPedido.tipoAve);
-    
+
     if (tipoAveInfo?.tieneVariedad && !nuevoSubPedido.variedad) {
       toast.error('Seleccione una variedad para este tipo de ave');
       return;
@@ -548,7 +548,7 @@ export function NuevoPedido() {
       variedad: nuevoSubPedido.variedad,
       cantidadMachos: nuevoSubPedido.cantidadMachos,
       cantidadHembras: nuevoSubPedido.cantidadHembras,
-      cantidadTotal: tipoAveInfo?.tieneSexo 
+      cantidadTotal: tipoAveInfo?.tieneSexo
         ? calcularTotal(nuevoSubPedido.cantidadMachos || '', nuevoSubPedido.cantidadHembras || '')
         : nuevoSubPedido.cantidadTotal!,
       presentacion: nuevoSubPedido.presentacion!,
@@ -611,7 +611,7 @@ export function NuevoPedido() {
         console.error('Error al crear backup:', error);
       }
     }, 10000); // Backup cada 10 segundos
-    
+
     return () => clearInterval(backupTimer);
   }, [formularios]);
 
@@ -658,7 +658,7 @@ export function NuevoPedido() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <div className="bg-black/50 border border-gray-800 rounded-xl px-4 py-2 flex items-center gap-3">
               <div className="text-center">
@@ -707,11 +707,10 @@ export function NuevoPedido() {
             <div className="flex flex-wrap gap-2">
               {pedidosEnCola.map(pedido => (
                 <div key={pedido.id} className="relative group">
-                  <div className={`px-3 py-2 rounded-lg border text-sm font-mono transition-all hover:scale-105 ${
-                    pedido.subPedidos.length > 1
+                  <div className={`px-3 py-2 rounded-lg border text-sm font-mono transition-all hover:scale-105 ${pedido.subPedidos.length > 1
                       ? 'bg-blue-900/10 border-blue-700/20 text-blue-300 hover:border-blue-600/40'
                       : 'bg-green-900/10 border-green-700/20 text-green-300 hover:border-green-600/40'
-                  }`}>
+                    }`}>
                     <div className="flex items-center gap-2">
                       <span>{pedido.numeroPedido}</span>
                       {pedido.subPedidos.length > 1 && (
@@ -750,20 +749,17 @@ export function NuevoPedido() {
           <button
             onClick={confirmarPedidos}
             disabled={pedidosEnCola.length === 0}
-            className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${
-              pedidosEnCola.length > 0
+            className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${pedidosEnCola.length > 0
                 ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
                 : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'
-            }`}
+              }`}
           >
-            <div className={`p-2 rounded-lg transition-colors ${
-              pedidosEnCola.length > 0
+            <div className={`p-2 rounded-lg transition-colors ${pedidosEnCola.length > 0
                 ? 'bg-amber-900/30 group-hover:bg-amber-900/40'
                 : 'bg-gray-800/30'
-            }`}>
-              <CheckCircle className={`w-5 h-5 ${
-                pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'
-              }`} />
+              }`}>
+              <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'
+                }`} />
             </div>
             <span className="flex items-center gap-2">
               Confirmar Pedidos
@@ -829,10 +825,10 @@ export function NuevoPedido() {
               key={form.id}
               className="bg-black/50 border rounded-2xl p-5 relative overflow-hidden group transition-all duration-300 hover:border-opacity-60"
               style={{
-                borderColor: form.completado 
-                  ? `${formColor}80` 
+                borderColor: form.completado
+                  ? `${formColor}80`
                   : '#374151',
-                boxShadow: form.completado 
+                boxShadow: form.completado
                   ? `0 10px 40px -10px ${formColor}40`
                   : '0 4px 20px -5px rgba(0, 0, 0, 0.5)'
               }}
@@ -855,9 +851,9 @@ export function NuevoPedido() {
               {/* Header del formulario */}
               <div className="mb-5">
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-lg"
-                    style={{ 
+                    style={{
                       background: `linear-gradient(135deg, ${formColor}, ${formColor.replace('#', '#')}dd)`,
                       border: `1px solid ${formColor}80`
                     }}
@@ -1001,22 +997,23 @@ export function NuevoPedido() {
                 </div>
 
                 {/* Cantidad Total / Jabas */}
+                {/* Cantidad Total / Jabas */}
                 {!necesitaSexo && form.tipoAve && (
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-2">
-                      {form.presentacion?.toLowerCase().includes('vivo') ? 'Cantidad de Jabas' : 'Cantidad Total'}
+                      {form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Cantidad de Jabas' : 'Cantidad Total'}
                     </label>
                     <input
                       type="number"
                       value={form.cantidadTotal}
                       onChange={(e) => actualizarFormulario(form.id, 'cantidadTotal', e.target.value)}
-                      placeholder={form.presentacion?.toLowerCase().includes('vivo') ? 'Nº de jabas' : '0'}
+                      placeholder={form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Nº de jabas' : '0'}
                       min="1"
                       className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20 transition-all"
                     />
-                    {form.presentacion?.toLowerCase().includes('vivo') && form.cantidadTotal && (
+                    {(form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro') && form.cantidadTotal && (
                       <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
-                        🐔 {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje
+                        {getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? '🥚' : '🐔'} {form.cantidadTotal} jaba(s) {getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? '' : 'se pesarán por bloque en Pesaje'}
                       </p>
                     )}
                   </div>
@@ -1144,7 +1141,7 @@ export function NuevoPedido() {
                     </div>
                     <div className="flex-1">
                       <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-green-600 to-amber-500 rounded-full"
                           style={{ width: `${Math.min(100, (pedido.subPedidos.length / 10) * 100)}%` }}
                         />
@@ -1193,8 +1190,8 @@ export function NuevoPedido() {
 
                           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                             {pedidoSeleccionado.subPedidos.map((sub, index) => (
-                              <div 
-                                key={sub.id} 
+                              <div
+                                key={sub.id}
                                 className="bg-black/30 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-all"
                               >
                                 <div className="flex justify-between items-start mb-3">
@@ -1306,8 +1303,8 @@ export function NuevoPedido() {
                                     <input
                                       type="number"
                                       value={nuevoSubPedido.cantidadMachos || ''}
-                                      onChange={(e) => setNuevoSubPedido(prev => ({ 
-                                        ...prev, 
+                                      onChange={(e) => setNuevoSubPedido(prev => ({
+                                        ...prev,
                                         cantidadMachos: e.target.value,
                                         cantidadTotal: calcularTotal(e.target.value, prev.cantidadHembras || '')
                                       }))}
@@ -1323,8 +1320,8 @@ export function NuevoPedido() {
                                     <input
                                       type="number"
                                       value={nuevoSubPedido.cantidadHembras || ''}
-                                      onChange={(e) => setNuevoSubPedido(prev => ({ 
-                                        ...prev, 
+                                      onChange={(e) => setNuevoSubPedido(prev => ({
+                                        ...prev,
                                         cantidadHembras: e.target.value,
                                         cantidadTotal: calcularTotal(prev.cantidadMachos || '', e.target.value)
                                       }))}
@@ -1456,11 +1453,11 @@ export function NuevoPedido() {
             </div>
           </div>
         </div>
-        
+
         {/* Indicador de estado de guardado */}
         <div className="mt-4 pt-4 border-t border-gray-800">
           <div className="text-xs text-center text-gray-500">
-            Los datos se guardan automáticamente cada 500ms. 
+            Los datos se guardan automáticamente cada 500ms.
             {formularios.some(f => f.completado) && (
               <span className="text-green-400 ml-2">✓ Datos guardados</span>
             )}

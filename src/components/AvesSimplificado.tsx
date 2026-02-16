@@ -11,26 +11,17 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useApp } from "../contexts/AppContext";
+import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
 
-interface TipoAve {
-  id: string;
-  nombre: string;
-  tieneSexo: boolean;
-  tieneVariedad: boolean;
-  variedades?: string[];
-  color: string;
-}
 
-interface Presentacion {
-  id: string;
-  tipoAve: string;
-  nombre: string;
-  mermaKg: number;
-}
+
 
 export function AvesSimplificado() {
-  const { tiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+  const { tiposAve: allTiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+
+  // Filtrar solo aves
+  const tiposAve = allTiposAve.filter(t => t.categoria === 'Ave' || !t.categoria);
+
 
   const [isAddTipoModalOpen, setIsAddTipoModalOpen] = useState(false);
   const [editingTipo, setEditingTipo] = useState<TipoAve | null>(null);
@@ -164,6 +155,7 @@ export function AvesSimplificado() {
           ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
           : undefined,
         color: nuevoTipoForm.color,
+        categoria: 'Ave',
       };
       addTipoAve(nuevoTipo);
       setNuevoTipoForm({
@@ -185,11 +177,11 @@ export function AvesSimplificado() {
         presentaciones.map((p) =>
           p.id === editingPresentacion.id
             ? {
-                ...p,
-                tipoAve: nuevaPresentacionForm.tipoAve,
-                nombre: nuevaPresentacionForm.nombre,
-                mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
-              }
+              ...p,
+              tipoAve: nuevaPresentacionForm.tipoAve,
+              nombre: nuevaPresentacionForm.nombre,
+              mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
+            }
             : p,
         ),
       );

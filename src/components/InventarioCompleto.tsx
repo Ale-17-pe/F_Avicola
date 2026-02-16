@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Users, Bird } from 'lucide-react';
+import { Users, Bird, Egg } from 'lucide-react';
 import { ProveedoresConPedidos } from './ProveedoresConPedidos';
 import { AvesSimplificado } from './AvesSimplificado';
+import { GestionOtros } from './GestionOtros';
 
-type InventarioTab = 'proveedores' | 'aves';
+type InventarioTab = 'proveedores' | 'aves' | 'otros';
 
 export function InventarioCompleto() {
   const [activeTab, setActiveTab] = useState<InventarioTab>('aves');
@@ -29,7 +30,7 @@ export function InventarioCompleto() {
               onClick={() => setActiveTab('aves')}
               className="px-4 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 whitespace-nowrap"
               style={{
-                background: activeTab === 'aves' 
+                background: activeTab === 'aves'
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
                   : 'rgba(255, 255, 255, 0.1)',
                 color: activeTab === 'aves' ? 'white' : '#9ca3af',
@@ -44,7 +45,7 @@ export function InventarioCompleto() {
               onClick={() => setActiveTab('proveedores')}
               className="px-4 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 whitespace-nowrap"
               style={{
-                background: activeTab === 'proveedores' 
+                background: activeTab === 'proveedores'
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
                   : 'rgba(255, 255, 255, 0.1)',
                 color: activeTab === 'proveedores' ? 'white' : '#9ca3af',
@@ -55,6 +56,21 @@ export function InventarioCompleto() {
               <Users className="w-4 h-4 flex-shrink-0" />
               <span className="text-sm">Gestión de Proveedores</span>
             </button>
+            <button
+              onClick={() => setActiveTab('otros')}
+              className="px-4 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 whitespace-nowrap"
+              style={{
+                background: activeTab === 'otros'
+                  ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: activeTab === 'otros' ? 'white' : '#9ca3af',
+                boxShadow: activeTab === 'otros' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
+                border: activeTab === 'otros' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <Egg className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">Otros Productos</span>
+            </button>
           </div>
         </div>
 
@@ -64,7 +80,7 @@ export function InventarioCompleto() {
             onClick={() => setActiveTab('aves')}
             className="px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-3"
             style={{
-              background: activeTab === 'aves' 
+              background: activeTab === 'aves'
                 ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
                 : 'rgba(255, 255, 255, 0.1)',
               color: activeTab === 'aves' ? 'white' : '#9ca3af',
@@ -79,7 +95,7 @@ export function InventarioCompleto() {
             onClick={() => setActiveTab('proveedores')}
             className="px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-3"
             style={{
-              background: activeTab === 'proveedores' 
+              background: activeTab === 'proveedores'
                 ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
                 : 'rgba(255, 255, 255, 0.1)',
               color: activeTab === 'proveedores' ? 'white' : '#9ca3af',
@@ -90,6 +106,21 @@ export function InventarioCompleto() {
             <Users className="w-5 h-5 flex-shrink-0" />
             <span className="text-base">Gestión de Proveedores</span>
           </button>
+          <button
+            onClick={() => setActiveTab('otros')}
+            className="px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-3"
+            style={{
+              background: activeTab === 'otros'
+                ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
+                : 'rgba(255, 255, 255, 0.1)',
+              color: activeTab === 'otros' ? 'white' : '#9ca3af',
+              boxShadow: activeTab === 'otros' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
+              border: activeTab === 'otros' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+            }}
+          >
+            <Egg className="w-5 h-5 flex-shrink-0" />
+            <span className="text-base">Otros Productos</span>
+          </button>
         </div>
       </div>
 
@@ -97,6 +128,7 @@ export function InventarioCompleto() {
       <div className="mt-4 sm:mt-6">
         {activeTab === 'aves' && <AvesSimplificado />}
         {activeTab === 'proveedores' && <ProveedoresConPedidos />}
+        {activeTab === 'otros' && <GestionOtros />}
       </div>
     </div>
   );
