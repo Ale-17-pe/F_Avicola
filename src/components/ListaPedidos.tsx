@@ -20,7 +20,7 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
 }
 
 interface PedidoLista {
@@ -44,7 +44,7 @@ interface PedidoLista {
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
@@ -1388,7 +1388,7 @@ export function ListaPedidos() {
   const pedidosPendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente');
   const pedidosEnProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción');
   const pedidosEnEntrega = pedidosMostrar.filter(p => p.estado === 'Entregado');
-  const pedidosEntregados = pedidosMostrar.filter(p => p.estado === 'Completado');
+  const pedidosEntregados = pedidosMostrar.filter(p => ['Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado));
 
   // Tabla de producciÃ³n combinada (para backward compat)
   const pedidosProduccion = pedidosLista.filter(p => p.estado !== 'Completado');
@@ -1400,7 +1400,7 @@ export function ListaPedidos() {
   const enProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción').length;
   const pendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente').length;
   const cancelados = pedidosMostrar.filter(p => p.estado === 'Cancelado').length;
-  const completados = pedidosLista.filter(p => p.estado === 'Completado').length;
+  const completados = pedidosLista.filter(p => ['Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado)).length;
   const enPesaje = pedidosPesaje.length;
 
   // Obtener clientes Ãºnicos para filtro
@@ -1577,6 +1577,9 @@ export function ListaPedidos() {
                 <option value="Pendiente" className="bg-black">Pendiente</option>
                 <option value="En Producción" className="bg-black">En Producción</option>
                 <option value="Completado" className="bg-black">Completado</option>
+                <option value="Completado con alerta" className="bg-black">Completado con alerta</option>
+                <option value="Devolución" className="bg-black">Devolución</option>
+                <option value="Confirmado con Adición" className="bg-black">Confirmado con Adición</option>
                 <option value="Cancelado" className="bg-black">Cancelado</option>
               </select>
             </div>
@@ -1836,7 +1839,7 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>
                         <td className="px-6 py-4">
-                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Pendiente' ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' : pedido.estado === 'En Producción' ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300' : pedido.estado === 'Entregado' ? 'bg-orange-900/20 border border-orange-700/30 text-orange-300' : pedido.estado === 'Completado' ? 'bg-green-900/20 border border-green-700/30 text-green-300' : pedido.estado === 'Cancelado' ? 'bg-red-900/20 border border-red-700/30 text-red-300' : 'bg-gray-900/20 border border-gray-700/30 text-gray-300'}`}>
+                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Pendiente' ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300' : pedido.estado === 'En Producción' ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300' : pedido.estado === 'Entregado' ? 'bg-orange-900/20 border border-orange-700/30 text-orange-300' : pedido.estado === 'Completado' ? 'bg-green-900/20 border border-green-700/30 text-green-300' : pedido.estado === 'Completado con alerta' ? 'bg-yellow-900/20 border border-yellow-700/30 text-yellow-300' : pedido.estado === 'Devolución' ? 'bg-red-900/20 border border-red-700/30 text-red-300' : pedido.estado === 'Confirmado con Adición' ? 'bg-emerald-900/20 border border-emerald-700/30 text-emerald-300' : pedido.estado === 'Cancelado' ? 'bg-red-900/20 border border-red-700/30 text-red-300' : 'bg-gray-900/20 border border-gray-700/30 text-gray-300'}`}>
                             {pedido.estado}
                           </div>
                         </td>
@@ -2161,11 +2164,6 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5">
-                            {pedido.estado === 'Entregado' && (
-                              <button onClick={() => completarEntrega(pedido)} className="p-2 bg-green-900/20 border border-green-700/30 rounded-lg hover:bg-green-900/30 transition-colors" title="Completar entrega">
-                                <CheckCircle className="w-4 h-4 text-green-400" />
-                              </button>
-                            )}
                             <button onClick={() => setMostrarDetallePedido(pedido)} className="p-2 bg-gray-800/50 border border-gray-700/30 rounded-lg hover:bg-gray-800 transition-colors" title="Ver detalles"><Eye className="w-4 h-4 text-gray-400" /></button>
                           </div>
                         </td>
