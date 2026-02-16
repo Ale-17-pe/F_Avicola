@@ -21,6 +21,7 @@ export interface TipoAve {
   tieneVariedad: boolean;
   variedades?: string[];
   color: string;
+  categoria?: 'Ave' | 'Otro';
 }
 
 export interface CostoCliente {
@@ -107,21 +108,21 @@ interface AppContextType {
   addCliente: (cliente: Cliente) => void;
   updateCliente: (cliente: Cliente) => void;
   deleteCliente: (id: string) => void;
-  
+
   // Tipos de Ave
   tiposAve: TipoAve[];
   setTiposAve: (tipos: TipoAve[]) => void;
   addTipoAve: (tipo: TipoAve) => void;
   updateTipoAve: (tipo: TipoAve) => void;
   deleteTipoAve: (id: string) => void;
-  
+
   // Costos de Clientes
   costosClientes: CostoCliente[];
   setCostosClientes: (costos: CostoCliente[]) => void;
   addCostoCliente: (costo: CostoCliente) => void;
   updateCostoCliente: (costo: CostoCliente) => void;
   deleteCostoCliente: (id: string) => void;
-  
+
   // Empleados
   empleados: Empleado[];
   setEmpleados: (empleados: Empleado[]) => void;
@@ -143,7 +144,7 @@ interface AppContextType {
   addPresentacion: (presentacion: Presentacion) => void;
   updatePresentacion: (presentacion: Presentacion) => void;
   deletePresentacion: (id: string) => void;
-  
+
   // Contenedores
   contenedores: Contenedor[];
   setContenedores: (contenedores: Contenedor[]) => void;
@@ -174,7 +175,7 @@ const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // Estado inicial de Clientes
-  const [clientes, setClientes] = useState<Cliente[]>(() => 
+  const [clientes, setClientes] = useState<Cliente[]>(() =>
     loadFromStorage('avicola_clientes', [
       {
         id: '1',
@@ -216,17 +217,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Tipos de Ave
-  const [tiposAve, setTiposAve] = useState<TipoAve[]>(() => 
+  const [tiposAve, setTiposAve] = useState<TipoAve[]>(() =>
     loadFromStorage('avicola_tiposAve', [
-      { id: '1', nombre: 'Pollo', tieneSexo: true, tieneVariedad: false, color: '#22c55e' },
-      { id: '2', nombre: 'Pato', tieneSexo: true, tieneVariedad: false, color: '#3b82f6' },
-      { id: '3', nombre: 'Pavo', tieneSexo: true, tieneVariedad: false, color: '#8b5cf6' },
-      { id: '4', nombre: 'Gallina', tieneSexo: false, tieneVariedad: true, variedades: ['Rojas', 'Doble Pechuga'], color: '#ec4899' }
+      { id: '1', nombre: 'Pollo', tieneSexo: true, tieneVariedad: false, color: '#22c55e', categoria: 'Ave' },
+      { id: '2', nombre: 'Pato', tieneSexo: true, tieneVariedad: false, color: '#3b82f6', categoria: 'Ave' },
+      { id: '3', nombre: 'Pavo', tieneSexo: true, tieneVariedad: false, color: '#8b5cf6', categoria: 'Ave' },
+      { id: '4', nombre: 'Gallina', tieneSexo: false, tieneVariedad: true, variedades: ['Rojas', 'Doble Pechuga'], color: '#ec4899', categoria: 'Ave' },
+      { id: '5', nombre: 'Huevos', tieneSexo: false, tieneVariedad: true, variedades: ['Rosados', 'Pardos', 'Blancos'], color: '#eab308', categoria: 'Otro' }
     ])
   );
 
   // Estado inicial de Costos de Clientes
-  const [costosClientes, setCostosClientes] = useState<CostoCliente[]>(() => 
+  const [costosClientes, setCostosClientes] = useState<CostoCliente[]>(() =>
     loadFromStorage('avicola_costosClientes', [
       {
         id: '1',
@@ -241,7 +243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Empleados
-  const [empleados, setEmpleados] = useState<Empleado[]>(() => 
+  const [empleados, setEmpleados] = useState<Empleado[]>(() =>
     loadFromStorage('avicola_empleados', [
       {
         id: '1',
@@ -261,7 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Pedidos Confirmados
-  const [pedidosConfirmados, setPedidosConfirmados] = useState<PedidoConfirmado[]>(() => 
+  const [pedidosConfirmados, setPedidosConfirmados] = useState<PedidoConfirmado[]>(() =>
     loadFromStorage('avicola_pedidosConfirmados', [
       {
         id: '1',
@@ -303,7 +305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Presentaciones
-  const [presentaciones, setPresentaciones] = useState<Presentacion[]>(() => 
+  const [presentaciones, setPresentaciones] = useState<Presentacion[]>(() =>
     loadFromStorage('avicola_presentaciones', [
       { id: '1', tipoAve: 'Pollo', nombre: 'Vivo', mermaKg: 0 },
       { id: '2', tipoAve: 'Pollo', nombre: 'Pelado', mermaKg: 0.15 },
@@ -315,7 +317,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Contenedores
-  const [contenedores, setContenedores] = useState<Contenedor[]>(() => 
+  const [contenedores, setContenedores] = useState<Contenedor[]>(() =>
     loadFromStorage('avicola_contenedores', [
       { id: '1', tipo: 'Javas Nuevas', peso: 2.5 },
       { id: '2', tipo: 'Javas Viejas', peso: 2.0 },
@@ -325,7 +327,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Estado inicial de Pagos
-  const [pagos, setPagos] = useState<Pago[]>(() => 
+  const [pagos, setPagos] = useState<Pago[]>(() =>
     loadFromStorage('avicola_pagos', [])
   );
 
@@ -343,7 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.newValue) return;
-      
+
       try {
         const data = JSON.parse(e.newValue);
         switch (e.key) {
@@ -378,8 +380,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateCliente = (cliente: Cliente) => {
     setClientes(prev => prev.map(c => c.id === cliente.id ? cliente : c));
     // Actualizar nombre en costos si cambió
-    setCostosClientes(prev => prev.map(costo => 
-      costo.clienteId === cliente.id 
+    setCostosClientes(prev => prev.map(costo =>
+      costo.clienteId === cliente.id
         ? { ...costo, clienteNombre: cliente.nombre }
         : costo
     ));
@@ -399,8 +401,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateTipoAve = (tipo: TipoAve) => {
     setTiposAve(prev => prev.map(t => t.id === tipo.id ? tipo : t));
     // Actualizar nombre en costos si cambió
-    setCostosClientes(prev => prev.map(costo => 
-      costo.tipoAveId === tipo.id 
+    setCostosClientes(prev => prev.map(costo =>
+      costo.tipoAveId === tipo.id
         ? { ...costo, tipoAveNombre: tipo.nombre }
         : costo
     ));
@@ -503,21 +505,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCliente,
     updateCliente,
     deleteCliente,
-    
+
     // Tipos de Ave
     tiposAve,
     setTiposAve,
     addTipoAve,
     updateTipoAve,
     deleteTipoAve,
-    
+
     // Costos de Clientes
     costosClientes,
     setCostosClientes,
     addCostoCliente,
     updateCostoCliente,
     deleteCostoCliente,
-    
+
     // Empleados
     empleados,
     setEmpleados,
@@ -539,7 +541,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addPresentacion,
     updatePresentacion,
     deletePresentacion,
-    
+
     // Contenedores
     contenedores,
     setContenedores,

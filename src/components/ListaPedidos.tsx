@@ -390,12 +390,15 @@ export function ListaPedidos() {
       return presentacionEncontrada ? presentacionEncontrada.mermaKg : 0;
     };
 
+    const tipoAveObj = tiposAve?.find(t => t.nombre === pedido.tipoAve);
+    const esOtro = tipoAveObj?.categoria === 'Otro';
+
     const mermaUnitaria = mermaPorPresentacion(pedido.presentacion);
-    const mermaTotal = pedido.cantidad * mermaUnitaria;
+    const mermaTotal = esOtro ? 0 : pedido.cantidad * mermaUnitaria;
     const contenedorInfo = contenedores?.find(c => c.tipo === pedido.contenedor);
     const pesoContenedor = contenedorInfo?.peso || 2.5;
     const pesoPromedioAve = 1.8;
-    const pesoTotalPedido = (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
+    const pesoTotalPedido = esOtro ? 0 : (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
 
     // Extraer informaciÃ³n de gÃ©nero
     const infoGenero = extraerInfoGenero(pedido.tipoAve);
