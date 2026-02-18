@@ -28,7 +28,7 @@ export function Informes() {
 
     // Encabezados
     const headers = columnas.join(',');
-    
+
     // Filas
     const rows = datos.map(item => {
       return columnas.map(col => {
@@ -50,11 +50,11 @@ export function Informes() {
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${nombreArchivo}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -81,9 +81,9 @@ export function Informes() {
   ];
 
   const clientesMock = [
-    { nombre: 'Restaurante El Sabor', contacto: 'Carlos Mendoza', telefono: '987654321', email: 'contacto@elsabor.com', direccion: 'Av. Principal 123, Lima', totalPedidos: 45, ultimoPedido: '2025-02-01', estado: 'Activo' },
-    { nombre: 'Pollería Don José', contacto: 'José Ramirez', telefono: '912345678', email: 'jose@polleriadonjose.com', direccion: 'Jr. Comercio 456, Callao', totalPedidos: 32, ultimoPedido: '2025-01-30', estado: 'Activo' },
-    { nombre: 'Mercado Central', contacto: 'Ana Torres', telefono: '998765432', email: 'ana@mercadocentral.com', direccion: 'Calle Los Olivos 789, Lima', totalPedidos: 18, ultimoPedido: '2025-01-25', estado: 'Inactivo' }
+    { nombre: 'Restaurante El Sabor', contacto: 'Carlos Mendoza', telefono: '987654321', direccion: 'Av. Principal 123, Lima', estado: 'Activo' },
+    { nombre: 'Pollería Don José', contacto: 'José Ramirez', telefono: '912345678', direccion: 'Jr. Comercio 456, Callao', estado: 'Activo' },
+    { nombre: 'Mercado Central', contacto: 'Ana Torres', telefono: '998765432', direccion: 'Calle Los Olivos 789, Lima', estado: 'Inactivo' }
   ];
 
   const costosClientesMock = [
@@ -186,7 +186,7 @@ export function Informes() {
           nombre: 'Todos los Clientes',
           descripcion: 'Base de datos de clientes',
           generarDatos: () => clientesMock,
-          columnas: ['nombre', 'contacto', 'telefono', 'email', 'direccion', 'totalPedidos', 'ultimoPedido', 'estado']
+          columnas: ['nombre', 'contacto', 'telefono', 'direccion', 'estado']
         },
         {
           id: 'costos',
