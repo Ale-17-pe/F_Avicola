@@ -237,15 +237,22 @@ export function ListaPedidos() {
   }, [modificacionesHistorial]);
 
   // Sincronizar datos de pesaje desde PedidoConfirmado (cuando PesajeOperador confirma)
+  // Cuando el pesaje se completa: guardar en Control (localStorage) y remover de pedidosPesaje
   useEffect(() => {
     if (!pedidosConfirmados || pedidosPesaje.length === 0) return;
 
-    setPedidosPesaje(prev => prev.map(pp => {
+    const completados: PedidoPesaje[] = [];
+    const sigueEnPesaje: PedidoPesaje[] = [];
+
+    pedidosPesaje.forEach(pp => {
       // Buscar el pedido confirmado correspondiente
       const original = pedidosConfirmados.find(pc =>
         pc.numeroPedido === pp.numeroPedido && pc.cliente === pp.cliente
       );
-      if (!original) return pp;
+      if (!original) {
+        sigueEnPesaje.push(pp);
+        return;
+      }
 
       // Si tiene pesoKg y conductor, el pesaje fue completado en PesajeOperador
       if (original.pesoKg && original.conductor && original.zonaEntrega) {
@@ -257,7 +264,7 @@ export function ListaPedidos() {
           ? original.cantidadJabas
           : Math.ceil(original.cantidad / 10);
 
-        return {
+        const pedidoCompletado: PedidoPesaje = {
           ...pp,
           pesoBruto: original.pesoKg,
           numeroContenedores: numCont,
@@ -273,9 +280,30 @@ export function ListaPedidos() {
           cantidadMachos: extraerInfoGenero(original.tipoAve)?.machos,
           cantidadHembras: extraerInfoGenero(original.tipoAve)?.hembras
         };
+
+        completados.push(pedidoCompletado);
+      } else {
+        sigueEnPesaje.push(pp);
       }
-      return pp;
-    }));
+    });
+
+    // Si hay pedidos completados, guardarlos en Control (localStorage) y removerlos de pesaje
+    if (completados.length > 0) {
+      // Guardar en localStorage para el módulo Control de Secretaría
+      try {
+        const existentes = JSON.parse(localStorage.getItem('pedidosPesajeControl') || '[]');
+        const idsExistentes = new Set(existentes.map((p: PedidoPesaje) => p.id));
+        const nuevos = completados.filter(p => !idsExistentes.has(p.id));
+        if (nuevos.length > 0) {
+          localStorage.setItem('pedidosPesajeControl', JSON.stringify([...existentes, ...nuevos]));
+        }
+      } catch {
+        localStorage.setItem('pedidosPesajeControl', JSON.stringify(completados));
+      }
+
+      // Remover de la lista de pesaje activo (ya no deben aparecer en "Pedidos en Pesaje")
+      setPedidosPesaje(sigueEnPesaje);
+    }
   }, [pedidosConfirmados]);
 
   // Guardar pedidos en pesaje automÃ¡ticamente
@@ -1000,15 +1028,7 @@ export function ListaPedidos() {
     toast.success(`Pedido ${pedido.numeroPedido} movido a pesaje`);
   };
 
-  // 4. FUNCIÓN PARA COMPLETAR PESAJE
-  const completarPesaje = (pedidoPesajeId: string) => {
-    setPedidosPesaje(prev => prev.map(p =>
-      p.id === pedidoPesajeId
-        ? { ...p, estadoPesaje: 'Completado' }
-        : p
-    ));
-    toast.success('Pesaje completado');
-  };
+  // (El pesaje se completa automáticamente desde PesajeOperador - ver useEffect de sincronización)
 
   // 5. FUNCIÓN PARA ELIMINAR DE PESAJE (volver a producción)
   const eliminarDePesaje = (pedidoPesajeId: string) => {
@@ -2035,16 +2055,7 @@ export function ListaPedidos() {
                             <UserIcon className="w-4 h-4 text-blue-400" />
                           </button>
 
-                          {/* BotÃ³n para completar pesaje */}
-                          {pedido.estadoPesaje === 'Pendiente' && (
-                            <button
-                              onClick={() => completarPesaje(pedido.id)}
-                              className="p-2 bg-green-900/20 border border-green-700/30 rounded-lg hover:bg-green-900/30 transition-colors"
-                              title="Completar pesaje"
-                            >
-                              <CheckCircle className="w-4 h-4 text-green-400" />
-                            </button>
-                          )}
+                          {/* Pesaje se completa desde el módulo de PesajeOperador */}
 
                           {/* BotÃ³n para regresar a producciÃ³n */}
                           <button

@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Scale,
   Truck,
-  TrendingUp,
   UserCircle,
   Wrench,
   ShoppingCart,
@@ -72,11 +71,6 @@ export function LayoutOperador() {
       label: "Envíos",
       path: "/dashboard-operador/envios",
       icon: Truck,
-    },
-    {
-      label: "Control",
-      path: "/dashboard-operador/control",
-      icon: TrendingUp,
     },
   ];
 

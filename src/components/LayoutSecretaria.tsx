@@ -78,9 +78,9 @@ export function LayoutSecretaria() {
       icon: Truck,
     },
     {
-      label: "Control",
+      label: "Control de Pesaje",
       path: "/dashboard-secretaria/control",
-      icon: ClipboardList,
+      icon: FileSpreadsheet,
     },
   ];
 

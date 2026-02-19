@@ -205,12 +205,6 @@ export const router = createBrowserRouter([
         path: "envios", 
         Component: Envios 
       },
-      
-      // Control
-      { 
-        path: "control", 
-        Component: Control 
-      },
     ],
   },
   {

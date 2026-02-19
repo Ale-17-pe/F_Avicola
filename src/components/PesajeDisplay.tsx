@@ -15,7 +15,7 @@ interface PedidoInfo {
 interface BloqueInfo {
   numero: number;
   peso: number;
-}
+}  
 
 export function PesajeDisplay() {
   const [pesoActual, setPesoActual] = useState<number>(0);

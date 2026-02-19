@@ -1,980 +1,607 @@
-import { useState } from 'react';
-import { ClipboardCheck, Scale, RotateCcw, PlusCircle, Eye, X, AlertTriangle, CheckCircle, TrendingDown, TrendingUp, Package, User, Calendar, MapPin, Bird, Weight, Camera, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ClipboardCheck, Scale, Download, Search, Filter, Weight, Package, User, Calendar, ChevronDown, ChevronUp, RefreshCw, Trash2, FileSpreadsheet, X, Eye } from 'lucide-react';
 
-// Tipos relacionados con pedidos
-interface Pedido {
+// Interface para datos de pesaje que vienen de ListaPedidos/PesajeOperador
+interface Conductor {
   id: string;
+  nombre: string;
+  licencia: string;
+  vehiculo: string;
+  zonaAsignada: string;
+  telefono?: string;
+}
+
+interface PedidoPesajeControl {
+  id: string;
+  numeroPedido: string;
   cliente: string;
-  tipoAve: string;
+  producto: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   presentacion: string;
-  mermaUnitaria: number;
-  mermaTotal: number;
   contenedor: string;
-  pesoContenedor: number;
-  pesoTotalPedido: number;
-  empleado: string;
-  fecha: string;
-  hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Completado';
-  autoConfirmado: boolean;
+  numeroContenedores?: number;
+  pesoContenedores?: number;
+  pesoBruto?: number;
+  conductor?: Conductor;
+  estadoPesaje: 'Pendiente' | 'Completado' | 'Verificado';
+  fechaPesaje?: string;
+  horaPesaje?: string;
+  cantidadMachos?: number;
+  cantidadHembras?: number;
 }
-
-interface Repesaje {
-  pesoOriginal: number;
-  pesoFinal: number;
-  diferencia: number;
-  observaciones: string;
-  fotos: string[];
-}
-
-interface Devolucion {
-  cantidad: number;
-  motivo: string;
-  pesoDevuelto: number;
-  fotos: string[];
-}
-
-interface Adicion {
-  tipoAve: string;
-  cantidad: number;
-  presentacion: string;
-  pesoAdicional: number;
-  observaciones: string;
-  clienteOrigen: string;
-  cantidadOriginalDevuelta: number;
-  fotos: string[];
-}
-
-interface ControlDespacho {
-  id: string;
-  pedidoId: string;
-  fechaControl: string;
-  horaControl: string;
-  conductor: string;
-  destino: string;
-  repesaje?: Repesaje;
-  devoluciones: Devolucion[];
-  adiciones: Adicion[];
-  estadoControl: 'Conforme' | 'Con Observaciones' | 'Con Diferencias';
-  responsableControl: string;
-}
-
-// Datos de ejemplo de pedidos
-const pedidosEjemplo: Pedido[] = [
-  {
-    id: '1',
-    cliente: 'Restaurante El Sabor',
-    tipoAve: 'Gallina',
-    cantidad: 50,
-    presentacion: 'Destripado',
-    mermaUnitaria: 0.20,
-    mermaTotal: 10.0,
-    contenedor: 'Javas Nuevas',
-    pesoContenedor: 2.5,
-    pesoTotalPedido: 92.5,
-    empleado: 'Juan Pérez',
-    fecha: '2025-02-02',
-    hora: '08:30',
-    estado: 'Completado',
-    autoConfirmado: true
-  },
-  {
-    id: '2',
-    cliente: 'Pollería Don José',
-    tipoAve: 'Pollo',
-    cantidad: 100,
-    presentacion: 'Pelado',
-    mermaUnitaria: 0.15,
-    mermaTotal: 15.0,
-    contenedor: 'Tinas Verdes',
-    pesoContenedor: 3.5,
-    pesoTotalPedido: 183.5,
-    empleado: 'María García',
-    fecha: '2025-02-02',
-    hora: '09:15',
-    estado: 'Completado',
-    autoConfirmado: true
-  },
-  {
-    id: '3',
-    cliente: 'Mercado Central',
-    tipoAve: 'Pato',
-    cantidad: 30,
-    presentacion: 'Vivo',
-    mermaUnitaria: 0,
-    mermaTotal: 0,
-    contenedor: 'Javas Viejas',
-    pesoContenedor: 2.0,
-    pesoTotalPedido: 62.0,
-    empleado: 'Carlos López',
-    fecha: '2025-02-01',
-    hora: '10:00',
-    estado: 'Completado',
-    autoConfirmado: true
-  },
-  {
-    id: '4',
-    cliente: 'Distribuidora La Familia',
-    tipoAve: 'Pollo',
-    cantidad: 75,
-    presentacion: 'Destripado',
-    mermaUnitaria: 0.20,
-    mermaTotal: 15.0,
-    contenedor: 'Tinas Verdes',
-    pesoContenedor: 3.5,
-    pesoTotalPedido: 138.5,
-    empleado: 'Ana Martínez',
-    fecha: '2025-02-01',
-    hora: '11:30',
-    estado: 'Completado',
-    autoConfirmado: true
-  }
-];
 
 export function Control() {
-  const [controles] = useState<ControlDespacho[]>([
-    {
-      id: '1',
-      pedidoId: '1',
-      fechaControl: '2025-02-02',
-      horaControl: '11:30',
-      conductor: 'Roberto Sánchez',
-      destino: 'Av. Principal 123, Lima',
-      repesaje: {
-        pesoOriginal: 92.5,
-        pesoFinal: 91.8,
-        diferencia: -0.7,
-        observaciones: 'Diferencia dentro del rango aceptable',
-        fotos: ['https://example.com/repesaje1.jpg']
-      },
-      devoluciones: [],
-      adiciones: [],
-      estadoControl: 'Conforme',
-      responsableControl: 'Luis Hernández'
-    },
-    {
-      id: '2',
-      pedidoId: '2',
-      fechaControl: '2025-02-02',
-      horaControl: '13:45',
-      conductor: 'Miguel Ángel Torres',
-      destino: 'Jr. Los Olivos 456, Trujillo',
-      repesaje: {
-        pesoOriginal: 183.5,
-        pesoFinal: 174.5,
-        diferencia: -9.0,
-        observaciones: 'Diferencia por devolución de 5 jabas que no cumplían especificaciones',
-        fotos: ['https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400', 'https://images.unsplash.com/photo-1590856029826-c7a73142bbf1?w=400']
-      },
-      devoluciones: [
-        {
-          cantidad: 5,
-          motivo: 'Cliente detectó que 5 jabas no cumplen especificaciones de peso requerido',
-          pesoDevuelto: 9.0,
-          fotos: ['https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400', 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?w=400']
+  const [pedidosPesaje, setPedidosPesaje] = useState<PedidoPesajeControl[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCliente, setFilterCliente] = useState('all');
+  const [filterFecha, setFilterFecha] = useState('');
+  const [sortColumn, setSortColumn] = useState<string>('fechaPesaje');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedPedido, setSelectedPedido] = useState<PedidoPesajeControl | null>(null);
+
+  // Cargar datos de pesaje completados desde localStorage
+  useEffect(() => {
+    const cargarDatos = () => {
+      try {
+        const data = localStorage.getItem('pedidosPesajeControl');
+        if (data) {
+          setPedidosPesaje(JSON.parse(data));
         }
-      ],
-      adiciones: [],
-      estadoControl: 'Con Observaciones',
-      responsableControl: 'Pedro Castro'
-    },
-    {
-      id: '3',
-      pedidoId: '3',
-      fechaControl: '2025-02-02',
-      horaControl: '16:20',
-      conductor: 'Miguel Ángel Torres',
-      destino: 'Av. Central 789, Lima',
-      repesaje: {
-        pesoOriginal: 62.0,
-        pesoFinal: 65.3,
-        diferencia: 3.3,
-        observaciones: 'Peso aumentó por adición de producto devuelto previamente',
-        fotos: ['https://images.unsplash.com/photo-1604242692760-0bd4a9c2e7e3?w=400']
-      },
-      devoluciones: [],
-      adiciones: [
-        {
-          tipoAve: 'Pollo',
-          cantidad: 3,
-          presentacion: 'Pelado',
-          pesoAdicional: 5.4,
-          observaciones: 'Cliente aceptó 3 de las 5 jabas devueltas por Pollería Don José',
-          clienteOrigen: 'Pollería Don José',
-          cantidadOriginalDevuelta: 5,
-          fotos: ['https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400', 'https://images.unsplash.com/photo-1612892483236-52d32a0e0ac1?w=400']
-        }
-      ],
-      estadoControl: 'Conforme',
-      responsableControl: 'Luis Hernández'
-    },
-    {
-      id: '4',
-      pedidoId: '4',
-      fechaControl: '2025-02-01',
-      horaControl: '10:15',
-      conductor: 'Luis Fernández',
-      destino: 'Jr. Comercio 321, Chiclayo',
-      repesaje: {
-        pesoOriginal: 138.5,
-        pesoFinal: 138.5,
-        diferencia: 0,
-        observaciones: 'Peso exacto, sin diferencias',
-        fotos: ['https://images.unsplash.com/photo-1611348586804-61bf6c080437?w=400']
-      },
-      devoluciones: [],
-      adiciones: [],
-      estadoControl: 'Conforme',
-      responsableControl: 'Pedro Castro'
+      } catch {
+        setPedidosPesaje([]);
+      }
+    };
+
+    cargarDatos();
+
+    // Escuchar cambios en localStorage (sync entre tabs)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pedidosPesajeControl') {
+        cargarDatos();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // Poll cada 3 segundos para detectar cambios dentro de la misma tab
+    const interval = setInterval(cargarDatos, 3000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Clientes únicos para filtro
+  const clientesUnicos = Array.from(new Set(pedidosPesaje.map(p => p.cliente))).sort();
+
+  // Filtrar y buscar
+  const pedidosFiltrados = pedidosPesaje.filter(p => {
+    const matchSearch = searchTerm === '' ||
+      p.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.conductor?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCliente = filterCliente === 'all' || p.cliente === filterCliente;
+    const matchFecha = !filterFecha || p.fechaPesaje === filterFecha;
+    return matchSearch && matchCliente && matchFecha;
+  });
+
+  // Ordenar
+  const pedidosOrdenados = [...pedidosFiltrados].sort((a, b) => {
+    let valA: any, valB: any;
+    switch (sortColumn) {
+      case 'numeroPedido': valA = a.numeroPedido; valB = b.numeroPedido; break;
+      case 'cliente': valA = a.cliente; valB = b.cliente; break;
+      case 'producto': valA = a.producto; valB = b.producto; break;
+      case 'cantidad': valA = a.cantidad; valB = b.cantidad; break;
+      case 'pesoBruto': valA = a.pesoBruto || 0; valB = b.pesoBruto || 0; break;
+      case 'pesoContenedores': valA = a.pesoContenedores || 0; valB = b.pesoContenedores || 0; break;
+      case 'conductor': valA = a.conductor?.nombre || ''; valB = b.conductor?.nombre || ''; break;
+      case 'fechaPesaje': valA = a.fechaPesaje || ''; valB = b.fechaPesaje || ''; break;
+      default: valA = a.fechaPesaje || ''; valB = b.fechaPesaje || '';
     }
-  ]);
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
-  const [selectedControl, setSelectedControl] = useState<ControlDespacho | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const getPedidoById = (pedidoId: string): Pedido | undefined => {
-    return pedidosEjemplo.find(p => p.id === pedidoId);
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
   };
 
-  const handleVerDetalle = (control: ControlDespacho) => {
-    setSelectedControl(control);
-    setIsModalOpen(true);
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <ChevronDown className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-50" />;
+    return sortDirection === 'asc'
+      ? <ChevronUp className="w-3 h-3 text-yellow-400" />
+      : <ChevronDown className="w-3 h-3 text-yellow-400" />;
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedControl(null);
+  // Estadísticas
+  const totalPedidos = pedidosPesaje.length;
+  const totalAves = pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0);
+  const totalPesoBruto = pedidosPesaje.reduce((acc, p) => acc + (p.pesoBruto || 0), 0);
+  const totalPesoContenedores = pedidosPesaje.reduce((acc, p) => acc + (p.pesoContenedores || 0), 0);
+  const pesoNeto = totalPesoBruto - totalPesoContenedores;
+
+  // Limpiar registros
+  const limpiarRegistros = () => {
+    if (confirm('¿Estás seguro de que deseas limpiar todos los registros de pesaje? Esta acción no se puede deshacer.')) {
+      localStorage.removeItem('pedidosPesajeControl');
+      setPedidosPesaje([]);
+    }
   };
 
-  // Calcular estadísticas
-  const totalControles = controles.length;
-  const totalRepesajes = controles.filter(c => c.repesaje).length;
-  const totalDevoluciones = controles.reduce((acc, c) => acc + c.devoluciones.length, 0);
-  const totalAdiciones = controles.reduce((acc, c) => acc + c.adiciones.length, 0);
-  
-  const controlesConformes = controles.filter(c => c.estadoControl === 'Conforme').length;
-  const controlesConObservaciones = controles.filter(c => c.estadoControl === 'Con Observaciones').length;
-  const controlesConDiferencias = controles.filter(c => c.estadoControl === 'Con Diferencias').length;
-
-  const pesoTotalDevoluciones = controles.reduce((acc, c) => 
-    acc + c.devoluciones.reduce((sum, d) => sum + d.pesoDevuelto, 0), 0
-  );
-  const pesoTotalAdiciones = controles.reduce((acc, c) => 
-    acc + c.adiciones.reduce((sum, a) => sum + a.pesoAdicional, 0), 0
-  );
-
-  const getEstadoStyle = (estado: string) => {
-    switch (estado) {
-      case 'Conforme':
-        return { bg: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', border: 'rgba(34, 197, 94, 0.3)' };
-      case 'Con Observaciones':
-        return { bg: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', border: 'rgba(251, 146, 60, 0.3)' };
-      case 'Con Diferencias':
-        return { bg: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: 'rgba(239, 68, 68, 0.3)' };
-      default:
-        return { bg: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', border: 'rgba(255, 255, 255, 0.2)' };
+  // Refrescar datos
+  const refrescarDatos = () => {
+    try {
+      const data = localStorage.getItem('pedidosPesajeControl');
+      if (data) {
+        setPedidosPesaje(JSON.parse(data));
+      }
+    } catch {
+      setPedidosPesaje([]);
     }
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
+    <div className="space-y-4 sm:space-y-6 p-1 sm:p-2">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Control de Despacho</h1>
-          <p className="text-xs sm:text-sm text-gray-400">Visualización de repesajes, devoluciones y adiciones</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 20px rgba(168,85,247,0.1)' }}>
+              <FileSpreadsheet className="w-6 h-6 text-purple-400" />
+            </div>
+            Control de Pesaje
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400">Registro detallado de todos los pedidos pesados · Datos tipo Excel</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={refrescarDatos}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
+            style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6' }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
+          <button
+            onClick={limpiarRegistros}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Limpiar</span>
+          </button>
         </div>
       </div>
 
-      {/* Dashboard de Métricas Principales */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Total Controles</p>
-            <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+      {/* Dashboard de Métricas */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+        {[
+          { label: 'Total Registros', value: totalPedidos, icon: ClipboardCheck, color: '#a855f7', border: 'rgba(168,85,247,0.3)' },
+          { label: 'Total Aves', value: totalAves.toLocaleString(), icon: Package, color: '#3b82f6', border: 'rgba(59,130,246,0.3)' },
+          { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+          { label: 'Peso Contenedores', value: `${totalPesoContenedores.toFixed(1)} kg`, icon: Weight, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+          { label: 'Peso Neto', value: `${pesoNeto.toFixed(1)} kg`, icon: Scale, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+        ].map((metric) => (
+          <div key={metric.label} className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
+            background: 'rgba(0,0,0,0.3)',
+            border: `1px solid ${metric.border}`
+          }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider">{metric.label}</p>
+              <metric.icon className="w-4 h-4" style={{ color: metric.color }} />
+            </div>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold" style={{ color: metric.color }}>{metric.value}</p>
           </div>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">{totalControles}</p>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1">Registrados</p>
-        </div>
+        ))}
+      </div>
 
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(59, 130, 246, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Repesajes</p>
-            <Scale className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
-          </div>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#3b82f6' }}>{totalRepesajes}</p>
-          <p className="text-xs sm:text-sm" style={{ color: '#3b82f6' }}>Realizados</p>
+      {/* Filtros y Búsqueda */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar por pedido, cliente, producto, conductor..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-500 outline-none transition-all focus:ring-1"
+            style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+          />
         </div>
-
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(239, 68, 68, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Devoluciones</p>
-            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ef4444' }} />
+        <div className="flex gap-2">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <select
+              value={filterCliente}
+              onChange={(e) => setFilterCliente(e.target.value)}
+              className="pl-10 pr-8 py-2.5 rounded-lg text-sm text-white outline-none appearance-none cursor-pointer"
+              style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+            >
+              <option value="all">Todos los clientes</option>
+              {clientesUnicos.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#ef4444' }}>{totalDevoluciones}</p>
-          <p className="text-xs sm:text-sm" style={{ color: '#ef4444' }}>{pesoTotalDevoluciones.toFixed(2)} kg</p>
-        </div>
-
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(34, 197, 94, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Adiciones</p>
-            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="date"
+              value={filterFecha}
+              onChange={(e) => setFilterFecha(e.target.value)}
+              className="pl-10 pr-4 py-2.5 rounded-lg text-sm text-white outline-none"
+              style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+            />
           </div>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#22c55e' }}>{totalAdiciones}</p>
-          <p className="text-xs sm:text-sm" style={{ color: '#22c55e' }}>{pesoTotalAdiciones.toFixed(2)} kg</p>
         </div>
       </div>
 
-      {/* Métricas de Estado */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 0, 0, 0.3))',
-          border: '1px solid rgba(34, 197, 94, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Conformes</p>
-            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
-          </div>
-          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#22c55e' }}>{controlesConformes}</p>
-          <p className="text-xs text-gray-400 mt-1">Sin observaciones</p>
-        </div>
-
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(0, 0, 0, 0.3))',
-          border: '1px solid rgba(251, 146, 60, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Observaciones</p>
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#fb923c' }} />
-          </div>
-          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#fb923c' }}>{controlesConObservaciones}</p>
-          <p className="text-xs text-gray-400 mt-1">Requieren atención</p>
-        </div>
-
-        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(0, 0, 0, 0.3))',
-          border: '1px solid rgba(239, 68, 68, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Diferencias</p>
-            <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ef4444' }} />
-          </div>
-          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#ef4444' }}>{controlesConDiferencias}</p>
-          <p className="text-xs text-gray-400 mt-1">Pesos no coinciden</p>
-        </div>
-      </div>
-
-      {/* Tabla de Controles */}
+      {/* Tabla Excel-like */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(204, 170, 0, 0.3)'
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid rgba(168,85,247,0.25)',
+        boxShadow: '0 0 30px rgba(168,85,247,0.06)'
       }}>
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ 
-          background: 'rgba(0, 0, 0, 0.4)',
-          borderColor: 'rgba(204, 170, 0, 0.3)' 
+        {/* Header de la tabla */}
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b flex items-center justify-between" style={{
+          background: 'linear-gradient(to right, rgba(168,85,247,0.08), rgba(0,0,0,0.4))',
+          borderColor: 'rgba(168,85,247,0.2)'
         }}>
-          <h2 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2">
-            <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#ccaa00' }} />
-            <span className="hidden xs:inline">Registro de Controles de Despacho</span>
-            <span className="xs:hidden">Controles de Despacho</span>
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#a855f7' }} />
+            Registro de Pesajes Completados
           </h2>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)' }}>
+            <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+            <span className="text-xs font-bold text-purple-400">{pedidosOrdenados.length} registros</span>
+          </div>
         </div>
 
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Cliente</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Conductor</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Fecha/Hora</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Repesaje</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Devoluciones</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Adiciones</th>
-                <th className="px-4 lg:px-6 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Estado</th>
-                <th className="px-4 lg:px-6 py-3 text-center font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {controles.map((control) => {
-                const pedido = getPedidoById(control.pedidoId);
-                const estadoStyle = getEstadoStyle(control.estadoControl);
-                
-                return (
-                  <tr 
-                    key={control.id}
-                    className="border-b transition-colors hover:bg-white/5"
-                    style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
-                  >
-                    <td className="px-4 lg:px-6 py-3">
-                      <span className="text-white font-medium text-sm">{pedido?.cliente || 'N/A'}</span>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-white text-sm truncate">{control.conductor}</span>
+        {pedidosOrdenados.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-gray-700" />
+            <p className="text-gray-400 text-base mb-2">No hay registros de pesaje</p>
+            <p className="text-gray-600 text-sm">Los pedidos pesados aparecerán aquí automáticamente</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ minWidth: '1100px' }}>
+              <thead>
+                <tr style={{ background: 'rgba(168,85,247,0.06)', borderBottom: '2px solid rgba(168,85,247,0.2)' }}>
+                  {[
+                    { key: 'numeroPedido', label: 'N° Pedido', width: 'w-28' },
+                    { key: 'fechaPesaje', label: 'Fecha', width: 'w-24' },
+                    { key: 'cliente', label: 'Cliente', width: 'w-40' },
+                    { key: 'producto', label: 'Producto', width: 'w-32' },
+                    { key: 'presentacion', label: 'Presentación', width: 'w-28' },
+                    { key: 'cantidad', label: 'Cantidad', width: 'w-24' },
+                    { key: 'cantidadMachos', label: 'Machos', width: 'w-20' },
+                    { key: 'cantidadHembras', label: 'Hembras', width: 'w-20' },
+                    { key: 'contenedor', label: 'Contenedor', width: 'w-28' },
+                    { key: 'pesoBruto', label: 'Peso Bruto (kg)', width: 'w-28' },
+                    { key: 'pesoContenedores', label: 'Peso Cont. (kg)', width: 'w-28' },
+                    { key: 'pesoNeto', label: 'Peso Neto (kg)', width: 'w-28' },
+                    { key: 'conductor', label: 'Conductor', width: 'w-32' },
+                    { key: 'zona', label: 'Zona', width: 'w-28' },
+                    { key: 'acciones', label: '', width: 'w-16' },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-3 text-left ${col.width} group cursor-pointer select-none hover:bg-purple-900/10 transition-colors`}
+                      onClick={() => col.key !== 'acciones' && col.key !== 'pesoNeto' && handleSort(col.key)}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#a855f7' }}>
+                          {col.label}
+                        </span>
+                        {col.key !== 'acciones' && col.key !== 'pesoNeto' && <SortIcon column={col.key} />}
                       </div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      <div className="text-xs sm:text-sm">
-                        <p className="text-white">{control.fechaControl}</p>
-                        <p className="text-gray-400">{control.horaControl}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      {control.repesaje ? (
-                        <div className="text-xs sm:text-sm">
-                          <p className="text-white font-medium">
-                            {control.repesaje.pesoOriginal} → {control.repesaje.pesoFinal} kg
-                          </p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {control.repesaje.diferencia < 0 ? (
-                              <>
-                                <TrendingDown className="w-3 h-3" style={{ color: '#ef4444' }} />
-                                <span className="text-xs" style={{ color: '#ef4444' }}>
-                                  {control.repesaje.diferencia.toFixed(2)} kg
-                                </span>
-                              </>
-                            ) : control.repesaje.diferencia > 0 ? (
-                              <>
-                                <TrendingUp className="w-3 h-3" style={{ color: '#22c55e' }} />
-                                <span className="text-xs" style={{ color: '#22c55e' }}>
-                                  +{control.repesaje.diferencia.toFixed(2)} kg
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-gray-400">Sin diferencia</span>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-xs sm:text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      {control.devoluciones.length > 0 ? (
-                        <div className="text-xs sm:text-sm">
-                          <p className="font-bold" style={{ color: '#ef4444' }}>
-                            {control.devoluciones.length}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {control.devoluciones.reduce((acc, d) => acc + d.pesoDevuelto, 0).toFixed(2)} kg
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-xs sm:text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      {control.adiciones.length > 0 ? (
-                        <div className="text-xs sm:text-sm">
-                          <p className="font-bold" style={{ color: '#22c55e' }}>
-                            {control.adiciones.length}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {control.adiciones.reduce((acc, a) => acc + a.pesoAdicional, 0).toFixed(2)} kg
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-xs sm:text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      <span className="px-2 py-1 rounded-full text-xs font-bold" style={{
-                        background: estadoStyle.bg,
-                        color: estadoStyle.color,
-                        border: `1px solid ${estadoStyle.border}`
-                      }}>
-                        {control.estadoControl}
-                      </span>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3">
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={() => handleVerDetalle(control)}
-                          className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium transition-all hover:scale-105 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                          style={{
-                            background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-                            color: '#ffffff'
-                          }}
-                        >
-                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="hidden sm:inline">Ver Detalle</span>
-                          <span className="sm:hidden">Ver</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden">
-          {controles.map((control) => {
-            const pedido = getPedidoById(control.pedidoId);
-            const estadoStyle = getEstadoStyle(control.estadoControl);
-            
-            return (
-              <div 
-                key={control.id}
-                className="p-3 sm:p-4 border-b transition-colors hover:bg-white/5"
-                style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <p className="text-white font-medium text-sm">{pedido?.cliente || 'N/A'}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                      <p className="text-gray-300 text-xs truncate">{control.conductor}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="px-2 py-1 rounded-full text-xs font-bold" style={{
-                      background: estadoStyle.bg,
-                      color: estadoStyle.color,
-                      border: `1px solid ${estadoStyle.border}`
-                    }}>
-                      {control.estadoControl}
-                    </span>
-                    <button
-                      onClick={() => handleVerDetalle(control)}
-                      className="px-3 py-1.5 rounded-lg font-medium transition-all hover:scale-105 flex items-center gap-1 text-xs"
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pedidosOrdenados.map((pedido, idx) => {
+                  const pesoNetoRow = (pedido.pesoBruto || 0) - (pedido.pesoContenedores || 0);
+                  return (
+                    <tr
+                      key={pedido.id}
+                      className="border-b transition-colors duration-150 hover:bg-purple-900/5"
                       style={{
-                        background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-                        color: '#ffffff'
+                        borderColor: 'rgba(168,85,247,0.08)',
+                        background: idx % 2 === 0 ? 'transparent' : 'rgba(168,85,247,0.02)'
                       }}
                     >
-                      <Eye className="w-3 h-3" />
-                      Ver
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <p className="text-gray-400 mb-1">Fecha/Hora</p>
-                    <p className="text-white">{control.fechaControl}</p>
-                    <p className="text-gray-400">{control.horaControl}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-400 mb-1">Repesaje</p>
-                    {control.repesaje ? (
-                      <div>
-                        <p className="text-white font-medium">{control.repesaje.pesoFinal} kg</p>
-                        <div className="flex items-center gap-1">
-                          {control.repesaje.diferencia < 0 ? (
-                            <span className="text-xs" style={{ color: '#ef4444' }}>
-                              {control.repesaje.diferencia.toFixed(2)} kg
-                            </span>
-                          ) : control.repesaje.diferencia > 0 ? (
-                            <span className="text-xs" style={{ color: '#22c55e' }}>
-                              +{control.repesaje.diferencia.toFixed(2)} kg
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">Sin diferencia</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-400 mb-1">Devoluciones</p>
-                    {control.devoluciones.length > 0 ? (
-                      <div>
-                        <p className="font-bold" style={{ color: '#ef4444' }}>{control.devoluciones.length}</p>
-                        <p className="text-gray-400 text-xs">
-                          {control.devoluciones.reduce((acc, d) => acc + d.pesoDevuelto, 0).toFixed(2)} kg
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-400 mb-1">Adiciones</p>
-                    {control.adiciones.length > 0 ? (
-                      <div>
-                        <p className="font-bold" style={{ color: '#22c55e' }}>{control.adiciones.length}</p>
-                        <p className="text-gray-400 text-xs">
-                          {control.adiciones.reduce((acc, a) => acc + a.pesoAdicional, 0).toFixed(2)} kg
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      {/* N° Pedido */}
+                      <td className="px-3 py-2.5">
+                        <span className="font-mono font-bold text-white text-sm">{pedido.numeroPedido}</span>
+                      </td>
 
-        {controles.length === 0 && (
-          <div className="text-center py-8 sm:py-12">
-            <ClipboardCheck className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-600" />
-            <p className="text-gray-400 text-sm sm:text-base">No hay controles registrados</p>
+                      {/* Fecha */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-gray-300 text-xs">{pedido.fechaPesaje || '—'}</span>
+                        {pedido.horaPesaje && (
+                          <div className="text-[10px] text-gray-500">{pedido.horaPesaje}</div>
+                        )}
+                      </td>
+
+                      {/* Cliente */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-white font-medium text-sm truncate block max-w-[160px]">{pedido.cliente}</span>
+                      </td>
+
+                      {/* Producto */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-emerald-300 font-medium text-sm">{pedido.producto}</span>
+                      </td>
+
+                      {/* Presentación */}
+                      <td className="px-3 py-2.5">
+                        <span className={`text-sm ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-amber-300 font-semibold' : 'text-gray-300'}`}>
+                          {pedido.presentacion}
+                        </span>
+                      </td>
+
+                      {/* Cantidad */}
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="text-white font-bold text-sm tabular-nums">{pedido.cantidad}</span>
+                        {pedido.cantidadJabas && (
+                          <div className="text-[10px] text-gray-500">{pedido.cantidadJabas} jabas</div>
+                        )}
+                      </td>
+
+                      {/* Machos */}
+                      <td className="px-3 py-2.5 text-center">
+                        {pedido.cantidadMachos !== undefined ? (
+                          <span className="text-blue-300 font-bold text-sm tabular-nums">{pedido.cantidadMachos}</span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+
+                      {/* Hembras */}
+                      <td className="px-3 py-2.5 text-center">
+                        {pedido.cantidadHembras !== undefined ? (
+                          <span className="text-amber-300 font-bold text-sm tabular-nums">{pedido.cantidadHembras}</span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+
+                      {/* Contenedor */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-gray-300 text-sm">{pedido.contenedor}</span>
+                        {pedido.numeroContenedores && (
+                          <div className="text-[10px] text-gray-500">{pedido.numeroContenedores} cont.</div>
+                        )}
+                      </td>
+
+                      {/* Peso Bruto */}
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-white font-bold text-sm tabular-nums">
+                          {pedido.pesoBruto ? pedido.pesoBruto.toFixed(1) : '—'}
+                        </span>
+                      </td>
+
+                      {/* Peso Contenedores */}
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-red-300 text-sm tabular-nums">
+                          {pedido.pesoContenedores ? pedido.pesoContenedores.toFixed(1) : '—'}
+                        </span>
+                      </td>
+
+                      {/* Peso Neto */}
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-green-400 font-bold text-sm tabular-nums">
+                          {pedido.pesoBruto ? pesoNetoRow.toFixed(1) : '—'}
+                        </span>
+                      </td>
+
+                      {/* Conductor */}
+                      <td className="px-3 py-2.5">
+                        {pedido.conductor ? (
+                          <div>
+                            <span className="text-white text-sm truncate block max-w-[120px]">{pedido.conductor.nombre}</span>
+                            <span className="text-[10px] text-gray-500">{pedido.conductor.vehiculo}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 text-sm">—</span>
+                        )}
+                      </td>
+
+                      {/* Zona */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-purple-300 text-xs">
+                          {pedido.conductor?.zonaAsignada || '—'}
+                        </span>
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="px-3 py-2.5">
+                        <button
+                          onClick={() => setSelectedPedido(pedido)}
+                          className="p-1.5 rounded-lg transition-all hover:scale-110 hover:bg-purple-900/20"
+                          title="Ver detalle"
+                        >
+                          <Eye className="w-4 h-4 text-purple-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+
+              {/* Footer de totales */}
+              <tfoot>
+                <tr style={{ background: 'rgba(168,85,247,0.06)', borderTop: '2px solid rgba(168,85,247,0.2)' }}>
+                  <td className="px-3 py-3" colSpan={5}>
+                    <span className="text-purple-400 font-bold text-xs uppercase tracking-wider">TOTALES</span>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className="text-white font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + p.cantidad, 0)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className="text-blue-300 font-bold text-sm">
+                      {pedidosOrdenados.reduce((s, p) => s + (p.cantidadMachos || 0), 0) || '—'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className="text-amber-300 font-bold text-sm">
+                      {pedidosOrdenados.reduce((s, p) => s + (p.cantidadHembras || 0), 0) || '—'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className="text-gray-400 text-xs">{pedidosOrdenados.reduce((s, p) => s + (p.numeroContenedores || 0), 0)} cont.</span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoBruto || 0), 0).toFixed(1)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="text-red-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoContenedores || 0), 0).toFixed(1)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="text-green-400 font-bold text-sm">
+                      {(pedidosOrdenados.reduce((s, p) => s + (p.pesoBruto || 0), 0) - pedidosOrdenados.reduce((s, p) => s + (p.pesoContenedores || 0), 0)).toFixed(1)}
+                    </span>
+                  </td>
+                  <td colSpan={3}></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Modal de Detalle Completo */}
-      {isModalOpen && selectedControl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
-          <div 
-            className="backdrop-blur-xl rounded-xl sm:rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-2"
+      {/* Mobile Cards (visible en pantallas muy pequeñas) */}
+      <div className="md:hidden space-y-3">
+        {pedidosOrdenados.length > 0 && (
+          <div className="text-xs text-gray-400 text-center py-2">
+            Desplaza horizontalmente la tabla para ver todos los datos ↔
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Detalle */}
+      {selectedPedido && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div
+            className="backdrop-blur-xl rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
             style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              border: '1px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.5)'
+              background: 'rgba(0,0,0,0.7)',
+              border: '1px solid rgba(168,85,247,0.3)',
+              boxShadow: '0 20px 60px -12px rgba(168,85,247,0.15)'
             }}
           >
-            {(() => {
-              const pedido = getPedidoById(selectedControl.pedidoId);
-              const estadoStyle = getEstadoStyle(selectedControl.estadoControl);
+            {/* Header */}
+            <div className="sticky top-0 px-6 py-4 border-b flex items-center justify-between" style={{
+              background: 'rgba(0,0,0,0.9)',
+              borderColor: 'rgba(168,85,247,0.2)'
+            }}>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Scale className="w-5 h-5 text-purple-400" />
+                Detalle de Pesaje - {selectedPedido.numeroPedido}
+              </h2>
+              <button
+                onClick={() => setSelectedPedido(null)}
+                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
 
-              return (
-                <>
-                  {/* Header del Modal */}
-                  <div className="sticky top-0 px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ 
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    borderColor: 'rgba(204, 170, 0, 0.3)' 
-                  }}>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                        <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#ccaa00' }} />
-                        <span className="hidden xs:inline">Detalle del Control</span>
-                        <span className="xs:hidden">Control</span>
-                      </h2>
-                      <button
-                        onClick={handleCloseModal}
-                        className="p-1.5 sm:p-2 rounded-lg transition-all hover:scale-110"
-                        style={{ background: 'rgba(255, 255, 255, 0.1)' }}
-                      >
-                        <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                      </button>
-                    </div>
+            {/* Contenido */}
+            <div className="p-6 space-y-6">
+              {/* Info del pedido */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {[
+                  { label: 'Cliente', value: selectedPedido.cliente, color: '#fff' },
+                  { label: 'Producto', value: selectedPedido.producto, color: '#34d399' },
+                  { label: 'Presentación', value: selectedPedido.presentacion, color: '#fbbf24' },
+                  { label: 'Cantidad', value: `${selectedPedido.cantidad} aves`, color: '#fff' },
+                  { label: 'Machos', value: selectedPedido.cantidadMachos !== undefined ? `${selectedPedido.cantidadMachos}` : '—', color: '#60a5fa' },
+                  { label: 'Hembras', value: selectedPedido.cantidadHembras !== undefined ? `${selectedPedido.cantidadHembras}` : '—', color: '#fbbf24' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{item.label}</p>
+                    <p className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</p>
                   </div>
+                ))}
+              </div>
 
-                  <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-                    {/* Estado del Control */}
-                    <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl" style={{
-                      background: estadoStyle.bg,
-                      border: `1px solid ${estadoStyle.border}`
-                    }}>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        {selectedControl.estadoControl === 'Conforme' ? (
-                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: estadoStyle.color }} />
-                        ) : (
-                          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: estadoStyle.color }} />
-                        )}
-                        <span className="text-base sm:text-lg md:text-xl font-bold" style={{ color: estadoStyle.color }}>
-                          {selectedControl.estadoControl}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs sm:text-sm text-gray-400">Responsable</p>
-                        <p className="text-white font-medium text-sm sm:text-base">{selectedControl.responsableControl}</p>
-                      </div>
+              {/* Separador */}
+              <div className="border-t" style={{ borderColor: 'rgba(168,85,247,0.15)' }}></div>
+
+              {/* Pesos */}
+              <div>
+                <h3 className="text-sm font-bold text-purple-400 mb-3 uppercase tracking-wider">Datos de Pesaje</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Peso Bruto', value: selectedPedido.pesoBruto ? `${selectedPedido.pesoBruto.toFixed(1)} kg` : '—', color: '#fff' },
+                    { label: 'Peso Contenedores', value: selectedPedido.pesoContenedores ? `${selectedPedido.pesoContenedores.toFixed(1)} kg` : '—', color: '#ef4444' },
+                    { label: 'Peso Neto', value: selectedPedido.pesoBruto ? `${((selectedPedido.pesoBruto || 0) - (selectedPedido.pesoContenedores || 0)).toFixed(1)} kg` : '—', color: '#22c55e' },
+                    { label: 'Contenedores', value: selectedPedido.numeroContenedores ? `${selectedPedido.numeroContenedores}` : '—', color: '#a855f7' },
+                  ].map(item => (
+                    <div key={item.label} className="p-3 rounded-lg" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{item.label}</p>
+                      <p className="text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
                     </div>
+                  ))}
+                </div>
+              </div>
 
-                    {/* Información del Pedido Original */}
-                    {pedido && (
-                      <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)'
-                      }}>
-                        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4" style={{ color: '#3b82f6' }}>Pedido Original</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Cliente</p>
-                            <p className="text-white font-bold text-sm sm:text-base">{pedido.cliente}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Tipo de Ave</p>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Bird className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
-                              <p className="text-white font-medium text-sm sm:text-base">{pedido.tipoAve} - {pedido.presentacion}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Cantidad</p>
-                            <p className="text-white font-bold text-base sm:text-lg">{pedido.cantidad} <span className="text-xs sm:text-sm text-gray-400">aves</span></p>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Peso Total</p>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Weight className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
-                              <p className="text-white font-bold text-sm sm:text-base">{pedido.pesoTotalPedido.toFixed(2)} kg</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Fecha Pedido</p>
-                            <p className="text-white font-medium text-sm sm:text-base">{pedido.fecha} - {pedido.hora}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Empleado</p>
-                            <p className="text-white font-medium text-sm sm:text-base">{pedido.empleado}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+              {/* Separador */}
+              <div className="border-t" style={{ borderColor: 'rgba(168,85,247,0.15)' }}></div>
 
-                    {/* Información del Control */}
-                    <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(204, 170, 0, 0.3)'
-                    }}>
-                      <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4" style={{ color: '#ccaa00' }}>Datos del Control</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-400 mb-1">Conductor</p>
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ccaa00' }} />
-                            <p className="text-white font-medium text-sm sm:text-base">{selectedControl.conductor}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-400 mb-1">Fecha/Hora</p>
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ccaa00' }} />
-                            <p className="text-white font-medium text-sm sm:text-base">{selectedControl.fechaControl} - {selectedControl.horaControl}</p>
-                          </div>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <p className="text-xs sm:text-sm text-gray-400 mb-1">Destino</p>
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <MapPin className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ccaa00' }} />
-                            <p className="text-white font-medium text-sm sm:text-base">{selectedControl.destino}</p>
-                          </div>
-                        </div>
+              {/* Conductor y Entrega */}
+              <div>
+                <h3 className="text-sm font-bold text-purple-400 mb-3 uppercase tracking-wider">Entrega</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedPedido.conductor ? (
+                    <>
+                      <div>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Conductor</p>
+                        <p className="text-sm font-semibold text-white">{selectedPedido.conductor.nombre}</p>
+                        <p className="text-[10px] text-gray-500">{selectedPedido.conductor.vehiculo}</p>
                       </div>
+                      <div>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Zona Asignada</p>
+                        <p className="text-sm font-semibold text-purple-300">{selectedPedido.conductor.zonaAsignada}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2">
+                      <p className="text-gray-500 text-sm">Sin conductor asignado</p>
                     </div>
-
-                    {/* Repesaje */}
-                    {selectedControl.repesaje && (
-                      <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)'
-                      }}>
-                        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2" style={{ color: '#3b82f6' }}>
-                          <Scale className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Repesaje
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Peso Original</p>
-                            <p className="text-white font-bold text-base sm:text-lg md:text-xl">{selectedControl.repesaje.pesoOriginal.toFixed(2)} <span className="text-xs sm:text-sm">kg</span></p>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Peso Final</p>
-                            <p className="text-white font-bold text-base sm:text-lg md:text-xl">{selectedControl.repesaje.pesoFinal.toFixed(2)} <span className="text-xs sm:text-sm">kg</span></p>
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Diferencia</p>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              {selectedControl.repesaje.diferencia < 0 ? (
-                                <>
-                                  <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#ef4444' }} />
-                                  <p className="font-bold text-base sm:text-lg md:text-xl" style={{ color: '#ef4444' }}>
-                                    {selectedControl.repesaje.diferencia.toFixed(2)} kg
-                                  </p>
-                                </>
-                              ) : selectedControl.repesaje.diferencia > 0 ? (
-                                <>
-                                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#22c55e' }} />
-                                  <p className="font-bold text-base sm:text-lg md:text-xl" style={{ color: '#22c55e' }}>
-                                    +{selectedControl.repesaje.diferencia.toFixed(2)} kg
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="font-bold text-base sm:text-lg md:text-xl text-white">0.00 kg</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="sm:col-span-3">
-                            <p className="text-xs sm:text-sm text-gray-400 mb-1">Observaciones</p>
-                            <p className="text-white text-sm sm:text-base">{selectedControl.repesaje.observaciones}</p>
-                          </div>
-                          {selectedControl.repesaje.fotos.length > 0 && (
-                            <div className="sm:col-span-3">
-                              <p className="text-xs sm:text-sm text-gray-400 mb-1">Fotos del Repesaje</p>
-                              <div className="flex flex-wrap items-center gap-2">
-                                {selectedControl.repesaje.fotos.map((foto, index) => (
-                                  <div key={index} className="relative w-12 h-12 sm:w-14 sm:h-14">
-                                    <ImageIcon className="w-full h-full text-gray-400" />
-                                    <div className="absolute top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center rounded">
-                                      <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Devoluciones */}
-                    {selectedControl.devoluciones.length > 0 && (
-                      <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)'
-                      }}>
-                        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2" style={{ color: '#ef4444' }}>
-                          <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Devoluciones ({selectedControl.devoluciones.length})
-                        </h3>
-                        <div className="space-y-3 sm:space-y-4">
-                          {selectedControl.devoluciones.map((devolucion, index) => (
-                            <div key={index} className="p-3 sm:p-4 rounded-lg" style={{
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.2)'
-                            }}>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                                <div>
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Cantidad</p>
-                                  <p className="text-white font-bold text-sm sm:text-base">{devolucion.cantidad} unidades</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Peso Devuelto</p>
-                                  <p className="font-bold text-sm sm:text-base" style={{ color: '#ef4444' }}>{devolucion.pesoDevuelto.toFixed(2)} kg</p>
-                                </div>
-                                <div className="sm:col-span-3">
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Motivo</p>
-                                  <p className="text-white text-sm sm:text-base">{devolucion.motivo}</p>
-                                </div>
-                                {devolucion.fotos.length > 0 && (
-                                  <div className="sm:col-span-3">
-                                    <p className="text-xs sm:text-sm text-gray-400 mb-1">Fotos</p>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      {devolucion.fotos.map((foto, index) => (
-                                        <div key={index} className="relative w-12 h-12 sm:w-14 sm:h-14">
-                                          <ImageIcon className="w-full h-full text-gray-400" />
-                                          <div className="absolute top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center rounded">
-                                            <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Adiciones */}
-                    {selectedControl.adiciones.length > 0 && (
-                      <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(34, 197, 94, 0.3)'
-                      }}>
-                        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2" style={{ color: '#22c55e' }}>
-                          <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Adiciones ({selectedControl.adiciones.length})
-                        </h3>
-                        <div className="space-y-3 sm:space-y-4">
-                          {selectedControl.adiciones.map((adicion, index) => (
-                            <div key={index} className="p-3 sm:p-4 rounded-lg" style={{
-                              background: 'rgba(34, 197, 94, 0.1)',
-                              border: '1px solid rgba(34, 197, 94, 0.2)'
-                            }}>
-                              {adicion.clienteOrigen && (
-                                <div className="mb-3 p-2 sm:p-3 rounded-lg" style={{
-                                  background: 'rgba(251, 146, 60, 0.15)',
-                                  border: '1px solid rgba(251, 146, 60, 0.3)'
-                                }}>
-                                  <div className="flex items-center gap-1 sm:gap-2">
-                                    <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: '#fb923c' }} />
-                                    <div>
-                                      <p className="text-xs text-gray-400">Producto Devuelto por:</p>
-                                      <p className="font-bold text-xs sm:text-sm" style={{ color: '#fb923c' }}>{adicion.clienteOrigen}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <div>
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Tipo de Ave</p>
-                                  <p className="text-white font-bold text-sm sm:text-base">{adicion.tipoAve} - {adicion.presentacion}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Cantidad</p>
-                                  <p className="text-white font-bold text-sm sm:text-base">{adicion.cantidad} unidades</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Peso Adicional</p>
-                                  <p className="font-bold text-sm sm:text-base" style={{ color: '#22c55e' }}>{adicion.pesoAdicional.toFixed(2)} kg</p>
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-1">Observaciones</p>
-                                  <p className="text-white text-sm sm:text-base">{adicion.observaciones}</p>
-                                </div>
-                                {adicion.fotos.length > 0 && (
-                                  <div className="sm:col-span-2">
-                                    <p className="text-xs sm:text-sm text-gray-400 mb-1">Fotos</p>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      {adicion.fotos.map((foto, index) => (
-                                        <div key={index} className="relative w-12 h-12 sm:w-14 sm:h-14">
-                                          <ImageIcon className="w-full h-full text-gray-400" />
-                                          <div className="absolute top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center rounded">
-                                            <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  )}
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Fecha de Pesaje</p>
+                    <p className="text-sm font-semibold text-white">{selectedPedido.fechaPesaje || '—'}</p>
                   </div>
-
-                  {/* Footer del Modal */}
-                  <div className="sticky bottom-0 px-4 sm:px-6 py-3 sm:py-4 border-t" style={{ 
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    borderColor: 'rgba(204, 170, 0, 0.3)' 
-                  }}>
-                    <button
-                      onClick={handleCloseModal}
-                      className="w-full px-4 py-2.5 sm:py-3 rounded-lg font-bold transition-all hover:scale-105 text-sm sm:text-base"
-                      style={{
-                        background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-                        color: '#ffffff'
-                      }}
-                    >
-                      Cerrar
-                    </button>
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Hora de Pesaje</p>
+                    <p className="text-sm font-semibold text-white">{selectedPedido.horaPesaje || '—'}</p>
                   </div>
-                </>
-              );
-            })()}
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Contenedor</p>
+                    <p className="text-sm font-semibold text-white">{selectedPedido.contenedor}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
+                      {selectedPedido.estadoPesaje}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
