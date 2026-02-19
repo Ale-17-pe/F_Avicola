@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Package, Scale, Box, Check } from 'lucide-react';
-
-interface Contenedor {
-  id: string;
-  tipo: string;
-  pesoKg: number;
-}
+import type { Contenedor } from '../contexts/AppContext';
 
 interface ModalContenedoresProps {
   isOpen: boolean;
@@ -23,7 +18,7 @@ export function ModalContenedores({
   const [editingContenedor, setEditingContenedor] = useState<Contenedor | null>(null);
   const [formData, setFormData] = useState({
     tipo: '',
-    pesoKg: ''
+    peso: ''
   });
 
   if (!isOpen) return null;
@@ -36,20 +31,20 @@ export function ModalContenedores({
       const contenedorActualizado: Contenedor = {
         id: editingContenedor.id,
         tipo: formData.tipo.trim(),
-        pesoKg: parseFloat(formData.pesoKg)
+        peso: parseFloat(formData.peso)
       };
       setContenedores(contenedores.map(c => c.id === editingContenedor.id ? contenedorActualizado : c));
       setEditingContenedor(null);
-      setFormData({ tipo: '', pesoKg: '' });
+      setFormData({ tipo: '', peso: '' });
     } else {
       // Agregar nuevo contenedor
       const nuevoContenedor: Contenedor = {
         id: Date.now().toString(),
         tipo: formData.tipo.trim(),
-        pesoKg: parseFloat(formData.pesoKg)
+        peso: parseFloat(formData.peso)
       };
       setContenedores([...contenedores, nuevoContenedor]);
-      setFormData({ tipo: '', pesoKg: '' });
+      setFormData({ tipo: '', peso: '' });
     }
   };
 
@@ -57,7 +52,7 @@ export function ModalContenedores({
     setEditingContenedor(contenedor);
     setFormData({
       tipo: contenedor.tipo,
-      pesoKg: contenedor.pesoKg.toString()
+      peso: contenedor.peso.toString()
     });
   };
 
@@ -69,7 +64,7 @@ export function ModalContenedores({
 
   const handleCancelarEdicion = () => {
     setEditingContenedor(null);
-    setFormData({ tipo: '', pesoKg: '' });
+    setFormData({ tipo: '', peso: '' });
   };
 
   return (
@@ -93,7 +88,7 @@ export function ModalContenedores({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-1 min-w-0">
               <div 
-                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0"
                 style={{
                   background: 'linear-gradient(135deg, #ccaa00, #b8941e)',
                   boxShadow: '0 10px 30px rgba(204, 170, 0, 0.4)'
@@ -108,7 +103,7 @@ export function ModalContenedores({
             </div>
             <button
               onClick={onClose}
-              className="p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all hover:scale-110 hover:rotate-90 flex-shrink-0"
+              className="p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all hover:scale-110 hover:rotate-90 shrink-0"
               style={{ 
                 background: 'rgba(239, 68, 68, 0.2)',
                 border: '1px solid rgba(239, 68, 68, 0.3)'
@@ -137,7 +132,7 @@ export function ModalContenedores({
                   {editingContenedor ? (
                     <>
                       <div 
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)' }}
                       >
                         <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#f59e0b' }} />
@@ -147,7 +142,7 @@ export function ModalContenedores({
                   ) : (
                     <>
                       <div 
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.4)' }}
                       >
                         <Plus className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
@@ -176,10 +171,8 @@ export function ModalContenedores({
                         background: 'rgba(255, 255, 255, 0.08)',
                         border: '1.5px solid rgba(204, 170, 0, 0.3)',
                         outlineColor: '#ccaa00',
-                        ringColor: '#ccaa00',
-                        ringOffsetColor: 'transparent'
                       }}
-                      placeholder="Ej: Javas Nuevas, Tinas Verdes"
+                      placeholder="Ej: Jabas Nuevas, Bandeja Amarilla"
                     />
                   </div>
 
@@ -197,15 +190,13 @@ export function ModalContenedores({
                         required
                         min="0"
                         step="0.01"
-                        value={formData.pesoKg}
-                        onChange={(e) => setFormData({ ...formData, pesoKg: e.target.value })}
+                        value={formData.peso}
+                        onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
                         className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
                         style={{
                           background: 'rgba(255, 255, 255, 0.08)',
                           border: '1.5px solid rgba(204, 170, 0, 0.3)',
                           outlineColor: '#ccaa00',
-                          ringColor: '#ccaa00',
-                          ringOffsetColor: 'transparent'
                         }}
                         placeholder="Ej: 2.5, 3.5, 0.05"
                       />
@@ -223,7 +214,7 @@ export function ModalContenedores({
                   </div>
 
                   {/* Calculadora Visual */}
-                  {formData.pesoKg && parseFloat(formData.pesoKg) > 0 && (
+                  {formData.peso && parseFloat(formData.peso) > 0 && (
                     <div 
                       className="backdrop-blur-xl rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5"
                       style={{
@@ -241,7 +232,7 @@ export function ModalContenedores({
                         >
                           <p className="text-xs text-gray-400 mb-1">Peso Unitario</p>
                           <p className="text-xl sm:text-2xl font-bold" style={{ color: '#ccaa00' }}>
-                            {parseFloat(formData.pesoKg).toFixed(2)}
+                            {parseFloat(formData.peso).toFixed(2)}
                           </p>
                           <p className="text-xs text-gray-500">kilogramos</p>
                         </div>
@@ -251,14 +242,14 @@ export function ModalContenedores({
                         >
                           <p className="text-xs text-gray-400 mb-1">10 Unidades</p>
                           <p className="text-xl sm:text-2xl font-bold text-white">
-                            {(10 * parseFloat(formData.pesoKg)).toFixed(2)}
+                            {(10 * parseFloat(formData.peso)).toFixed(2)}
                           </p>
                           <p className="text-xs text-gray-500">kilogramos</p>
                         </div>
                       </div>
                       <div className="mt-2 sm:mt-3 p-2 rounded-lg text-center" style={{ background: 'rgba(204, 170, 0, 0.1)' }}>
                         <p className="text-xs font-medium" style={{ color: '#ccaa00' }}>
-                          50 unidades = {(50 * parseFloat(formData.pesoKg)).toFixed(2)} kg
+                          50 unidades = {(50 * parseFloat(formData.peso)).toFixed(2)} kg
                         </p>
                       </div>
                     </div>
@@ -366,7 +357,7 @@ export function ModalContenedores({
                         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-1 min-w-0">
                           {/* Número de índice */}
                           <div 
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-lg sm:text-xl flex-shrink-0"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-lg sm:text-xl shrink-0"
                             style={{
                               background: 'linear-gradient(135deg, #ccaa00, #b8941e)',
                               color: '#000',
@@ -378,13 +369,13 @@ export function ModalContenedores({
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                              <Box className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: '#ccaa00' }} />
+                              <Box className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" style={{ color: '#ccaa00' }} />
                               <p className="font-bold text-white text-sm sm:text-base lg:text-lg truncate">{contenedor.tipo}</p>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2">
-                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
                               <span className="text-xs sm:text-sm font-bold" style={{ color: '#ccaa00' }}>
-                                {contenedor.pesoKg.toFixed(2)} kg
+                                {contenedor.peso.toFixed(2)} kg
                               </span>
                               <span className="text-xs text-gray-400 hidden sm:inline">por unidad</span>
                             </div>
@@ -392,7 +383,7 @@ export function ModalContenedores({
                         </div>
 
                         {/* Botones de Acción */}
-                        <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
+                        <div className="flex gap-1.5 sm:gap-2 shrink-0">
                           <button
                             onClick={() => handleEditar(contenedor)}
                             className="p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all hover:scale-110"

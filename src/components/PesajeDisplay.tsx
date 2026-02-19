@@ -128,7 +128,6 @@ export function PesajeDisplay() {
               <span style={{ color: '#22c55e' }}>AVÍCOLA </span>
               <span style={{ color: '#ccaa00' }}>JOSSY</span>
             </h1>
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest">Display de Pesaje</p>
           </div>
         </div>
 

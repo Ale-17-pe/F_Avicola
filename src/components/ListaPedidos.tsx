@@ -210,10 +210,10 @@ export function ListaPedidos() {
 
   // Estados para conductores
   const [conductores, setConductores] = useState<Conductor[]>([
-    { id: '1', nombre: 'Juan Pérez', licencia: 'A1234567', vehiculo: 'CamiÃ³n F350', zonaAsignada: 'Zona Norte', telefono: '555-0101' },
-    { id: '2', nombre: 'María García', licencia: 'B2345678', vehiculo: 'CamiÃ³n F250', zonaAsignada: 'Zona Sur', telefono: '555-0102' },
-    { id: '3', nombre: 'Carlos López', licencia: 'C3456789', vehiculo: 'CamiÃ³n F150', zonaAsignada: 'Zona Este', telefono: '555-0103' },
-    { id: '4', nombre: 'Ana Martínez', licencia: 'D4567890', vehiculo: 'CamiÃ³n F450', zonaAsignada: 'Zona Oeste', telefono: '555-0104' }
+    { id: '1', nombre: 'Juan Pérez', licencia: 'A1234567', vehiculo: 'Camión F350', zonaAsignada: 'Zona 1 - Independencia, Provincia, Jicamarca', telefono: '555-0101' },
+    { id: '2', nombre: 'María García', licencia: 'B2345678', vehiculo: 'Camión F250', zonaAsignada: 'Zona 2 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas', telefono: '555-0102' },
+    { id: '3', nombre: 'Carlos López', licencia: 'C3456789', vehiculo: 'Camión F150', zonaAsignada: 'Zona 4 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol', telefono: '555-0103' },
+    { id: '4', nombre: 'Ana Martínez', licencia: 'D4567890', vehiculo: 'Camión F450', zonaAsignada: 'Zona 6 - Bayovar, Huáscar, Peladero, Sta. María', telefono: '555-0104' }
   ]);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState<Conductor | null>(null);

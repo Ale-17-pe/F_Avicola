@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, ShoppingCart, Calendar, Bird, Phone, MapPin, FileText } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface Proveedor {
   id: string;

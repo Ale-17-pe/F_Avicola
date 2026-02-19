@@ -452,12 +452,12 @@ export function Clientes() {
                           }}
                         >
                           <option value="" style={{ background: '#1a1a1a', color: 'white' }}>Seleccionar zona...</option>
-                          <option value="1" style={{ background: '#1a1a1a', color: 'white' }}>Zona 1</option>
-                          <option value="2" style={{ background: '#1a1a1a', color: 'white' }}>Zona 2</option>
-                          <option value="3" style={{ background: '#1a1a1a', color: 'white' }}>Zona 3</option>
-                          <option value="4" style={{ background: '#1a1a1a', color: 'white' }}>Zona 4</option>
-                          <option value="5" style={{ background: '#1a1a1a', color: 'white' }}>Zona 5</option>
-                          <option value="6" style={{ background: '#1a1a1a', color: 'white' }}>Zona 6</option>
+                          <option value="Zona 1" style={{ background: '#1a1a1a', color: 'white' }}>Zona 1 - Independencia, Provincia, Jicamarca</option>
+                          <option value="Zona 2" style={{ background: '#1a1a1a', color: 'white' }}>Zona 2 - Sedapal, Zona Alta/Baja, Corralito</option>
+                          <option value="Zona 3" style={{ background: '#1a1a1a', color: 'white' }}>Zona 3 - Vencedores</option>
+                          <option value="Zona 4" style={{ background: '#1a1a1a', color: 'white' }}>Zona 4 - Montenegro, 10 de Octubre, Motupe</option>
+                          <option value="Zona 5" style={{ background: '#1a1a1a', color: 'white' }}>Zona 5 - Valle Sagrado, Saruta</option>
+                          <option value="Zona 6" style={{ background: '#1a1a1a', color: 'white' }}>Zona 6 - Bayovar, Huáscar, Peladero</option>
                         </select>
                       </div>
                     </div>

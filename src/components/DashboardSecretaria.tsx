@@ -1,489 +1,564 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, Download, FileSpreadsheet, User, Calendar, Package, TrendingUp, DollarSign, CheckCircle, Clock, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileSpreadsheet, DollarSign, Scale, Package, Save, Edit3, CheckCircle, Calendar, Download, RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { ModalNuevoPedido } from './ModalNuevoPedido';
-import { Fragment } from 'react';
+import { toast } from 'sonner';
 
-interface PedidoItem {
-  tipoAve: string;
-  variedad?: string;
-  sexo?: string;
-  presentacion: string;
-  cantidad: number;
-  pesoKg: number;
-  precioUnitario: number;
-  subtotal: number;
-}
-
-interface Pedido {
+// Interfaz para cada fila de la cartera de cobro
+interface FilaCartera {
   id: string;
-  numero: string;
-  fecha: string;
-  hora: string;
-  vendedor: string;
-  vendedorId: string;
+  pedidoId: string;
   cliente: string;
-  clienteId: string;
-  items: PedidoItem[];
-  total: number;
-  estado: 'pendiente' | 'proceso' | 'completado' | 'cancelado';
-  notas?: string;
+  tipo: string; // Tipo de ave/producto
+  presentacion: string;
+  cantidad: number; // Jabas si vivo, unidades M/H si destripado/desplumado
+  cantidadLabel: string; // "jabas" o "unids M/H"
+  merma: number; // merma por presentación (kg)
+  tara: number; // peso del contenedor (kg)
+  contenedorTipo: string;
+  devolucionPeso: number; // peso de lo devuelto
+  devolucionCantidad: number; // unidades devueltas
+  repesada: number; // lo que pesó el cliente (kg)
+  pesoBruto: number; // peso total del pedido (incluye tara)
+  pesoNeto: number; // pesoBruto - tara - merma - devolucionPeso
+  precio: number; // precio por kg del tipo de producto
+  total: number; // pesoNeto * precio
+  confirmado: boolean;
+  editando: boolean;
+  fecha: string; // YYYY-MM-DD
 }
+
+// Interfaz de la data de pesaje que viene de ListaPedidos
+interface PedidoPesajeData {
+  id: string;
+  numeroPedido: string;
+  cliente: string;
+  producto: string;
+  cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
+  presentacion: string;
+  contenedor: string;
+  numeroContenedores?: number;
+  pesoContenedores?: number;
+  pesoBruto?: number;
+  conductor?: any;
+  estadoPesaje: string;
+  fechaPesaje?: string;
+  horaPesaje?: string;
+  cantidadMachos?: number;
+  cantidadHembras?: number;
+}
+
+const hoyStr = () => new Date().toISOString().split('T')[0];
 
 export function DashboardSecretaria() {
-  const { aves, tiposAve, empleados } = useApp();
+  const { costosClientes, presentaciones, contenedores } = useApp();
   
-  const [pedidos, setPedidos] = useState<Pedido[]>([
-    {
-      id: '1',
-      numero: 'PED-001',
-      fecha: '2025-02-03',
-      hora: '09:30',
-      vendedor: 'Ana García López',
-      vendedorId: '1',
-      cliente: 'Restaurante El Sabor',
-      clienteId: '1',
-      items: [
-        {
-          tipoAve: 'Pollo',
-          variedad: 'Blanco',
-          sexo: 'Macho',
-          presentacion: 'Pelado',
-          cantidad: 20,
-          pesoKg: 50.0,
-          precioUnitario: 8.50,
-          subtotal: 425.00
-        },
-        {
-          tipoAve: 'Pollo',
-          variedad: 'Blanco',
-          sexo: 'Hembra',
-          presentacion: 'Destripado',
-          cantidad: 15,
-          pesoKg: 30.0,
-          precioUnitario: 9.00,
-          subtotal: 270.00
-        }
-      ],
-      total: 695.00,
-      estado: 'completado'
-    },
-    {
-      id: '2',
-      numero: 'PED-002',
-      fecha: '2025-02-03',
-      hora: '11:15',
-      vendedor: 'Ana García López',
-      vendedorId: '1',
-      cliente: 'Pollería Don José',
-      clienteId: '2',
-      items: [
-        {
-          tipoAve: 'Gallina',
-          variedad: 'Roja',
-          presentacion: 'Vivo',
-          cantidad: 30,
-          pesoKg: 75.0,
-          precioUnitario: 7.80,
-          subtotal: 585.00
-        }
-      ],
-      total: 585.00,
-      estado: 'proceso'
-    },
-    {
-      id: '3',
-      numero: 'PED-003',
-      fecha: '2025-02-03',
-      hora: '14:00',
-      vendedor: 'Ana García López',
-      vendedorId: '1',
-      cliente: 'Mercado Central',
-      clienteId: '3',
-      items: [
-        {
-          tipoAve: 'Pollo',
-          variedad: 'Blanco',
-          sexo: 'Macho',
-          presentacion: 'Vivo',
-          cantidad: 50,
-          pesoKg: 125.0,
-          precioUnitario: 7.50,
-          subtotal: 937.50
-        },
-        {
-          tipoAve: 'Pato',
-          presentacion: 'Pelado',
-          cantidad: 10,
-          pesoKg: 25.0,
-          precioUnitario: 12.00,
-          subtotal: 300.00
-        }
-      ],
-      total: 1237.50,
-      estado: 'pendiente'
-    }
-  ]);
-
+  const [filasCartera, setFilasCartera] = useState<FilaCartera[]>([]);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyStr());
   const [busqueda, setBusqueda] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
-  const [filtroFecha, setFiltroFecha] = useState('');
-  const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
-  const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null);
+  const [editandoAll, setEditandoAll] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  // Filtrar pedidos
-  const pedidosFiltrados = pedidos.filter(pedido => {
-    const matchBusqueda = 
-      pedido.numero.toLowerCase().includes(busqueda.toLowerCase()) ||
-      pedido.cliente.toLowerCase().includes(busqueda.toLowerCase()) ||
-      pedido.vendedor.toLowerCase().includes(busqueda.toLowerCase());
-    
-    const matchEstado = filtroEstado === 'todos' || pedido.estado === filtroEstado;
-    const matchFecha = !filtroFecha || pedido.fecha === filtroFecha;
+  // Key de localStorage por día
+  const storageKey = (fecha: string) => `carteraCobro_${fecha}`;
 
-    return matchBusqueda && matchEstado && matchFecha;
-  });
+  // Cargar datos del día seleccionado
+  useEffect(() => {
+    try {
+      const data = localStorage.getItem(storageKey(fechaSeleccionada));
+      if (data) {
+        setFilasCartera(JSON.parse(data));
+      } else {
+        // Intentar generar desde los datos de pesaje del día
+        generarDesdePesajeControl();
+      }
+    } catch {
+      setFilasCartera([]);
+    }
+  }, [fechaSeleccionada]);
 
-  // Estadísticas
-  const estadisticas = {
-    totalPedidos: pedidos.length,
-    pedidosHoy: pedidos.filter(p => p.fecha === '2025-02-03').length,
-    ventasHoy: pedidos
-      .filter(p => p.fecha === '2025-02-03' && p.estado === 'completado')
-      .reduce((sum, p) => sum + p.total, 0),
-    pendientes: pedidos.filter(p => p.estado === 'pendiente').length,
-  };
+  // Generar filas desde pedidosPesajeControl (datos completados)
+  const generarDesdePesajeControl = () => {
+    try {
+      const raw = localStorage.getItem('pedidosPesajeControl');
+      if (!raw) { setFilasCartera([]); return; }
+      
+      const pesajeData: PedidoPesajeData[] = JSON.parse(raw);
+      const delDia = pesajeData.filter(p => p.fechaPesaje === fechaSeleccionada);
+      
+      if (delDia.length === 0) { setFilasCartera([]); return; }
+      
+      const nuevasFilas: FilaCartera[] = delDia.map(p => {
+        const esVivo = p.presentacion?.toLowerCase().includes('vivo');
+        
+        // Cantidad: jabas si vivo, unidades M/H si destripado/desplumado
+        const cantidadDisplay = esVivo 
+          ? (p.cantidadJabas || p.cantidad)
+          : p.cantidad;
+        const cantidadLabel = esVivo ? 'jabas' : `unids${p.cantidadMachos ? ` (${p.cantidadMachos}M/${p.cantidadHembras || 0}H)` : ''}`;
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'completado': return 'bg-green-500/10 text-green-400 border-green-500/30';
-      case 'proceso': return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-      case 'pendiente': return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-      case 'cancelado': return 'bg-red-500/10 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/10 text-gray-400 border-gray-500/30';
+        // Merma: buscar en presentaciones
+        const pres = presentaciones.find(pr => 
+          pr.tipoAve.toLowerCase() === p.producto.toLowerCase() && 
+          pr.nombre.toLowerCase() === p.presentacion.toLowerCase()
+        );
+        const mermaPorUnidad = pres?.mermaKg || 0;
+        const mermaTotal = mermaPorUnidad * p.cantidad;
+
+        // Tara: peso del contenedor
+        const cont = contenedores.find(c => c.tipo === p.contenedor);
+        const pesoTaraUno = cont?.peso || (p.pesoContenedores || 0);
+        const numContenedores = p.numeroContenedores || 1;
+        const taraTotal = esVivo ? pesoTaraUno * numContenedores : 0;
+
+        // Peso bruto: viene del pesaje
+        const pesoBruto = p.pesoBruto || 0;
+        
+        // Peso neto: pesoBruto - tara - mermaTotal
+        const pesoNeto = pesoBruto - taraTotal - mermaTotal;
+
+        // Precio: buscar en costosClientes
+        const costoCliente = costosClientes.find(cc => 
+          cc.clienteNombre.toLowerCase() === p.cliente.toLowerCase() &&
+          cc.tipoAveNombre.toLowerCase() === p.producto.toLowerCase()
+        );
+        const precio = costoCliente?.precioPorKg || 0;
+
+        // Total
+        const total = pesoNeto * precio;
+
+        return {
+          id: p.id,
+          pedidoId: p.numeroPedido || p.id,
+          cliente: p.cliente,
+          tipo: p.producto,
+          presentacion: p.presentacion,
+          cantidad: cantidadDisplay,
+          cantidadLabel,
+          merma: mermaTotal,
+          tara: taraTotal,
+          contenedorTipo: p.contenedor,
+          devolucionPeso: 0,
+          devolucionCantidad: 0,
+          repesada: 0,
+          pesoBruto,
+          pesoNeto: Math.max(0, pesoNeto),
+          precio,
+          total: Math.max(0, total),
+          confirmado: false,
+          editando: false,
+          fecha: fechaSeleccionada,
+        };
+      });
+      
+      setFilasCartera(nuevasFilas);
+    } catch {
+      setFilasCartera([]);
     }
   };
 
-  const getEstadoIcon = (estado: string) => {
-    switch (estado) {
-      case 'completado': return <CheckCircle className="w-4 h-4" />;
-      case 'proceso': return <Clock className="w-4 h-4" />;
-      case 'pendiente': return <Clock className="w-4 h-4" />;
-      case 'cancelado': return <X className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+  // Guardar automáticamente cuando cambian las filas
+  useEffect(() => {
+    if (filasCartera.length > 0) {
+      localStorage.setItem(storageKey(fechaSeleccionada), JSON.stringify(filasCartera));
     }
+  }, [filasCartera, fechaSeleccionada]);
+
+  // Recalcular fila cuando cambian valores editables
+  const recalcularFila = (fila: FilaCartera): FilaCartera => {
+    const diferencia = fila.repesada > 0 ? fila.repesada - fila.pesoBruto : 0;
+    const pesoNeto = fila.pesoBruto - fila.tara - fila.merma - fila.devolucionPeso;
+    const total = Math.max(0, pesoNeto) * fila.precio;
+    return { ...fila, pesoNeto: Math.max(0, pesoNeto), total };
   };
 
+  // Actualizar un campo editable
+  const actualizarCampo = (id: string, campo: keyof FilaCartera, valor: any) => {
+    setFilasCartera(prev => prev.map(f => {
+      if (f.id !== id) return f;
+      const updated = { ...f, [campo]: valor };
+      return recalcularFila(updated);
+    }));
+  };
+
+  // Confirmar fila
+  const confirmarFila = (id: string) => {
+    setFilasCartera(prev => prev.map(f => 
+      f.id === id ? { ...f, confirmado: true, editando: false } : f
+    ));
+    toast.success('Fila confirmada');
+  };
+
+  // Habilitar edición de fila
+  const editarFila = (id: string) => {
+    setFilasCartera(prev => prev.map(f => 
+      f.id === id ? { ...f, editando: true, confirmado: false } : f
+    ));
+  };
+
+  // Confirmar todas
+  const confirmarTodas = () => {
+    setFilasCartera(prev => prev.map(f => ({ ...f, confirmado: true, editando: false })));
+    setEditandoAll(false);
+    toast.success('Todas las filas confirmadas');
+  };
+
+  // Editar todas
+  const editarTodas = () => {
+    setFilasCartera(prev => prev.map(f => ({ ...f, editando: true, confirmado: false })));
+    setEditandoAll(true);
+  };
+
+  // Refrescar desde pesaje
+  const refrescar = () => {
+    generarDesdePesajeControl();
+    toast.success('Datos actualizados desde pesaje');
+  };
+
+  // Exportar CSV
   const exportarCSV = () => {
-    const headers = ['N° Pedido', 'Fecha', 'Hora', 'Vendedor', 'Cliente', 'Total S/', 'Estado'];
-    const rows = pedidosFiltrados.map(p => [
-      p.numero,
-      p.fecha,
-      p.hora,
-      p.vendedor,
-      p.cliente,
-      p.total.toFixed(2),
-      p.estado
+    const headers = ['Cliente', 'Tipo', 'Presentación', 'Cantidad', 'Merma (kg)', 'Tara (kg)', 'Dev. Peso (kg)', 'Dev. Cant.', 'Repesada (kg)', 'Diferencia (kg)', 'Peso Bruto (kg)', 'Peso Neto (kg)', 'Precio S/', 'Total S/'];
+    const rows = filasFiltradas.map(f => [
+      f.cliente, f.tipo, f.presentacion, `${f.cantidad} ${f.cantidadLabel}`,
+      f.merma.toFixed(2), f.tara.toFixed(2), f.devolucionPeso.toFixed(2), f.devolucionCantidad,
+      f.repesada.toFixed(2), (f.repesada > 0 ? f.repesada - f.pesoBruto : 0).toFixed(2),
+      f.pesoBruto.toFixed(2), f.pesoNeto.toFixed(2), f.precio.toFixed(2), f.total.toFixed(2)
     ]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `pedidos_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `cartera_cobro_${fechaSeleccionada}.csv`;
     link.click();
   };
 
+  // Filtrar
+  const filasFiltradas = filasCartera.filter(f => {
+    if (!busqueda) return true;
+    const q = busqueda.toLowerCase();
+    return f.cliente.toLowerCase().includes(q) || f.tipo.toLowerCase().includes(q);
+  });
+
+  // Ordenar
+  const filasOrdenadas = [...filasFiltradas].sort((a, b) => {
+    if (!sortColumn) return 0;
+    const va = (a as any)[sortColumn];
+    const vb = (b as any)[sortColumn];
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (col: string) => {
+    if (sortColumn === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortColumn(col); setSortDir('asc'); }
+  };
+
+  // Estadísticas
+  const totalVentas = filasCartera.reduce((s, f) => s + f.total, 0);
+  const totalPesoBruto = filasCartera.reduce((s, f) => s + f.pesoBruto, 0);
+  const totalPesoNeto = filasCartera.reduce((s, f) => s + f.pesoNeto, 0);
+  const totalDevoluciones = filasCartera.reduce((s, f) => s + f.devolucionPeso, 0);
+
+  // Input editable
+  const EditInput = ({ value, onChange, disabled = false, type = 'number', step = '0.01', min = '0', className = '' }: { value: number | string; onChange: (v: any) => void; disabled?: boolean; type?: string; step?: string; min?: string; className?: string }) => (
+    <input
+      type={type}
+      step={step}
+      min={min}
+      value={value}
+      onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
+      disabled={disabled}
+      className={`w-full px-2 py-1.5 rounded-lg text-sm text-right font-mono transition-all ${disabled ? 'bg-transparent text-gray-400 cursor-default' : 'bg-zinc-800 border border-amber-500/30 text-white focus:border-amber-500 focus:outline-none'} ${className}`}
+    />
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl text-white flex items-center gap-3">
-            <FileSpreadsheet className="w-8 h-8 text-amber-400" />
-            Panel de Control - Secretaría
-          </h1>
-          <p className="text-gray-400 mt-1">
-            Gestión ejecutiva de pedidos y ventas
-          </p>
-        </div>
-        <button
-          onClick={() => setMostrarModalNuevo(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium rounded-xl transition-all shadow-lg hover:shadow-xl"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Pedido
-        </button>
-      </div>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-black border border-zinc-700 rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Pedidos de Hoy</p>
-              <p className="text-3xl text-white">{estadisticas.pedidosHoy}</p>
-            </div>
-            <Package className="w-10 h-10 text-amber-400 opacity-50" />
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.25)', boxShadow: '0 0 20px rgba(204,170,0,0.1)' }}>
+            <DollarSign className="w-6 h-6" style={{ color: '#ccaa00' }} />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Cartera de Cobro</h1>
+            <p className="text-gray-500 text-xs">Registro diario de pesajes y cobros · Se reinicia cada día</p>
           </div>
         </div>
 
-        <div className="bg-black border border-zinc-700 rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Ventas de Hoy</p>
-              <p className="text-3xl text-green-400">S/ {estadisticas.ventasHoy.toFixed(2)}</p>
-            </div>
-            <DollarSign className="w-10 h-10 text-green-400 opacity-50" />
-          </div>
-        </div>
-
-        <div className="bg-black border border-zinc-700 rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Pendientes</p>
-              <p className="text-3xl text-amber-400">{estadisticas.pendientes}</p>
-            </div>
-            <Clock className="w-10 h-10 text-amber-400 opacity-50" />
-          </div>
-        </div>
-
-        <div className="bg-black border border-zinc-700 rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Total Pedidos</p>
-              <p className="text-3xl text-white">{estadisticas.totalPedidos}</p>
-            </div>
-            <TrendingUp className="w-10 h-10 text-blue-400 opacity-50" />
-          </div>
-        </div>
-      </div>
-
-      {/* Filtros y Búsqueda */}
-      <div className="bg-black border border-zinc-700 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-amber-400" />
-          <h3 className="text-white">Filtros de Búsqueda</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Búsqueda */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Selector de fecha */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)' }}>
+            <Calendar className="w-4 h-4" style={{ color: '#ccaa00' }} />
             <input
-              type="text"
-              placeholder="Buscar por pedido, cliente o vendedor..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
+              type="date"
+              value={fechaSeleccionada}
+              onChange={(e) => setFechaSeleccionada(e.target.value)}
+              className="bg-transparent text-white text-sm outline-none"
             />
           </div>
-
-          {/* Filtro Estado */}
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
-          >
-            <option value="todos">Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="proceso">En Proceso</option>
-            <option value="completado">Completado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-
-          {/* Filtro Fecha */}
-          <input
-            type="date"
-            value={filtroFecha}
-            onChange={(e) => setFiltroFecha(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
-          />
-        </div>
-
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-gray-400 text-sm">
-            Mostrando {pedidosFiltrados.length} de {pedidos.length} pedidos
-          </p>
-          <button
-            onClick={exportarCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Exportar CSV
+          <button onClick={refrescar} className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 flex items-center gap-1.5" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#3b82f6' }}>
+            <RefreshCw className="w-3.5 h-3.5" /> Actualizar
+          </button>
+          <button onClick={exportarCSV} className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 flex items-center gap-1.5" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
+            <Download className="w-3.5 h-3.5" /> CSV
           </button>
         </div>
       </div>
 
-      {/* Tabla Principal Tipo Excel */}
-      <div className="bg-black border border-zinc-700 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-amber-500/20 to-amber-600/20 border-b-2 border-amber-500/50">
-              <tr>
-                <th className="text-left px-4 py-4 text-amber-400 font-bold text-sm">N° PEDIDO</th>
-                <th className="text-left px-4 py-4 text-amber-400 font-bold text-sm">FECHA/HORA</th>
-                <th className="text-left px-4 py-4 text-amber-400 font-bold text-sm">VENDEDOR</th>
-                <th className="text-left px-4 py-4 text-amber-400 font-bold text-sm">CLIENTE</th>
-                <th className="text-left px-4 py-4 text-amber-400 font-bold text-sm">ITEMS</th>
-                <th className="text-right px-4 py-4 text-amber-400 font-bold text-sm">TOTAL</th>
-                <th className="text-center px-4 py-4 text-amber-400 font-bold text-sm">ESTADO</th>
-                <th className="text-center px-4 py-4 text-amber-400 font-bold text-sm">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedidosFiltrados.map((pedido, index) => (
-                <Fragment key={pedido.id}>
-                  <tr 
-                    className={`border-b border-zinc-800 hover:bg-zinc-800/30 transition-colors ${
-                      index % 2 === 0 ? 'bg-zinc-900/30' : 'bg-zinc-900/10'
-                    }`}
-                  >
-                    <td className="px-4 py-4">
-                      <span className="text-white font-medium">{pedido.numero}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="text-white text-sm flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          {pedido.fecha}
-                        </p>
-                        <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" />
-                          {pedido.hora}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-amber-400" />
-                        <span className="text-white text-sm">{pedido.vendedor}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-white text-sm">{pedido.cliente}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-gray-400 text-sm">{pedido.items.length} producto(s)</span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-green-400 font-bold text-base">
-                        S/ {pedido.total.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex justify-center">
-                        <span className={`px-3 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${getEstadoColor(pedido.estado)}`}>
-                          {getEstadoIcon(pedido.estado)}
-                          <span className="capitalize">{pedido.estado}</span>
+      {/* Métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Ventas', value: `S/ ${totalVentas.toFixed(2)}`, icon: DollarSign, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+          { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#3b82f6', border: 'rgba(59,130,246,0.3)' },
+          { label: 'Peso Neto', value: `${totalPesoNeto.toFixed(1)} kg`, icon: Package, color: '#a855f7', border: 'rgba(168,85,247,0.3)' },
+          { label: 'Devoluciones', value: `${totalDevoluciones.toFixed(1)} kg`, icon: Scale, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+        ].map(m => (
+          <div key={m.label} className="backdrop-blur-xl rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${m.border}` }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{m.label}</p>
+              <m.icon className="w-4 h-4" style={{ color: m.color }} />
+            </div>
+            <p className="text-xl md:text-2xl font-bold" style={{ color: m.color }}>{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Controles */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar cliente, tipo..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-500 outline-none"
+            style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(204,170,0,0.15)' }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={editarTodas} className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 flex items-center gap-1.5" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}>
+            <Edit3 className="w-3.5 h-3.5" /> Editar Todo
+          </button>
+          <button onClick={confirmarTodas} className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 flex items-center gap-1.5" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}>
+            <Save className="w-3.5 h-3.5" /> Confirmar Todo
+          </button>
+        </div>
+      </div>
+
+      {/* Indicador de día */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(204,170,0,0.04)', border: '1px solid rgba(204,170,0,0.1)' }}>
+        <Calendar className="w-4 h-4" style={{ color: '#ccaa00' }} />
+        <span className="text-xs text-gray-400">Mostrando datos de</span>
+        <span className="text-sm font-bold" style={{ color: '#ccaa00' }}>{fechaSeleccionada === hoyStr() ? 'HOY' : fechaSeleccionada}</span>
+        <span className="text-xs text-gray-500 ml-auto">{filasCartera.length} registros</span>
+      </div>
+
+      {/* TABLA PRINCIPAL - CARTERA DE COBRO */}
+      <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(204,170,0,0.2)', boxShadow: '0 0 30px rgba(204,170,0,0.04)' }}>
+        
+        <div className="px-5 py-3 border-b flex items-center justify-between" style={{ background: 'linear-gradient(to right, rgba(204,170,0,0.06), rgba(0,0,0,0.3))', borderColor: 'rgba(204,170,0,0.15)' }}>
+          <h2 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5" style={{ color: '#ccaa00' }} />
+            Cartera de Cobro - Detalle
+          </h2>
+          <span className="text-xs px-2.5 py-1 rounded-full font-bold" style={{ background: 'rgba(204,170,0,0.1)', color: '#ccaa00', border: '1px solid rgba(204,170,0,0.2)' }}>
+            {filasOrdenadas.length} filas
+          </span>
+        </div>
+
+        {filasOrdenadas.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-gray-700" />
+            <p className="text-gray-400 text-base mb-2">No hay registros para este día</p>
+            <p className="text-gray-600 text-sm mb-4">Los datos se generan automáticamente desde el módulo de pesaje</p>
+            <button onClick={refrescar} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#3b82f6' }}>
+              <RefreshCw className="w-4 h-4 inline mr-2" /> Cargar desde pesaje
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ minWidth: '1400px' }}>
+              <thead>
+                <tr style={{ background: 'rgba(204,170,0,0.04)', borderBottom: '2px solid rgba(204,170,0,0.15)' }}>
+                  {[
+                    { key: 'cliente', label: 'CLIENTE', w: 'w-36' },
+                    { key: 'tipo', label: 'TIPO', w: 'w-24' },
+                    { key: 'presentacion', label: 'PRES.', w: 'w-20' },
+                    { key: 'cantidad', label: 'CANTIDAD', w: 'w-24' },
+                    { key: 'merma', label: 'MERMA (kg)', w: 'w-20' },
+                    { key: 'tara', label: 'TARA (kg)', w: 'w-20' },
+                    { key: 'devolucionPeso', label: 'DEVOL. (kg)', w: 'w-20' },
+                    { key: 'repesada', label: 'REPESADA (kg)', w: 'w-24' },
+                    { key: 'diferencia', label: 'DIFERENCIA', w: 'w-22' },
+                    { key: 'pesoBruto', label: 'P. BRUTO (kg)', w: 'w-24' },
+                    { key: 'pesoNeto', label: 'P. NETO (kg)', w: 'w-24' },
+                    { key: 'precio', label: 'PRECIO S/', w: 'w-20' },
+                    { key: 'total', label: 'TOTAL S/', w: 'w-24' },
+                    { key: 'acciones', label: '', w: 'w-20' },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      className={`px-2 py-3 text-left ${col.w} cursor-pointer select-none hover:bg-amber-900/5 transition-colors`}
+                      onClick={() => col.key !== 'acciones' && col.key !== 'diferencia' && handleSort(col.key)}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#ccaa00' }}>
+                          {col.label}
                         </span>
+                        {sortColumn === col.key && (
+                          sortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-amber-400" /> : <ChevronDown className="w-3 h-3 text-amber-400" />
+                        )}
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setPedidoExpandido(pedidoExpandido === pedido.id ? null : pedido.id)}
-                          className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-blue-400"
-                          title="Ver detalles"
-                        >
-                          <Package className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-amber-400"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-red-400"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  {/* Fila expandida con detalles */}
-                  {pedidoExpandido === pedido.id && (
-                    <tr className="bg-zinc-800/50 border-b border-zinc-700">
-                      <td colSpan={8} className="px-4 py-4">
-                        <div className="space-y-3">
-                          <h4 className="text-amber-400 font-medium mb-3">Detalle de Items</h4>
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead className="bg-zinc-900/50">
-                                <tr>
-                                  <th className="text-left px-3 py-2 text-gray-400 text-xs">TIPO AVE</th>
-                                  <th className="text-left px-3 py-2 text-gray-400 text-xs">VARIEDAD</th>
-                                  <th className="text-left px-3 py-2 text-gray-400 text-xs">SEXO</th>
-                                  <th className="text-left px-3 py-2 text-gray-400 text-xs">PRESENTACIÓN</th>
-                                  <th className="text-right px-3 py-2 text-gray-400 text-xs">CANTIDAD</th>
-                                  <th className="text-right px-3 py-2 text-gray-400 text-xs">PESO (KG)</th>
-                                  <th className="text-right px-3 py-2 text-gray-400 text-xs">PRECIO/KG</th>
-                                  <th className="text-right px-3 py-2 text-gray-400 text-xs">SUBTOTAL</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pedido.items.map((item, itemIndex) => (
-                                  <tr key={itemIndex} className="border-t border-zinc-700">
-                                    <td className="px-3 py-2 text-white text-sm">{item.tipoAve}</td>
-                                    <td className="px-3 py-2 text-gray-300 text-sm">{item.variedad || '-'}</td>
-                                    <td className="px-3 py-2 text-gray-300 text-sm">{item.sexo || '-'}</td>
-                                    <td className="px-3 py-2 text-gray-300 text-sm">{item.presentacion}</td>
-                                    <td className="px-3 py-2 text-right text-white text-sm">{item.cantidad}</td>
-                                    <td className="px-3 py-2 text-right text-white text-sm">{item.pesoKg.toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-right text-white text-sm">S/ {item.precioUnitario.toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-right text-green-400 font-medium text-sm">S/ {item.subtotal.toFixed(2)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                              <tfoot className="bg-zinc-900/50 border-t-2 border-amber-500/30">
-                                <tr>
-                                  <td colSpan={7} className="px-3 py-3 text-right text-amber-400 font-bold">TOTAL:</td>
-                                  <td className="px-3 py-3 text-right text-green-400 font-bold text-base">S/ {pedido.total.toFixed(2)}</td>
-                                </tr>
-                              </tfoot>
-                            </table>
-                          </div>
-                          {pedido.notas && (
-                            <div className="mt-3 p-3 bg-zinc-900/50 rounded-lg border border-zinc-700">
-                              <p className="text-gray-400 text-sm">
-                                <span className="text-amber-400 font-medium">Notas:</span> {pedido.notas}
-                              </p>
-                            </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filasOrdenadas.map((fila, idx) => {
+                  const puedeEditar = fila.editando || editandoAll;
+                  const diferencia = fila.repesada > 0 ? fila.repesada - fila.pesoBruto : 0;
+
+                  return (
+                    <tr
+                      key={fila.id}
+                      className={`border-b transition-colors duration-150 hover:bg-amber-900/5 ${fila.confirmado ? 'opacity-90' : ''}`}
+                      style={{
+                        borderColor: 'rgba(204,170,0,0.06)',
+                        background: idx % 2 === 0 ? 'transparent' : 'rgba(204,170,0,0.015)'
+                      }}
+                    >
+                      {/* CLIENTE - no editable */}
+                      <td className="px-2 py-2.5">
+                        <span className="text-white font-semibold text-sm truncate block max-w-[150px]">{fila.cliente}</span>
+                      </td>
+
+                      {/* TIPO - no editable */}
+                      <td className="px-2 py-2.5">
+                        <span className="text-emerald-300 font-medium text-sm">{fila.tipo}</span>
+                      </td>
+
+                      {/* PRESENTACIÓN - no editable */}
+                      <td className="px-2 py-2.5">
+                        <span className={`text-xs font-medium ${fila.presentacion?.toLowerCase().includes('vivo') ? 'text-amber-300' : 'text-gray-300'}`}>
+                          {fila.presentacion}
+                        </span>
+                      </td>
+
+                      {/* CANTIDAD */}
+                      <td className="px-2 py-2.5">
+                        <div className="text-white font-bold text-sm tabular-nums">{fila.cantidad}</div>
+                        <div className="text-[9px] text-gray-500">{fila.cantidadLabel}</div>
+                      </td>
+
+                      {/* MERMA - editable */}
+                      <td className="px-2 py-2.5">
+                        <EditInput value={fila.merma.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'merma', v)} disabled={!puedeEditar} />
+                      </td>
+
+                      {/* TARA - no editable (contenedor) */}
+                      <td className="px-2 py-2.5">
+                        <div className="text-gray-300 text-sm text-right tabular-nums">{fila.tara.toFixed(2)}</div>
+                        <div className="text-[9px] text-gray-600 text-right">{fila.contenedorTipo}</div>
+                      </td>
+
+                      {/* DEVOLUCION - editable */}
+                      <td className="px-2 py-2.5">
+                        <EditInput value={fila.devolucionPeso.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'devolucionPeso', v)} disabled={!puedeEditar} />
+                      </td>
+
+                      {/* REPESADA - editable */}
+                      <td className="px-2 py-2.5">
+                        <EditInput value={fila.repesada.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'repesada', v)} disabled={!puedeEditar} />
+                      </td>
+
+                      {/* DIFERENCIA (repesada - pesoBruto) - no editable */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className={`text-sm font-bold tabular-nums ${diferencia < 0 ? 'text-red-400' : diferencia > 0 ? 'text-green-400' : 'text-gray-500'}`}>
+                          {diferencia !== 0 ? (diferencia > 0 ? '+' : '') + diferencia.toFixed(2) : '—'}
+                        </span>
+                      </td>
+
+                      {/* PESO BRUTO - editable */}
+                      <td className="px-2 py-2.5">
+                        <EditInput value={fila.pesoBruto.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'pesoBruto', v)} disabled={!puedeEditar} />
+                      </td>
+
+                      {/* PESO NETO - calculado, no editable */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className="text-green-400 font-bold text-sm tabular-nums">{fila.pesoNeto.toFixed(2)}</span>
+                      </td>
+
+                      {/* PRECIO - editable */}
+                      <td className="px-2 py-2.5">
+                        <EditInput value={fila.precio.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'precio', v)} disabled={!puedeEditar} />
+                      </td>
+
+                      {/* TOTAL - no editable (calculado) */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className="text-amber-400 font-black text-sm tabular-nums">S/ {fila.total.toFixed(2)}</span>
+                      </td>
+
+                      {/* ACCIONES */}
+                      <td className="px-2 py-2.5">
+                        <div className="flex items-center gap-1">
+                          {fila.confirmado ? (
+                            <button onClick={() => editarFila(fila.id)} className="p-1.5 rounded-lg transition-all hover:scale-110 hover:bg-amber-900/20" title="Editar">
+                              <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                            </button>
+                          ) : (
+                            <button onClick={() => confirmarFila(fila.id)} className="p-1.5 rounded-lg transition-all hover:scale-110 hover:bg-green-900/20" title="Confirmar">
+                              <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                            </button>
                           )}
                         </div>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  );
+                })}
+              </tbody>
 
-        {pedidosFiltrados.length === 0 && (
-          <div className="text-center py-12">
-            <FileSpreadsheet className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No se encontraron pedidos con los filtros aplicados</p>
+              {/* TOTALES */}
+              <tfoot>
+                <tr style={{ background: 'rgba(204,170,0,0.06)', borderTop: '2px solid rgba(204,170,0,0.15)' }}>
+                  <td className="px-2 py-3" colSpan={4}>
+                    <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">TOTALES</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.merma, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.tara, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-red-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.devolucionPeso, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.repesada, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3"></td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoBruto, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-green-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoNeto, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3"></td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-amber-400 font-black text-base">S/ {filasOrdenadas.reduce((s, f) => s + f.total, 0).toFixed(2)}</span>
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </div>
-
-      {/* Modal Nuevo Pedido */}
-      <ModalNuevoPedido
-        isOpen={mostrarModalNuevo}
-        onClose={() => setMostrarModalNuevo(false)}
-        onSubmit={(nuevoPedido) => {
-          setPedidos([...pedidos, { ...nuevoPedido, id: Date.now().toString() }]);
-          setMostrarModalNuevo(false);
-        }}
-      />
     </div>
   );
 }

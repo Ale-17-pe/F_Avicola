@@ -6,7 +6,7 @@ import {
 } from "react-router";
 import {
   Users,
-  LayoutDashboard,
+  DollarSign,
   LogOut,
   Menu,
   FileSpreadsheet,
@@ -16,7 +16,6 @@ import {
   UserCircle,
   Container,
   Truck,
-  TrendingUp,
   ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
@@ -43,9 +42,9 @@ export function LayoutSecretaria() {
 
   const navigationItems: MenuItem[] = [
     {
-      label: "Dashboard",
+      label: "Cartera de Cobro",
       path: "/dashboard-secretaria",
-      icon: LayoutDashboard,
+      icon: DollarSign,
     },
     {
       label: "Nuevo Pedido",

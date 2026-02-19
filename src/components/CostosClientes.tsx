@@ -40,6 +40,80 @@ export function CostosClientes() {
     setCostosClientes,
   } = useApp();
 
+  // Generar entradas de combo precio: tipo + variedad o tipo + sexo
+  interface PrecioCombo {
+    key: string; // unique key for form
+    tipoAveId: string;
+    tipoAveNombre: string;
+    variedad?: string;
+    sexo?: 'Macho' | 'Hembra';
+    label: string;
+    sublabel: string;
+    color: string;
+  }
+
+  const generarCombosPrecios = (): PrecioCombo[] => {
+    const combos: PrecioCombo[] = [];
+    tiposAve.forEach((tipo) => {
+      if (tipo.tieneSexo && tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) {
+        // Has both sex AND variety: generate variety+sex combos
+        tipo.variedades.forEach((v) => {
+          (['Macho', 'Hembra'] as const).forEach((s) => {
+            combos.push({
+              key: `${tipo.id}_${v}_${s}`,
+              tipoAveId: tipo.id,
+              tipoAveNombre: tipo.nombre,
+              variedad: v,
+              sexo: s,
+              label: `${tipo.nombre} - ${v}`,
+              sublabel: s,
+              color: tipo.color,
+            });
+          });
+        });
+      } else if (tipo.tieneSexo) {
+        // Has sex only (Pollo, Pato, Pavo)
+        (['Macho', 'Hembra'] as const).forEach((s) => {
+          combos.push({
+            key: `${tipo.id}_${s}`,
+            tipoAveId: tipo.id,
+            tipoAveNombre: tipo.nombre,
+            sexo: s,
+            label: `${tipo.nombre}`,
+            sublabel: s,
+            color: tipo.color,
+          });
+        });
+      } else if (tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) {
+        // Has variety only (Gallina, Huevos)
+        tipo.variedades.forEach((v) => {
+          combos.push({
+            key: `${tipo.id}_${v}`,
+            tipoAveId: tipo.id,
+            tipoAveNombre: tipo.nombre,
+            variedad: v,
+            label: `${tipo.nombre}`,
+            sublabel: v,
+            color: tipo.color,
+          });
+        });
+      } else {
+        // Simple type
+        combos.push({
+          key: tipo.id,
+          tipoAveId: tipo.id,
+          tipoAveNombre: tipo.nombre,
+          label: tipo.nombre,
+          sublabel: '',
+          color: tipo.color,
+        });
+      }
+    });
+    return combos;
+  };
+
+  const combosPrecios = generarCombosPrecios();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedClients, setExpandedClients] = useState<
     Set<string>
@@ -152,7 +226,15 @@ export function CostosClientes() {
     return grupos;
   };
 
-  // Obtener precios más recientes por cliente
+  // Helper: generar combo key desde un costo
+  const costoComboKey = (c: (typeof costosClientes)[0]) => {
+    let key = c.tipoAveId;
+    if (c.variedad) key += `_${c.variedad}`;
+    if (c.sexo) key += `_${c.sexo}`;
+    return key;
+  };
+
+  // Obtener precios más recientes por cliente (por combo key)
   const getPreciosMasRecientes = (clienteId: string) => {
     const costos = getCostosDelCliente(clienteId);
     const fechasMasRecientes = new Map<
@@ -161,7 +243,7 @@ export function CostosClientes() {
     >();
 
     costos.forEach((costo) => {
-      const key = costo.tipoAveId;
+      const key = costoComboKey(costo);
       const existing = fechasMasRecientes.get(key);
       if (!existing || costo.fecha > existing.fecha) {
         fechasMasRecientes.set(key, costo);
@@ -236,14 +318,11 @@ export function CostosClientes() {
 
   const handleOpenGestionModal = (clienteId: string) => {
     setSelectedClienteId(clienteId);
-    setDiaSeleccionado("hoy"); // Iniciar en HOY por defecto
-    // Inicializar formulario con precios más recientes
-    const preciosMasRecientes =
-      getPreciosMasRecientes(clienteId);
-    const preciosInicial: { [tipoAveId: string]: string } = {};
+    setDiaSeleccionado("hoy");
+    const preciosMasRecientes = getPreciosMasRecientes(clienteId);
+    const preciosInicial: { [key: string]: string } = {};
     preciosMasRecientes.forEach((costo) => {
-      preciosInicial[costo.tipoAveId] =
-        costo.precioPorKg.toString();
+      preciosInicial[costoComboKey(costo)] = costo.precioPorKg.toString();
     });
     setPreciosForm(preciosInicial);
     setIsGestionModalOpen(true);
@@ -280,22 +359,16 @@ export function CostosClientes() {
         c.clienteId === selectedClienteId && c.fecha === fecha,
     );
 
-    const preciosDelDia: { [tipoAveId: string]: string } = {};
+    const preciosDelDia: { [key: string]: string } = {};
 
     if (costosDelDia.length > 0) {
-      // Si hay precios para ese día, cargarlos
       costosDelDia.forEach((costo) => {
-        preciosDelDia[costo.tipoAveId] =
-          costo.precioPorKg.toString();
+        preciosDelDia[costoComboKey(costo)] = costo.precioPorKg.toString();
       });
     } else if (dia === "manana") {
-      // Si es mañana y no hay precios, copiar los de hoy como sugerencia
-      const preciosMasRecientes = getPreciosMasRecientes(
-        selectedClienteId,
-      );
+      const preciosMasRecientes = getPreciosMasRecientes(selectedClienteId);
       preciosMasRecientes.forEach((costo) => {
-        preciosDelDia[costo.tipoAveId] =
-          costo.precioPorKg.toString();
+        preciosDelDia[costoComboKey(costo)] = costo.precioPorKg.toString();
       });
     }
 
@@ -314,46 +387,32 @@ export function CostosClientes() {
 
     const nuevaFecha =
       diaSeleccionado === "hoy"
-        ? diaSeleccionado === "hoy"
-          ? new Date().toISOString().split("T")[0]
-          : new Date(Date.now() + 86400000)
-              .toISOString()
-              .split("T")[0]
-        : new Date(Date.now() + 86400000)
-            .toISOString()
-            .split("T")[0];
-    let costosActualizados = [...costosClientes];
+        ? new Date().toISOString().split("T")[0]
+        : new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const costosActualizados = [...costosClientes];
 
-    // Procesar cada tipo de ave
-    tiposAve.forEach((tipoAve) => {
-      const precioStr = preciosForm[tipoAve.id];
-      const preciosMasRecientes = getPreciosMasRecientes(
-        selectedClienteId,
-      );
-      const costoExistente = preciosMasRecientes.find(
-        (c) => c.tipoAveId === tipoAve.id,
-      );
+    // Procesar cada combo de precio
+    combosPrecios.forEach((combo) => {
+      const precioStr = preciosForm[combo.key];
 
       if (
         precioStr &&
         precioStr.trim() !== "" &&
         parseFloat(precioStr) > 0
       ) {
-        // Hay un precio válido - crear nuevo registro histórico
         const precio = parseFloat(precioStr);
+        const label = combo.sublabel
+          ? `${combo.tipoAveNombre} - ${combo.sublabel}`
+          : combo.tipoAveNombre;
 
-        // Crear nuevo registro (no actualizar, para mantener historial)
         const nuevoCosto = {
-          id:
-            Date.now().toString() +
-            "-" +
-            tipoAve.id +
-            "-" +
-            Math.random(),
+          id: Date.now().toString() + "-" + combo.key + "-" + Math.random(),
           clienteId: selectedClienteId,
           clienteNombre: cliente.nombre,
-          tipoAveId: tipoAve.id,
-          tipoAveNombre: tipoAve.nombre,
+          tipoAveId: combo.tipoAveId,
+          tipoAveNombre: label,
+          variedad: combo.variedad,
+          sexo: combo.sexo,
           precioPorKg: precio,
           fecha: nuevaFecha,
         };
@@ -1064,43 +1123,48 @@ export function CostosClientes() {
                 ave. Deje vacío para eliminar el precio.
               </p>
 
-              {/* Grid de Tipos de Ave */}
+              {/* Grid de Precios por Combo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {tiposAve.map((tipoAve) => {
+                {combosPrecios.map((combo) => {
                   const costoExistente = costosClientes.find(
                     (c) =>
                       c.clienteId === selectedClienteId &&
-                      c.tipoAveId === tipoAve.id,
+                      c.tipoAveId === combo.tipoAveId &&
+                      (c.variedad || '') === (combo.variedad || '') &&
+                      (c.sexo || '') === (combo.sexo || ''),
                   );
 
                   return (
                     <div
-                      key={tipoAve.id}
+                      key={combo.key}
                       className="p-4 rounded-lg transition-all"
                       style={{
                         background: "rgba(255, 255, 255, 0.05)",
-                        border: `2px solid ${tipoAve.color}30`,
+                        border: `2px solid ${combo.color}30`,
                       }}
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center"
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
                           style={{
-                            backgroundColor: tipoAve.color,
+                            backgroundColor: combo.color,
                           }}
                         >
-                          <Bird className="w-6 h-6 text-white" />
+                          <Bird className="w-5 h-5 text-white" />
                         </div>
-                        <div>
-                          <p className="font-bold text-white">
-                            {tipoAve.nombre}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-sm truncate">
+                            {combo.label}
                           </p>
+                          {combo.sublabel && (
+                            <p className="text-xs" style={{ color: combo.color }}>
+                              {combo.sublabel}
+                            </p>
+                          )}
                           {costoExistente && (
                             <p className="text-xs text-gray-400">
                               Actual: S/{" "}
-                              {costoExistente.precioPorKg.toFixed(
-                                2,
-                              )}
+                              {costoExistente.precioPorKg.toFixed(2)}
                             </p>
                           )}
                         </div>
@@ -1111,19 +1175,18 @@ export function CostosClientes() {
                           type="number"
                           step="0.01"
                           min="0"
-                          value={preciosForm[tipoAve.id] || ""}
+                          value={preciosForm[combo.key] || ""}
                           onChange={(e) =>
                             setPreciosForm({
                               ...preciosForm,
-                              [tipoAve.id]: e.target.value,
+                              [combo.key]: e.target.value,
                             })
                           }
                           className="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-400 transition-all focus:ring-2"
                           style={{
-                            background:
-                              "rgba(255, 255, 255, 0.08)",
-                            border: `1.5px solid ${tipoAve.color}50`,
-                            outlineColor: tipoAve.color,
+                            background: "rgba(255, 255, 255, 0.08)",
+                            border: `1.5px solid ${combo.color}50`,
+                            outlineColor: combo.color,
                           }}
                           placeholder="0.00"
                         />

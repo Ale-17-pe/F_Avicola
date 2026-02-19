@@ -10,10 +10,10 @@ interface Contenedor {
 
 export function GestionContenedores() {
   const [contenedores, setContenedores] = useState<Contenedor[]>([
-    { id: '1', tipo: 'Javas Nuevas', pesoKg: 2.5 },
-    { id: '2', tipo: 'Javas Viejas', pesoKg: 2.0 },
-    { id: '3', tipo: 'Tinas Verdes', pesoKg: 3.5 },
-    { id: '4', tipo: 'Bolsas', pesoKg: 0.05 }
+    { id: '1', tipo: 'Jabas Nuevas', pesoKg: 7.1 },
+    { id: '2', tipo: 'Jabas Viejas', pesoKg: 6.9 },
+    { id: '3', tipo: 'Bandeja Amarilla', pesoKg: 5.10 },
+    { id: '4', tipo: 'Bandeja Verde', pesoKg: 3.0 }
   ]);
   const [isContenedoresModalOpen, setIsContenedoresModalOpen] = useState(false);
 

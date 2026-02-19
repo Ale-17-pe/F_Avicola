@@ -30,6 +30,8 @@ export interface CostoCliente {
   clienteNombre: string;
   tipoAveId: string;
   tipoAveNombre: string;
+  variedad?: string;
+  sexo?: 'Macho' | 'Hembra';
   precioPorKg: number;
   fecha: string;
 }
@@ -295,7 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tipoAve: 'Gallina',
         presentacion: 'Pelado',
         cantidad: 8,
-        contenedor: 'Javas Viejas',
+        contenedor: 'Jabas Viejas',
         fecha: '2025-02-02',
         hora: '12:00',
         prioridad: 1,
@@ -319,10 +321,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Estado inicial de Contenedores
   const [contenedores, setContenedores] = useState<Contenedor[]>(() =>
     loadFromStorage('avicola_contenedores', [
-      { id: '1', tipo: 'Javas Nuevas', peso: 2.5 },
-      { id: '2', tipo: 'Javas Viejas', peso: 2.0 },
-      { id: '3', tipo: 'Tinas Verdes', peso: 3.5 },
-      { id: '4', tipo: 'Bolsas', peso: 0.05 }
+      { id: '1', tipo: 'Jabas Nuevas', peso: 7.1 },
+      { id: '2', tipo: 'Jabas Viejas', peso: 6.9 },
+      { id: '3', tipo: 'Bandeja Amarilla', peso: 5.10 },
+      { id: '4', tipo: 'Bandeja Verde', peso: 3.0 }
     ])
   );
 

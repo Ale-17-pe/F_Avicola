@@ -121,7 +121,7 @@ export function GestionCobranza() {
         tipoAve: pedidoTipoAve,
         presentacion: 'Vivo',
         cantidad: parseInt(pedidoCantidad) || 10,
-        contenedor: 'Javas',
+        contenedor: 'Jabas Nuevas',
         fecha: new Date().toISOString().split('T')[0],
         hora: new Date().toLocaleTimeString(),
         prioridad: 2,

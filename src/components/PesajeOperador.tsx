@@ -29,12 +29,12 @@ const CONDUCTORES = [
 ];
 
 const ZONAS = [
-  { id: '1', nombre: 'Zona Norte' },
-  { id: '2', nombre: 'Zona Sur' },
-  { id: '3', nombre: 'Zona Este' },
-  { id: '4', nombre: 'Zona Oeste' },
-  { id: '5', nombre: 'Zona Centro' },
-  { id: '6', nombre: 'Zona Industrial' },
+  { id: '1', nombre: 'Zona 1 - Independencia, Provincia, Jicamarca' },
+  { id: '2', nombre: 'Zona 2 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
+  { id: '3', nombre: 'Zona 3 - Vencedores' },
+  { id: '4', nombre: 'Zona 4 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
+  { id: '5', nombre: 'Zona 5 - Valle Sagrado, Saruta' },
+  { id: '6', nombre: 'Zona 6 - Bayovar, Huáscar, Peladero, Sta. María' },
 ];
 
 const BLOCK_SIZE = 10;
@@ -236,6 +236,22 @@ export function PesajeOperador() {
   // Obtener peso del contenedor del pedido original
   const contenedorOriginal = contenedores.find(c => c.tipo === selectedPedido?.contenedor);
   const pesoContenedorDefault = contenedorOriginal?.peso ?? 0;
+
+  // Sincronizar pesos de contenedores en bloques pendientes cuando cambian desde Gestión
+  useEffect(() => {
+    if (bloques.length === 0) return;
+    let changed = false;
+    const bloquesActualizados = bloques.map((bloque) => {
+      if (bloque.pesado) return bloque; // No tocar bloques ya pesados
+      const cont = contenedores.find(c => c.tipo === bloque.contenedorTipo);
+      if (cont && cont.peso !== bloque.pesoContenedor) {
+        changed = true;
+        return { ...bloque, pesoContenedor: cont.peso };
+      }
+      return bloque;
+    });
+    if (changed) setBloques(bloquesActualizados);
+  }, [contenedores]);
 
   // Calcular bloques cuando se cambia el pedido
   const generarBloques = (cantidad: number, contTipo: string, contPeso: number): BloquesPeso[] => {
@@ -607,6 +623,11 @@ export function PesajeOperador() {
                       {selectedPedido.cantidadJabas && (
                         <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>{selectedPedido.cantidadJabas} jabas</span>
                       )}
+                      {contenedorOriginal && (
+                        <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(204,170,0,0.12)', color: '#ccaa00', border: '1px solid rgba(204,170,0,0.25)' }}>
+                          📦 {contenedorOriginal.tipo}: {contenedorOriginal.peso.toFixed(2)} kg
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -869,6 +890,7 @@ export function PesajeOperador() {
                           <th className="px-4 py-2 text-left text-gray-500 font-semibold">#</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Unids.</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Peso (Kg)</th>
+                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Tara</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Estado</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold"></th>
                         </tr>
@@ -890,6 +912,11 @@ export function PesajeOperador() {
                               ) : (
                                 <span className="text-gray-700">—</span>
                               )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <span className="text-[10px] font-mono" style={{ color: '#ccaa00' }}>
+                                {bloque.pesoContenedor.toFixed(1)} kg
+                              </span>
                             </td>
                             <td className="px-4 py-2 text-center">
                               {bloque.pesado ? (
