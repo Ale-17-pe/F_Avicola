@@ -266,8 +266,12 @@ export function Clientes() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap"
+                        <button
+                          onClick={() => {
+                            const nuevoEstado = cliente.estado === 'Activo' ? 'Inactivo' : 'Activo';
+                            updateCliente({ ...cliente, estado: nuevoEstado });
+                          }}
+                          className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:scale-105 active:scale-95 cursor-pointer"
                           style={{
                             background: cliente.estado === 'Activo'
                               ? 'rgba(34, 197, 94, 0.2)'
@@ -275,9 +279,10 @@ export function Clientes() {
                             color: cliente.estado === 'Activo' ? '#22c55e' : '#ef4444',
                             border: `1px solid ${cliente.estado === 'Activo' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
                           }}
+                          title="Click para cambiar estado"
                         >
                           {cliente.estado}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1 sm:gap-2">
@@ -462,24 +467,39 @@ export function Clientes() {
                       </div>
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block text-xs sm:text-sm font-bold mb-1 sm:mb-2" style={{ color: '#ccaa00' }}>
-                        Estado *
-                      </label>
-                      <select
-                        value={formData.estado}
-                        onChange={(e) => setFormData({ ...formData, estado: e.target.value as 'Activo' | 'Inactivo' })}
-                        className="w-full px-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base text-white transition-all focus:ring-2"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          border: '1.5px solid rgba(204, 170, 0, 0.3)',
-                          outlineColor: '#ccaa00'
-                        }}
-                      >
-                        <option value="Activo" style={{ background: '#1a1a1a', color: 'white' }}>✓ Activo</option>
-                        <option value="Inactivo" style={{ background: '#1a1a1a', color: 'white' }}>✗ Inactivo</option>
-                      </select>
-                    </div>
+                    {editingCliente && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs sm:text-sm font-bold mb-1 sm:mb-2" style={{ color: '#ccaa00' }}>
+                          Estado (Click para cambiar)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, estado: formData.estado === 'Activo' ? 'Inactivo' : 'Activo' })}
+                          className="w-full px-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
+                          style={{
+                            background: formData.estado === 'Activo' 
+                              ? 'rgba(34, 197, 94, 0.2)' 
+                              : 'rgba(239, 68, 68, 0.2)',
+                            border: formData.estado === 'Activo'
+                              ? '1.5px solid rgba(34, 197, 94, 0.5)'
+                              : '1.5px solid rgba(239, 68, 68, 0.5)',
+                            color: formData.estado === 'Activo' ? '#22c55e' : '#ef4444'
+                          }}
+                        >
+                          {formData.estado === 'Activo' ? (
+                            <>
+                              <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                              Cliente Activo
+                            </>
+                          ) : (
+                            <>
+                              <X className="w-4 h-4" />
+                              Cliente Inactivo
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">

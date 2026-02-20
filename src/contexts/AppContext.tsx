@@ -314,7 +314,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: '3', tipoAve: 'Pollo', nombre: 'Destripado', mermaKg: 0.20 },
       { id: '4', tipoAve: 'Gallina', nombre: 'Vivo', mermaKg: 0 },
       { id: '5', tipoAve: 'Gallina', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '6', tipoAve: 'Gallina', nombre: 'Destripado', mermaKg: 0.20 }
+      { id: '6', tipoAve: 'Gallina', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '7', tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
+      { id: '8', tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
+      { id: '9', tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '10', tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
+      { id: '11', tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
+      { id: '12', tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.20 },
     ])
   );
 
@@ -342,6 +348,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_presentaciones', JSON.stringify(presentaciones)), [presentaciones]);
   useEffect(() => localStorage.setItem('avicola_contenedores', JSON.stringify(contenedores)), [contenedores]);
   useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
+
+  // MIGRACIÓN: Asegurar presentaciones de Pato y Pavo si no existen
+  useEffect(() => {
+    setPresentaciones(prev => {
+      const tienePato = prev.some(p => p.tipoAve === 'Pato');
+      const tienePavo = prev.some(p => p.tipoAve === 'Pavo');
+
+      if (tienePato && tienePavo) return prev;
+
+      const nuevas = [...prev];
+      const timestamp = Date.now();
+      
+      if (!tienePato) {
+        nuevas.push(
+          { id: `mig-pato-1-${timestamp}`, tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
+          { id: `mig-pato-2-${timestamp}`, tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
+          { id: `mig-pato-3-${timestamp}`, tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.20 }
+        );
+      }
+      
+      if (!tienePavo) {
+        nuevas.push(
+          { id: `mig-pavo-1-${timestamp}`, tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
+          { id: `mig-pavo-2-${timestamp}`, tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
+          { id: `mig-pavo-3-${timestamp}`, tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.20 }
+        );
+      }
+      return nuevas;
+    });
+  }, []);
 
   // Escuchar cambios desde otras pestañas
   useEffect(() => {
