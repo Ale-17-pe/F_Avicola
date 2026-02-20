@@ -55,6 +55,19 @@ export function CostosClientes() {
   const generarCombosPrecios = (): PrecioCombo[] => {
     const combos: PrecioCombo[] = [];
     tiposAve.forEach((tipo) => {
+      // Modificación solicitada: Juntar Pollo, Pato, Pavo independiente de sexo
+      if (['Pollo', 'Pato', 'Pavo'].includes(tipo.nombre)) {
+        combos.push({
+          key: tipo.id, // Key simplificada
+          tipoAveId: tipo.id,
+          tipoAveNombre: tipo.nombre,
+          label: tipo.nombre,
+          sublabel: '',
+          color: tipo.color,
+        });
+        return; // Salir para usar lógica personalizada
+      }
+
       if (tipo.tieneSexo && tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) {
         // Has both sex AND variety: generate variety+sex combos
         tipo.variedades.forEach((v) => {
@@ -227,7 +240,15 @@ export function CostosClientes() {
   };
 
   // Helper: generar combo key desde un costo
+  // Modificado para soportar precios combinados sin sexo
   const costoComboKey = (c: (typeof costosClientes)[0]) => {
+    const tipoMerged = ['Pollo', 'Pato', 'Pavo'].find(n => n === c.tipoAveNombre || n === c.tipoAveId || (tiposAve.find(t => t.id === c.tipoAveId)?.nombre === n));
+    
+    if (tipoMerged && !c.variedad) {
+      // Si es de los tipos combinados y no tiene variedad, retornamos key simple
+      return c.tipoAveId;
+    }
+
     let key = c.tipoAveId;
     if (c.variedad) key += `_${c.variedad}`;
     if (c.sexo) key += `_${c.sexo}`;

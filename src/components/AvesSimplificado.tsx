@@ -17,7 +17,16 @@ import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
 
 
 export function AvesSimplificado() {
-  const { tiposAve: allTiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+  const { 
+    tiposAve: allTiposAve, 
+    addTipoAve, 
+    updateTipoAve, 
+    deleteTipoAve,
+    presentaciones,
+    addPresentacion,
+    updatePresentacion,
+    deletePresentacion
+  } = useApp();
 
   // Filtrar solo aves
   const tiposAve = allTiposAve.filter(t => t.categoria === 'Ave' || !t.categoria);
@@ -35,20 +44,6 @@ export function AvesSimplificado() {
 
   const [isPresentacionesModalOpen, setIsPresentacionesModalOpen] =
     useState(false);
-  const [presentaciones, setPresentaciones] = useState<Presentacion[]>([
-    { id: "1", tipoAve: "Pollo", nombre: "Vivo", mermaKg: 0 },
-    { id: "2", tipoAve: "Pollo", nombre: "Pelado", mermaKg: 0.15 },
-    { id: "3", tipoAve: "Pollo", nombre: "Destripado", mermaKg: 0.2 },
-    { id: "4", tipoAve: "Gallina", nombre: "Vivo", mermaKg: 0 },
-    { id: "5", tipoAve: "Gallina", nombre: "Pelado", mermaKg: 0.15 },
-    { id: "6", tipoAve: "Gallina", nombre: "Destripado", mermaKg: 0.2 },
-    { id: "7", tipoAve: "Pato", nombre: "Vivo", mermaKg: 0 },
-    { id: "8", tipoAve: "Pato", nombre: "Pelado", mermaKg: 0.15 },
-    { id: "9", tipoAve: "Pato", nombre: "Destripado", mermaKg: 0.2 },
-    { id: "10", tipoAve: "Pavo", nombre: "Vivo", mermaKg: 0 },
-    { id: "11", tipoAve: "Pavo", nombre: "Pelado", mermaKg: 0.15 },
-    { id: "12", tipoAve: "Pavo", nombre: "Destripado", mermaKg: 0.2 },
-  ]);
 
   const [editingPresentacion, setEditingPresentacion] =
     useState<Presentacion | null>(null);
@@ -173,18 +168,12 @@ export function AvesSimplificado() {
     e.preventDefault();
 
     if (editingPresentacion) {
-      setPresentaciones(
-        presentaciones.map((p) =>
-          p.id === editingPresentacion.id
-            ? {
-              ...p,
-              tipoAve: nuevaPresentacionForm.tipoAve,
-              nombre: nuevaPresentacionForm.nombre,
-              mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
-            }
-            : p,
-        ),
-      );
+      updatePresentacion({
+        ...editingPresentacion,
+        tipoAve: nuevaPresentacionForm.tipoAve,
+        nombre: nuevaPresentacionForm.nombre,
+        mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
+      });
       setEditingPresentacion(null);
     } else {
       const nuevaPresentacion: Presentacion = {
@@ -193,7 +182,7 @@ export function AvesSimplificado() {
         nombre: nuevaPresentacionForm.nombre,
         mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
       };
-      setPresentaciones([...presentaciones, nuevaPresentacion]);
+      addPresentacion(nuevaPresentacion);
     }
 
     setNuevaPresentacionForm({
@@ -206,7 +195,7 @@ export function AvesSimplificado() {
 
   const handleDeletePresentacion = (id: string) => {
     if (confirm("¿Está seguro de eliminar esta presentación?")) {
-      setPresentaciones(presentaciones.filter((p) => p.id !== id));
+      deletePresentacion(id);
     }
   };
 
