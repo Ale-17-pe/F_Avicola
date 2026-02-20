@@ -188,7 +188,7 @@ function useSerialScale() {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function PesajeOperador() {
-  const { pedidosConfirmados, updatePedidoConfirmado, contenedores } = useApp();
+  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, clientes } = useApp();
   const scale = useSerialScale();
 
   // Estado principal
@@ -226,7 +226,7 @@ export function PesajeOperador() {
 
   // Pedidos ya pesados
   const pedidosPesados = pedidosConfirmados
-    .filter((p) => p.ticketEmitido && (p.estado === 'Entregado' || p.estado === 'Completado'))
+    .filter((p) => p.ticketEmitido && (p.estado === 'En Despacho' || p.estado === 'Entregado' || p.estado === 'Completado'))
     .slice(-10)
     .reverse();
 
@@ -287,11 +287,11 @@ export function PesajeOperador() {
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
     setSelectedPedido(pedido);
     const cont = contenedores.find(c => c.tipo === pedido.contenedor);
-    
+
     // Para Vivo: 1 bloque por jaba (cada bloque = 1 jaba)
     const esVivoP = pedido.presentacion?.toLowerCase().includes('vivo');
     let nuevos: BloquesPeso[];
-    
+
     if (esVivoP && pedido.cantidadJabas) {
       // Cada jaba es un bloque individual
       nuevos = Array.from({ length: pedido.cantidadJabas }, (_, i) => ({
@@ -305,13 +305,27 @@ export function PesajeOperador() {
     } else {
       nuevos = generarBloques(pedido.cantidad, cont?.tipo || pedido.contenedor, cont?.peso || 0);
     }
-    
+
     setBloques(nuevos);
     setBloqueActual(0);
     setPesoManualInput('');
     setContenedorBloqueId(cont?.id || '');
     setConductorId('');
-    setZonaId('');
+    // Auto-fill zone from client data
+    const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
+    if (clienteObj && clienteObj.zona) {
+      // Match client zone id with ZONAS constant (by ID or Name)
+      // Normalizamos strings para comparar nombres
+      const normalize = (s: string) => s.toLowerCase().trim();
+      const zonaMatch = ZONAS.find(z =>
+        z.id === clienteObj.zona ||
+        normalize(z.nombre) === normalize(clienteObj.zona) ||
+        normalize(z.nombre).includes(normalize(clienteObj.zona))
+      );
+      setZonaId(zonaMatch ? zonaMatch.id : '');
+    } else {
+      setZonaId('');
+    }
     setTicketVisible(null);
 
     // Broadcast al display
@@ -438,7 +452,7 @@ export function PesajeOperador() {
       pesoContenedores: totalPesoContenedores,
       conductor: conductor.nombre,
       zonaEntrega: zona.nombre,
-      estado: 'Entregado',
+      estado: 'En Despacho',
       ticketEmitido: true,
     };
 
@@ -642,11 +656,11 @@ export function PesajeOperador() {
               </div>
 
               {/* ===== DISPLAY DE PESO - PROTAGONISTA ===== */}
-              <div 
+              <div
                 className="rounded-3xl p-8 text-center relative overflow-hidden transition-all duration-300"
                 style={{
-                  background: todosCompletados 
-                    ? 'linear-gradient(145deg, rgba(34,197,94,0.12), rgba(0,0,0,0.7))' 
+                  background: todosCompletados
+                    ? 'linear-gradient(145deg, rgba(34,197,94,0.12), rgba(0,0,0,0.7))'
                     : 'linear-gradient(145deg, #0a0a0a, #1a1a1a)',
                   border: todosCompletados
                     ? '3px solid rgba(34,197,94,0.6)'
@@ -667,7 +681,7 @@ export function PesajeOperador() {
                 {/* Indicador de bloque actual */}
                 {!todosCompletados && bloqueActual < bloques.length && (
                   <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-                    <span 
+                    <span
                       className="text-xs font-black uppercase tracking-[0.25em] px-5 py-2 rounded-full"
                       style={{
                         background: 'rgba(204,170,0,0.15)',
@@ -678,12 +692,12 @@ export function PesajeOperador() {
                     >
                       BLOQUE {bloqueActual + 1} DE {bloques.length} — {bloques[bloqueActual]?.tamaño} UNIDS.
                     </span>
-                    
+
                     {/* Barra de progreso compacta */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">Progreso</span>
                       <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
                             width: `${(bloquesCompletados / bloques.length) * 100}%`,
@@ -761,7 +775,7 @@ export function PesajeOperador() {
                     {/* Estado de la balanza */}
                     <div className="flex items-center justify-center gap-3 mb-2">
                       <div className="flex items-center gap-1.5">
-                        <div 
+                        <div
                           className={`w-3 h-3 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
                         />
                         <span className="text-xs text-gray-400">
@@ -839,7 +853,7 @@ export function PesajeOperador() {
 
               {/* Selector de contenedor (solo vivos) */}
               {esVivo && !todosCompletados && bloqueActual < bloques.length && (
-                <div 
+                <div
                   className="rounded-2xl p-5 backdrop-blur-sm"
                   style={{
                     background: 'rgba(245,158,11,0.05)',
@@ -871,7 +885,7 @@ export function PesajeOperador() {
 
               {/* Tabla de bloques pesados */}
               {(bloquesCompletados > 0 || todosCompletados) && (
-                <div 
+                <div
                   className="rounded-2xl overflow-hidden"
                   style={{
                     background: 'rgba(20,20,30,0.6)',
@@ -956,7 +970,12 @@ export function PesajeOperador() {
                     </div>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#a855f7' }} />
-                      <select value={zonaId} onChange={(e) => setZonaId(e.target.value)} className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none cursor-pointer focus:ring-2 transition-all" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)', outlineColor: '#a855f7' }}>
+                      <select
+                        value={zonaId}
+                        disabled={true} // Zona fija según cliente
+                        onChange={(e) => setZonaId(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
                         <option value="">Zona...</option>
                         {ZONAS.map((z) => (<option key={z.id} value={z.id}>{z.nombre}</option>))}
                       </select>
@@ -1002,7 +1021,7 @@ export function PesajeOperador() {
               {['CLIENTE', 'NEGOCIO'].map((tipo) => (
                 <div key={tipo} className="ticket rounded-2xl p-5 relative overflow-hidden" style={{ background: 'rgba(10,10,10,0.95)', border: '2px solid rgba(51,51,51,0.6)' }}>
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
-                  
+
                   {/* Tipo de copia */}
                   <div className="text-center mb-1">
                     <span className="text-[9px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full" style={{ background: tipo === 'CLIENTE' ? 'rgba(34,197,94,0.1)' : 'rgba(204,170,0,0.1)', color: tipo === 'CLIENTE' ? '#22c55e' : '#ccaa00', border: `1px solid ${tipo === 'CLIENTE' ? 'rgba(34,197,94,0.2)' : 'rgba(204,170,0,0.2)'}` }}>

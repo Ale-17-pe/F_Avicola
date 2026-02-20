@@ -49,8 +49,11 @@ export function GestionConductor() {
   // Historial local de registros (simulado)
   const [registros, setRegistros] = useState<RegistroConductor[]>([]);
 
-  // Filtrar pedidos que están en estado 'Pesaje' o 'Entregado' (que el conductor debe gestionar)
-  const pedidosRuta = pedidosConfirmados.filter((p: any) => p.estado === 'Pesaje' || p.estado === 'Entregado');
+  // Estado para doble confirmación de entrega
+  const [confirmStep, setConfirmStep] = useState<0 | 1 | 2>(0); // 0 = nada, 1 = primera confirmación, 2 = segunda confirmación
+
+  // Filtrar pedidos que están en estado 'En Despacho' (despachados pero sin confirmar entrega)
+  const pedidosRuta = pedidosConfirmados.filter((p: any) => p.estado === 'En Despacho');
 
   const handleCapturePhoto = () => {
     // Simulación de captura de foto
@@ -157,6 +160,32 @@ export function GestionConductor() {
 
   const getRegistroPedido = (id: string) => registros.filter(r => r.pedidoId === id);
 
+  // Confirmar entrega con doble confirmación
+  const handleConfirmarEntrega = () => {
+    if (confirmStep === 0) {
+      setConfirmStep(1);
+      return;
+    }
+    if (confirmStep === 1) {
+      setConfirmStep(2);
+      return;
+    }
+    // confirmStep === 2: confirmar definitivamente
+    if (!selectedPedido) return;
+    updatePedidoConfirmado(selectedPedido.id, {
+      ...selectedPedido,
+      estado: 'Entregado'
+    });
+    toast.success('Entrega confirmada exitosamente');
+    setConfirmStep(0);
+    setModo('LISTA');
+    setSelectedPedido(null);
+  };
+
+  const cancelarConfirmacion = () => {
+    setConfirmStep(0);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Header */}
@@ -196,7 +225,7 @@ export function GestionConductor() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${pedido.estado === 'Pesaje' ? 'bg-amber-900/20 text-amber-400' : 'bg-blue-900/20 text-blue-400'}`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${pedido.estado === 'En Despacho' ? 'bg-purple-900/20 text-purple-400' : 'bg-blue-900/20 text-blue-400'}`}>
                     <Truck className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
@@ -204,8 +233,8 @@ export function GestionConductor() {
                       <span className="font-mono text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">
                         {pedido.numeroPedido || 'S/N'}
                       </span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pedido.estado === 'Pesaje' ? 'bg-amber-400/10 text-amber-400' : 'bg-blue-400/10 text-blue-400'}`}>
-                        {pedido.estado}
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-purple-400/10 text-purple-400`}>
+                        En proceso de entrega
                       </span>
                     </div>
                     <h3 className="text-white font-bold text-lg">{pedido.cliente}</h3>
@@ -268,6 +297,13 @@ export function GestionConductor() {
               >
                 <UserPlus className="w-6 h-6 group-hover:scale-110 transition-transform" />
                 <span className="text-xs">ADICIÓN</span>
+              </button>
+              <button
+                onClick={handleConfirmarEntrega}
+                className="flex flex-col items-center gap-2 p-4 bg-green-900/20 border border-green-500/30 rounded-2xl text-green-300 hover:bg-green-900/30 transition-all font-bold group col-span-2 sm:col-span-1"
+              >
+                <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-xs">CONFIRMAR ENTREGA</span>
               </button>
             </div>
           </div>
@@ -430,6 +466,67 @@ export function GestionConductor() {
             >
               <CheckCircle2 className="w-5 h-5" /> CONFIRMAR REGISTRO
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de doble confirmación */}
+      {confirmStep > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            {confirmStep === 1 ? (
+              <>
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-green-900/30 border-2 border-green-500/50 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-green-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2">¿Confirmar entrega?</h3>
+                  <p className="text-sm text-gray-400">
+                    Está a punto de confirmar la entrega del pedido de <span className="text-white font-bold">{selectedPedido?.cliente}</span>
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={cancelarConfirmacion}
+                    className="flex-1 py-3 px-4 bg-gray-800 border border-gray-700 rounded-xl text-gray-300 font-bold hover:bg-gray-700 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmarEntrega}
+                    className="flex-1 py-3 px-4 bg-green-600 rounded-xl text-white font-bold hover:bg-green-500 transition-all shadow-lg shadow-green-500/20"
+                  >
+                    Sí, confirmar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-amber-900/30 border-2 border-amber-500/50 flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-amber-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2">¿Confirmar definitivamente?</h3>
+                  <p className="text-sm text-gray-400">
+                    Esta acción <span className="text-amber-400 font-bold">no se puede deshacer</span>. El pedido quedará marcado como entregado.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={cancelarConfirmacion}
+                    className="flex-1 py-3 px-4 bg-gray-800 border border-gray-700 rounded-xl text-gray-300 font-bold hover:bg-gray-700 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmarEntrega}
+                    className="flex-1 py-3 px-4 bg-amber-600 rounded-xl text-white font-bold hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                  >
+                    Confirmar definitivamente
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

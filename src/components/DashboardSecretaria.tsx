@@ -53,7 +53,7 @@ const hoyStr = () => new Date().toISOString().split('T')[0];
 
 export function DashboardSecretaria() {
   const { costosClientes, presentaciones, contenedores } = useApp();
-  
+
   const [filasCartera, setFilasCartera] = useState<FilaCartera[]>([]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyStr());
   const [busqueda, setBusqueda] = useState('');
@@ -84,24 +84,24 @@ export function DashboardSecretaria() {
     try {
       const raw = localStorage.getItem('pedidosPesajeControl');
       if (!raw) { setFilasCartera([]); return; }
-      
+
       const pesajeData: PedidoPesajeData[] = JSON.parse(raw);
       const delDia = pesajeData.filter(p => p.fechaPesaje === fechaSeleccionada);
-      
+
       if (delDia.length === 0) { setFilasCartera([]); return; }
-      
+
       const nuevasFilas: FilaCartera[] = delDia.map(p => {
         const esVivo = p.presentacion?.toLowerCase().includes('vivo');
-        
+
         // Cantidad: jabas si vivo, unidades M/H si destripado/desplumado
-        const cantidadDisplay = esVivo 
+        const cantidadDisplay = esVivo
           ? (p.cantidadJabas || p.cantidad)
           : p.cantidad;
         const cantidadLabel = esVivo ? 'jabas' : `unids${p.cantidadMachos ? ` (${p.cantidadMachos}M/${p.cantidadHembras || 0}H)` : ''}`;
 
         // Merma: buscar en presentaciones
-        const pres = presentaciones.find(pr => 
-          pr.tipoAve.toLowerCase() === p.producto.toLowerCase() && 
+        const pres = presentaciones.find(pr =>
+          pr.tipoAve.toLowerCase() === p.producto.toLowerCase() &&
           pr.nombre.toLowerCase() === p.presentacion.toLowerCase()
         );
         const mermaPorUnidad = pres?.mermaKg || 0;
@@ -115,16 +115,68 @@ export function DashboardSecretaria() {
 
         // Peso bruto: viene del pesaje
         const pesoBruto = p.pesoBruto || 0;
-        
-        // Peso neto: pesoBruto - tara - mermaTotal
-        const pesoNeto = pesoBruto - taraTotal - mermaTotal;
 
-        // Precio: buscar en costosClientes
-        const costoCliente = costosClientes.find(cc => 
-          cc.clienteNombre.toLowerCase() === p.cliente.toLowerCase() &&
-          cc.tipoAveNombre.toLowerCase() === p.producto.toLowerCase()
-        );
-        const precio = costoCliente?.precioPorKg || 0;
+        // Peso neto: pesoBruto + mermaTotal - tara - devolucion
+        const pesoNeto = pesoBruto + mermaTotal - taraTotal;
+
+        // Precio: buscar en costosClientes de forma más robusta
+        let precio = 0;
+
+        // 1. Buscar IDs de cliente y tipo de ave
+        const clienteObj = clientes.find(c => c.nombre === p.cliente);
+        const tipoAveObj = tiposAve.find(t => t.nombre === p.producto || t.nombre === p.tipo); // p.producto o p.tipo según historial
+
+        if (clienteObj && tipoAveObj) {
+          // 2. Determinar sexo del pedido
+          let sexoPedido = 'Mixto';
+          if (p.cantidadMachos > 0 && (!p.cantidadHembras || p.cantidadHembras === 0)) sexoPedido = 'Macho';
+          else if (p.cantidadHembras > 0 && (!p.cantidadMachos || p.cantidadMachos === 0)) sexoPedido = 'Hembra';
+
+          // 3. Buscar precio específico
+          // Prioridad 1: Coincidencia exacta (Cliente + Tipo + Variedad + Sexo)
+          // Prioridad 2: Sin variedad (Cliente + Tipo + Sexo)
+          // Prioridad 3: Sin sexo (Cliente + Tipo + Variedad)
+          // Prioridad 4: Solo Tipo (Cliente + Tipo)
+
+          // Limpiar variedad del pedido (quitar parentesis si existen)
+          const variedadPedido = p.presentacion?.includes('(')
+            ? p.presentacion.match(/\((.*?)\)/)?.[1]
+            : null; // La variedad suele estar en el nombre del tipoAve o presentación? 
+          // En p.producto viene "Pollo (Cobb)", "Pollo", etc.
+
+          const variedadReal = p.producto.includes('(')
+            ? p.producto.match(/\((.*?)\)/)?.[1]
+            : p.variedad;
+
+          const costosDelCliente = costosClientes.filter(cc => cc.clienteId === clienteObj.id && cc.tipoAveId === tipoAveObj.id);
+
+          // Intentar encontrar el mejor precio
+          let costoEncontrado = costosDelCliente.find(cc =>
+            (cc.variedad === variedadReal || (!cc.variedad && !variedadReal)) &&
+            (cc.sexo === sexoPedido || cc.sexo === 'Mixto' || !cc.sexo)
+          );
+
+          if (!costoEncontrado && variedadReal) {
+            // Intentar sin variedad pero con sexo
+            costoEncontrado = costosDelCliente.find(cc => !cc.variedad && cc.sexo === sexoPedido);
+          }
+
+          if (!costoEncontrado) {
+            // Intentar cualquiera del mismo tipo
+            costoEncontrado = costosDelCliente.find(cc => !cc.variedad && (!cc.sexo || cc.sexo === 'Mixto'));
+          }
+
+          if (costoEncontrado) {
+            precio = costoEncontrado.precioPorKg;
+          }
+        } else {
+          // Fallback búsqueda simple por nombre si faltan IDs (compatibilidad)
+          const costoCliente = costosClientes.find(cc =>
+            cc.clienteNombre.toLowerCase() === p.cliente.toLowerCase() &&
+            cc.tipoAveNombre.toLowerCase() === p.producto.toLowerCase()
+          );
+          if (costoCliente) precio = costoCliente.precioPorKg;
+        }
 
         // Total
         const total = pesoNeto * precio;
@@ -152,7 +204,7 @@ export function DashboardSecretaria() {
           fecha: fechaSeleccionada,
         };
       });
-      
+
       setFilasCartera(nuevasFilas);
     } catch {
       setFilasCartera([]);
@@ -169,7 +221,7 @@ export function DashboardSecretaria() {
   // Recalcular fila cuando cambian valores editables
   const recalcularFila = (fila: FilaCartera): FilaCartera => {
     const diferencia = fila.repesada > 0 ? fila.repesada - fila.pesoBruto : 0;
-    const pesoNeto = fila.pesoBruto - fila.tara - fila.merma - fila.devolucionPeso;
+    const pesoNeto = fila.pesoBruto + fila.merma - fila.tara - fila.devolucionPeso;
     const total = Math.max(0, pesoNeto) * fila.precio;
     return { ...fila, pesoNeto: Math.max(0, pesoNeto), total };
   };
@@ -185,7 +237,7 @@ export function DashboardSecretaria() {
 
   // Confirmar fila
   const confirmarFila = (id: string) => {
-    setFilasCartera(prev => prev.map(f => 
+    setFilasCartera(prev => prev.map(f =>
       f.id === id ? { ...f, confirmado: true, editando: false } : f
     ));
     toast.success('Fila confirmada');
@@ -193,7 +245,7 @@ export function DashboardSecretaria() {
 
   // Habilitar edición de fila
   const editarFila = (id: string) => {
-    setFilasCartera(prev => prev.map(f => 
+    setFilasCartera(prev => prev.map(f =>
       f.id === id ? { ...f, editando: true, confirmado: false } : f
     ));
   };
@@ -361,7 +413,7 @@ export function DashboardSecretaria() {
 
       {/* TABLA PRINCIPAL - CARTERA DE COBRO */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(204,170,0,0.2)', boxShadow: '0 0 30px rgba(204,170,0,0.04)' }}>
-        
+
         <div className="px-5 py-3 border-b flex items-center justify-between" style={{ background: 'linear-gradient(to right, rgba(204,170,0,0.06), rgba(0,0,0,0.3))', borderColor: 'rgba(204,170,0,0.15)' }}>
           <h2 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5" style={{ color: '#ccaa00' }} />
