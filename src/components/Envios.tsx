@@ -67,7 +67,7 @@ export function Envios() {
   // Stats
   const totalPedidos = pedidosDelDia.length;
   const pedidosEntregados = pedidosDelDia.filter(p => p.estado === 'Entregado' || p.estado === 'Completado').length;
-  const pedidosEnCurso = pedidosDelDia.filter(p => p.estado === 'Pesaje' || p.estado === 'En Producción').length;
+  const pedidosEnCurso = pedidosDelDia.filter(p => p.estado === 'Pesaje' || p.estado === 'En Producción' || p.estado === 'En Despacho').length;
   const pedidosPendientes = pedidosDelDia.filter(p => p.estado === 'Pendiente').length;
 
   // Zone CRUD handlers
@@ -126,6 +126,8 @@ export function Envios() {
     switch (estado) {
       case 'Completado': case 'Entregado':
         return { bg: 'rgba(34,197,94,0.2)', color: '#22c55e', border: 'rgba(34,197,94,0.3)' };
+      case 'En Despacho':
+        return { bg: 'rgba(168,85,247,0.2)', color: '#a855f7', border: 'rgba(168,85,247,0.3)' };
       case 'Pesaje': case 'En Producción':
         return { bg: 'rgba(59,130,246,0.2)', color: '#3b82f6', border: 'rgba(59,130,246,0.3)' };
       case 'Pendiente':

@@ -478,6 +478,7 @@ export function NuevoPedido() {
       cantidadMachos: '',
       cantidadHembras: '',
       cantidadTotal: '',
+      unidadesPorJaba: '',
       presentacion: '',
       contenedor: ''
     });
@@ -708,8 +709,8 @@ export function NuevoPedido() {
               {pedidosEnCola.map(pedido => (
                 <div key={pedido.id} className="relative group">
                   <div className={`px-3 py-2 rounded-lg border text-sm font-mono transition-all hover:scale-105 ${pedido.subPedidos.length > 1
-                      ? 'bg-blue-900/10 border-blue-700/20 text-blue-300 hover:border-blue-600/40'
-                      : 'bg-green-900/10 border-green-700/20 text-green-300 hover:border-green-600/40'
+                    ? 'bg-blue-900/10 border-blue-700/20 text-blue-300 hover:border-blue-600/40'
+                    : 'bg-green-900/10 border-green-700/20 text-green-300 hover:border-green-600/40'
                     }`}>
                     <div className="flex items-center gap-2">
                       <span>{pedido.numeroPedido}</span>
@@ -750,13 +751,13 @@ export function NuevoPedido() {
             onClick={confirmarPedidos}
             disabled={pedidosEnCola.length === 0}
             className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${pedidosEnCola.length > 0
-                ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
-                : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'
+              ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
+              : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'
               }`}
           >
             <div className={`p-2 rounded-lg transition-colors ${pedidosEnCola.length > 0
-                ? 'bg-amber-900/30 group-hover:bg-amber-900/40'
-                : 'bg-gray-800/30'
+              ? 'bg-amber-900/30 group-hover:bg-amber-900/40'
+              : 'bg-gray-800/30'
               }`}>
               <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'
                 }`} />
@@ -1344,19 +1345,53 @@ export function NuevoPedido() {
                                 </div>
                               </>
                             ) : nuevoSubPedido.tipoAve && (
-                              <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-2">
-                                  {nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') ? 'Cantidad de Jabas' : 'Cantidad Total'}
-                                </label>
-                                <input
-                                  type="number"
-                                  value={nuevoSubPedido.cantidadTotal || ''}
-                                  onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, cantidadTotal: e.target.value }))}
-                                  min="1"
-                                  placeholder={nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') ? 'Nº de jabas' : '0'}
-                                  className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm"
-                                />
-                              </div>
+                              <>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-400 mb-2">
+                                    {nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(nuevoSubPedido.tipoAve)?.categoria === 'Otro' ? 'Cantidad de Jabas' : 'Cantidad Total'}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={nuevoSubPedido.cantidadTotal || ''}
+                                    onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, cantidadTotal: e.target.value }))}
+                                    min="1"
+                                    placeholder={nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(nuevoSubPedido.tipoAve)?.categoria === 'Otro' ? 'Nº de jabas' : '0'}
+                                    className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm"
+                                  />
+                                  {(nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(nuevoSubPedido.tipoAve)?.categoria === 'Otro') && nuevoSubPedido.cantidadTotal && (
+                                    <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+                                      {getTipoAveInfo(nuevoSubPedido.tipoAve)?.categoria === 'Otro' ? '🥚' : '🐔'} {nuevoSubPedido.cantidadTotal} jaba(s) {getTipoAveInfo(nuevoSubPedido.tipoAve)?.categoria === 'Otro' ? '' : 'se pesarán por bloque en Pesaje'}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Unidades por Jaba (solo Vivo) */}
+                                {nuevoSubPedido.presentacion?.toLowerCase().includes('vivo') && nuevoSubPedido.cantidadTotal && (
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                                      Unidades por Jaba
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={nuevoSubPedido.unidadesPorJaba || ''}
+                                      onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, unidadesPorJaba: e.target.value }))}
+                                      placeholder="Ej: 8, 10, 12..."
+                                      min="1"
+                                      className="w-full px-4 py-3 bg-black/50 border border-amber-800/30 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                                    />
+                                    {nuevoSubPedido.unidadesPorJaba && parseInt(nuevoSubPedido.unidadesPorJaba) > 0 && (
+                                      <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
+                                        style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}
+                                      >
+                                        <span className="text-gray-400">Total aves</span>
+                                        <span className="text-green-400 font-bold font-mono">
+                                          {parseInt(nuevoSubPedido.cantidadTotal || '0') * parseInt(nuevoSubPedido.unidadesPorJaba)} unidades
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             )}
 
                             <div className="grid grid-cols-2 gap-4">

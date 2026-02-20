@@ -198,16 +198,6 @@ export function ListaPedidos() {
     estado: 'Pendiente'
   });
 
-  // Estados para pedidos en pesaje
-  const [pedidosPesaje, setPedidosPesaje] = useState<PedidoPesaje[]>(() => {
-    try {
-      const saved = localStorage.getItem('pedidosPesaje');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
   // Estados para conductores
   const [conductores, setConductores] = useState<Conductor[]>([
     { id: '1', nombre: 'Juan Pérez', licencia: 'A1234567', vehiculo: 'Camión F350', zonaAsignada: 'Zona 1 - Independencia, Provincia, Jicamarca', telefono: '555-0101' },
@@ -218,7 +208,7 @@ export function ListaPedidos() {
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState<Conductor | null>(null);
 
-  // Estados para modal de nuevo pedido rÃ¡pido (Aumentar)
+  // Estados para modal de nuevo pedido rápido (Aumentar)
   const [mostrarModalNuevoPedido, setMostrarModalNuevoPedido] = useState(false);
   const [nuevoPedidoRapido, setNuevoPedidoRapido] = useState<NuevoPedidoRapido>({
     cliente: '',
@@ -231,85 +221,75 @@ export function ListaPedidos() {
     contenedor: ''
   });
 
-  // Guardar historial automÃ¡ticamente
+  // Guardar historial automáticamente
   useEffect(() => {
     localStorage.setItem('modificacionesHistorial', JSON.stringify(modificacionesHistorial));
   }, [modificacionesHistorial]);
 
   // Sincronizar datos de pesaje desde PedidoConfirmado (cuando PesajeOperador confirma)
-  // Cuando el pesaje se completa: guardar en Control (localStorage) y remover de pedidosPesaje
+  // Cuando el pesaje se completa: guardar en Control (localStorage)
   useEffect(() => {
-    if (!pedidosConfirmados || pedidosPesaje.length === 0) return;
+    if (!pedidosConfirmados) return;
 
-    const completados: PedidoPesaje[] = [];
-    const sigueEnPesaje: PedidoPesaje[] = [];
+    const completadosParaControl: PedidoPesaje[] = [];
 
-    pedidosPesaje.forEach(pp => {
-      // Buscar el pedido confirmado correspondiente
-      const original = pedidosConfirmados.find(pc =>
-        pc.numeroPedido === pp.numeroPedido && pc.cliente === pp.cliente
-      );
-      if (!original) {
-        sigueEnPesaje.push(pp);
-        return;
-      }
-
-      // Si tiene pesoKg y conductor, el pesaje fue completado en PesajeOperador
-      if (original.pesoKg && original.conductor && original.zonaEntrega) {
-        const conductorObj = conductores.find(c => c.nombre === original.conductor);
+    pedidosConfirmados.forEach(pc => {
+      // Si el pedido tiene pesoKg (ya fue pesado), conductor y zonaEntrega, debe ir a Control Pesaje
+      // No importa si ya cambió de estado a 'En Despacho' o 'Entregado', lo importante es que tenga datos de pesaje
+      if (pc.pesoKg && pc.conductor && pc.zonaEntrega) {
+        const conductorObj = conductores.find(c => c.nombre === pc.conductor);
 
         // Calcular contenedores: para Vivo = cantidadJabas, para otros = bloques pesados
-        const esVivoP = original.presentacion?.toLowerCase().includes('vivo');
-        const numCont = esVivoP && original.cantidadJabas
-          ? original.cantidadJabas
-          : Math.ceil(original.cantidad / 10);
+        const esVivoP = pc.presentacion?.toLowerCase().includes('vivo');
+        const numCont = esVivoP && pc.cantidadJabas
+          ? pc.cantidadJabas
+          : Math.ceil(pc.cantidad / 10); // Asumiendo 10 aves por contenedor si no es vivo
 
         const pedidoCompletado: PedidoPesaje = {
-          ...pp,
-          pesoBruto: original.pesoKg,
+          id: `pesaje-${pc.id}`, // Usar el ID del pedido confirmado para el ID de pesaje
+          numeroPedido: pc.numeroPedido || '',
+          cliente: pc.cliente,
+          producto: pc.tipoAve, // Mapear tipoAve a producto para compatibilidad con Control
+          cantidad: pc.cantidad,
+          cantidadJabas: pc.cantidadJabas,
+          unidadesPorJaba: pc.unidadesPorJaba,
+          presentacion: pc.presentacion,
+          contenedor: pc.contenedor,
+          pesoBruto: pc.pesoKg,
           numeroContenedores: numCont,
-          pesoContenedores: original.pesoContenedores || 0,
+          pesoContenedores: pc.pesoContenedores || 0,
           conductor: conductorObj || {
             id: 'pesaje',
-            nombre: original.conductor,
+            nombre: pc.conductor,
             licencia: '',
             vehiculo: '',
-            zonaAsignada: original.zonaEntrega || '',
+            zonaAsignada: pc.zonaEntrega || '',
           },
           estadoPesaje: 'Completado' as const,
-          cantidadMachos: extraerInfoGenero(original.tipoAve)?.machos,
-          cantidadHembras: extraerInfoGenero(original.tipoAve)?.hembras
+          fechaPesaje: pc.fecha, // Usar la fecha del pedido original
+          horaPesaje: pc.hora, // Usar la hora del pedido original
+          cantidadMachos: extraerInfoGenero(pc.tipoAve)?.machos, // Usar helper del mismo archivo
+          cantidadHembras: extraerInfoGenero(pc.tipoAve)?.hembras
         };
-
-        completados.push(pedidoCompletado);
-      } else {
-        sigueEnPesaje.push(pp);
+        completadosParaControl.push(pedidoCompletado);
       }
     });
 
-    // Si hay pedidos completados, guardarlos en Control (localStorage) y removerlos de pesaje
-    if (completados.length > 0) {
-      // Guardar en localStorage para el módulo Control de Secretaría
+    // Si hay pedidos completados, guardarlos en Control (localStorage)
+    if (completadosParaControl.length > 0) {
       try {
         const existentes = JSON.parse(localStorage.getItem('pedidosPesajeControl') || '[]');
         const idsExistentes = new Set(existentes.map((p: PedidoPesaje) => p.id));
-        const nuevos = completados.filter(p => !idsExistentes.has(p.id));
+        const nuevos = completadosParaControl.filter(p => !idsExistentes.has(p.id));
         if (nuevos.length > 0) {
           localStorage.setItem('pedidosPesajeControl', JSON.stringify([...existentes, ...nuevos]));
         }
       } catch {
-        localStorage.setItem('pedidosPesajeControl', JSON.stringify(completados));
+        localStorage.setItem('pedidosPesajeControl', JSON.stringify(completadosParaControl));
       }
-
-      // Remover de la lista de pesaje activo (ya no deben aparecer en "Pedidos en Pesaje")
-      setPedidosPesaje(sigueEnPesaje);
     }
-  }, [pedidosConfirmados]);
+  }, [pedidosConfirmados, conductores, updatePedidoConfirmado]);
 
-  // Guardar pedidos en pesaje automÃ¡ticamente
-  useEffect(() => {
-    localStorage.setItem('pedidosPesaje', JSON.stringify(pedidosPesaje));
-  }, [pedidosPesaje]);
 
   // ============ PROCESAR PEDIDOS DESDE EL CONTEXTO ============
   useEffect(() => {
@@ -428,12 +408,12 @@ export function ListaPedidos() {
     const pesoPromedioAve = 1.8;
     const pesoTotalPedido = esOtro ? 0 : (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
 
-    // Extraer informaciÃ³n de gÃ©nero
+    // Extraer información de género
     const infoGenero = extraerInfoGenero(pedido.tipoAve);
 
     // Extraer variedad si existe
     const extraerVariedad = (tipo: string): string | null => {
-      // Intentar extraer de parÃ©ntesis (viejo formato)
+      // Intentar extraer de paréntesis (viejo formato)
       const matchParen = tipo.match(/\((?!M:|H:)(.*?)\)/);
       if (matchParen) return matchParen[1];
 
@@ -478,9 +458,9 @@ export function ListaPedidos() {
     };
   };
 
-  // ============ FUNCIONES DE GESTIÃ“N INTELIGENTE ============
+  // ============ FUNCIONES DE GESTIÓN INTELIGENTE ============
 
-  // FunciÃ³n para verificar si pedidos son similares (para consolidar)
+  // Función para verificar si pedidos son similares (para consolidar)
   const sonPedidosSimilares = (pedido1: PedidoLista, pedido2: PedidoLista): boolean => {
     // Solo consolidar pedidos pendientes
     if (pedido1.estado !== 'Pendiente' || pedido2.estado !== 'Pendiente') {
@@ -492,11 +472,11 @@ export function ListaPedidos() {
       return false;
     }
 
-    // Extraer informaciÃ³n base del tipo de ave (sin sexo/variedad)
+    // Extraer información base del tipo de ave (sin sexo/variedad)
     const tipoAve1 = pedido1.tipoAve.toLowerCase();
     const tipoAve2 = pedido2.tipoAve.toLowerCase();
 
-    // Verificar tipo de ave, presentaciÃ³n y contenedor
+    // Verificar tipo de ave, presentación y contenedor
     return (
       tipoAve1 === tipoAve2 &&
       pedido1.presentacion === pedido2.presentacion &&
@@ -504,7 +484,7 @@ export function ListaPedidos() {
     );
   };
 
-  // Buscar consolidaciones sugeridas automÃ¡ticamente
+  // Buscar consolidaciones sugeridas automáticamente
   const buscarConsolidacionesSugeridas = (pedidos: PedidoLista[]) => {
     const grupos: { [key: string]: PedidoLista[] } = {};
 
@@ -538,7 +518,7 @@ export function ListaPedidos() {
     setConsolidacionesSugeridas(sugerencias);
   };
 
-  // Consolidar pedidos automÃ¡ticamente
+  // Consolidar pedidos automáticamente
   const consolidarPedidosAutomaticamente = () => {
     if (consolidacionesSugeridas.length === 0) {
       toast.info('No hay pedidos similares para consolidar');
@@ -584,7 +564,7 @@ export function ListaPedidos() {
             cantidadNueva: nuevaCantidad,
             fecha,
             hora,
-            motivo: 'ConsolidaciÃ³n automÃ¡tica de pedidos similares',
+            motivo: 'Consolidación automática de pedidos similares',
             detalles: `Se consolidaron ${sugerencia.pedidos.length} pedidos`,
             pedidosAfectados: sugerencia.pedidos.map(p => p.numeroPedido)
           }]);
@@ -636,7 +616,7 @@ export function ListaPedidos() {
         cantidad: nuevaCantidad
       });
 
-      // Eliminar los demÃ¡s pedidos
+      // Eliminar los demás pedidos
       pedidosSeleccionados.slice(1).forEach(pedido => {
         removePedidoConfirmado(pedido.id);
       });
@@ -650,7 +630,7 @@ export function ListaPedidos() {
         cantidadNueva: nuevaCantidad,
         fecha,
         hora,
-        motivo: 'ConsolidaciÃ³n manual de pedidos seleccionados',
+        motivo: 'Consolidación manual de pedidos seleccionados',
         detalles: `Se consolidaron ${pedidosSeleccionados.length} pedidos`,
         pedidosAfectados: pedidosSeleccionados.map(p => p.numeroPedido)
       }]);
@@ -661,7 +641,7 @@ export function ListaPedidos() {
     }
   };
 
-  // Aumentar pedido con verificaciÃ³n de similares
+  // Aumentar pedido con verificación de similares
   const manejarAumentoPedido = (pedidoExistente: PedidoLista, cantidadAumento: number): boolean => {
     // Buscar pedidos similares pendientes
     const pedidosSimilares = pedidosLista.filter(p =>
@@ -672,7 +652,7 @@ export function ListaPedidos() {
 
     if (pedidosSimilares.length > 0) {
       const confirmarSuma = window.confirm(
-        `Se encontraron ${pedidosSimilares.length} pedido(s) similares pendientes.\n\nÂ¿Desea sumar la cantidad a uno existente en lugar de crear uno nuevo?\n\nPedidos similares:\n${pedidosSimilares.map(p => `â€¢ ${p.numeroPedido} - ${p.cantidad} aves`).join('\n')}`
+        `Se encontraron ${pedidosSimilares.length} pedido(s) similares pendientes.\n\n¿Desea sumar la cantidad a uno existente en lugar de crear uno nuevo?\n\nPedidos similares:\n${pedidosSimilares.map(p => `• ${p.numeroPedido} - ${p.cantidad} aves`).join('\n')}`
       );
 
       if (confirmarSuma) {
@@ -714,7 +694,7 @@ export function ListaPedidos() {
 
   // ============ NUEVAS FUNCIONALIDADES PARA PESAJE ============
 
-  // 1. FUNCIÃ“N PARA CREAR NUEVO SUB-PEDIDO
+  // 1. FUNCIÓN PARA CREAR NUEVO SUB-PEDIDO
   const abrirNuevoSubPedido = (pedidoBase: PedidoLista) => {
     setNuevoSubPedido({
       cliente: pedidoBase.cliente,
@@ -740,7 +720,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
 
-    // Obtener el siguiente nÃºmero de sub-pedido
+    // Obtener el siguiente número de sub-pedido
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoSubPedido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
     const nuevoSubNumero = ultimoSubNumero + 1;
@@ -792,7 +772,7 @@ export function ListaPedidos() {
     });
   };
 
-  // FunciÃ³n para abrir modal de nuevo pedido rÃ¡pido (Aumentar)
+  // Función para abrir modal de nuevo pedido rápido (Aumentar)
   const abrirModalNuevoPedido = (grupo: PedidoAgrupado) => {
     setNuevoPedidoRapido({
       cliente: grupo.cliente,
@@ -807,7 +787,7 @@ export function ListaPedidos() {
     setMostrarModalNuevoPedido(true);
   };
 
-  // FunciÃ³n para confirmar pedido rÃ¡pido desde modal
+  // Función para confirmar pedido rápido desde modal
   const confirmarPedidoRapido = () => {
     const cantMachos = parseInt(nuevoPedidoRapido.cantidadMachos) || 0;
     const cantHembras = parseInt(nuevoPedidoRapido.cantidadHembras) || 0;
@@ -834,7 +814,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
 
-    // Obtener el siguiente nÃºmero de sub-pedido para este cliente
+    // Obtener el siguiente número de sub-pedido para este cliente
     const pedidosDelCliente = pedidosLista.filter(p => p.cliente === nuevoPedidoRapido.cliente);
     const ultimoSubNumero = Math.max(...pedidosDelCliente.map(p => p.subNumero), 0);
     const nuevoSubNumero = ultimoSubNumero + 1;
@@ -930,17 +910,17 @@ export function ListaPedidos() {
 
     if (formEdicion.cantidad !== pedidoAEditar.cantidad) {
       cambios.cantidad = formEdicion.cantidad;
-      cambiosRealizados.push(`Cantidad: ${pedidoAEditar.cantidad} â†’ ${formEdicion.cantidad}`);
+      cambiosRealizados.push(`Cantidad: ${pedidoAEditar.cantidad} → ${formEdicion.cantidad}`);
     }
 
     if (formEdicion.presentacion !== pedidoAEditar.presentacion) {
       cambios.presentacion = formEdicion.presentacion;
-      cambiosRealizados.push(`Presentación: ${pedidoAEditar.presentacion} â†’ ${formEdicion.presentacion}`);
+      cambiosRealizados.push(`Presentación: ${pedidoAEditar.presentacion} → ${formEdicion.presentacion}`);
     }
 
     if (formEdicion.contenedor !== pedidoAEditar.contenedor) {
       cambios.contenedor = formEdicion.contenedor;
-      cambiosRealizados.push(`Contenedor: ${pedidoAEditar.contenedor} â†’ ${formEdicion.contenedor}`);
+      cambiosRealizados.push(`Contenedor: ${pedidoAEditar.contenedor} → ${formEdicion.contenedor}`);
     }
 
     if (cambiosRealizados.length === 0) {
@@ -984,23 +964,7 @@ export function ListaPedidos() {
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().slice(0, 5);
 
-    // NO pre-llenar peso, contenedores ni conductor â€” se llenarÃ¡n en Pesaje
-    const nuevoPedidoPesaje: PedidoPesaje = {
-      id: `pesaje-${Date.now()}-${pedido.id}`,
-      numeroPedido: pedido.numeroPedido,
-      cliente: pedido.cliente,
-      producto: pedido.tipoAve,
-      cantidad: pedido.cantidad,
-      cantidadJabas: pedido.cantidadJabas,
-      unidadesPorJaba: pedido.unidadesPorJaba,
-      presentacion: pedido.presentacion,
-      contenedor: pedido.contenedor,
-      estadoPesaje: 'Pendiente',
-      fechaPesaje: fecha,
-      horaPesaje: hora
-    };
-
-    // Actualizar estado del pedido original
+    // Actualizar estado del pedido original a 'Pesaje'
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedido.id);
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedido.id, {
@@ -1008,9 +972,6 @@ export function ListaPedidos() {
         estado: 'Pesaje'
       });
     }
-
-    // Agregar a lista de pesaje
-    setPedidosPesaje(prev => [...prev, nuevoPedidoPesaje]);
 
     // Registrar en historial
     setModificacionesHistorial(prev => [...prev, {
@@ -1028,25 +989,34 @@ export function ListaPedidos() {
     toast.success(`Pedido ${pedido.numeroPedido} movido a pesaje`);
   };
 
-  // (El pesaje se completa automáticamente desde PesajeOperador - ver useEffect de sincronización)
-
   // 5. FUNCIÓN PARA ELIMINAR DE PESAJE (volver a producción)
-  const eliminarDePesaje = (pedidoPesajeId: string) => {
-    const pedidoPesaje = pedidosPesaje.find(p => p.id === pedidoPesajeId);
-    if (!pedidoPesaje) return;
-
+  const eliminarDePesaje = (pedidoId: string) => {
     // Buscar y actualizar el pedido original a En Producción
-    const pedidoOriginal = pedidosConfirmados?.find(p => p.numeroPedido === pedidoPesaje.numeroPedido);
+    const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoId);
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedidoOriginal.id, {
         ...pedidoOriginal,
         estado: 'En Producción'
       });
-    }
 
-    // Eliminar de la lista de pesaje
-    setPedidosPesaje(prev => prev.filter(p => p.id !== pedidoPesajeId));
-    toast.success('Pedido regresado a producción');
+      const ahora = new Date();
+      const fecha = ahora.toISOString().split('T')[0];
+      const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
+
+      setModificacionesHistorial(prev => [...prev, {
+        id: `revertir-pesaje-${Date.now()}-${pedidoId}`,
+        pedidoOriginalId: pedidoId,
+        tipo: 'MODIFICACION',
+        cantidadAnterior: pedidoOriginal.cantidad,
+        cantidadNueva: pedidoOriginal.cantidad,
+        fecha,
+        hora,
+        motivo: 'Revertido de pesaje',
+        detalles: `Pedido ${pedidoOriginal.numeroPedido} regresado a producción`
+      }]);
+
+      toast.success('Pedido regresado a producción');
+    }
   };
 
   // 6. FUNCIÓN PARA COMPLETAR ENTREGA
@@ -1155,7 +1125,7 @@ export function ListaPedidos() {
             const sumado = manejarAumentoPedido(pedido, diferencia);
 
             if (!sumado) {
-              // Si no se sumÃ³, actualizar el pedido original
+              // Si no se sumó, actualizar el pedido original
               updatePedidoConfirmado(pedido.id, {
                 ...pedidoOriginal,
                 cantidad: aumentoCantidad
@@ -1203,7 +1173,7 @@ export function ListaPedidos() {
           break;
 
         case 'CONSOLIDAR':
-          // La consolidaciÃ³n se maneja en otra funciÃ³n
+          // La consolidación se maneja en otra función
           break;
       }
     });
@@ -1283,7 +1253,7 @@ export function ListaPedidos() {
     }
   };
 
-  // Editar mÃºltiples pedidos manualmente (seleccionando checkboxes)
+  // Editar múltiples pedidos manualmente (seleccionando checkboxes)
   const iniciarEdicionMultiple = () => {
     const pedidosPendientes = pedidosLista.filter(p => p.estado === 'Pendiente');
     if (pedidosPendientes.length === 0) {
@@ -1405,10 +1375,14 @@ export function ListaPedidos() {
   const pedidosMostrar = pedidosConsolidados;
 
   // Filtrar pedidos por estado para cada secciÃ³n
+  // Filtrar pedidos por estado para cada secciÃ³n
   const pedidosPendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente');
   const pedidosEnProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción');
-  const pedidosEnEntrega = pedidosMostrar.filter(p => p.estado === 'Entregado');
-  const pedidosEntregados = pedidosMostrar.filter(p => ['Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado));
+  const pedidosPesaje = pedidosMostrar.filter(p => p.estado === 'Pesaje');
+  // "Pedidos en Entrega" son los que están en camino ("En Despacho")
+  const pedidosEnEntrega = pedidosMostrar.filter(p => p.estado === 'En Despacho');
+  // "Pedidos Entregados" incluye los que ya confirmó el conductor ("Entregado") y los finalizados
+  const pedidosEntregados = pedidosMostrar.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado));
 
   // Tabla de producciÃ³n combinada (para backward compat)
   const pedidosProduccion = pedidosLista.filter(p => p.estado !== 'Completado');
@@ -1966,12 +1940,12 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="text-emerald-300 font-medium">{pedido.producto}</div>
+                        <div className="text-emerald-300 font-medium">{pedido.tipoAve}</div>
                       </td>
 
                       <td className="px-6 py-4">
                         <div className="text-white font-bold">{pedido.cantidad}</div>
-                        <div className="text-xs text-white-500">aves</div>
+                        <div className="text-xs text-green-500">aves</div>
                       </td>
 
                       <td className="px-6 py-4">
@@ -2000,47 +1974,27 @@ export function ListaPedidos() {
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="text-white font-medium">{pedido.contenedor}</div>
-                          {pedido.numeroContenedores ? (
-                            <div className="text-xs text-white-400">
-                              {pedido.numeroContenedores} cont. · {(pedido.pesoContenedores || 0).toFixed(1)} kg
-                            </div>
-                          ) : (
-                            <div className="text-xs text-white-600">Pendiente de pesaje</div>
-                          )}
+                          {/* Datos de contenedores vacíos hasta que se pese */}
+                          <div className="text-xs text-gray-500">Pendiente de pesaje</div>
                         </div>
                       </td>
 
                       <td className="px-6 py-4">
-                        {pedido.pesoBruto ? (
-                          <div className="text-white font-bold">{pedido.pesoBruto.toFixed(1)} kg</div>
-                        ) : (
-                          <span className="text-white-600">—</span>
-                        )}
+                        {/* Peso Bruto vacío hasta que se pese */}
+                        <span className="text-gray-600">—</span>
                       </td>
 
                       <td className="px-6 py-4">
-                        {pedido.conductor ? (
-                          <button
-                            onClick={() => setConductorSeleccionado(pedido.conductor!)}
-                            className="text-left hover:bg-gray-800/30 p-2 rounded-lg transition-colors w-full"
-                          >
-                            <div className="text-white font-medium truncate">{pedido.conductor.nombre}</div>
-                            <div className="text-xs text-white-400">{pedido.conductor.vehiculo}</div>
-                            <div className="text-xs text-blue-400">{pedido.conductor.zonaAsignada}</div>
-                          </button>
-                        ) : (
-                          <span className="text-white-600 text-xs">Sin asignar</span>
-                        )}
+                        {/* Conductor vacío hasta que se pese */}
+                        <span className="text-gray-600 text-xs">Sin asignar</span>
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estadoPesaje === 'Pendiente'
-                          ? 'bg-amber-900/20 border border-amber-700/30 text-amber-300'
-                          : pedido.estadoPesaje === 'Completado'
-                            ? 'bg-green-900/20 border border-green-700/30 text-green-300'
-                            : 'bg-blue-900/20 border border-blue-700/30 text-blue-300'
+                        <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Pesaje'
+                          ? 'bg-purple-900/20 border border-purple-700/30 text-purple-300'
+                          : 'bg-gray-900/20 border border-gray-700/30 text-gray-300'
                           }`}>
-                          {pedido.estadoPesaje}
+                          {pedido.estado || 'En Pesaje'}
                         </div>
                       </td>
 
@@ -2164,8 +2118,8 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4"><div className="text-sm text-gray-300">{pedido.contenedor}</div></td>
                         <td className="px-6 py-4">
-                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'Entregado' ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300' : 'bg-green-900/20 border border-green-700/30 text-green-300'}`}>
-                            {pedido.estado === 'Entregado' ? (
+                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block ${pedido.estado === 'En Despacho' ? 'bg-blue-900/20 border border-blue-700/30 text-blue-300' : 'bg-green-900/20 border border-green-700/30 text-green-300'}`}>
+                            {pedido.estado === 'En Despacho' ? (
                               <span className="flex items-center gap-1.5">
                                 <TruckIcon className="w-3.5 h-3.5" />
                                 En camino

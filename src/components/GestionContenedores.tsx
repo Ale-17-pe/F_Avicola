@@ -1,34 +1,24 @@
 import { useState } from 'react';
 import { Package, Settings, Scale, Box, Layers, ArrowUpDown } from 'lucide-react';
 import { ModalContenedores } from './ModalContenedores';
-
-interface Contenedor {
-  id: string;
-  tipo: string;
-  pesoKg: number;
-}
+import { useApp } from '../contexts/AppContext';
 
 export function GestionContenedores() {
-  const [contenedores, setContenedores] = useState<Contenedor[]>([
-    { id: '1', tipo: 'Jabas Nuevas', pesoKg: 7.1 },
-    { id: '2', tipo: 'Jabas Viejas', pesoKg: 6.9 },
-    { id: '3', tipo: 'Bandeja Amarilla', pesoKg: 5.10 },
-    { id: '4', tipo: 'Bandeja Verde', pesoKg: 3.0 }
-  ]);
+  const { contenedores, setContenedores } = useApp();
   const [isContenedoresModalOpen, setIsContenedoresModalOpen] = useState(false);
 
   // Cálculos precisos
   const totalContenedores = contenedores.length;
   const pesoPromedio = totalContenedores > 0
-    ? contenedores.reduce((acc, c) => acc + c.pesoKg, 0) / totalContenedores
+    ? contenedores.reduce((acc, c) => acc + c.peso, 0) / totalContenedores
     : 0;
   const pesoMin = totalContenedores > 0
-    ? Math.min(...contenedores.map(c => c.pesoKg))
+    ? Math.min(...contenedores.map(c => c.peso))
     : 0;
   const pesoMax = totalContenedores > 0
-    ? Math.max(...contenedores.map(c => c.pesoKg))
+    ? Math.max(...contenedores.map(c => c.peso))
     : 0;
-  const pesoTotalFlota = contenedores.reduce((acc, c) => acc + c.pesoKg, 0);
+  const pesoTotalFlota = contenedores.reduce((acc, c) => acc + c.peso, 0);
 
   return (
     <div className="space-y-5 sm:space-y-6 p-2 sm:p-4">
@@ -232,22 +222,22 @@ export function GestionContenedores() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="font-bold text-sm" style={{ color: '#ccaa00' }}>
-                      {contenedor.pesoKg.toFixed(2)} kg
+                      {contenedor.peso.toFixed(2)} kg
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-gray-300 text-sm">
-                      {(contenedor.pesoKg * 10).toFixed(2)} kg
+                      {(contenedor.peso * 10).toFixed(2)} kg
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-gray-300 text-sm">
-                      {(contenedor.pesoKg * 50).toFixed(2)} kg
+                      {(contenedor.peso * 50).toFixed(2)} kg
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-gray-300 text-sm">
-                      {(contenedor.pesoKg * 100).toFixed(2)} kg
+                      {(contenedor.peso * 100).toFixed(2)} kg
                     </span>
                   </td>
                 </tr>
@@ -340,7 +330,7 @@ export function GestionContenedores() {
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm truncate">{contenedor.tipo}</p>
                 <p className="text-xs font-semibold mt-0.5" style={{ color: '#ccaa00' }}>
-                  {contenedor.pesoKg.toFixed(2)} kg / unidad
+                  {contenedor.peso.toFixed(2)} kg / unidad
                 </p>
               </div>
             </div>
@@ -349,17 +339,17 @@ export function GestionContenedores() {
             <div className="grid grid-cols-3 gap-2">
               <div className="p-2.5 rounded-lg text-center" style={{ background: 'rgba(0, 0, 0, 0.25)' }}>
                 <p className="text-[10px] text-gray-400 mb-1">×10</p>
-                <p className="text-white text-xs font-bold">{(contenedor.pesoKg * 10).toFixed(2)}</p>
+                <p className="text-white text-xs font-bold">{(contenedor.peso * 10).toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500">kg</p>
               </div>
               <div className="p-2.5 rounded-lg text-center" style={{ background: 'rgba(0, 0, 0, 0.25)' }}>
                 <p className="text-[10px] text-gray-400 mb-1">×50</p>
-                <p className="text-white text-xs font-bold">{(contenedor.pesoKg * 50).toFixed(2)}</p>
+                <p className="text-white text-xs font-bold">{(contenedor.peso * 50).toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500">kg</p>
               </div>
               <div className="p-2.5 rounded-lg text-center" style={{ background: 'rgba(0, 0, 0, 0.25)' }}>
                 <p className="text-[10px] text-gray-400 mb-1">×100</p>
-                <p className="text-white text-xs font-bold">{(contenedor.pesoKg * 100).toFixed(2)}</p>
+                <p className="text-white text-xs font-bold">{(contenedor.peso * 100).toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500">kg</p>
               </div>
             </div>
