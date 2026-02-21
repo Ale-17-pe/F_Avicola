@@ -128,7 +128,14 @@ export function Control() {
   const totalAves = pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0);
   const totalPesoBruto = pedidosPesaje.reduce((acc, p) => acc + (p.pesoBruto || 0), 0);
   const totalPesoContenedores = pedidosPesaje.reduce((acc, p) => acc + (p.pesoContenedores || 0), 0);
-  const pesoNeto = totalPesoBruto - totalPesoContenedores;
+  const totalPesoPedido = totalPesoBruto - totalPesoContenedores;
+
+  // Función para extraer número de zona (ej: "Zona Norte 1" -> "Zona 1")
+  const formatearZona = (zonaCompleta: string | undefined): string => {
+    if (!zonaCompleta) return '—';
+    const match = zonaCompleta.match(/(\d+)/);
+    return match ? `Zona ${match[1]}` : zonaCompleta;
+  };
 
   // Limpiar registros
   const limpiarRegistros = () => {
@@ -188,9 +195,9 @@ export function Control() {
         {[
           { label: 'Total Registros', value: totalPedidos, icon: ClipboardCheck, color: '#a855f7', border: 'rgba(168,85,247,0.3)' },
           { label: 'Total Aves', value: totalAves.toLocaleString(), icon: Package, color: '#3b82f6', border: 'rgba(59,130,246,0.3)' },
+          { label: 'Peso Pedido', value: `${totalPesoPedido.toFixed(1)} kg`, icon: Scale, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+          { label: 'Peso Contenedor', value: `${totalPesoContenedores.toFixed(1)} kg`, icon: Weight, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
           { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
-          { label: 'Peso Contenedores', value: `${totalPesoContenedores.toFixed(1)} kg`, icon: Weight, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
-          { label: 'Peso Neto', value: `${pesoNeto.toFixed(1)} kg`, icon: Scale, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
         ].map((metric) => (
           <div key={metric.label} className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
             background: 'rgba(0,0,0,0.3)',
@@ -286,23 +293,23 @@ export function Control() {
                     { key: 'cantidadMachos', label: 'Machos', width: 'w-20' },
                     { key: 'cantidadHembras', label: 'Hembras', width: 'w-20' },
                     { key: 'contenedor', label: 'Contenedor', width: 'w-28' },
-                    { key: 'pesoBruto', label: 'Peso Bruto (kg)', width: 'w-28' },
+                    { key: 'pesoPedido', label: 'Peso Pedido (kg)', width: 'w-28' },
                     { key: 'pesoContenedores', label: 'Peso Cont. (kg)', width: 'w-28' },
-                    { key: 'pesoNeto', label: 'Peso Neto (kg)', width: 'w-28' },
+                    { key: 'pesoBruto', label: 'Peso Bruto (kg)', width: 'w-28' },
                     { key: 'conductor', label: 'Conductor', width: 'w-32' },
-                    { key: 'zona', label: 'Zona', width: 'w-28' },
+                    { key: 'zona', label: 'Zona', width: 'w-20' },
                     { key: 'acciones', label: '', width: 'w-16' },
                   ].map(col => (
                     <th
                       key={col.key}
                       className={`px-3 py-3 text-left ${col.width} group cursor-pointer select-none hover:bg-purple-900/10 transition-colors`}
-                      onClick={() => col.key !== 'acciones' && col.key !== 'pesoNeto' && handleSort(col.key)}
+                      onClick={() => col.key !== 'acciones' && col.key !== 'pesoPedido' && handleSort(col.key)}
                     >
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#a855f7' }}>
                           {col.label}
                         </span>
-                        {col.key !== 'acciones' && col.key !== 'pesoNeto' && <SortIcon column={col.key} />}
+                        {col.key !== 'acciones' && col.key !== 'pesoPedido' && <SortIcon column={col.key} />}
                       </div>
                     </th>
                   ))}
@@ -310,7 +317,7 @@ export function Control() {
               </thead>
               <tbody>
                 {pedidosOrdenados.map((pedido, idx) => {
-                  const pesoNetoRow = (pedido.pesoBruto || 0) - (pedido.pesoContenedores || 0);
+                  const pesoPedidoRow = (pedido.pesoBruto || 0) - (pedido.pesoContenedores || 0);
                   return (
                     <tr
                       key={pedido.id}
@@ -384,10 +391,10 @@ export function Control() {
                         )}
                       </td>
 
-                      {/* Peso Bruto */}
+                      {/* Peso Pedido (sin contenedores) */}
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-white font-bold text-sm tabular-nums">
-                          {pedido.pesoBruto ? pedido.pesoBruto.toFixed(1) : '—'}
+                        <span className="text-green-400 font-bold text-sm tabular-nums">
+                          {pedido.pesoBruto ? pesoPedidoRow.toFixed(1) : '—'}
                         </span>
                       </td>
 
@@ -396,12 +403,15 @@ export function Control() {
                         <span className="text-red-300 text-sm tabular-nums">
                           {pedido.pesoContenedores ? pedido.pesoContenedores.toFixed(1) : '—'}
                         </span>
+                        {pedido.numeroContenedores && (
+                          <div className="text-[10px] text-gray-500">{pedido.numeroContenedores} tandas</div>
+                        )}
                       </td>
 
-                      {/* Peso Neto */}
+                      {/* Peso Bruto (total) */}
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-green-400 font-bold text-sm tabular-nums">
-                          {pedido.pesoBruto ? pesoNetoRow.toFixed(1) : '—'}
+                        <span className="text-amber-300 font-bold text-sm tabular-nums">
+                          {pedido.pesoBruto ? pedido.pesoBruto.toFixed(1) : '—'}
                         </span>
                       </td>
 
@@ -419,8 +429,8 @@ export function Control() {
 
                       {/* Zona */}
                       <td className="px-3 py-2.5">
-                        <span className="text-purple-300 text-xs">
-                          {pedido.conductor?.zonaAsignada || '—'}
+                        <span className="text-purple-300 text-xs font-semibold">
+                          {formatearZona(pedido.conductor?.zonaAsignada)}
                         </span>
                       </td>
 
@@ -459,18 +469,18 @@ export function Control() {
                     </span>
                   </td>
                   <td className="px-3 py-3">
-                    <span className="text-gray-400 text-xs">{pedidosOrdenados.reduce((s, p) => s + (p.numeroContenedores || 0), 0)} cont.</span>
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <span className="text-white font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoBruto || 0), 0).toFixed(1)}</span>
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <span className="text-red-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoContenedores || 0), 0).toFixed(1)}</span>
+                    <span className="text-gray-400 text-xs">{pedidosOrdenados.reduce((s, p) => s + (p.numeroContenedores || 0), 0)} tandas</span>
                   </td>
                   <td className="px-3 py-3 text-right">
                     <span className="text-green-400 font-bold text-sm">
                       {(pedidosOrdenados.reduce((s, p) => s + (p.pesoBruto || 0), 0) - pedidosOrdenados.reduce((s, p) => s + (p.pesoContenedores || 0), 0)).toFixed(1)}
                     </span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="text-red-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoContenedores || 0), 0).toFixed(1)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="text-amber-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoBruto || 0), 0).toFixed(1)}</span>
                   </td>
                   <td colSpan={3}></td>
                 </tr>
@@ -544,10 +554,10 @@ export function Control() {
                 <h3 className="text-sm font-bold text-purple-400 mb-3 uppercase tracking-wider">Datos de Pesaje</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Peso Bruto', value: selectedPedido.pesoBruto ? `${selectedPedido.pesoBruto.toFixed(1)} kg` : '—', color: '#fff' },
-                    { label: 'Peso Contenedores', value: selectedPedido.pesoContenedores ? `${selectedPedido.pesoContenedores.toFixed(1)} kg` : '—', color: '#ef4444' },
-                    { label: 'Peso Neto', value: selectedPedido.pesoBruto ? `${((selectedPedido.pesoBruto || 0) - (selectedPedido.pesoContenedores || 0)).toFixed(1)} kg` : '—', color: '#22c55e' },
-                    { label: 'Contenedores', value: selectedPedido.numeroContenedores ? `${selectedPedido.numeroContenedores}` : '—', color: '#a855f7' },
+                    { label: 'Peso Pedido', value: selectedPedido.pesoBruto ? `${((selectedPedido.pesoBruto || 0) - (selectedPedido.pesoContenedores || 0)).toFixed(1)} kg` : '—', color: '#22c55e' },
+                    { label: 'Peso Contenedor', value: selectedPedido.pesoContenedores ? `${selectedPedido.pesoContenedores.toFixed(1)} kg` : '—', color: '#ef4444' },
+                    { label: 'Peso Bruto', value: selectedPedido.pesoBruto ? `${selectedPedido.pesoBruto.toFixed(1)} kg` : '—', color: '#f59e0b' },
+                    { label: 'Tandas', value: selectedPedido.numeroContenedores ? `${selectedPedido.numeroContenedores}` : '—', color: '#a855f7' },
                   ].map(item => (
                     <div key={item.label} className="p-3 rounded-lg" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{item.label}</p>
@@ -573,7 +583,7 @@ export function Control() {
                       </div>
                       <div>
                         <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Zona Asignada</p>
-                        <p className="text-sm font-semibold text-purple-300">{selectedPedido.conductor.zonaAsignada}</p>
+                        <p className="text-sm font-semibold text-purple-300">{formatearZona(selectedPedido.conductor.zonaAsignada)}</p>
                       </div>
                     </>
                   ) : (

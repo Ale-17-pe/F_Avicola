@@ -18,13 +18,17 @@ interface FilaCartera {
   devolucionPeso: number; // peso de lo devuelto
   devolucionCantidad: number; // unidades devueltas
   repesada: number; // lo que pesó el cliente (kg)
-  pesoBruto: number; // peso total del pedido (incluye tara)
-  pesoNeto: number; // pesoBruto - tara - merma - devolucionPeso
+  pesoPedido: number; // peso neto del pedido (sin contenedores)
+  pesoContenedor: number; // peso de los contenedores
+  pesoBruto: number; // peso total del pedido (incluye contenedores)
+  pesoNeto: number; // pesoPedido + merma - devolucionPeso
   precio: number; // precio por kg del tipo de producto
   total: number; // pesoNeto * precio
   confirmado: boolean;
   editando: boolean;
   fecha: string; // YYYY-MM-DD
+  zona: string; // Zona de entrega
+  conductor: string; // Nombre del conductor
 }
 
 // Interfaz de la data de pesaje que viene de ListaPedidos
@@ -47,12 +51,13 @@ interface PedidoPesajeData {
   horaPesaje?: string;
   cantidadMachos?: number;
   cantidadHembras?: number;
+  variedad?: string;
 }
 
 const hoyStr = () => new Date().toISOString().split('T')[0];
 
 export function DashboardSecretaria() {
-  const { costosClientes, presentaciones, contenedores } = useApp();
+  const { costosClientes, presentaciones, contenedores, clientes, tiposAve } = useApp();
 
   const [filasCartera, setFilasCartera] = useState<FilaCartera[]>([]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyStr());
@@ -107,17 +112,15 @@ export function DashboardSecretaria() {
         const mermaPorUnidad = pres?.mermaKg || 0;
         const mermaTotal = mermaPorUnidad * p.cantidad;
 
-        // Tara: peso del contenedor
-        const cont = contenedores.find(c => c.tipo === p.contenedor);
-        const pesoTaraUno = cont?.peso || (p.pesoContenedores || 0);
-        const numContenedores = p.numeroContenedores || 1;
-        const taraTotal = esVivo ? pesoTaraUno * numContenedores : 0;
+        // Tara: peso del contenedor (ya viene calculado desde pesaje)
+        const pesoContenedor = p.pesoContenedores || 0;
 
-        // Peso bruto: viene del pesaje
+        // Peso Pedido: peso bruto - peso contenedores (lo que realmente pesa el producto)
         const pesoBruto = p.pesoBruto || 0;
+        const pesoPedido = pesoBruto - pesoContenedor;
 
-        // Peso neto: pesoBruto + mermaTotal - tara - devolucion
-        const pesoNeto = pesoBruto + mermaTotal - taraTotal;
+        // Peso neto para cobro: pesoPedido + mermaTotal - devolucion
+        const pesoNeto = pesoPedido + mermaTotal;
 
         // Precio: buscar en costosClientes de forma más robusta
         let precio = 0;
@@ -178,6 +181,14 @@ export function DashboardSecretaria() {
           if (costoCliente) precio = costoCliente.precioPorKg;
         }
 
+        // Zona del conductor
+        const zonaCompleta = typeof p.conductor === 'object' ? p.conductor?.zonaAsignada : '';
+        const zonaMatch = zonaCompleta?.match(/(\d+)/);
+        const zona = zonaMatch ? `Zona ${zonaMatch[1]}` : (zonaCompleta || '—');
+
+        // Nombre del conductor
+        const conductorNombre = typeof p.conductor === 'object' ? p.conductor?.nombre : p.conductor || '—';
+
         // Total
         const total = pesoNeto * precio;
 
@@ -190,11 +201,13 @@ export function DashboardSecretaria() {
           cantidad: cantidadDisplay,
           cantidadLabel,
           merma: mermaTotal,
-          tara: taraTotal,
+          tara: 0, // Ya no usamos tara separada, viene en pesoContenedor
           contenedorTipo: p.contenedor,
           devolucionPeso: 0,
           devolucionCantidad: 0,
           repesada: 0,
+          pesoPedido: Math.max(0, pesoPedido),
+          pesoContenedor,
           pesoBruto,
           pesoNeto: Math.max(0, pesoNeto),
           precio,
@@ -202,6 +215,8 @@ export function DashboardSecretaria() {
           confirmado: false,
           editando: false,
           fecha: fechaSeleccionada,
+          zona,
+          conductor: conductorNombre,
         };
       });
 
@@ -220,8 +235,8 @@ export function DashboardSecretaria() {
 
   // Recalcular fila cuando cambian valores editables
   const recalcularFila = (fila: FilaCartera): FilaCartera => {
-    const diferencia = fila.repesada > 0 ? fila.repesada - fila.pesoBruto : 0;
-    const pesoNeto = fila.pesoBruto + fila.merma - fila.tara - fila.devolucionPeso;
+    // Peso Neto = Peso Pedido + Merma - Devolución
+    const pesoNeto = fila.pesoPedido + fila.merma - fila.devolucionPeso;
     const total = Math.max(0, pesoNeto) * fila.precio;
     return { ...fila, pesoNeto: Math.max(0, pesoNeto), total };
   };
@@ -271,12 +286,13 @@ export function DashboardSecretaria() {
 
   // Exportar CSV
   const exportarCSV = () => {
-    const headers = ['Cliente', 'Tipo', 'Presentación', 'Cantidad', 'Merma (kg)', 'Tara (kg)', 'Dev. Peso (kg)', 'Dev. Cant.', 'Repesada (kg)', 'Diferencia (kg)', 'Peso Bruto (kg)', 'Peso Neto (kg)', 'Precio S/', 'Total S/'];
+    const headers = ['Cliente', 'Tipo', 'Presentación', 'Cantidad', 'Peso Pedido (kg)', 'Peso Contenedor (kg)', 'Peso Bruto (kg)', 'Merma (kg)', 'Devolución (kg)', 'Peso Neto (kg)', 'Precio S/', 'Total S/', 'Zona', 'Conductor'];
     const rows = filasFiltradas.map(f => [
       f.cliente, f.tipo, f.presentacion, `${f.cantidad} ${f.cantidadLabel}`,
-      f.merma.toFixed(2), f.tara.toFixed(2), f.devolucionPeso.toFixed(2), f.devolucionCantidad,
-      f.repesada.toFixed(2), (f.repesada > 0 ? f.repesada - f.pesoBruto : 0).toFixed(2),
-      f.pesoBruto.toFixed(2), f.pesoNeto.toFixed(2), f.precio.toFixed(2), f.total.toFixed(2)
+      f.pesoPedido.toFixed(2), f.pesoContenedor.toFixed(2), f.pesoBruto.toFixed(2),
+      f.merma.toFixed(2), f.devolucionPeso.toFixed(2),
+      f.pesoNeto.toFixed(2), f.precio.toFixed(2), f.total.toFixed(2),
+      f.zona, f.conductor
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -311,9 +327,10 @@ export function DashboardSecretaria() {
 
   // Estadísticas
   const totalVentas = filasCartera.reduce((s, f) => s + f.total, 0);
+  const totalPesoPedido = filasCartera.reduce((s, f) => s + f.pesoPedido, 0);
+  const totalPesoContenedor = filasCartera.reduce((s, f) => s + f.pesoContenedor, 0);
   const totalPesoBruto = filasCartera.reduce((s, f) => s + f.pesoBruto, 0);
   const totalPesoNeto = filasCartera.reduce((s, f) => s + f.pesoNeto, 0);
-  const totalDevoluciones = filasCartera.reduce((s, f) => s + f.devolucionPeso, 0);
 
   // Input editable
   const EditInput = ({ value, onChange, disabled = false, type = 'number', step = '0.01', min = '0', className = '' }: { value: number | string; onChange: (v: any) => void; disabled?: boolean; type?: string; step?: string; min?: string; className?: string }) => (
@@ -363,12 +380,13 @@ export function DashboardSecretaria() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: 'Total Ventas', value: `S/ ${totalVentas.toFixed(2)}`, icon: DollarSign, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
-          { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#3b82f6', border: 'rgba(59,130,246,0.3)' },
-          { label: 'Peso Neto', value: `${totalPesoNeto.toFixed(1)} kg`, icon: Package, color: '#a855f7', border: 'rgba(168,85,247,0.3)' },
-          { label: 'Devoluciones', value: `${totalDevoluciones.toFixed(1)} kg`, icon: Scale, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+          { label: 'Peso Pedido', value: `${totalPesoPedido.toFixed(1)} kg`, icon: Scale, color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+          { label: 'Peso Contenedor', value: `${totalPesoContenedor.toFixed(1)} kg`, icon: Package, color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+          { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+          { label: 'Peso Neto', value: `${totalPesoNeto.toFixed(1)} kg`, icon: Package, color: '#06b6d4', border: 'rgba(6,182,212,0.3)' },
         ].map(m => (
           <div key={m.label} className="backdrop-blur-xl rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${m.border}` }}>
             <div className="flex items-center justify-between mb-2">
@@ -435,24 +453,25 @@ export function DashboardSecretaria() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full" style={{ minWidth: '1400px' }}>
+            <table className="w-full" style={{ minWidth: '1600px' }}>
               <thead>
                 <tr style={{ background: 'rgba(204,170,0,0.04)', borderBottom: '2px solid rgba(204,170,0,0.15)' }}>
                   {[
                     { key: 'cliente', label: 'CLIENTE', w: 'w-36' },
                     { key: 'tipo', label: 'TIPO', w: 'w-24' },
                     { key: 'presentacion', label: 'PRES.', w: 'w-20' },
-                    { key: 'cantidad', label: 'CANTIDAD', w: 'w-24' },
-                    { key: 'merma', label: 'MERMA (kg)', w: 'w-20' },
-                    { key: 'tara', label: 'TARA (kg)', w: 'w-20' },
-                    { key: 'devolucionPeso', label: 'DEVOL. (kg)', w: 'w-20' },
-                    { key: 'repesada', label: 'REPESADA (kg)', w: 'w-24' },
-                    { key: 'diferencia', label: 'DIFERENCIA', w: 'w-22' },
+                    { key: 'cantidad', label: 'CANTIDAD', w: 'w-20' },
+                    { key: 'pesoPedido', label: 'P. PEDIDO (kg)', w: 'w-24' },
+                    { key: 'pesoContenedor', label: 'P. CONT. (kg)', w: 'w-24' },
                     { key: 'pesoBruto', label: 'P. BRUTO (kg)', w: 'w-24' },
+                    { key: 'merma', label: 'MERMA (kg)', w: 'w-20' },
+                    { key: 'devolucionPeso', label: 'DEVOL. (kg)', w: 'w-20' },
                     { key: 'pesoNeto', label: 'P. NETO (kg)', w: 'w-24' },
                     { key: 'precio', label: 'PRECIO S/', w: 'w-20' },
                     { key: 'total', label: 'TOTAL S/', w: 'w-24' },
-                    { key: 'acciones', label: '', w: 'w-20' },
+                    { key: 'zona', label: 'ZONA', w: 'w-20' },
+                    { key: 'conductor', label: 'CONDUCTOR', w: 'w-28' },
+                    { key: 'acciones', label: '', w: 'w-16' },
                   ].map(col => (
                     <th
                       key={col.key}
@@ -474,7 +493,6 @@ export function DashboardSecretaria() {
               <tbody>
                 {filasOrdenadas.map((fila, idx) => {
                   const puedeEditar = fila.editando || editandoAll;
-                  const diferencia = fila.repesada > 0 ? fila.repesada - fila.pesoBruto : 0;
 
                   return (
                     <tr
@@ -508,15 +526,25 @@ export function DashboardSecretaria() {
                         <div className="text-[9px] text-gray-500">{fila.cantidadLabel}</div>
                       </td>
 
+                      {/* PESO PEDIDO - no editable (viene de pesaje) */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className="text-green-400 font-bold text-sm tabular-nums">{fila.pesoPedido.toFixed(2)}</span>
+                      </td>
+
+                      {/* PESO CONTENEDOR - no editable */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className="text-red-300 text-sm tabular-nums">{fila.pesoContenedor.toFixed(2)}</span>
+                        <div className="text-[9px] text-gray-600 text-right">{fila.contenedorTipo}</div>
+                      </td>
+
+                      {/* PESO BRUTO - no editable */}
+                      <td className="px-2 py-2.5 text-right">
+                        <span className="text-amber-300 font-bold text-sm tabular-nums">{fila.pesoBruto.toFixed(2)}</span>
+                      </td>
+
                       {/* MERMA - editable */}
                       <td className="px-2 py-2.5">
                         <EditInput value={fila.merma.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'merma', v)} disabled={!puedeEditar} />
-                      </td>
-
-                      {/* TARA - no editable (contenedor) */}
-                      <td className="px-2 py-2.5">
-                        <div className="text-gray-300 text-sm text-right tabular-nums">{fila.tara.toFixed(2)}</div>
-                        <div className="text-[9px] text-gray-600 text-right">{fila.contenedorTipo}</div>
                       </td>
 
                       {/* DEVOLUCION - editable */}
@@ -524,26 +552,9 @@ export function DashboardSecretaria() {
                         <EditInput value={fila.devolucionPeso.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'devolucionPeso', v)} disabled={!puedeEditar} />
                       </td>
 
-                      {/* REPESADA - editable */}
-                      <td className="px-2 py-2.5">
-                        <EditInput value={fila.repesada.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'repesada', v)} disabled={!puedeEditar} />
-                      </td>
-
-                      {/* DIFERENCIA (repesada - pesoBruto) - no editable */}
-                      <td className="px-2 py-2.5 text-right">
-                        <span className={`text-sm font-bold tabular-nums ${diferencia < 0 ? 'text-red-400' : diferencia > 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                          {diferencia !== 0 ? (diferencia > 0 ? '+' : '') + diferencia.toFixed(2) : '—'}
-                        </span>
-                      </td>
-
-                      {/* PESO BRUTO - editable */}
-                      <td className="px-2 py-2.5">
-                        <EditInput value={fila.pesoBruto.toFixed(2)} onChange={(v: number) => actualizarCampo(fila.id, 'pesoBruto', v)} disabled={!puedeEditar} />
-                      </td>
-
                       {/* PESO NETO - calculado, no editable */}
                       <td className="px-2 py-2.5 text-right">
-                        <span className="text-green-400 font-bold text-sm tabular-nums">{fila.pesoNeto.toFixed(2)}</span>
+                        <span className="text-cyan-400 font-bold text-sm tabular-nums">{fila.pesoNeto.toFixed(2)}</span>
                       </td>
 
                       {/* PRECIO - editable */}
@@ -554,6 +565,16 @@ export function DashboardSecretaria() {
                       {/* TOTAL - no editable (calculado) */}
                       <td className="px-2 py-2.5 text-right">
                         <span className="text-amber-400 font-black text-sm tabular-nums">S/ {fila.total.toFixed(2)}</span>
+                      </td>
+
+                      {/* ZONA */}
+                      <td className="px-2 py-2.5">
+                        <span className="text-purple-300 text-xs font-semibold">{fila.zona}</span>
+                      </td>
+
+                      {/* CONDUCTOR */}
+                      <td className="px-2 py-2.5">
+                        <span className="text-white text-xs truncate block max-w-[100px]">{fila.conductor}</span>
                       </td>
 
                       {/* ACCIONES */}
@@ -582,29 +603,28 @@ export function DashboardSecretaria() {
                     <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">TOTALES</span>
                   </td>
                   <td className="px-2 py-3 text-right">
-                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.merma, 0).toFixed(2)}</span>
+                    <span className="text-green-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoPedido, 0).toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-3 text-right">
-                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.tara, 0).toFixed(2)}</span>
+                    <span className="text-red-300 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoContenedor, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-amber-300 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoBruto, 0).toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.merma, 0).toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-3 text-right">
                     <span className="text-red-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.devolucionPeso, 0).toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-3 text-right">
-                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.repesada, 0).toFixed(2)}</span>
-                  </td>
-                  <td className="px-2 py-3"></td>
-                  <td className="px-2 py-3 text-right">
-                    <span className="text-white font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoBruto, 0).toFixed(2)}</span>
-                  </td>
-                  <td className="px-2 py-3 text-right">
-                    <span className="text-green-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoNeto, 0).toFixed(2)}</span>
+                    <span className="text-cyan-400 font-bold text-sm">{filasOrdenadas.reduce((s, f) => s + f.pesoNeto, 0).toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-3"></td>
                   <td className="px-2 py-3 text-right">
                     <span className="text-amber-400 font-black text-base">S/ {filasOrdenadas.reduce((s, f) => s + f.total, 0).toFixed(2)}</span>
                   </td>
-                  <td></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             </table>
