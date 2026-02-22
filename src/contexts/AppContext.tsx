@@ -51,6 +51,15 @@ export interface Empleado {
   foto?: string;
 }
 
+export interface BloquePesaje {
+  numero: number;
+  tamano: number;
+  pesoBruto: number;
+  tipoContenedor: string;
+  pesoContenedor: number;
+  cantidadContenedores: number;
+}
+
 export interface PedidoConfirmado {
   id: string;
   cliente: string;
@@ -60,7 +69,7 @@ export interface PedidoConfirmado {
   cantidad: number;
   cantidadJabas?: number;
   unidadesPorJaba?: number;
-  contenedor: string;
+  contenedor: string; // Referencia del tipo de contenedor (criterio interno)
   fecha: string;
   hora: string;
   prioridad: number;
@@ -68,12 +77,25 @@ export interface PedidoConfirmado {
   numeroCliente?: string;
   esSubPedido?: boolean;
   estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'En Despacho' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
-  // Campos de pesaje
-  pesoKg?: number;
-  pesoContenedores?: number;
+  
+  // CAMPOS DE PESAJE (se llenan en PesajeOperador)
+  pesoBrutoTotal?: number; // Suma de todos los bloques
+  pesoNetoTotal?: number; // pesoBrutoTotal - pesoTotalContenedores
+  
+  // Datos de contenedores por bloque (para tener trazabilidad)
+  bloquesPesaje?: BloquePesaje[];
+  
+  // Totales de contenedores
+  pesoTotalContenedores?: number;
+  cantidadTotalContenedores?: number;
+  
+  // Datos de entrega
   conductor?: string;
   zonaEntrega?: string;
   ticketEmitido?: boolean;
+  fechaPesaje?: string;
+  horaPesaje?: string;
+  numeroTicket?: string;
 }
 
 export interface Presentacion {
@@ -364,7 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nuevas.push(
           { id: `mig-pato-1-${timestamp}`, tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
           { id: `mig-pato-2-${timestamp}`, tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
-          { id: `mig-pato-3-${timestamp}`, tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.20 }
+          { id: `mig-pato-3-${timestamp}`, tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.0 }
         );
       }
       
@@ -372,7 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nuevas.push(
           { id: `mig-pavo-1-${timestamp}`, tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
           { id: `mig-pavo-2-${timestamp}`, tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
-          { id: `mig-pavo-3-${timestamp}`, tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.20 }
+          { id: `mig-pavo-3-${timestamp}`, tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.0 }
         );
       }
       return nuevas;

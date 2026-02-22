@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, Package, User, Calendar, CheckCircle, Clock, Settings, Scale, TrendingUp, PieChart as PieChartIcon, X, Eye, Layers, Truck, Box, Tag, AlertCircle, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, Package, User, Calendar, CheckCircle, Clock, Settings, Scale, TrendingUp, PieChart as PieChartIcon, X, Eye, Layers, Truck, Box, Tag, AlertCircle, ChevronRight, Grid3x3 } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
@@ -11,17 +11,20 @@ interface Pedido {
   numeroCliente: string;
   cliente: string;
   tipoAve: string;
+  variedad?: string;
   cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
   presentacion: string;
   mermaUnitaria: number;
   mermaTotal: number;
-  contenedor: string;
+  contenedor: string; // Solo referencia interna
   pesoContenedor: number;
   pesoTotalPedido: number;
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Completado' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'En Despacho' | 'Entregado' | 'Completado' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
@@ -35,6 +38,13 @@ interface PedidoAgrupado {
   totalAves: number;
   pedidosPendientes: number;
   pedidosEnProduccion: number;
+}
+
+interface EdicionJabasForm {
+  tipo: 'JABAS' | 'UNIDADES';
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
+  cantidadTotal?: number;
 }
 
 export function Pedidos() {
@@ -60,7 +70,7 @@ export function Pedidos() {
   const [mostrarDetalle, setMostrarDetalle] = useState(false);
   const [vistaGrupos, setVistaGrupos] = useState(false);
   const [modoEdicion, setModoEdicion] = useState<'EDITAR' | 'CANCELAR' | null>(null);
-  const [cantidadEditada, setCantidadEditada] = useState<string>('');
+  const [edicionJabas, setEdicionJabas] = useState<EdicionJabasForm | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState<string>('');
 
   // ============ PROCESAR PEDIDOS DEL CONTEXTO ============
@@ -103,19 +113,25 @@ export function Pedidos() {
         const mermaUnitaria = presentacionData ? presentacionData.mermaKg : 0;
         const mermaTotal = mermaUnitaria * pedido.cantidad;
 
-        // Calcular peso total
+        // Calcular peso total (solo para referencia)
         const contenedorData = contenedoresContext?.find(c => c.tipo === pedido.contenedor);
         const pesoContenedor = contenedorData?.peso || 2.5;
         const pesoPromedioAve = 1.8;
         const pesoTotalPedido = (pedido.cantidad * pesoPromedioAve) + pesoContenedor - mermaTotal;
+
+        // Extraer tipo base sin variedad
+        const tipoBase = pedido.tipoAve.replace(/\(M:\d+,\s*H:\d+\)/g, '').replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim();
 
         return {
           id: pedido.id,
           numeroPedido,
           numeroCliente,
           cliente: pedido.cliente,
-          tipoAve: pedido.tipoAve.replace(/\[.*?\]/g, '').trim(),
+          tipoAve: tipoBase,
+          variedad: pedido.variedad,
           cantidad: pedido.cantidad,
+          cantidadJabas: pedido.cantidadJabas,
+          unidadesPorJaba: pedido.unidadesPorJaba,
           presentacion: pedido.presentacion,
           mermaUnitaria,
           mermaTotal,
@@ -181,44 +197,95 @@ export function Pedidos() {
     setMostrarDetalle(true);
   };
 
-  const iniciarEdicion = (pedido: Pedido, modo: 'EDITAR' | 'CANCELAR') => {
+  const iniciarEdicion = (pedido: Pedido) => {
     setPedidoSeleccionado(pedido);
-    setModoEdicion(modo);
-    setCantidadEditada(pedido.cantidad.toString());
+    setModoEdicion('EDITAR');
+    
+    // Inicializar formulario de edición según el tipo de producto
+    const esVivo = pedido.presentacion.toLowerCase().includes('vivo');
+    if (esVivo && pedido.cantidadJabas) {
+      setEdicionJabas({
+        tipo: 'JABAS',
+        cantidadJabas: pedido.cantidadJabas,
+        unidadesPorJaba: pedido.unidadesPorJaba,
+        cantidadTotal: pedido.cantidad
+      });
+    } else {
+      setEdicionJabas({
+        tipo: 'UNIDADES',
+        cantidadTotal: pedido.cantidad
+      });
+    }
+    
     setMotivoCancelacion('');
   };
 
   const aplicarEdicion = () => {
+    if (!pedidoSeleccionado || !edicionJabas) return;
+
+    const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoSeleccionado.id);
+    if (!pedidoOriginal) return;
+
+    let cantidadActualizada = pedidoSeleccionado.cantidad;
+    let cantidadJabasActualizada = pedidoSeleccionado.cantidadJabas;
+    let unidadesPorJabaActualizada = pedidoSeleccionado.unidadesPorJaba;
+
+    // Calcular nueva cantidad según el tipo de edición
+    if (edicionJabas.tipo === 'JABAS' && edicionJabas.cantidadJabas && edicionJabas.unidadesPorJaba) {
+      cantidadJabasActualizada = edicionJabas.cantidadJabas;
+      unidadesPorJabaActualizada = edicionJabas.unidadesPorJaba;
+      cantidadActualizada = cantidadJabasActualizada * unidadesPorJabaActualizada;
+    } else if (edicionJabas.tipo === 'UNIDADES' && edicionJabas.cantidadTotal) {
+      cantidadActualizada = edicionJabas.cantidadTotal;
+      // Si es vivo pero se edita por unidades, recalcular jabas aproximadas
+      if (pedidoSeleccionado.presentacion.toLowerCase().includes('vivo')) {
+        const jabasAproximadas = Math.ceil(cantidadActualizada / (pedidoSeleccionado.unidadesPorJaba || 10));
+        cantidadJabasActualizada = jabasAproximadas;
+        unidadesPorJabaActualizada = pedidoSeleccionado.unidadesPorJaba || 10;
+      }
+    }
+
+    // Solo actualizar si hay cambios
+    if (cantidadActualizada !== pedidoSeleccionado.cantidad) {
+      updatePedidoConfirmado(pedidoSeleccionado.id, {
+        ...pedidoOriginal,
+        cantidad: cantidadActualizada,
+        cantidadJabas: cantidadJabasActualizada,
+        unidadesPorJaba: unidadesPorJabaActualizada
+      });
+      toast.success('Pedido actualizado correctamente');
+    }
+
+    setModoEdicion(null);
+    setPedidoSeleccionado(null);
+    setEdicionJabas(null);
+  };
+
+  const iniciarCancelacion = (pedido: Pedido) => {
+    setPedidoSeleccionado(pedido);
+    setModoEdicion('CANCELAR');
+    setMotivoCancelacion('');
+  };
+
+  const aplicarCancelacion = () => {
     if (!pedidoSeleccionado) return;
 
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoSeleccionado.id);
     if (!pedidoOriginal) return;
 
-    if (modoEdicion === 'EDITAR') {
-      const nuevaCantidad = parseInt(cantidadEditada);
-      if (nuevaCantidad > 0 && nuevaCantidad !== pedidoSeleccionado.cantidad) {
-        updatePedidoConfirmado(pedidoSeleccionado.id, {
-          ...pedidoOriginal,
-          cantidad: nuevaCantidad
-        });
-        toast.success('Pedido actualizado correctamente');
-      }
-    } else if (modoEdicion === 'CANCELAR') {
-      if (!motivoCancelacion.trim()) {
-        toast.error('Debe ingresar un motivo para cancelar');
-        return;
-      }
-
-      updatePedidoConfirmado(pedidoSeleccionado.id, {
-        ...pedidoOriginal,
-        estado: 'Cancelado'
-      });
-      toast.success('Pedido cancelado correctamente');
+    if (!motivoCancelacion.trim()) {
+      toast.error('Debe ingresar un motivo para cancelar');
+      return;
     }
+
+    updatePedidoConfirmado(pedidoSeleccionado.id, {
+      ...pedidoOriginal,
+      estado: 'Cancelado'
+    });
+    toast.success('Pedido cancelado correctamente');
 
     setModoEdicion(null);
     setPedidoSeleccionado(null);
-    setCantidadEditada('');
     setMotivoCancelacion('');
   };
 
@@ -240,14 +307,14 @@ export function Pedidos() {
     }
   };
 
-  const marcarComoCompletado = (pedido: Pedido) => {
+  const moverAPesaje = (pedido: Pedido) => {
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedido.id);
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedido.id, {
         ...pedidoOriginal,
-        estado: 'Completado'
+        estado: 'Pesaje'
       });
-      toast.success(`Pedido ${pedido.numeroPedido} marcado como completado`);
+      toast.success(`Pedido ${pedido.numeroPedido} enviado a pesaje`);
     }
   };
 
@@ -256,8 +323,7 @@ export function Pedidos() {
     const matchesSearch = 
       pedido.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pedido.contenedor.toLowerCase().includes(searchTerm.toLowerCase());
+      pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filterEstado === 'all' || pedido.estado === filterEstado;
     const matchesCliente = filterCliente === 'all' || pedido.cliente === filterCliente;
     const matchesTipoAve = filterTipoAve === 'all' || pedido.tipoAve === filterTipoAve;
@@ -268,6 +334,7 @@ export function Pedidos() {
   const totalPedidos = filteredPedidos.length;
   const pedidosPendientes = filteredPedidos.filter(p => p.estado === 'Pendiente').length;
   const pedidosProduccion = filteredPedidos.filter(p => p.estado === 'En Producción').length;
+  const pedidosPesaje = filteredPedidos.filter(p => p.estado === 'Pesaje').length;
   const pedidosCompletados = filteredPedidos.filter(p => p.estado === 'Completado').length;
   const pedidosCancelados = filteredPedidos.filter(p => p.estado === 'Cancelado').length;
 
@@ -279,15 +346,10 @@ export function Pedidos() {
   const pedidosPorEstado = [
     { name: 'Pendiente', value: pedidosPendientes, color: '#f59e0b' },
     { name: 'Producción', value: pedidosProduccion, color: '#3b82f6' },
+    { name: 'Pesaje', value: pedidosPesaje, color: '#a855f7' },
     { name: 'Completado', value: pedidosCompletados, color: '#10b981' },
     { name: 'Cancelado', value: pedidosCancelados, color: '#ef4444' }
   ];
-
-  const pedidosPorCliente = pedidosAgrupados.map(grupo => ({
-    cliente: grupo.cliente,
-    pedidos: grupo.pedidos.length,
-    aves: grupo.totalAves
-  }));
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -295,6 +357,8 @@ export function Pedidos() {
         return { bg: 'from-amber-900/20 to-amber-800/20', border: 'border-amber-700/30', text: 'text-amber-300' };
       case 'En Producción':
         return { bg: 'from-blue-900/20 to-blue-800/20', border: 'border-blue-700/30', text: 'text-blue-300' };
+      case 'Pesaje':
+        return { bg: 'from-purple-900/20 to-purple-800/20', border: 'border-purple-700/30', text: 'text-purple-300' };
       case 'Completado':
         return { bg: 'from-green-900/20 to-green-800/20', border: 'border-green-700/30', text: 'text-green-300' };
       case 'Cancelado':
@@ -361,8 +425,8 @@ export function Pedidos() {
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Completados</div>
-                <div className="text-2xl font-bold text-green-400">{pedidosCompletados}</div>
+                <div className="text-sm text-gray-400">Pesaje</div>
+                <div className="text-2xl font-bold text-purple-400">{pedidosPesaje}</div>
               </div>
             </div>
           </div>
@@ -431,6 +495,7 @@ export function Pedidos() {
                 <option value="all" className="bg-black">Todos</option>
                 <option value="Pendiente" className="bg-black">Pendiente</option>
                 <option value="En Producción" className="bg-black">En Producción</option>
+                <option value="Pesaje" className="bg-black">Pesaje</option>
                 <option value="Completado" className="bg-black">Completado</option>
                 <option value="Cancelado" className="bg-black">Cancelado</option>
               </select>
@@ -471,7 +536,7 @@ export function Pedidos() {
             <p className="text-sm text-gray-400">Merma Total</p>
             <Scale className="w-5 h-5 text-red-400" />
           </div>
-          <p className="text-2xl font-bold text-red-400">{mermaTotal.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-red-400">{mermaTotal.toFixed(2)} kg</p>
           <p className="text-xs text-gray-400">kilogramos</p>
         </div>
 
@@ -480,8 +545,8 @@ export function Pedidos() {
             <p className="text-sm text-gray-400">Peso Total</p>
             <Package className="w-5 h-5 text-green-400" />
           </div>
-          <p className="text-2xl font-bold text-green-400">{pesoTotalGeneral.toFixed(2)}</p>
-          <p className="text-xs text-gray-400">kilogramos</p>
+          <p className="text-2xl font-bold text-green-400">{pesoTotalGeneral.toFixed(2)} kg</p>
+          <p className="text-xs text-gray-400">kilogramos (estimado)</p>
         </div>
       </div>
 
@@ -534,6 +599,9 @@ export function Pedidos() {
                             {pedido.subNumero}
                           </div>
                           <span className="text-white">{pedido.tipoAve}</span>
+                          {pedido.variedad && (
+                            <span className="text-[10px] text-amber-400">{pedido.variedad}</span>
+                          )}
                         </div>
                         <div className="text-right">
                           <div className="text-white font-medium">{pedido.cantidad} aves</div>
@@ -576,7 +644,7 @@ export function Pedidos() {
                   <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Contenedor</div>
+                  <div className="text-xs font-semibold text-gray-400 uppercase">Presentación</div>
                 </th>
                 <th className="px-6 py-4 text-left">
                   <div className="text-xs font-semibold text-gray-400 uppercase">Estado</div>
@@ -601,6 +669,7 @@ export function Pedidos() {
                 filteredPedidos.map((pedido) => {
                   const priorityStyle = getPriorityColor(pedido.prioridadBase);
                   const estadoStyle = getEstadoColor(pedido.estado);
+                  const esVivo = pedido.presentacion.toLowerCase().includes('vivo');
 
                   return (
                     <tr 
@@ -632,23 +701,25 @@ export function Pedidos() {
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="text-emerald-300 font-medium">{pedido.tipoAve}</div>
-                          <div className="text-xs text-gray-500">{pedido.presentacion}</div>
+                          {pedido.variedad && (
+                            <div className="text-xs text-amber-400">{pedido.variedad}</div>
+                          )}
                         </div>
                       </td>
                       
                       <td className="px-6 py-4">
                         <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
-                        <div className="text-xs text-gray-500">aves</div>
+                        {esVivo && pedido.cantidadJabas && (
+                          <div className="text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1"
+                            style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                            <Grid3x3 className="w-3 h-3" />
+                            {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} u
+                          </div>
+                        )}
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Box className="w-4 h-4 text-blue-400" />
-                          <div className="text-white">{pedido.contenedor}</div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {pedido.pesoContenedor.toFixed(1)} kg
-                        </div>
+                        <div className="text-white">{pedido.presentacion}</div>
                       </td>
                       
                       <td className="px-6 py-4">
@@ -670,7 +741,7 @@ export function Pedidos() {
                           {pedido.estado === 'Pendiente' && (
                             <>
                               <button
-                                onClick={() => iniciarEdicion(pedido, 'EDITAR')}
+                                onClick={() => iniciarEdicion(pedido)}
                                 className="p-2 bg-green-900/20 border border-green-700/30 rounded-lg hover:bg-green-900/30 transition-colors"
                                 title="Editar pedido"
                               >
@@ -688,16 +759,16 @@ export function Pedidos() {
                           
                           {pedido.estado === 'En Producción' && (
                             <button
-                              onClick={() => marcarComoCompletado(pedido)}
-                              className="p-2 bg-green-900/20 border border-green-700/30 rounded-lg hover:bg-green-900/30 transition-colors"
-                              title="Marcar como completado"
+                              onClick={() => moverAPesaje(pedido)}
+                              className="p-2 bg-purple-900/20 border border-purple-700/30 rounded-lg hover:bg-purple-900/30 transition-colors"
+                              title="Enviar a pesaje"
                             >
-                              <CheckCircle className="w-4 h-4 text-green-400" />
+                              <Scale className="w-4 h-4 text-purple-400" />
                             </button>
                           )}
                           
                           <button
-                            onClick={() => iniciarEdicion(pedido, 'CANCELAR')}
+                            onClick={() => iniciarCancelacion(pedido)}
                             className="p-2 bg-red-900/20 border border-red-700/30 rounded-lg hover:bg-red-900/30 transition-colors"
                             title="Cancelar pedido"
                           >
@@ -752,21 +823,22 @@ export function Pedidos() {
                 <div>
                   <div className="text-sm text-gray-400">Producto</div>
                   <div className="text-emerald-300 font-medium">{pedidoSeleccionado.tipoAve}</div>
+                  {pedidoSeleccionado.variedad && (
+                    <div className="text-xs text-amber-400">{pedidoSeleccionado.variedad}</div>
+                  )}
                 </div>
                 <div>
                   <div className="text-sm text-gray-400">Cantidad</div>
                   <div className="text-white font-bold">{pedidoSeleccionado.cantidad} aves</div>
+                  {pedidoSeleccionado.cantidadJabas && (
+                    <div className="text-xs text-amber-400">
+                      {pedidoSeleccionado.cantidadJabas} jabas × {pedidoSeleccionado.unidadesPorJaba} u
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-sm text-gray-400">Presentación</div>
                   <div className="text-white">{pedidoSeleccionado.presentacion}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Contenedor</div>
-                  <div className="text-white flex items-center gap-1">
-                    <Box className="w-4 h-4" />
-                    {pedidoSeleccionado.contenedor}
-                  </div>
                 </div>
               </div>
               
@@ -778,7 +850,7 @@ export function Pedidos() {
                     <div className="text-red-400 font-bold">{pedidoSeleccionado.mermaTotal.toFixed(2)} kg</div>
                   </div>
                   <div className="bg-black/30 rounded-lg p-3">
-                    <div className="text-xs text-gray-400">Peso Total</div>
+                    <div className="text-xs text-gray-400">Peso Estimado</div>
                     <div className="text-green-400 font-bold">{pedidoSeleccionado.pesoTotalPedido.toFixed(2)} kg</div>
                   </div>
                 </div>
@@ -787,7 +859,6 @@ export function Pedidos() {
               <div className="pt-4 border-t border-gray-800">
                 <div className="text-sm text-gray-400 mb-2">Información Adicional</div>
                 <div className="text-sm text-gray-300 space-y-1">
-                  <div>Empleado: {pedidoSeleccionado.empleado}</div>
                   <div>Fecha: {pedidoSeleccionado.fecha} {pedidoSeleccionado.hora}</div>
                   <div>Estado: {pedidoSeleccionado.estado}</div>
                   {pedidoSeleccionado.esSubPedido && (
@@ -800,17 +871,187 @@ export function Pedidos() {
         </div>
       )}
 
-      {/* Modal de Edición/Cancelación */}
-      {modoEdicion && pedidoSeleccionado && (
+      {/* Modal de Edición por Jabas/Unidades */}
+      {modoEdicion === 'EDITAR' && pedidoSeleccionado && edicionJabas && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
           background: 'rgba(0, 0, 0, 0.85)'
         }}>
           <div className="bg-black border border-gray-800 rounded-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-800">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">
-                  {modoEdicion === 'EDITAR' ? 'Editar Pedido' : 'Cancelar Pedido'}
-                </h3>
+                <h3 className="text-xl font-bold text-white">Editar Pedido</h3>
+                <button
+                  onClick={() => {
+                    setModoEdicion(null);
+                    setPedidoSeleccionado(null);
+                    setEdicionJabas(null);
+                  }}
+                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-black/30 border border-gray-800 rounded-xl p-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-400">N° Pedido</div>
+                    <div className="text-white font-mono">{pedidoSeleccionado.numeroPedido}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Cliente</div>
+                    <div className="text-white">{pedidoSeleccionado.cliente}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Producto</div>
+                    <div className="text-emerald-300">{pedidoSeleccionado.tipoAve}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Presentación</div>
+                    <div className="text-white">{pedidoSeleccionado.presentacion}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selector de tipo de edición para productos vivos */}
+              {pedidoSeleccionado.presentacion.toLowerCase().includes('vivo') && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEdicionJabas({ tipo: 'JABAS', cantidadJabas: pedidoSeleccionado.cantidadJabas, unidadesPorJaba: pedidoSeleccionado.unidadesPorJaba, cantidadTotal: pedidoSeleccionado.cantidad })}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      edicionJabas.tipo === 'JABAS'
+                        ? 'bg-amber-900/30 border border-amber-500/30 text-amber-400'
+                        : 'bg-gray-800/50 border border-gray-700 text-gray-400'
+                    }`}
+                  >
+                    Editar por Jabas
+                  </button>
+                  <button
+                    onClick={() => setEdicionJabas({ tipo: 'UNIDADES', cantidadTotal: pedidoSeleccionado.cantidad })}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      edicionJabas.tipo === 'UNIDADES'
+                        ? 'bg-blue-900/30 border border-blue-500/30 text-blue-400'
+                        : 'bg-gray-800/50 border border-gray-700 text-gray-400'
+                    }`}
+                  >
+                    Editar por Unidades
+                  </button>
+                </div>
+              )}
+
+              {/* Formulario según tipo */}
+              {edicionJabas.tipo === 'JABAS' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                      Cantidad de Jabas
+                    </label>
+                    <input
+                      type="number"
+                      value={edicionJabas.cantidadJabas || ''}
+                      onChange={(e) => {
+                        const jabas = parseInt(e.target.value) || 0;
+                        const porJaba = edicionJabas.unidadesPorJaba || 10;
+                        setEdicionJabas({
+                          ...edicionJabas,
+                          tipo: 'JABAS',
+                          cantidadJabas: jabas,
+                          cantidadTotal: jabas * porJaba
+                        });
+                      }}
+                      min="1"
+                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                      Unidades por Jaba
+                    </label>
+                    <input
+                      type="number"
+                      value={edicionJabas.unidadesPorJaba || ''}
+                      onChange={(e) => {
+                        const porJaba = parseInt(e.target.value) || 0;
+                        const jabas = edicionJabas.cantidadJabas || 0;
+                        setEdicionJabas({
+                          ...edicionJabas,
+                          tipo: 'JABAS',
+                          unidadesPorJaba: porJaba,
+                          cantidadTotal: jabas * porJaba
+                        });
+                      }}
+                      min="1"
+                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                    />
+                  </div>
+                  <div className="bg-amber-900/10 border border-amber-700/30 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Total aves:</span>
+                      <span className="text-amber-400 font-bold text-xl">
+                        {(edicionJabas.cantidadJabas || 0) * (edicionJabas.unidadesPorJaba || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Nueva Cantidad (aves)
+                  </label>
+                  <input
+                    type="number"
+                    value={edicionJabas.cantidadTotal || ''}
+                    onChange={(e) => {
+                      const total = parseInt(e.target.value) || 0;
+                      setEdicionJabas({
+                        tipo: 'UNIDADES',
+                        cantidadTotal: total
+                      });
+                    }}
+                    min="1"
+                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                  />
+                  {pedidoSeleccionado.presentacion.toLowerCase().includes('vivo') && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Se recalcularán las jabas automáticamente (aprox. {Math.ceil((edicionJabas.cantidadTotal || 0) / (pedidoSeleccionado.unidadesPorJaba || 10))} jabas)
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={aplicarEdicion}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-900/30 to-blue-800/30 border border-blue-700/30 rounded-lg text-white font-semibold hover:from-blue-900/40 hover:to-blue-800/40 transition-all hover:scale-[1.02]"
+                >
+                  Aplicar Cambios
+                </button>
+                <button
+                  onClick={() => {
+                    setModoEdicion(null);
+                    setPedidoSeleccionado(null);
+                    setEdicionJabas(null);
+                  }}
+                  className="px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white font-semibold hover:bg-black/50 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cancelación */}
+      {modoEdicion === 'CANCELAR' && pedidoSeleccionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
+          background: 'rgba(0, 0, 0, 0.85)'
+        }}>
+          <div className="bg-black border border-gray-800 rounded-2xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">Cancelar Pedido</h3>
                 <button
                   onClick={() => {
                     setModoEdicion(null);
@@ -838,52 +1079,31 @@ export function Pedidos() {
                     <div className="text-emerald-300">{pedidoSeleccionado.tipoAve}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Cantidad actual</div>
-                    <div className="text-white">{pedidoSeleccionado.cantidad}</div>
+                    <div className="text-gray-400">Cantidad</div>
+                    <div className="text-white">{pedidoSeleccionado.cantidad} aves</div>
                   </div>
                 </div>
               </div>
 
-              {modoEdicion === 'EDITAR' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Nueva Cantidad
-                  </label>
-                  <input
-                    type="number"
-                    value={cantidadEditada}
-                    onChange={(e) => setCantidadEditada(e.target.value)}
-                    min="1"
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
-                  />
-                </div>
-              )}
-
-              {modoEdicion === 'CANCELAR' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Motivo de Cancelación
-                  </label>
-                  <textarea
-                    value={motivoCancelacion}
-                    onChange={(e) => setMotivoCancelacion(e.target.value)}
-                    placeholder="Ingrese el motivo de la cancelación..."
-                    rows={3}
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Motivo de Cancelación
+                </label>
+                <textarea
+                  value={motivoCancelacion}
+                  onChange={(e) => setMotivoCancelacion(e.target.value)}
+                  placeholder="Ingrese el motivo de la cancelación..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                />
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
-                  onClick={aplicarEdicion}
-                  className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] ${
-                    modoEdicion === 'CANCELAR'
-                      ? 'bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-700/30 hover:from-red-900/40 hover:to-red-800/40 text-white'
-                      : 'bg-gradient-to-r from-blue-900/30 to-blue-800/30 border border-blue-700/30 hover:from-blue-900/40 hover:to-blue-800/40 text-white'
-                  }`}
+                  onClick={aplicarCancelacion}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-700/30 rounded-lg text-white font-semibold hover:from-red-900/40 hover:to-red-800/40 transition-all hover:scale-[1.02]"
                 >
-                  {modoEdicion === 'CANCELAR' ? 'Confirmar Cancelación' : 'Aplicar Cambios'}
+                  Confirmar Cancelación
                 </button>
                 <button
                   onClick={() => {
@@ -916,7 +1136,7 @@ export function Pedidos() {
             <div className="text-2xl font-bold text-amber-400">{pedidosAgrupados.length}</div>
           </div>
           <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Peso total</div>
+            <div className="text-sm text-gray-400 mb-1">Peso estimado</div>
             <div className="text-2xl font-bold text-emerald-400">{pesoTotalGeneral.toFixed(0)} kg</div>
           </div>
         </div>

@@ -18,9 +18,9 @@ import {
   Truck,
   ClipboardList,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import logoImage from "figma:asset/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png";
+import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
   label: string;
@@ -84,6 +84,22 @@ export function LayoutSecretaria() {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Obtener el título de la página actual
+  const getCurrentTitle = () => {
+    for (const item of navigationItems) {
+      if (item.path && (location.pathname === item.path || location.pathname === item.path + '/')) return item.label;
+    }
+    if (location.pathname === '/dashboard-secretaria') return "Cartera de Cobro";
+    return "Avícola Jossy";
+  };
+
+  const currentTitle = getCurrentTitle();
+
+  // Actualizar el título del documento
+  useEffect(() => {
+    document.title = `${currentTitle} | Avícola Jossy`;
+  }, [currentTitle]);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -260,6 +276,14 @@ export function LayoutSecretaria() {
               >
                 <Menu className="w-6 h-6" />
               </button>
+
+              {/* Título de Página Dinámico */}
+              <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                  <span className="text-amber-400 lg:hidden mr-2">|</span>
+                  {currentTitle}
+                </h2>
+              </div>
 
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="text-right hidden sm:block">

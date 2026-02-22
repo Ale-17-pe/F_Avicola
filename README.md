@@ -1,11 +1,8 @@
+# Avícola Jossy - Sistema de Gestión
 
-  # Login Form
+Este es el sistema de gestión para Avícola Jossy.
 
-  This is a code bundle for Login Form. The original project is available at https://www.figma.com/design/J270kPVFqHOXoigkRZy5Li/Login-Form.
+## Ejecución del código
 
-  ## Running the code
-
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-  
+1. Ejecuta `npm i` para instalar las dependencias.
+2. Ejecuta `npm run dev` para iniciar el servidor de desarrollo.

@@ -19,6 +19,11 @@ interface BloqueInfo {
 
 export function PesajeDisplay() {
   const [pesoActual, setPesoActual] = useState<number>(0);
+
+  useEffect(() => {
+    document.title = "Display de Pesaje | Avícola Jossy";
+  }, []);
+
   const [estable, setEstable] = useState(false);
   const [pedidoInfo, setPedidoInfo] = useState<PedidoInfo | null>(null);
   const [bloqueActual, setBloqueActual] = useState(1);

@@ -14,9 +14,12 @@ import {
   RotateCcw,
   ChevronRight,
   Monitor,
+  Box,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
 
-import { useApp, PedidoConfirmado } from '../contexts/AppContext';
+import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
 import { toast } from 'sonner';
 
 // ===================== CONSTANTES =====================
@@ -47,6 +50,7 @@ interface BloquesPeso {
   peso: number | null;
   pesoContenedor: number;
   contenedorTipo: string;
+  contenedorId: string;
   pesado: boolean;
 }
 
@@ -233,28 +237,11 @@ export function PesajeOperador() {
   // Detectar si es presentación "Vivo"
   const esVivo = selectedPedido?.presentacion?.toLowerCase().includes('vivo') ?? false;
 
-  // Obtener peso del contenedor del pedido original
-  const contenedorOriginal = contenedores.find(c => c.tipo === selectedPedido?.contenedor);
-  const pesoContenedorDefault = contenedorOriginal?.peso ?? 0;
-
-  // Sincronizar pesos de contenedores en bloques pendientes cuando cambian desde Gestión
-  useEffect(() => {
-    if (bloques.length === 0) return;
-    let changed = false;
-    const bloquesActualizados = bloques.map((bloque) => {
-      if (bloque.pesado) return bloque; // No tocar bloques ya pesados
-      const cont = contenedores.find(c => c.tipo === bloque.contenedorTipo);
-      if (cont && cont.peso !== bloque.pesoContenedor) {
-        changed = true;
-        return { ...bloque, pesoContenedor: cont.peso };
-      }
-      return bloque;
-    });
-    if (changed) setBloques(bloquesActualizados);
-  }, [contenedores]);
+  // Obtener contenedor por defecto del pedido
+  const contenedorPorDefecto = contenedores.find(c => c.tipo === selectedPedido?.contenedor);
 
   // Calcular bloques cuando se cambia el pedido
-  const generarBloques = (cantidad: number, contTipo: string, contPeso: number): BloquesPeso[] => {
+  const generarBloques = (cantidad: number, contTipo: string, contPeso: number, contId: string): BloquesPeso[] => {
     const numBloquesFull = Math.floor(cantidad / BLOCK_SIZE);
     const resto = cantidad % BLOCK_SIZE;
     const bloquesArr: BloquesPeso[] = [];
@@ -266,6 +253,7 @@ export function PesajeOperador() {
         peso: null,
         pesoContenedor: contPeso,
         contenedorTipo: contTipo,
+        contenedorId: contId,
         pesado: false,
       });
     }
@@ -277,6 +265,7 @@ export function PesajeOperador() {
         peso: null,
         pesoContenedor: contPeso,
         contenedorTipo: contTipo,
+        contenedorId: contId,
         pesado: false,
       });
     }
@@ -286,8 +275,7 @@ export function PesajeOperador() {
 
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
     setSelectedPedido(pedido);
-    const cont = contenedores.find(c => c.tipo === pedido.contenedor);
-
+    
     // Para Vivo: 1 bloque por jaba (cada bloque = 1 jaba)
     const esVivoP = pedido.presentacion?.toLowerCase().includes('vivo');
     let nuevos: BloquesPeso[];
@@ -298,29 +286,32 @@ export function PesajeOperador() {
         numero: i + 1,
         tamaño: pedido.unidadesPorJaba || 1,
         peso: null,
-        pesoContenedor: cont?.peso || 0,
-        contenedorTipo: cont?.tipo || pedido.contenedor,
+        pesoContenedor: contenedorPorDefecto?.peso || 0,
+        contenedorTipo: contenedorPorDefecto?.tipo || pedido.contenedor,
+        contenedorId: contenedorPorDefecto?.id || '',
         pesado: false,
       }));
     } else {
-      nuevos = generarBloques(pedido.cantidad, cont?.tipo || pedido.contenedor, cont?.peso || 0);
+      nuevos = generarBloques(
+        pedido.cantidad, 
+        contenedorPorDefecto?.tipo || pedido.contenedor, 
+        contenedorPorDefecto?.peso || 0,
+        contenedorPorDefecto?.id || ''
+      );
     }
 
     setBloques(nuevos);
     setBloqueActual(0);
     setPesoManualInput('');
-    setContenedorBloqueId(cont?.id || '');
+    setContenedorBloqueId(contenedorPorDefecto?.id || '');
     setConductorId('');
+    
     // Auto-fill zone from client data
     const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
     if (clienteObj && clienteObj.zona) {
-      // Match client zone id with ZONAS constant (by ID or Name)
-      // Normalizamos strings para comparar nombres
-      const normalize = (s: string) => s.toLowerCase().trim();
       const zonaMatch = ZONAS.find(z =>
         z.id === clienteObj.zona ||
-        normalize(z.nombre) === normalize(clienteObj.zona) ||
-        normalize(z.nombre).includes(normalize(clienteObj.zona))
+        z.nombre.toLowerCase().includes(clienteObj.zona.toLowerCase())
       );
       setZonaId(zonaMatch ? zonaMatch.id : '');
     } else {
@@ -364,6 +355,7 @@ export function PesajeOperador() {
     const contSeleccionado = contenedores.find(c => c.id === contenedorBloqueId);
     const contTipo = contSeleccionado?.tipo || bloques[bloqueActual].contenedorTipo;
     const contPeso = contSeleccionado?.peso || bloques[bloqueActual].pesoContenedor;
+    const contId = contSeleccionado?.id || bloques[bloqueActual].contenedorId;
 
     const nuevosBloques = [...bloques];
     nuevosBloques[bloqueActual] = {
@@ -371,6 +363,7 @@ export function PesajeOperador() {
       peso,
       contenedorTipo: contTipo,
       pesoContenedor: contPeso,
+      contenedorId: contId,
       pesado: true,
     };
     setBloques(nuevosBloques);
@@ -412,7 +405,7 @@ export function PesajeOperador() {
     setBloqueActual(index);
     setPesoManualInput('');
     // Restaurar contenedor del bloque para edición
-    const cont = contenedores.find(c => c.tipo === nuevosBloques[index].contenedorTipo);
+    const cont = contenedores.find(c => c.id === nuevosBloques[index].contenedorId);
     if (cont) setContenedorBloqueId(cont.id);
     toast.info(`Bloque ${index + 1} listo para repesar`);
   };
@@ -440,20 +433,38 @@ export function PesajeOperador() {
     const ahora = new Date();
     const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // Calcular peso total de contenedores (solo si es vivo)
-    const totalPesoContenedores = esVivo
-      ? bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)
-      : 0;
-    const pesoNeto = pesoTotalAcumulado - totalPesoContenedores;
+    // Calcular totales
+    const pesoBrutoTotal = bloques.reduce((sum, b) => sum + (b.peso || 0), 0);
+    const pesoTotalContenedores = bloques.reduce((sum, b) => sum + b.pesoContenedor, 0);
+    const pesoNetoTotal = pesoBrutoTotal - pesoTotalContenedores;
+    const cantidadTotalContenedores = bloques.length;
+
+    // Guardar el detalle de cada bloque
+    const bloquesPesaje: BloquePesaje[] = bloques.map(bloque => ({
+      numero: bloque.numero,
+      tamano: bloque.tamaño,
+      pesoBruto: bloque.peso || 0,
+      tipoContenedor: bloque.contenedorTipo,
+      pesoContenedor: bloque.pesoContenedor,
+      cantidadContenedores: 1 // Cada bloque es un contenedor
+    }));
 
     const pedidoActualizado: PedidoConfirmado = {
       ...selectedPedido,
-      pesoKg: pesoTotalAcumulado,
-      pesoContenedores: totalPesoContenedores,
+      // Datos de pesaje
+      pesoBrutoTotal,
+      pesoNetoTotal,
+      pesoTotalContenedores,
+      cantidadTotalContenedores,
+      bloquesPesaje,
+      // Datos de entrega
       conductor: conductor.nombre,
       zonaEntrega: zona.nombre,
       estado: 'En Despacho',
       ticketEmitido: true,
+      fechaPesaje: ahora.toISOString().split('T')[0],
+      horaPesaje: ahora.toTimeString().slice(0, 5),
+      numeroTicket,
     };
 
     updatePedidoConfirmado(selectedPedido.id, pedidoActualizado);
@@ -461,9 +472,9 @@ export function PesajeOperador() {
     const ticket: TicketData = {
       pedido: pedidoActualizado,
       bloques: [...bloques],
-      pesoTotal: pesoTotalAcumulado,
-      pesoContenedores: totalPesoContenedores,
-      pesoNeto,
+      pesoTotal: pesoBrutoTotal,
+      pesoContenedores: pesoTotalContenedores,
+      pesoNeto: pesoNetoTotal,
       esVivo,
       conductor: conductor.nombre,
       conductorPlaca: conductor.placa,
@@ -485,7 +496,7 @@ export function PesajeOperador() {
     broadcastRef.current?.postMessage({
       type: 'ticket-emitido',
       ticket: numeroTicket,
-      pesoTotal: pesoTotalAcumulado,
+      pesoTotal: pesoBrutoTotal,
     });
 
     toast.success(`Ticket ${numeroTicket} emitido correctamente`);
@@ -547,7 +558,7 @@ export function PesajeOperador() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Pesaje de Pedidos</h1>
-            <p className="text-gray-500 text-xs">Bloques de {BLOCK_SIZE} unidades · Operador</p>
+            <p className="text-gray-500 text-xs">Bloques de {BLOCK_SIZE} unidades · Los contenedores se definen en pesaje</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -563,6 +574,17 @@ export function PesajeOperador() {
             <span className="text-xs font-bold" style={{ color: '#ccaa00' }}>{pedidosEnPesaje.length}</span>
           </div>
         </div>
+      </div>
+
+      {/* Info banner sobre contenedores */}
+      <div className="rounded-xl p-3 flex items-center gap-2 text-xs" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)' }}>
+        <Info className="w-4 h-4 text-blue-400" />
+        <span className="text-gray-300">Los contenedores se seleccionan en pesaje. El tipo del pedido es solo referencia.</span>
+        {selectedPedido && (
+          <span className="ml-auto text-blue-400 font-mono">
+            Ref: {selectedPedido.contenedor}
+          </span>
+        )}
       </div>
 
       {/* ===== LAYOUT PRINCIPAL ===== */}
@@ -604,7 +626,9 @@ export function PesajeOperador() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{pedido.cliente}</div>
-                        <div className="text-[10px] text-gray-600 truncate">{pedido.cantidad} · {pedido.presentacion}</div>
+                        <div className="text-[10px] text-gray-600 truncate">
+                          {pedido.cantidad} · {pedido.presentacion} · Ref: {pedido.contenedor}
+                        </div>
                       </div>
                       {selectedPedido?.id === pedido.id && (
                         <ChevronRight className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -617,7 +641,7 @@ export function PesajeOperador() {
           </div>
         </div>
 
-        {/* ===== PANEL DERECHO: PESAJE POR BLOQUES (MEJORADO) ===== */}
+        {/* ===== PANEL DERECHO: PESAJE POR BLOQUES ===== */}
         <div className="flex-1 min-w-0">
           {selectedPedido ? (
             <div className="space-y-4">
@@ -629,7 +653,7 @@ export function PesajeOperador() {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">{selectedPedido.cliente}</h2>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{selectedPedido.numeroPedido || 'S/N'}</span>
                       <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{selectedPedido.tipoAve}</span>
                       <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{selectedPedido.presentacion}</span>
@@ -637,11 +661,9 @@ export function PesajeOperador() {
                       {selectedPedido.cantidadJabas && (
                         <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>{selectedPedido.cantidadJabas} jabas</span>
                       )}
-                      {contenedorOriginal && (
-                        <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(204,170,0,0.12)', color: '#ccaa00', border: '1px solid rgba(204,170,0,0.25)' }}>
-                          📦 {contenedorOriginal.tipo}: {contenedorOriginal.peso.toFixed(2)} kg
-                        </span>
-                      )}
+                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(204,170,0,0.1)', color: '#ccaa00', border: '1px solid rgba(204,170,0,0.2)' }}>
+                        Ref: {selectedPedido.contenedor}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -655,7 +677,7 @@ export function PesajeOperador() {
                 </div>
               </div>
 
-              {/* ===== DISPLAY DE PESO - PROTAGONISTA ===== */}
+              {/* ===== DISPLAY DE PESO ===== */}
               <div
                 className="rounded-3xl p-8 text-center relative overflow-hidden transition-all duration-300"
                 style={{
@@ -723,7 +745,27 @@ export function PesajeOperador() {
                       {pesoTotalAcumulado.toFixed(2)}
                       <span className="text-3xl ml-3 text-gray-400 font-light">Kg</span>
                     </p>
-                    <p className="text-gray-500 mt-2 text-sm">Peso total acumulado</p>
+                    <p className="text-gray-500 mt-2 text-sm">Peso bruto total</p>
+                    
+                    {/* Resumen de contenedores */}
+                    <div className="mt-4 flex justify-center gap-6 text-sm">
+                      <div className="text-center">
+                        <div className="text-gray-400">Contenedores</div>
+                        <div className="text-amber-400 font-bold">{bloques.length}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-gray-400">Tara total</div>
+                        <div className="text-orange-400 font-bold">
+                          {bloques.reduce((sum, b) => sum + b.pesoContenedor, 0).toFixed(2)} kg
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-gray-400">Peso neto</div>
+                        <div className="text-green-400 font-bold">
+                          {(pesoTotalAcumulado - bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)).toFixed(2)} kg
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : modoManual ? (
                   <div className="py-4">
@@ -851,8 +893,8 @@ export function PesajeOperador() {
                 )}
               </div>
 
-              {/* Selector de contenedor (solo vivos) */}
-              {esVivo && !todosCompletados && bloqueActual < bloques.length && (
+              {/* Selector de contenedor para el bloque actual */}
+              {!todosCompletados && bloqueActual < bloques.length && (
                 <div
                   className="rounded-2xl p-5 backdrop-blur-sm"
                   style={{
@@ -863,7 +905,7 @@ export function PesajeOperador() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5" /> Contenedor — Bloque {bloqueActual + 1}
+                      <Box className="w-3.5 h-3.5" /> SELECCIONAR CONTENEDOR — Bloque {bloqueActual + 1}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
                       Tara: {(contenedores.find(c => c.id === contenedorBloqueId)?.peso || 0).toFixed(1)} kg
@@ -871,14 +913,24 @@ export function PesajeOperador() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {contenedores.map((cont) => (
-                      <button key={cont.id} onClick={() => setContenedorBloqueId(cont.id)} className="px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-                        style={{ background: contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)'}`, color: contenedorBloqueId === cont.id ? '#f59e0b' : '#888' }}>
+                      <button 
+                        key={cont.id} 
+                        onClick={() => setContenedorBloqueId(cont.id)} 
+                        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                        style={{ 
+                          background: contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)', 
+                          border: `1px solid ${contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)'}`, 
+                          color: contenedorBloqueId === cont.id ? '#f59e0b' : '#888' 
+                        }}>
                         {cont.tipo} <span className="ml-1 opacity-60">({cont.peso} kg)</span>
                       </button>
                     ))}
                   </div>
-                  {contenedorBloqueId && contenedores.find(c => c.id === contenedorBloqueId)?.tipo !== selectedPedido?.contenedor && (
-                    <p className="text-[10px] text-amber-400 mt-2">⚠ Contenedor diferente al pedido original ({selectedPedido?.contenedor})</p>
+                  {contenedorPorDefecto && contenedorBloqueId !== contenedorPorDefecto.id && (
+                    <p className="text-[10px] text-amber-400 mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Contenedor diferente al de referencia ({contenedorPorDefecto.tipo})
+                    </p>
                   )}
                 </div>
               )}
@@ -904,6 +956,7 @@ export function PesajeOperador() {
                           <th className="px-4 py-2 text-left text-gray-500 font-semibold">#</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Unids.</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Peso (Kg)</th>
+                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Contenedor</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Tara</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold">Estado</th>
                           <th className="px-4 py-2 text-center text-gray-500 font-semibold"></th>
@@ -926,6 +979,11 @@ export function PesajeOperador() {
                               ) : (
                                 <span className="text-gray-700">—</span>
                               )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <span className="text-[10px] font-mono" style={{ color: bloque.pesado ? '#f59e0b' : '#666' }}>
+                                {bloque.contenedorTipo}
+                              </span>
                             </td>
                             <td className="px-4 py-2 text-center">
                               <span className="text-[10px] font-mono" style={{ color: '#ccaa00' }}>
@@ -963,28 +1021,64 @@ export function PesajeOperador() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#3b82f6' }} />
-                      <select value={conductorId} onChange={(e) => setConductorId(e.target.value)} className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none cursor-pointer focus:ring-2 transition-all" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(59,130,246,0.2)', outlineColor: '#3b82f6' }}>
-                        <option value="">Conductor...</option>
-                        {CONDUCTORES.map((c) => (<option key={c.id} value={c.id}>{c.nombre} — {c.placa}</option>))}
+                      <select 
+                        value={conductorId} 
+                        onChange={(e) => setConductorId(e.target.value)} 
+                        className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none cursor-pointer focus:ring-2 transition-all" 
+                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(59,130,246,0.2)', outlineColor: '#3b82f6' }}
+                      >
+                        <option value="">Seleccionar conductor...</option>
+                        {CONDUCTORES.map((c) => (
+                          <option key={c.id} value={c.id} className="bg-gray-900">
+                            {c.nombre} — {c.placa}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#a855f7' }} />
                       <select
                         value={zonaId}
-                        disabled={true} // Zona fija según cliente
                         onChange={(e) => setZonaId(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
                       >
-                        <option value="">Zona...</option>
-                        {ZONAS.map((z) => (<option key={z.id} value={z.id}>{z.nombre}</option>))}
+                        <option value="">Seleccionar zona...</option>
+                        {ZONAS.map((z) => (
+                          <option key={z.id} value={z.id} className="bg-gray-900">
+                            {z.nombre}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
-                  <button onClick={handleConfirmar} className="w-full py-4 rounded-2xl font-black text-white text-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-3"
-                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 8px 25px -5px rgba(34,197,94,0.4)' }}>
+                  
+                  {/* Resumen final */}
+                  <div className="grid grid-cols-3 gap-3 p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Peso Bruto</div>
+                      <div className="text-white font-bold font-mono">{pesoTotalAcumulado.toFixed(2)} kg</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Tara Total</div>
+                      <div className="text-amber-400 font-bold font-mono">
+                        {bloques.reduce((sum, b) => sum + b.pesoContenedor, 0).toFixed(2)} kg
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-400">Peso Neto</div>
+                      <div className="text-green-400 font-bold font-mono">
+                        {(pesoTotalAcumulado - bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)).toFixed(2)} kg
+                      </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleConfirmar} 
+                    className="w-full py-4 rounded-2xl font-black text-white text-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-3"
+                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 8px 25px -5px rgba(34,197,94,0.4)' }}
+                  >
                     <Printer className="w-6 h-6" />
-                    CONFIRMAR Y EMITIR TICKETS — {pesoTotalAcumulado.toFixed(2)} Kg
+                    CONFIRMAR Y EMITIR TICKET
                   </button>
                 </div>
               )}
@@ -995,7 +1089,7 @@ export function PesajeOperador() {
               <div className="text-center">
                 <Scale className="w-20 h-20 mx-auto mb-4" style={{ color: 'rgba(34,197,94,0.1)' }} />
                 <p className="text-gray-500 text-base font-medium">Seleccione un pedido de la cola</p>
-                <p className="text-gray-700 text-xs mt-1">El pesaje se realiza en bloques de {BLOCK_SIZE} unidades</p>
+                <p className="text-gray-700 text-xs mt-1">Los contenedores se seleccionan durante el pesaje</p>
               </div>
             </div>
           )}
@@ -1052,7 +1146,6 @@ export function PesajeOperador() {
                         ['Producto', ticketVisible.pedido.tipoAve],
                         ['Presentación', ticketVisible.pedido.presentacion],
                         ['Cantidad', `${ticketVisible.pedido.cantidad} unids.`],
-                        ['Contenedor', ticketVisible.pedido.contenedor],
                       ].map(([label, value]) => (
                         <div key={label} className="flex justify-between text-[11px]">
                           <span className="text-gray-500">{label}</span>
@@ -1070,6 +1163,7 @@ export function PesajeOperador() {
                         <tr>
                           <th className="text-left text-gray-500 pb-1">Bloque</th>
                           <th className="text-center text-gray-500 pb-1">Unids.</th>
+                          <th className="text-center text-gray-500 pb-1">Contenedor</th>
                           <th className="text-right text-gray-500 pb-1">Peso (Kg)</th>
                         </tr>
                       </thead>
@@ -1078,6 +1172,7 @@ export function PesajeOperador() {
                           <tr key={b.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
                             <td className="py-0.5 text-gray-400">Bloque {b.numero}</td>
                             <td className="py-0.5 text-center text-gray-400">{b.tamaño}</td>
+                            <td className="py-0.5 text-center text-gray-400">{b.contenedorTipo}</td>
                             <td className="py-0.5 text-right font-mono font-bold text-white">{b.peso?.toFixed(2)}</td>
                           </tr>
                         ))}
@@ -1085,19 +1180,22 @@ export function PesajeOperador() {
                     </table>
                   </div>
 
-                  {/* Peso total */}
+                  {/* Resumen de pesos */}
                   <div className="text-center p-3 rounded-xl mb-3" style={{ background: 'rgba(34,197,94,0.08)', border: '2px solid rgba(34,197,94,0.25)' }}>
-                    <p className="text-[9px] uppercase tracking-[0.2em] mb-0.5" style={{ color: '#22c55e' }}>Peso Total</p>
-                    <p className="text-3xl font-extrabold font-mono" style={{ color: '#22c55e' }}>
-                      {ticketVisible.pesoTotal.toFixed(2)}
-                      <span className="text-xs ml-1" style={{ color: '#22c55e60' }}>Kg</span>
-                    </p>
-                    {ticketVisible.esVivo && ticketVisible.pesoContenedores > 0 && (
-                      <div className="flex justify-center gap-3 mt-1 text-[10px]">
-                        <span className="text-gray-500">Contenedores: -{ticketVisible.pesoContenedores.toFixed(2)} Kg</span>
-                        <span className="text-green-300 font-bold">Neto: {ticketVisible.pesoNeto.toFixed(2)} Kg</span>
+                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                      <div>
+                        <div className="text-gray-500">Bruto</div>
+                        <div className="text-white font-bold">{ticketVisible.pesoTotal.toFixed(2)}</div>
                       </div>
-                    )}
+                      <div>
+                        <div className="text-gray-500">Tara</div>
+                        <div className="text-amber-400 font-bold">{ticketVisible.pesoContenedores.toFixed(2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">Neto</div>
+                        <div className="text-green-400 font-bold">{ticketVisible.pesoNeto.toFixed(2)}</div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Datos entrega */}

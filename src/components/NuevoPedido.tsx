@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Eye, Plus, CheckCircle, X, Users, Bird, Package, Layers, ChevronRight, Tag, Trash2, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Eye, Plus, CheckCircle, X, Users, Bird, Package, Layers, ChevronRight, Tag, Trash2, RotateCcw, Grid3x3 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ interface SubPedido {
   cantidadTotal: string;
   unidadesPorJaba?: string;
   presentacion: string;
-  contenedor: string;
+  // ELIMINADO: contenedor ya no se selecciona aquí
 }
 
 interface FormularioPedido {
@@ -26,7 +26,7 @@ interface FormularioPedido {
   cantidadTotal: string;
   unidadesPorJaba?: string;
   presentacion: string;
-  contenedor: string;
+  // ELIMINADO: contenedor ya no se selecciona aquí
   completado: boolean;
 }
 
@@ -52,13 +52,11 @@ export function NuevoPedido() {
 
   const [numeroClienteActual, setNumeroClienteActual] = useState(1);
   const [clientesNumerados, setClientesNumerados] = useState<ClienteNumerado[]>(() => {
-    // Cargar clientes numerados guardados
     try {
       const saved = localStorage.getItem('clientesNumerados');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Encontrar el número más alto de cliente
           const maxNum = Math.max(...parsed.map(c =>
             parseInt(c.numeroCliente.replace('C', '')) || 0
           ));
@@ -70,7 +68,6 @@ export function NuevoPedido() {
       console.error('Error al cargar clientes numerados:', error);
     }
 
-    // Inicializar desde clientes del contexto
     return clientes.map((cliente, index) => ({
       nombre: cliente.nombre,
       numeroCliente: `C${String(index + 1).padStart(3, '0')}`,
@@ -105,12 +102,12 @@ export function NuevoPedido() {
       console.error('Error al cargar datos guardados:', error);
     }
 
-    // Datos por defecto
+    // Datos por defecto - SIN contenedor
     return [
-      { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-      { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-      { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-      { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false }
+      { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+      { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+      { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+      { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false }
     ];
   });
 
@@ -163,8 +160,7 @@ export function NuevoPedido() {
     cantidadMachos: '',
     cantidadHembras: '',
     cantidadTotal: '',
-    presentacion: '',
-    contenedor: ''
+    presentacion: ''
   });
 
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -177,10 +173,10 @@ export function NuevoPedido() {
       localStorage.removeItem('clientesNumerados');
 
       setFormularios([
-        { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false }
+        { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false }
       ]);
 
       setPedidosEnCola([]);
@@ -201,10 +197,10 @@ export function NuevoPedido() {
   const limpiarFormulariosSolo = () => {
     if (window.confirm('¿Limpiar solo los formularios? Los pedidos en cola se mantendrán.')) {
       setFormularios([
-        { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false },
-        { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', contenedor: '', completado: false }
+        { id: '1', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '2', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '3', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false },
+        { id: '4', cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', presentacion: '', completado: false }
       ]);
       toast.success('Formularios limpiados');
     }
@@ -317,11 +313,11 @@ export function NuevoPedido() {
         const necesitaVariedad = tipoAveInfo?.tieneVariedad;
         const necesitaSexo = tipoAveInfo?.tieneSexo;
 
+        // ELIMINADO: validación de contenedor
         const completado =
           formActualizado.cliente !== '' &&
           formActualizado.tipoAve !== '' &&
           formActualizado.presentacion !== '' &&
-          formActualizado.contenedor !== '' &&
           (!necesitaVariedad || formActualizado.variedad !== '') &&
           (!necesitaSexo || (formActualizado.cantidadMachos !== '' || formActualizado.cantidadHembras !== '')) &&
           (necesitaSexo || formActualizado.cantidadTotal !== '');
@@ -367,8 +363,8 @@ export function NuevoPedido() {
           cantidadHembras: f.cantidadHembras,
           cantidadTotal: f.cantidadTotal,
           unidadesPorJaba: f.unidadesPorJaba,
-          presentacion: f.presentacion,
-          contenedor: f.contenedor
+          presentacion: f.presentacion
+          // ELIMINADO: contenedor
         }))
       };
     });
@@ -377,7 +373,7 @@ export function NuevoPedido() {
 
     setFormularios(prev => prev.map(f =>
       f.completado
-        ? { ...f, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', presentacion: '', contenedor: '', completado: false }
+        ? { ...f, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', presentacion: '', completado: false }
         : f
     ));
 
@@ -405,9 +401,6 @@ export function NuevoPedido() {
       pedido.subPedidos.map((sub, index) => {
         const variedadInfo = sub.variedad ? ` - ${sub.variedad}` : '';
 
-        // DEBUG: ver qué datos llegan del sub-pedido
-        console.log('SUB-PEDIDO DATA:', JSON.stringify(sub, null, 2));
-
         let cantidadFinal = 0;
         let detalleSexo = '';
         let jabas: number | undefined = undefined;
@@ -420,14 +413,11 @@ export function NuevoPedido() {
           cantidadFinal = machos + hembras;
           detalleSexo = ` (M:${machos}, H:${hembras})`;
         } else if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
-          // Para Vivo: cantidad = jabas × unidades por jaba
           jabas = parseInt(sub.cantidadTotal);
           uPorJaba = parseInt(sub.unidadesPorJaba);
           cantidadFinal = jabas * uPorJaba;
-          console.log(`VIVO CALC: ${jabas} jabas × ${uPorJaba} = ${cantidadFinal}`);
         } else {
           cantidadFinal = parseInt(sub.cantidadTotal);
-          console.log(`ELSE PATH: cantidadFinal = ${cantidadFinal}, esVivo=${esVivo}, unidadesPorJaba=${sub.unidadesPorJaba}`);
         }
 
         const subNumero = index + 1;
@@ -444,7 +434,7 @@ export function NuevoPedido() {
           cantidad: cantidadFinal,
           cantidadJabas: jabas,
           unidadesPorJaba: uPorJaba,
-          contenedor: sub.contenedor,
+          contenedor: 'Por definir en pesaje', // VALOR POR DEFECTO
           fecha,
           hora,
           prioridad: pedido.prioridadBase,
@@ -479,8 +469,7 @@ export function NuevoPedido() {
       cantidadHembras: '',
       cantidadTotal: '',
       unidadesPorJaba: '',
-      presentacion: '',
-      contenedor: ''
+      presentacion: ''
     });
   };
 
@@ -521,7 +510,7 @@ export function NuevoPedido() {
   const agregarSubPedidoAlPedido = () => {
     if (!pedidoSeleccionado) return;
 
-    if (!nuevoSubPedido.tipoAve || !nuevoSubPedido.presentacion || !nuevoSubPedido.contenedor) {
+    if (!nuevoSubPedido.tipoAve || !nuevoSubPedido.presentacion) {
       toast.error('Complete todos los campos obligatorios del sub-pedido');
       return;
     }
@@ -553,7 +542,7 @@ export function NuevoPedido() {
         ? calcularTotal(nuevoSubPedido.cantidadMachos || '', nuevoSubPedido.cantidadHembras || '')
         : nuevoSubPedido.cantidadTotal!,
       presentacion: nuevoSubPedido.presentacion!,
-      contenedor: nuevoSubPedido.contenedor!
+      unidadesPorJaba: nuevoSubPedido.unidadesPorJaba
     };
 
     setPedidosEnCola(prev => prev.map(pedido => {
@@ -577,8 +566,7 @@ export function NuevoPedido() {
       cantidadMachos: '',
       cantidadHembras: '',
       cantidadTotal: '',
-      presentacion: '',
-      contenedor: ''
+      presentacion: ''
     });
 
     toast.success('Sub-pedido agregado al pedido');
@@ -611,7 +599,7 @@ export function NuevoPedido() {
       } catch (error) {
         console.error('Error al crear backup:', error);
       }
-    }, 10000); // Backup cada 10 segundos
+    }, 10000);
 
     return () => clearInterval(backupTimer);
   }, [formularios]);
@@ -630,7 +618,7 @@ export function NuevoPedido() {
                 <div>Nuevo Pedido</div>
                 <div className="text-sm font-normal text-amber-400 flex items-center gap-2 mt-1">
                   <Tag className="w-4 h-4" />
-                  Sistema de numeración: C001.1 → C001.2 → C002.1
+                  Los contenedores se asignan en pesaje
                 </div>
               </div>
             </h1>
@@ -639,7 +627,7 @@ export function NuevoPedido() {
                 <div className="px-2 py-1 bg-black/50 border border-green-700/30 rounded text-green-400 font-mono">
                   C001.1
                 </div>
-                <span className="text-gray-400">Primer pedido cliente</span>
+                <span className="text-blue-400">Primer pedido cliente</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <div className="px-2 py-1 bg-black/50 border border-amber-700/30 rounded text-amber-400 font-mono">
@@ -652,10 +640,6 @@ export function NuevoPedido() {
                   C002.1
                 </div>
                 <span className="text-gray-400">Nuevo cliente</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-amber-400 ml-4">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span>Datos se guardan automáticamente</span>
               </div>
             </div>
           </div>
@@ -734,68 +718,6 @@ export function NuevoPedido() {
           </div>
         )}
 
-        {/* Botones de Acción Principales */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-8">
-          <button
-            onClick={mandarACola}
-            className="px-6 py-4 bg-black/50 border border-blue-700/30 rounded-xl font-semibold transition-all hover:bg-black/70 hover:border-blue-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 text-white group"
-          >
-            <div className="p-2 bg-blue-900/30 rounded-lg group-hover:bg-blue-900/40 transition-colors">
-              <ShoppingCart className="w-5 h-5 text-blue-400" />
-            </div>
-            <span>Enviar a Cola de Pedidos</span>
-            <ChevronRight className="w-5 h-5 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-
-          <button
-            onClick={confirmarPedidos}
-            disabled={pedidosEnCola.length === 0}
-            className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${pedidosEnCola.length > 0
-              ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
-              : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'
-              }`}
-          >
-            <div className={`p-2 rounded-lg transition-colors ${pedidosEnCola.length > 0
-              ? 'bg-amber-900/30 group-hover:bg-amber-900/40'
-              : 'bg-gray-800/30'
-              }`}>
-              <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'
-                }`} />
-            </div>
-            <span className="flex items-center gap-2">
-              Confirmar Pedidos
-              {pedidosEnCola.length > 0 && (
-                <span className="px-2 py-1 text-xs bg-amber-900/30 text-amber-300 rounded-lg">
-                  {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}
-                </span>
-              )}
-            </span>
-            {pedidosEnCola.length > 0 && (
-              <ChevronRight className="w-5 h-5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </button>
-
-          <button
-            onClick={limpiarFormulariosSolo}
-            className="px-6 py-4 bg-black/50 border border-gray-700/30 rounded-xl font-semibold transition-all hover:bg-black/70 hover:border-gray-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 text-gray-300 group"
-          >
-            <div className="p-2 bg-gray-800/30 rounded-lg group-hover:bg-gray-800/40 transition-colors">
-              <RotateCcw className="w-5 h-5" />
-            </div>
-            <span>Limpiar Formularios</span>
-          </button>
-
-          <button
-            onClick={limpiarTodoLosDatos}
-            className="px-6 py-4 bg-black/50 border border-red-700/30 rounded-xl font-semibold transition-all hover:bg-black/70 hover:border-red-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 text-red-400 group"
-          >
-            <div className="p-2 bg-red-900/30 rounded-lg group-hover:bg-red-900/40 transition-colors">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <span>Limpiar Todo</span>
-          </button>
-        </div>
-
         {/* Indicador de datos guardados */}
         <div className="flex items-center justify-between mb-4 text-sm">
           <div className="flex items-center gap-2 text-green-400">
@@ -812,7 +734,7 @@ export function NuevoPedido() {
         </div>
       </div>
 
-      {/* Formularios Simultáneos - DISEÑO EMPRESARIAL */}
+      {/* Formularios Simultáneos - SIN CONTENEDOR */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         {formularios.map((form, index) => {
           const tipoAveInfo = getTipoAveInfo(form.tipoAve);
@@ -820,6 +742,7 @@ export function NuevoPedido() {
           const necesitaSexo = tipoAveInfo?.tieneSexo;
           const presentacionesTipo = form.tipoAve ? getPresentacionesPorTipo(form.tipoAve) : [];
           const formColor = getFormColor(index);
+          const esVivo = form.presentacion?.toLowerCase().includes('vivo');
 
           return (
             <div
@@ -863,7 +786,7 @@ export function NuevoPedido() {
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-lg">Pedido {index + 1}</h3>
-                    <p className="text-xs text-gray-400">Complete todos los campos</p>
+                    <p className="text-xs text-gray-400">Complete los campos</p>
                   </div>
                 </div>
               </div>
@@ -964,7 +887,7 @@ export function NuevoPedido() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-2">
-                        Total {form.presentacion?.toLowerCase().includes('vivo') ? '(Jabas)' : ''}
+                        Total {esVivo ? '(Jabas)' : ''}
                       </label>
                       <input
                         type="text"
@@ -998,32 +921,32 @@ export function NuevoPedido() {
                 </div>
 
                 {/* Cantidad Total / Jabas */}
-                {/* Cantidad Total / Jabas */}
                 {!necesitaSexo && form.tipoAve && (
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-2">
-                      {form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Cantidad de Jabas' : 'Cantidad Total'}
+                      {esVivo || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Cantidad de Jabas' : 'Cantidad Total'}
                     </label>
                     <input
                       type="number"
                       value={form.cantidadTotal}
                       onChange={(e) => actualizarFormulario(form.id, 'cantidadTotal', e.target.value)}
-                      placeholder={form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Nº de jabas' : '0'}
+                      placeholder={esVivo || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? 'Nº de jabas' : '0'}
                       min="1"
                       className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20 transition-all"
                     />
-                    {(form.presentacion?.toLowerCase().includes('vivo') || getTipoAveInfo(form.tipoAve)?.categoria === 'Otro') && form.cantidadTotal && (
+                    {esVivo && form.cantidadTotal && (
                       <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
-                        {getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? '🥚' : '🐔'} {form.cantidadTotal} jaba(s) {getTipoAveInfo(form.tipoAve)?.categoria === 'Otro' ? '' : 'se pesarán por bloque en Pesaje'}
+                        🐔 {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje
                       </p>
                     )}
                   </div>
                 )}
 
                 {/* Unidades por Jaba (solo Vivo) */}
-                {form.presentacion?.toLowerCase().includes('vivo') && form.cantidadTotal && (
+                {esVivo && form.cantidadTotal && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                    <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-1">
+                      <Grid3x3 className="w-3 h-3" />
                       Unidades por Jaba
                     </label>
                     <input
@@ -1047,24 +970,14 @@ export function NuevoPedido() {
                   </div>
                 )}
 
-                {/* Contenedor */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2">
-                    Contenedor
-                  </label>
-                  <select
-                    value={form.contenedor}
-                    onChange={(e) => actualizarFormulario(form.id, 'contenedor', e.target.value)}
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600/20 transition-all"
-                  >
-                    <option value="" className="bg-black">Seleccionar contenedor...</option>
-                    {contenedores.map(cont => (
-                      <option key={cont.id} value={cont.tipo} className="bg-black">
-                        {cont.tipo}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* ELIMINADO: Selector de contenedor */}
+
+                {/* Mensaje informativo sobre contenedores */}
+                {form.completado && (
+                  <div className="mt-2 text-[10px] text-center text-blue-400 bg-blue-900/10 border border-blue-800/30 rounded-lg py-1">
+                    ✅ Listo para enviar - Contenedor se asignará en pesaje
+                  </div>
+                )}
               </div>
 
               {/* Contador de caracteres/clicks */}
@@ -1078,7 +991,49 @@ export function NuevoPedido() {
         })}
       </div>
 
-      {/* Cola de Pedidos - DISEÑO EMPRESARIAL */}
+      {/* Botones de Acción Principales */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-8">
+        <button
+          onClick={mandarACola}
+          className="px-6 py-4 bg-black/50 border border-blue-700/30 rounded-xl font-semibold transition-all hover:bg-black/70 hover:border-blue-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 text-white group"
+        >
+          <div className="p-2 bg-blue-900/30 rounded-lg group-hover:bg-blue-900/40 transition-colors">
+            <ShoppingCart className="w-5 h-5 text-blue-400" />
+          </div>
+          <span>Enviar a Cola de Pedidos</span>
+          <ChevronRight className="w-5 h-5 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+
+        <button
+          onClick={confirmarPedidos}
+          disabled={pedidosEnCola.length === 0}
+          className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${pedidosEnCola.length > 0
+            ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
+            : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'
+            }`}
+        >
+          <div className={`p-2 rounded-lg transition-colors ${pedidosEnCola.length > 0
+            ? 'bg-amber-900/30 group-hover:bg-amber-900/40'
+            : 'bg-gray-800/30'
+            }`}>
+            <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'
+              }`} />
+          </div>
+          <span className="flex items-center gap-2">
+            Confirmar Pedidos
+            {pedidosEnCola.length > 0 && (
+              <span className="px-2 py-1 text-xs bg-amber-900/30 text-amber-300 rounded-lg">
+                {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}
+              </span>
+            )}
+          </span>
+          {pedidosEnCola.length > 0 && (
+            <ChevronRight className="w-5 h-5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+        </button>
+      </div>
+
+      {/* Cola de Pedidos */}
       {pedidosEnCola.length > 0 && (
         <div className="bg-black/50 border border-gray-800 rounded-2xl p-5 mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -1206,7 +1161,7 @@ export function NuevoPedido() {
                                       </div>
                                       <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
                                         <Package className="w-3 h-3" />
-                                        {sub.presentacion} • {sub.contenedor}
+                                        {sub.presentacion}
                                       </div>
                                     </div>
                                   </div>
@@ -1246,7 +1201,7 @@ export function NuevoPedido() {
                           </div>
                         </div>
 
-                        {/* Agregar nuevo sub-pedido */}
+                        {/* Agregar nuevo sub-pedido - SIN CONTENEDOR */}
                         <div className="bg-black/30 border border-gray-800 rounded-xl p-5">
                           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <Plus className="w-5 h-5 text-green-400" />
@@ -1414,22 +1369,9 @@ export function NuevoPedido() {
                                 </select>
                               </div>
 
-                              <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-2">
-                                  Contenedor
-                                </label>
-                                <select
-                                  value={nuevoSubPedido.contenedor || ''}
-                                  onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, contenedor: e.target.value }))}
-                                  className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm"
-                                >
-                                  <option value="" className="bg-black">Seleccionar...</option>
-                                  {contenedores.map(cont => (
-                                    <option key={cont.id} value={cont.tipo} className="bg-black">
-                                      {cont.tipo}
-                                    </option>
-                                  ))}
-                                </select>
+                              {/* ELIMINADO: Selector de contenedor */}
+                              <div className="bg-blue-900/10 border border-blue-800/30 rounded-lg p-3 flex items-center justify-center text-xs text-blue-400">
+                                Contenedor se asigna en pesaje
                               </div>
                             </div>
 
@@ -1451,54 +1393,6 @@ export function NuevoPedido() {
           </div>
         </div>
       )}
-
-      {/* Footer con estadísticas */}
-      <div className="bg-black/50 border border-gray-800 rounded-xl p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Formularios activos</div>
-            <div className="text-2xl font-bold text-blue-400">
-              {formularios.filter(f => f.completado).length}/{formularios.length}
-            </div>
-          </div>
-          <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Clientes en cola</div>
-            <div className="text-2xl font-bold text-green-400">
-              {[...new Set(pedidosEnCola.map(p => p.numeroCliente))].length}
-            </div>
-          </div>
-          <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Total pedidos</div>
-            <div className="text-2xl font-bold text-amber-400">
-              {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}
-            </div>
-          </div>
-          <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Datos guardados</div>
-            <div className="text-2xl font-bold text-purple-400">
-              {(() => {
-                try {
-                  const draft = localStorage.getItem('nuevoPedidoDraft');
-                  const queue = localStorage.getItem('pedidosEnCola');
-                  return (draft ? 1 : 0) + (queue ? 1 : 0);
-                } catch {
-                  return 0;
-                }
-              })()}/2
-            </div>
-          </div>
-        </div>
-
-        {/* Indicador de estado de guardado */}
-        <div className="mt-4 pt-4 border-t border-gray-800">
-          <div className="text-xs text-center text-gray-500">
-            Los datos se guardan automáticamente cada 500ms.
-            {formularios.some(f => f.completado) && (
-              <span className="text-green-400 ml-2">✓ Datos guardados</span>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

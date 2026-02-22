@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Factory, Clock, Monitor, Layers, Package, Users, Truck, Box, Hash, User as UserIcon, AlertCircle, CheckCircle, Calendar, ChevronRight, Play, Pause } from 'lucide-react';
-import logo from '../assets/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png';
+import logo from '../assets/AvicolaLogo.png';
 
 export function PantallaProduccion() {
   const { pedidosConfirmados } = useApp();
   const [horaActual, setHoraActual] = useState(new Date());
   const [produccionActiva, setProduccionActiva] = useState(true);
   const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
+
+  useEffect(() => {
+    document.title = "Cola de Producción | Avícola Jossy";
+  }, []);
   
   // Contador de tiempo de producción
   useEffect(() => {

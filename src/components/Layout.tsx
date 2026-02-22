@@ -25,7 +25,7 @@ import {
   PackageOpen,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import logoImage from "figma:asset/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png";
+import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
   label: string;
@@ -179,6 +179,27 @@ export function Layout() {
       (child) => location.pathname === child.path
     );
   };
+
+  // Obtener el título de la página actual
+  const getCurrentTitle = () => {
+    for (const item of menuItems) {
+      if (item.path && location.pathname === item.path) return item.label;
+      if (item.children) {
+        const child = item.children.find(c => location.pathname === c.path);
+        if (child) return child.label;
+      }
+    }
+    if (location.pathname.includes('/configuracion')) return "Configuración";
+    if (location.pathname === '/dashboard') return "Dashboard";
+    return "Avícola Jossy";
+  };
+
+  const currentTitle = getCurrentTitle();
+
+  // Actualizar el título del documento
+  useEffect(() => {
+    document.title = `${currentTitle} | Avícola Jossy`;
+  }, [currentTitle]);
 
   const SidebarContent = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
@@ -471,12 +492,14 @@ export function Layout() {
                     filter: "drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))",
                   }}
                 />
-                <div className="hidden sm:block">
-                  <h1 className="font-bold text-sm">
-                    <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
-                    <span style={{ color: "#ccaa00" }}>JOSSY</span>
-                  </h1>
-                </div>
+              </div>
+
+              {/* Título de Página Dinámico */}
+              <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                  <span className="text-amber-400 lg:hidden mr-2">|</span>
+                  {currentTitle}
+                </h2>
               </div>
 
               {/* User Info */}

@@ -3,7 +3,7 @@ import { Eye, EyeOff, User, Lock, AlertCircle, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import logoImage from 'figma:asset/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png';
+import logoImage from '../assets/AvicolaLogo.png';
 import avicolaBackground from 'figma:asset/fa25e4c6806fdd3db2dbb1c20513fce22ccd856a.png';
 
 export function Login() {
@@ -18,6 +18,10 @@ export function Login() {
   const [code2FA, setCode2FA] = useState(['', '', '', '', '', '']); // 6 dígitos
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [credencialesTemporales, setCredencialesTemporales] = useState<{username: string, password: string} | null>(null);
+
+  useEffect(() => {
+    document.title = "Iniciar Sesión | Avícola Jossy";
+  }, []);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -403,7 +407,7 @@ export function Login() {
                                 }
                               }
                             }}
-                            ref={(el) => (inputsRef.current[index] = el)}
+                            ref={(el) => { inputsRef.current[index] = el; }}
                             className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold text-white rounded-lg sm:rounded-xl focus:ring-2 focus:border-transparent transition-all"
                             style={{
                               backgroundColor: 'rgba(255, 255, 255, 0.05)',

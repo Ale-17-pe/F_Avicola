@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import logoImage from "../assets/13b9ee6c6158fcf1eb469a6ceee3d03ba686bb7d.png";
+import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
   label: string;
@@ -75,6 +75,22 @@ export function LayoutOperador() {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Obtener el título de la página actual
+  const getCurrentTitle = () => {
+    for (const item of navigationItems) {
+      if (item.path && location.pathname === item.path) return item.label;
+    }
+    if (location.pathname === '/dashboard-operador') return "Dashboard";
+    return "Avícola Jossy";
+  };
+
+  const currentTitle = getCurrentTitle();
+
+  // Actualizar el título del documento
+  useEffect(() => {
+    document.title = `${currentTitle} | Avícola Jossy`;
+  }, [currentTitle]);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -289,6 +305,14 @@ export function LayoutOperador() {
               >
                 <Menu className="w-6 h-6" />
               </button>
+
+              {/* Título de Página Dinámico */}
+              <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                  <span className="text-amber-400 lg:hidden mr-2">|</span>
+                  {currentTitle}
+                </h2>
+              </div>
 
               {/* Espaciador para mantener el layout cuando no hay botón izquierdo */}
               <div className="lg:hidden w-10" />
