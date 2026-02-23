@@ -8,15 +8,15 @@ import {
   Package,
   X,
   FileText,
-  Weight,
   Usb,
   Wifi,
   RotateCcw,
   ChevronRight,
   Monitor,
   Box,
-  AlertCircle,
   Info,
+  Plus,
+  Lock,
 } from 'lucide-react';
 
 import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
@@ -40,27 +40,30 @@ const ZONAS = [
   { id: '6', nombre: 'Zona 6 - Bayovar, Huáscar, Peladero, Sta. María' },
 ];
 
-const BLOCK_SIZE = 10;
+const JABA_ESTANDAR = { id: 'jaba-std', tipo: 'Jaba Estándar', peso: 6.9 };
 
 // ===================== INTERFACES =====================
 
-interface BloquesPeso {
+interface PesadaParcial {
   numero: number;
-  tamaño: number;
-  peso: number | null;
-  pesoContenedor: number;
-  contenedorTipo: string;
-  contenedorId: string;
-  pesado: boolean;
+  peso: number;
+}
+
+interface ContenedorOpcion {
+  id: string;
+  tipo: string;
+  peso: number;
 }
 
 interface TicketData {
   pedido: PedidoConfirmado;
-  bloques: BloquesPeso[];
-  pesoTotal: number;
-  pesoContenedores: number;
-  pesoNeto: number;
-  esVivo: boolean;
+  pesadas: PesadaParcial[];
+  pesoBrutoTotal: number;
+  pesoContenedoresTotal: number;
+  pesoNetoTotal: number;
+  tipoContenedor: string;
+  cantidadContenedores: number;
+  pesoUnitarioContenedor: number;
   conductor: string;
   conductorPlaca: string;
   zona: string;
@@ -85,105 +88,64 @@ function useSerialScale() {
   }, []);
 
   const broadcastWeight = useCallback((weight: number, isStable: boolean) => {
-    broadcastRef.current?.postMessage({
-      type: 'weight-update',
-      weight,
-      stable: isStable,
-      timestamp: Date.now(),
-    });
+    broadcastRef.current?.postMessage({ type: 'weight-update', weight, stable: isStable, timestamp: Date.now() });
   }, []);
 
   const parseWeightData = useCallback((data: string): { weight: number; stable: boolean } | null => {
-    // Formatos comunes de balanzas digitales:
-    // "ST,GS,  12.34 kg" | "  12.34" | "S  12.34 kg" | "12.34\r\n"
     const cleaned = data.replace(/[^\d.\-+SsTtGg,\s]/g, '').trim();
     const isStable = /^S[Tt]|^S\s/i.test(data);
     const match = cleaned.match(/([\d]+\.?\d*)/);
     if (match) {
       const weight = parseFloat(match[1]);
-      if (!isNaN(weight)) {
-        return { weight, stable: isStable };
-      }
+      if (!isNaN(weight)) return { weight, stable: isStable };
     }
     return null;
   }, []);
 
   const connect = useCallback(async () => {
     try {
-      if (!('serial' in navigator)) {
-        toast.error('Web Serial API no disponible. Use Chrome o Edge.');
-        return false;
-      }
-
+      if (!('serial' in navigator)) { toast.error('Web Serial API no disponible. Use Chrome o Edge.'); return false; }
       const selectedPort = await (navigator as any).serial.requestPort();
       await selectedPort.open({ baudRate: 9600 });
-
       setPort(selectedPort);
       setConnected(true);
       toast.success('Balanza conectada correctamente');
-
       const reader = selectedPort.readable.getReader();
       readerRef.current = reader;
-
       let buffer = '';
       const readLoop = async () => {
         try {
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-
             const text = new TextDecoder().decode(value);
             buffer += text;
-
             const lines = buffer.split(/[\r\n]+/);
             buffer = lines.pop() || '';
-
             for (const line of lines) {
               if (line.trim()) {
                 const parsed = parseWeightData(line);
-                if (parsed) {
-                  setCurrentWeight(parsed.weight);
-                  setStable(parsed.stable);
-                  broadcastWeight(parsed.weight, parsed.stable);
-                }
+                if (parsed) { setCurrentWeight(parsed.weight); setStable(parsed.stable); broadcastWeight(parsed.weight, parsed.stable); }
               }
             }
           }
-        } catch (err: any) {
-          if (err.name !== 'NetworkError') {
-            console.error('Error leyendo balanza:', err);
-          }
-        }
+        } catch (err: any) { if (err.name !== 'NetworkError') console.error('Error leyendo balanza:', err); }
       };
-
       readLoop();
       return true;
     } catch (err: any) {
-      if (err.name !== 'NotFoundError') {
-        toast.error('Error al conectar la balanza');
-        console.error(err);
-      }
+      if (err.name !== 'NotFoundError') { toast.error('Error al conectar la balanza'); console.error(err); }
       return false;
     }
   }, [parseWeightData, broadcastWeight]);
 
   const disconnect = useCallback(async () => {
     try {
-      if (readerRef.current) {
-        await readerRef.current.cancel();
-        readerRef.current = null;
-      }
-      if (port) {
-        await port.close();
-      }
-      setPort(null);
-      setConnected(false);
-      setCurrentWeight(0);
-      setStable(false);
+      if (readerRef.current) { await readerRef.current.cancel(); readerRef.current = null; }
+      if (port) await port.close();
+      setPort(null); setConnected(false); setCurrentWeight(0); setStable(false);
       toast.success('Balanza desconectada');
-    } catch (err) {
-      console.error('Error al desconectar:', err);
-    }
+    } catch (err) { console.error('Error al desconectar:', err); }
   }, [port]);
 
   return { connected, currentWeight, stable, connect, disconnect };
@@ -195,27 +157,23 @@ export function PesajeOperador() {
   const { pedidosConfirmados, updatePedidoConfirmado, contenedores, clientes } = useApp();
   const scale = useSerialScale();
 
-  // Estado principal
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
   const [modoManual, setModoManual] = useState(true);
   const [pesoManualInput, setPesoManualInput] = useState('');
 
-  // Bloques
-  const [bloques, setBloques] = useState<BloquesPeso[]>([]);
-  const [bloqueActual, setBloqueActual] = useState(0);
+  const [pesadas, setPesadas] = useState<PesadaParcial[]>([]);
+  const [fase, setFase] = useState<'pesando' | 'confirmando-contenedor' | 'asignando-entrega'>('pesando');
 
-  // Contenedor seleccionado para el bloque actual
-  const [contenedorBloqueId, setContenedorBloqueId] = useState('');
+  const [contenedorFinalId, setContenedorFinalId] = useState('');
+  const [cantidadContenedoresInput, setCantidadContenedoresInput] = useState('');
+  const [cantidadBloqueada, setCantidadBloqueada] = useState(false);
 
-  // Conductor y zona
   const [conductorId, setConductorId] = useState('');
   const [zonaId, setZonaId] = useState('');
+  const [zonaBloqueada, setZonaBloqueada] = useState(false); // ← NUEVO
 
-  // Ticket
   const [ticketVisible, setTicketVisible] = useState<TicketData | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
-
-  // BroadcastChannel para la pantalla display
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
@@ -223,241 +181,141 @@ export function PesajeOperador() {
     return () => broadcastRef.current?.close();
   }, []);
 
-  // Filtrar pedidos en estado "Pesaje"
   const pedidosEnPesaje = pedidosConfirmados
     .filter((p) => p.estado === 'Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
-  // Pedidos ya pesados
-  const pedidosPesados = pedidosConfirmados
-    .filter((p) => p.ticketEmitido && (p.estado === 'En Despacho' || p.estado === 'Entregado' || p.estado === 'Completado'))
-    .slice(-10)
-    .reverse();
+  const esJabas = !!(
+    selectedPedido?.presentacion?.toLowerCase().includes('vivo') ||
+    selectedPedido?.contenedor?.toLowerCase().includes('jaba')
+  );
 
-  // Detectar si es presentación "Vivo"
-  const esVivo = selectedPedido?.presentacion?.toLowerCase().includes('vivo') ?? false;
+  const opcionesContenedor: ContenedorOpcion[] = esJabas
+    ? [JABA_ESTANDAR]
+    : contenedores.map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }));
 
-  // Obtener contenedor por defecto del pedido
-  const contenedorPorDefecto = contenedores.find(c => c.tipo === selectedPedido?.contenedor);
-
-  // Calcular bloques cuando se cambia el pedido
-  const generarBloques = (cantidad: number, contTipo: string, contPeso: number, contId: string): BloquesPeso[] => {
-    const numBloquesFull = Math.floor(cantidad / BLOCK_SIZE);
-    const resto = cantidad % BLOCK_SIZE;
-    const bloquesArr: BloquesPeso[] = [];
-
-    for (let i = 0; i < numBloquesFull; i++) {
-      bloquesArr.push({
-        numero: i + 1,
-        tamaño: BLOCK_SIZE,
-        peso: null,
-        pesoContenedor: contPeso,
-        contenedorTipo: contTipo,
-        contenedorId: contId,
-        pesado: false,
-      });
-    }
-
-    if (resto > 0) {
-      bloquesArr.push({
-        numero: numBloquesFull + 1,
-        tamaño: resto,
-        peso: null,
-        pesoContenedor: contPeso,
-        contenedorTipo: contTipo,
-        contenedorId: contId,
-        pesado: false,
-      });
-    }
-
-    return bloquesArr;
+  const resetearTodo = () => {
+    setPesadas([]);
+    setFase('pesando');
+    setPesoManualInput('');
+    setContenedorFinalId('');
+    setCantidadContenedoresInput('');
+    setCantidadBloqueada(false);
+    setConductorId('');
+    setZonaId('');
+    setZonaBloqueada(false);
   };
 
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
     setSelectedPedido(pedido);
-    
-    // Para Vivo: 1 bloque por jaba (cada bloque = 1 jaba)
-    const esVivoP = pedido.presentacion?.toLowerCase().includes('vivo');
-    let nuevos: BloquesPeso[];
+    resetearTodo();
+    setTicketVisible(null);
 
-    if (esVivoP && pedido.cantidadJabas) {
-      // Cada jaba es un bloque individual
-      nuevos = Array.from({ length: pedido.cantidadJabas }, (_, i) => ({
-        numero: i + 1,
-        tamaño: pedido.unidadesPorJaba || 1,
-        peso: null,
-        pesoContenedor: contenedorPorDefecto?.peso || 0,
-        contenedorTipo: contenedorPorDefecto?.tipo || pedido.contenedor,
-        contenedorId: contenedorPorDefecto?.id || '',
-        pesado: false,
-      }));
-    } else {
-      nuevos = generarBloques(
-        pedido.cantidad, 
-        contenedorPorDefecto?.tipo || pedido.contenedor, 
-        contenedorPorDefecto?.peso || 0,
-        contenedorPorDefecto?.id || ''
-      );
-    }
-
-    setBloques(nuevos);
-    setBloqueActual(0);
-    setPesoManualInput('');
-    setContenedorBloqueId(contenedorPorDefecto?.id || '');
-    setConductorId('');
-    
-    // Auto-fill zone from client data
+    // ── Zona: buscar del cliente y bloquear si existe ─────────────
     const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
-    if (clienteObj && clienteObj.zona) {
+    if (clienteObj?.zona) {
       const zonaMatch = ZONAS.find(z =>
         z.id === clienteObj.zona ||
         z.nombre.toLowerCase().includes(clienteObj.zona.toLowerCase())
       );
-      setZonaId(zonaMatch ? zonaMatch.id : '');
-    } else {
-      setZonaId('');
+      if (zonaMatch) {
+        setZonaId(zonaMatch.id);
+        setZonaBloqueada(true); // ← bloquear
+      }
     }
-    setTicketVisible(null);
 
-    // Broadcast al display
+    // ── Contenedor / jabas ────────────────────────────────────────
+    const esJabasP = !!(
+      pedido.presentacion?.toLowerCase().includes('vivo') ||
+      pedido.contenedor?.toLowerCase().includes('jaba')
+    );
+    if (esJabasP) {
+      setContenedorFinalId(JABA_ESTANDAR.id);
+      if (pedido.cantidadJabas && pedido.cantidadJabas > 0) {
+        setCantidadContenedoresInput(String(pedido.cantidadJabas));
+        setCantidadBloqueada(true);
+      }
+    } else {
+      const contDef = contenedores.find(c => c.tipo === pedido.contenedor);
+      if (contDef) setContenedorFinalId(contDef.id);
+    }
+
     broadcastRef.current?.postMessage({
       type: 'pedido-selected',
-      pedido: {
-        cliente: pedido.cliente,
-        tipoAve: pedido.tipoAve,
-        cantidad: pedido.cantidad,
-        presentacion: pedido.presentacion,
-      },
-      totalBloques: nuevos.length,
-      bloqueActual: 1,
+      pedido: { cliente: pedido.cliente, tipoAve: pedido.tipoAve, cantidad: pedido.cantidad, presentacion: pedido.presentacion },
     });
   };
 
-  const pesoActual = modoManual
-    ? parseFloat(pesoManualInput) || 0
-    : scale.currentWeight;
+  const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
+  const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);
 
-  const pesoTotalAcumulado = bloques.reduce((sum, b) => sum + (b.peso || 0), 0);
-  const bloquesCompletados = bloques.filter((b) => b.pesado).length;
-  const todosCompletados = bloques.length > 0 && bloques.every((b) => b.pesado);
+  const contSeleccionadoPreview = opcionesContenedor.find(c => c.id === contenedorFinalId);
+  const cantidadPreview = parseInt(cantidadContenedoresInput) || 0;
+  const taraPreview = (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
+  const netoPreview = pesoBrutoTotal - taraPreview;
 
-  // Registrar peso del bloque actual
-  const registrarPesoBloque = () => {
-    if (bloqueActual >= bloques.length) return;
+  const zonaSeleccionada = ZONAS.find(z => z.id === zonaId);
 
-    const peso = pesoActual;
-    if (peso <= 0) {
-      toast.error('El peso debe ser mayor a 0');
-      return;
-    }
-
-    // Obtener contenedor seleccionado para este bloque
-    const contSeleccionado = contenedores.find(c => c.id === contenedorBloqueId);
-    const contTipo = contSeleccionado?.tipo || bloques[bloqueActual].contenedorTipo;
-    const contPeso = contSeleccionado?.peso || bloques[bloqueActual].pesoContenedor;
-    const contId = contSeleccionado?.id || bloques[bloqueActual].contenedorId;
-
-    const nuevosBloques = [...bloques];
-    nuevosBloques[bloqueActual] = {
-      ...nuevosBloques[bloqueActual],
-      peso,
-      contenedorTipo: contTipo,
-      pesoContenedor: contPeso,
-      contenedorId: contId,
-      pesado: true,
-    };
-    setBloques(nuevosBloques);
-
-    const siguienteBloque = bloqueActual + 1;
-    setBloqueActual(siguienteBloque);
+  const sumarPesada = () => {
+    if (pesoActual <= 0) { toast.error('El peso debe ser mayor a 0'); return; }
+    const nueva: PesadaParcial = { numero: pesadas.length + 1, peso: pesoActual };
+    const nuevasPesadas = [...pesadas, nueva];
+    setPesadas(nuevasPesadas);
     setPesoManualInput('');
-
-    const nuevoTotal = nuevosBloques.reduce((sum, b) => sum + (b.peso || 0), 0);
-
-    // Broadcast
-    broadcastRef.current?.postMessage({
-      type: 'bloque-registrado',
-      bloque: bloqueActual + 1,
-      peso,
-      contenedor: contTipo,
-      totalBloques: bloques.length,
-      siguienteBloque: siguienteBloque + 1,
-      pesoTotal: nuevoTotal,
-      completado: siguienteBloque >= bloques.length,
-    });
-
-    if (siguienteBloque >= bloques.length) {
-      toast.success(`¡Todos los bloques pesados! Total: ${nuevoTotal.toFixed(2)} Kg`);
-    } else {
-      toast.success(`Bloque ${bloqueActual + 1} registrado: ${peso.toFixed(2)} Kg`);
-    }
+    const acum = nuevasPesadas.reduce((s, p) => s + p.peso, 0);
+    broadcastRef.current?.postMessage({ type: 'weight-update', weight: acum, stable: true, timestamp: Date.now() });
+    toast.success(`Pesada ${nueva.numero}: ${pesoActual.toFixed(2)} kg → Acumulado: ${acum.toFixed(2)} kg`);
   };
 
-  // Corregir peso de un bloque ya pesado
-  const corregirBloque = (index: number) => {
-    const nuevosBloques = [...bloques];
-    nuevosBloques[index] = {
-      ...nuevosBloques[index],
-      peso: null,
-      pesado: false,
-    };
-    setBloques(nuevosBloques);
-    setBloqueActual(index);
-    setPesoManualInput('');
-    // Restaurar contenedor del bloque para edición
-    const cont = contenedores.find(c => c.id === nuevosBloques[index].contenedorId);
-    if (cont) setContenedorBloqueId(cont.id);
-    toast.info(`Bloque ${index + 1} listo para repesar`);
+  const quitarUltimaPesada = () => {
+    if (pesadas.length === 0) return;
+    setPesadas(pesadas.slice(0, -1));
+    toast.info('Última pesada eliminada');
   };
 
-  // Confirmar y emitir ticket
+  const terminarPesaje = () => {
+    if (pesadas.length === 0) { toast.error('Debe registrar al menos una pesada'); return; }
+    setFase('confirmando-contenedor');
+  };
+
+  const confirmarContenedor = () => {
+    if (!contenedorFinalId) { toast.error('Seleccione el tipo de contenedor'); return; }
+    if (!cantidadPreview || cantidadPreview <= 0) { toast.error('Ingrese la cantidad de contenedores'); return; }
+    setFase('asignando-entrega');
+  };
+
   const handleConfirmar = () => {
     if (!selectedPedido) return;
-    if (!todosCompletados) {
-      toast.error('Debe pesar todos los bloques antes de confirmar');
-      return;
-    }
-    if (!conductorId) {
-      toast.error('Seleccione un conductor');
-      return;
-    }
-    if (!zonaId) {
-      toast.error('Seleccione una zona de entrega');
-      return;
-    }
+    if (!conductorId) { toast.error('Seleccione un conductor'); return; }
+    if (!zonaId) { toast.error('Seleccione una zona de entrega'); return; }
 
-    const conductor = CONDUCTORES.find((c) => c.id === conductorId);
-    const zona = ZONAS.find((z) => z.id === zonaId);
-    if (!conductor || !zona) return;
+    const conductor = CONDUCTORES.find(c => c.id === conductorId);
+    const zona = ZONAS.find(z => z.id === zonaId);
+    const contFinal = opcionesContenedor.find(c => c.id === contenedorFinalId);
+    if (!conductor || !zona || !contFinal) return;
+
+    const pesoTotalContenedores = contFinal.peso * cantidadPreview;
+    const pesoNeto = pesoBrutoTotal - pesoTotalContenedores;
 
     const ahora = new Date();
     const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // Calcular totales
-    const pesoBrutoTotal = bloques.reduce((sum, b) => sum + (b.peso || 0), 0);
-    const pesoTotalContenedores = bloques.reduce((sum, b) => sum + b.pesoContenedor, 0);
-    const pesoNetoTotal = pesoBrutoTotal - pesoTotalContenedores;
-    const cantidadTotalContenedores = bloques.length;
-
-    // Guardar el detalle de cada bloque
-    const bloquesPesaje: BloquePesaje[] = bloques.map(bloque => ({
-      numero: bloque.numero,
-      tamano: bloque.tamaño,
-      pesoBruto: bloque.peso || 0,
-      tipoContenedor: bloque.contenedorTipo,
-      pesoContenedor: bloque.pesoContenedor,
-      cantidadContenedores: 1 // Cada bloque es un contenedor
+    const bloquesPesaje: BloquePesaje[] = pesadas.map((p, i) => ({
+      numero: i + 1,
+      tamano: 0,
+      pesoBruto: p.peso,
+      tipoContenedor: contFinal.tipo,
+      pesoContenedor: 0,
+      cantidadContenedores: 0,
     }));
 
     const pedidoActualizado: PedidoConfirmado = {
       ...selectedPedido,
-      // Datos de pesaje
       pesoBrutoTotal,
-      pesoNetoTotal,
+      pesoNetoTotal: pesoNeto,
       pesoTotalContenedores,
-      cantidadTotalContenedores,
+      cantidadTotalContenedores: cantidadPreview,
       bloquesPesaje,
-      // Datos de entrega
       conductor: conductor.nombre,
       zonaEntrega: zona.nombre,
       estado: 'En Despacho',
@@ -469,128 +327,93 @@ export function PesajeOperador() {
 
     updatePedidoConfirmado(selectedPedido.id, pedidoActualizado);
 
-    const ticket: TicketData = {
+    setTicketVisible({
       pedido: pedidoActualizado,
-      bloques: [...bloques],
-      pesoTotal: pesoBrutoTotal,
-      pesoContenedores: pesoTotalContenedores,
-      pesoNeto: pesoNetoTotal,
-      esVivo,
+      pesadas: [...pesadas],
+      pesoBrutoTotal,
+      pesoContenedoresTotal: pesoTotalContenedores,
+      pesoNetoTotal: pesoNeto,
+      tipoContenedor: contFinal.tipo,
+      cantidadContenedores: cantidadPreview,
+      pesoUnitarioContenedor: contFinal.peso,
       conductor: conductor.nombre,
       conductorPlaca: conductor.placa,
       zona: zona.nombre,
       fechaEmision: ahora.toLocaleDateString('es-PE'),
       horaEmision: ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
       numeroTicket,
-    };
-
-    setTicketVisible(ticket);
-    setSelectedPedido(null);
-    setBloques([]);
-    setBloqueActual(0);
-    setPesoManualInput('');
-    setConductorId('');
-    setZonaId('');
-
-    // Broadcast ticket emitido
-    broadcastRef.current?.postMessage({
-      type: 'ticket-emitido',
-      ticket: numeroTicket,
-      pesoTotal: pesoBrutoTotal,
     });
 
+    setSelectedPedido(null);
+    resetearTodo();
+    broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: pesoBrutoTotal });
     toast.success(`Ticket ${numeroTicket} emitido correctamente`);
   };
 
-  // Abrir pantalla display
   const abrirPantallaDisplay = () => {
-    const url = `${window.location.origin}/pesaje-display`;
-    window.open(url, 'PesajeDisplay', 'width=800,height=600,menubar=no,toolbar=no');
+    window.open(`${window.location.origin}/pesaje-display`, 'PesajeDisplay', 'width=800,height=600,menubar=no,toolbar=no');
   };
 
-  // Imprimir ticket
   const handlePrint = () => {
     if (!ticketRef.current) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Tickets de Pesaje</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700;800&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Inter', sans-serif; background: #fff; color: #000; display: flex; justify-content: center; padding: 10px; }
-          body > div { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 750px; }
-          .ticket { width: 100%; border: 2px solid #ccc; border-radius: 12px; padding: 18px; page-break-inside: avoid; background: #fff; color: #000; }
-          .ticket > div:first-child { display: none; }
-          .ticket * { color: #000 !important; background: transparent !important; border-color: #ccc !important; }
-          .ticket span, .ticket p, .ticket td, .ticket th, .ticket h2, .ticket h3 { color: #000 !important; }
-          .section { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ddd; }
-          .section:last-child { border-bottom: none; }
-          table { width: 100%; font-size: 10px; border-collapse: collapse; }
-          table th, table td { border: 1px solid #ddd; padding: 3px 5px; text-align: center; }
-          table th { background: #f5f5f5 !important; font-weight: 700; }
-          @media print { body { padding: 0; } .ticket { border: 1.5px solid #999; } }
-        </style>
-      </head>
-      <body>
-        ${ticketRef.current.innerHTML}
-        <script>
-          window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
-        <\/script>
-      </body>
-      </html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Ticket</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:sans-serif;background:#fff;color:#000;display:flex;justify-content:center;padding:10px;}
+        body>div{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:750px;}
+        .ticket{border:2px solid #ccc;border-radius:12px;padding:18px;page-break-inside:avoid;}
+        .ticket *{color:#000!important;background:transparent!important;border-color:#ccc!important;}
+        table{width:100%;font-size:10px;border-collapse:collapse;}
+        table th,table td{border:1px solid #ddd;padding:3px 5px;}
+        table th{background:#f5f5f5!important;font-weight:700;}
+        @media print{body{padding:0;}}
+      </style></head><body>
+      ${ticketRef.current.innerHTML}
+      <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};<\/script>
+    </body></html>`);
     printWindow.document.close();
   };
 
-  // ===================== RENDER MEJORADO =====================
+  // ===================== RENDER =====================
   return (
     <div className="space-y-5">
-      {/* ===== HEADER COMPACTO ===== */}
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', boxShadow: '0 0 20px rgba(34,197,94,0.1)' }}>
+          <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
             <Scale className="w-6 h-6" style={{ color: '#22c55e' }} />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Pesaje de Pedidos</h1>
-            <p className="text-gray-500 text-xs">Bloques de {BLOCK_SIZE} unidades · Los contenedores se definen en pesaje</p>
+            <p className="text-gray-500 text-xs">Suma las pesadas → confirma contenedores/jabas → emite ticket</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa' }}>
+          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa' }}>
             <Monitor className="w-3.5 h-3.5" /> Display
           </button>
-          <button onClick={() => { if (scale.connected) { scale.disconnect(); setModoManual(true); } else { scale.connect().then((ok) => { if (ok) setModoManual(false); }); } }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: scale.connected ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}>
+          <button
+            onClick={() => { if (scale.connected) { scale.disconnect(); setModoManual(true); } else { scale.connect().then(ok => { if (ok) setModoManual(false); }); } }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ background: scale.connected ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}
+          >
             {scale.connected ? <Wifi className="w-3.5 h-3.5" /> : <Usb className="w-3.5 h-3.5" />}
             {scale.connected ? 'Conectada' : 'Balanza'}
           </button>
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)' }}>
-            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             <span className="text-xs font-bold" style={{ color: '#ccaa00' }}>{pedidosEnPesaje.length}</span>
           </div>
         </div>
       </div>
 
-      {/* Info banner sobre contenedores */}
-      <div className="rounded-xl p-3 flex items-center gap-2 text-xs" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)' }}>
-        <Info className="w-4 h-4 text-blue-400" />
-        <span className="text-gray-300">Los contenedores se seleccionan en pesaje. El tipo del pedido es solo referencia.</span>
-        {selectedPedido && (
-          <span className="ml-auto text-blue-400 font-mono">
-            Ref: {selectedPedido.contenedor}
-          </span>
-        )}
-      </div>
-
-      {/* ===== LAYOUT PRINCIPAL ===== */}
+      {/* LAYOUT */}
       <div className="flex gap-5" style={{ minHeight: '80vh' }}>
 
-        {/* ===== PANEL IZQUIERDO: COLA DE PEDIDOS ===== */}
+        {/* COLA */}
         <div className="w-72 flex-shrink-0">
           <div className="sticky top-4">
             <div className="flex items-center gap-2 mb-3">
@@ -598,7 +421,6 @@ export function PesajeOperador() {
               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cola de Pesaje</span>
               <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>{pedidosEnPesaje.length}</span>
             </div>
-
             <div className="space-y-1.5 max-h-[75vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
               {pedidosEnPesaje.length === 0 ? (
                 <div className="rounded-xl p-8 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)' }}>
@@ -610,29 +432,27 @@ export function PesajeOperador() {
                   <button
                     key={pedido.id}
                     onClick={() => handleSelectPedido(pedido)}
-                    className="w-full text-left rounded-xl px-4 py-3 transition-all duration-200 cursor-pointer group"
+                    className="w-full text-left rounded-xl px-4 py-3 transition-all duration-200 group"
                     style={{
                       background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
                       border: selectedPedido?.id === pedido.id ? '2px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                      boxShadow: selectedPedido?.id === pedido.id ? '0 0 20px rgba(34,197,94,0.08)' : 'none',
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0" style={{
-                        background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: selectedPedido?.id === pedido.id ? '#22c55e' : '#666',
-                      }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                        style={{ background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: selectedPedido?.id === pedido.id ? '#22c55e' : '#666' }}>
                         {idx + 1}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{pedido.cliente}</div>
-                        <div className="text-[10px] text-gray-600 truncate">
-                          {pedido.cantidad} · {pedido.presentacion} · Ref: {pedido.contenedor}
-                        </div>
+                        <div className="text-[10px] text-gray-600 truncate">{pedido.cantidad} · {pedido.presentacion}</div>
+                        {pedido.cantidadJabas && (
+                          <div className="text-[10px] font-bold flex items-center gap-1" style={{ color: '#f59e0b' }}>
+                            <Lock className="w-2.5 h-2.5" /> {pedido.cantidadJabas} jabas
+                          </div>
+                        )}
                       </div>
-                      {selectedPedido?.id === pedido.id && (
-                        <ChevronRight className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      )}
+                      {selectedPedido?.id === pedido.id && <ChevronRight className="w-4 h-4 text-green-400 flex-shrink-0" />}
                     </div>
                   </button>
                 ))
@@ -641,11 +461,12 @@ export function PesajeOperador() {
           </div>
         </div>
 
-        {/* ===== PANEL DERECHO: PESAJE POR BLOQUES ===== */}
+        {/* PANEL DERECHO */}
         <div className="flex-1 min-w-0">
           {selectedPedido ? (
             <div className="space-y-4">
-              {/* Info del pedido seleccionado */}
+
+              {/* Cabecera del pedido */}
               <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
@@ -659,563 +480,444 @@ export function PesajeOperador() {
                       <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{selectedPedido.presentacion}</span>
                       <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{selectedPedido.cantidad} unids.</span>
                       {selectedPedido.cantidadJabas && (
-                        <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>{selectedPedido.cantidadJabas} jabas</span>
+                        <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                          <Lock className="w-3 h-3" /> {selectedPedido.cantidadJabas} jabas
+                        </span>
                       )}
-                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(204,170,0,0.1)', color: '#ccaa00', border: '1px solid rgba(204,170,0,0.2)' }}>
-                        Ref: {selectedPedido.contenedor}
-                      </span>
+                      {zonaBloqueada && zonaSeleccionada && (
+                        <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)' }}>
+                          <Lock className="w-3 h-3" /> {zonaSeleccionada.nombre.split(' - ')[0]}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all hover:scale-105" style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
-                    {modoManual ? 'Usar Balanza' : 'Modo Manual'}
-                  </button>
-                  <span className="text-xs px-2 py-1 rounded-full" style={{ background: modoManual ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)', color: modoManual ? '#f59e0b' : '#22c55e' }}>
+                {fase === 'pesando' && (
+                  <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                    style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
                     {modoManual ? '⌨ Manual' : '⚖ Balanza'}
-                  </span>
-                </div>
-              </div>
-
-              {/* ===== DISPLAY DE PESO ===== */}
-              <div
-                className="rounded-3xl p-8 text-center relative overflow-hidden transition-all duration-300"
-                style={{
-                  background: todosCompletados
-                    ? 'linear-gradient(145deg, rgba(34,197,94,0.12), rgba(0,0,0,0.7))'
-                    : 'linear-gradient(145deg, #0a0a0a, #1a1a1a)',
-                  border: todosCompletados
-                    ? '3px solid rgba(34,197,94,0.6)'
-                    : bloqueActual < bloques.length
-                      ? scale.connected && !modoManual
-                        ? scale.stable
-                          ? '3px solid #22c55e'
-                          : '3px solid #f59e0b'
-                        : '3px solid #3b82f6'
-                      : '3px solid rgba(255,255,255,0.1)',
-                  boxShadow: todosCompletados
-                    ? '0 0 40px rgba(34,197,94,0.3)'
-                    : scale.connected && !modoManual && scale.stable
-                      ? '0 0 50px rgba(34,197,94,0.25)'
-                      : '0 0 30px rgba(0,0,0,0.5)',
-                }}
-              >
-                {/* Indicador de bloque actual */}
-                {!todosCompletados && bloqueActual < bloques.length && (
-                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-                    <span
-                      className="text-xs font-black uppercase tracking-[0.25em] px-5 py-2 rounded-full"
-                      style={{
-                        background: 'rgba(204,170,0,0.15)',
-                        color: '#ccaa00',
-                        border: '1px solid rgba(204,170,0,0.4)',
-                        backdropFilter: 'blur(4px)',
-                      }}
-                    >
-                      BLOQUE {bloqueActual + 1} DE {bloques.length} — {bloques[bloqueActual]?.tamaño} UNIDS.
-                    </span>
-
-                    {/* Barra de progreso compacta */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Progreso</span>
-                      <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(bloquesCompletados / bloques.length) * 100}%`,
-                            background: 'linear-gradient(90deg, #22c55e, #4ade80)',
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs font-mono text-green-400">
-                        {bloquesCompletados}/{bloques.length}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Contenido principal: PESO */}
-                {todosCompletados ? (
-                  <div className="py-6">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/40 mb-4">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="text-sm font-semibold text-green-400">PESAJE COMPLETADO</span>
-                    </div>
-                    <p className="text-7xl md:text-8xl font-black font-mono tracking-tight text-white">
-                      {pesoTotalAcumulado.toFixed(2)}
-                      <span className="text-3xl ml-3 text-gray-400 font-light">Kg</span>
-                    </p>
-                    <p className="text-gray-500 mt-2 text-sm">Peso bruto total</p>
-                    
-                    {/* Resumen de contenedores */}
-                    <div className="mt-4 flex justify-center gap-6 text-sm">
-                      <div className="text-center">
-                        <div className="text-gray-400">Contenedores</div>
-                        <div className="text-amber-400 font-bold">{bloques.length}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-gray-400">Tara total</div>
-                        <div className="text-orange-400 font-bold">
-                          {bloques.reduce((sum, b) => sum + b.pesoContenedor, 0).toFixed(2)} kg
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-gray-400">Peso neto</div>
-                        <div className="text-green-400 font-bold">
-                          {(pesoTotalAcumulado - bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)).toFixed(2)} kg
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : modoManual ? (
-                  <div className="py-4">
-                    <div className="flex items-center justify-center gap-2 mb-2 text-blue-400">
-                      <Usb className="w-5 h-5" />
-                      <span className="text-xs font-semibold uppercase tracking-wider">Modo Manual</span>
-                    </div>
-                    <div className="relative max-w-2xl mx-auto">
-                      <Scale className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/60" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={pesoManualInput}
-                        onChange={(e) => {
-                          setPesoManualInput(e.target.value);
-                          const val = parseFloat(e.target.value) || 0;
-                          broadcastRef.current?.postMessage({
-                            type: 'weight-update',
-                            weight: val,
-                            stable: true,
-                            timestamp: Date.now(),
-                          });
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && pesoActual > 0) {
-                            registrarPesoBloque();
-                          }
-                        }}
-                        placeholder="0.00"
-                        className="w-full pl-20 pr-20 py-8 rounded-3xl text-white text-7xl md:text-8xl font-black font-mono text-center placeholder-gray-700 focus:ring-4 transition-all"
-                        style={{
-                          background: 'rgba(0,0,0,0.8)',
-                          border: '2px solid rgba(59,130,246,0.5)',
-                          boxShadow: '0 0 30px rgba(59,130,246,0.2)',
-                        }}
-                        autoFocus
-                      />
-                      <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-blue-400/60">
-                        Kg
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3">
-                      Presiona <kbd className="px-2 py-1 bg-gray-800 rounded-md text-white">Enter</kbd> para registrar
-                    </p>
-                  </div>
-                ) : (
-                  <div className="py-4">
-                    {/* Estado de la balanza */}
-                    <div className="flex items-center justify-center gap-3 mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <div
-                          className={`w-3 h-3 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
-                        />
-                        <span className="text-xs text-gray-400">
-                          {scale.connected ? 'Balanza conectada' : 'Sin conexión'}
-                        </span>
-                      </div>
-                      {scale.connected && (
-                        <div className="flex items-center gap-1.5">
-                          {scale.stable ? (
-                            <>
-                              <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                              <span className="text-xs text-green-400">Estable</span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                              <span className="text-xs text-amber-400">Estabilizando...</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Peso en vivo */}
-                    <p className="text-8xl md:text-9xl font-black font-mono tracking-tight leading-none">
-                      <span style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
-                        {scale.currentWeight.toFixed(2)}
-                      </span>
-                    </p>
-                    <p className="text-2xl font-light text-gray-500 mt-2">
-                      Kilogramos
-                    </p>
-
-                    {/* Indicador de cambio de peso */}
-                    {!scale.stable && (
-                      <div className="mt-4 flex justify-center">
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                          <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Botón de acción principal */}
-                {!todosCompletados && bloqueActual < bloques.length && (
-                  <div className="mt-6">
-                    <button
-                      onClick={registrarPesoBloque}
-                      disabled={pesoActual <= 0}
-                      className="group relative w-full py-6 rounded-2xl font-black text-white text-xl md:text-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed overflow-hidden"
-                      style={{
-                        background: pesoActual > 0
-                          ? 'linear-gradient(165deg, #0a4d2a, #1a6e3c, #2e8b57)'
-                          : 'rgba(255,255,255,0.05)',
-                        boxShadow: pesoActual > 0
-                          ? '0 20px 35px -8px rgba(34,197,94,0.5)'
-                          : 'none',
-                      }}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-4">
-                        <CheckCircle className="w-8 h-8" />
-                        REGISTRAR BLOQUE {bloqueActual + 1}
-                        <span className="text-2xl font-mono bg-white/20 px-4 py-1 rounded-xl">
-                          {pesoActual > 0 ? `${pesoActual.toFixed(2)} Kg` : '0.00 Kg'}
-                        </span>
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    </button>
-                  </div>
+                  </button>
                 )}
               </div>
 
-              {/* Selector de contenedor para el bloque actual */}
-              {!todosCompletados && bloqueActual < bloques.length && (
+              {/* ─────────────── FASE 1: PESANDO ─────────────── */}
+              {fase === 'pesando' && (
                 <div
-                  className="rounded-2xl p-5 backdrop-blur-sm"
+                  className="rounded-3xl p-8 text-center relative overflow-hidden"
                   style={{
-                    background: 'rgba(245,158,11,0.05)',
-                    border: '1px solid rgba(245,158,11,0.25)',
-                    boxShadow: '0 0 25px rgba(245,158,11,0.05)',
+                    background: 'linear-gradient(145deg, #0a0a0a, #1a1a1a)',
+                    border: modoManual ? '3px solid rgba(59,130,246,0.5)' : scale.stable ? '3px solid #22c55e' : '3px solid #f59e0b',
+                    boxShadow: modoManual ? '0 0 30px rgba(59,130,246,0.12)' : scale.stable ? '0 0 40px rgba(34,197,94,0.2)' : '0 0 25px rgba(245,158,11,0.1)',
                   }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Box className="w-3.5 h-3.5" /> SELECCIONAR CONTENEDOR — Bloque {bloqueActual + 1}
+                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center flex-wrap gap-2">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full"
+                      style={{ background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)' }}>
+                      {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                      Tara: {(contenedores.find(c => c.id === contenedorBloqueId)?.peso || 0).toFixed(1)} kg
-                    </span>
+                    {pesadas.length > 0 && (
+                      <span className="text-sm font-black font-mono px-4 py-1.5 rounded-full"
+                        style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
+                        Acumulado: {pesoBrutoTotal.toFixed(2)} kg
+                      </span>
+                    )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {contenedores.map((cont) => (
-                      <button 
-                        key={cont.id} 
-                        onClick={() => setContenedorBloqueId(cont.id)} 
-                        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-                        style={{ 
-                          background: contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)', 
-                          border: `1px solid ${contenedorBloqueId === cont.id ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)'}`, 
-                          color: contenedorBloqueId === cont.id ? '#f59e0b' : '#888' 
-                        }}>
-                        {cont.tipo} <span className="ml-1 opacity-60">({cont.peso} kg)</span>
-                      </button>
-                    ))}
+
+                  {modoManual ? (
+                    <div className="py-4 mt-10">
+                      <div className="relative max-w-2xl mx-auto">
+                        <Scale className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/40" />
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={pesoManualInput}
+                          onChange={(e) => setPesoManualInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                          placeholder="0.00"
+                          className="w-full pl-20 pr-20 py-8 rounded-3xl text-white text-7xl md:text-8xl font-black font-mono text-center placeholder-gray-700 focus:ring-4 transition-all"
+                          style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(59,130,246,0.35)' }}
+                          autoFocus
+                        />
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-blue-400/40">Kg</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-3">
+                        <kbd className="px-2 py-0.5 bg-gray-800 rounded text-white text-[10px]">Enter</kbd> o botón <strong className="text-blue-400">+ Sumar</strong>
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-4 mt-10">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <div className={`w-3 h-3 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                        <span className="text-xs text-gray-400">{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
+                        {scale.connected && (scale.stable
+                          ? <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Estable</span>
+                          : <span className="text-xs text-amber-400">Estabilizando...</span>
+                        )}
+                      </div>
+                      <p className="text-8xl font-black font-mono" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
+                        {scale.currentWeight.toFixed(2)}
+                      </p>
+                      <p className="text-2xl font-light text-gray-500 mt-1">Kilogramos</p>
+                    </div>
+                  )}
+
+                  {pesadas.length > 0 && (
+                    <div className="flex items-center justify-center gap-2 flex-wrap mt-3 mb-1">
+                      {pesadas.map(p => (
+                        <span key={p.numero} className="text-xs font-mono px-3 py-1.5 rounded-full"
+                          style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
+                          #{p.numero}: {p.peso.toFixed(2)} kg
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 max-w-2xl mx-auto mt-5">
+                    <button onClick={sumarPesada} disabled={pesoActual <= 0}
+                      className="flex-1 py-5 rounded-2xl font-black text-white text-xl transition-all hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      style={{ background: pesoActual > 0 ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.04)', boxShadow: pesoActual > 0 ? '0 12px 25px -8px rgba(37,99,235,0.5)' : 'none' }}>
+                      <Plus className="w-7 h-7" />
+                      SUMAR
+                      {pesoActual > 0 && <span className="text-base font-mono bg-white/20 px-3 py-1 rounded-xl">{pesoActual.toFixed(2)} kg</span>}
+                    </button>
+                    <button onClick={terminarPesaje} disabled={pesadas.length === 0}
+                      className="flex-1 py-5 rounded-2xl font-black text-white text-xl transition-all hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      style={{ background: pesadas.length > 0 ? 'linear-gradient(165deg, #0a4d2a, #1a6e3c, #2e8b57)' : 'rgba(255,255,255,0.04)', boxShadow: pesadas.length > 0 ? '0 12px 25px -8px rgba(34,197,94,0.5)' : 'none' }}>
+                      <CheckCircle className="w-7 h-7" />
+                      TERMINAR PESAJE
+                      {pesadas.length > 0 && <span className="text-base font-mono bg-white/20 px-3 py-1 rounded-xl">{pesoBrutoTotal.toFixed(2)} kg</span>}
+                    </button>
                   </div>
-                  {contenedorPorDefecto && contenedorBloqueId !== contenedorPorDefecto.id && (
-                    <p className="text-[10px] text-amber-400 mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Contenedor diferente al de referencia ({contenedorPorDefecto.tipo})
-                    </p>
+
+                  {pesadas.length > 0 && (
+                    <button onClick={quitarUltimaPesada} className="mt-3 text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto">
+                      <RotateCcw className="w-3 h-3" /> Deshacer última pesada
+                    </button>
                   )}
                 </div>
               )}
 
-              {/* Tabla de bloques pesados */}
-              {(bloquesCompletados > 0 || todosCompletados) && (
-                <div
-                  className="rounded-2xl overflow-hidden"
-                  style={{
-                    background: 'rgba(20,20,30,0.6)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <div className="p-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Bloques ({bloquesCompletados}/{bloques.length})</span>
-                    <span className="text-sm font-black font-mono" style={{ color: '#22c55e' }}>Total: {pesoTotalAcumulado.toFixed(2)} Kg</span>
+              {/* ─────────── FASE 2: CONFIRMAR CONTENEDOR ──────────── */}
+              {fase === 'confirmando-contenedor' && (
+                <div className="rounded-3xl p-8"
+                  style={{ background: 'linear-gradient(145deg, #0a0a0a, #1a1a1a)', border: '3px solid rgba(245,158,11,0.45)', boxShadow: '0 0 40px rgba(245,158,11,0.08)' }}>
+
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <span className="text-sm font-bold text-green-400">PESAJE COMPLETADO</span>
+                    </div>
+                    <p className="text-6xl font-black font-mono text-white">
+                      {pesoBrutoTotal.toFixed(2)} <span className="text-2xl text-gray-500 font-light">kg bruto</span>
+                    </p>
+                    <div className="flex justify-center gap-2 flex-wrap mt-3">
+                      {pesadas.map(p => (
+                        <span key={p.numero} className="text-xs font-mono px-3 py-1 rounded-full"
+                          style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
+                          #{p.numero}: {p.peso.toFixed(2)} kg
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                          <th className="px-4 py-2 text-left text-gray-500 font-semibold">#</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Unids.</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Peso (Kg)</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Contenedor</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Tara</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold">Estado</th>
-                          <th className="px-4 py-2 text-center text-gray-500 font-semibold"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bloques.map((bloque, idx) => (
-                          <tr key={idx} className={`transition-colors ${idx === bloqueActual && !bloque.pesado ? 'bg-green-900/10' : ''}`} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td className="px-4 py-2">
-                              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ background: bloque.pesado ? 'rgba(34,197,94,0.15)' : idx === bloqueActual ? 'rgba(204,170,0,0.15)' : 'rgba(255,255,255,0.04)', color: bloque.pesado ? '#22c55e' : idx === bloqueActual ? '#ccaa00' : '#555' }}>
-                                {bloque.numero}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-center text-gray-400">{bloque.tamaño}</td>
-                            <td className="px-4 py-2 text-center">
-                              {bloque.pesado ? (
-                                <span className="font-bold font-mono text-sm" style={{ color: '#22c55e' }}>{bloque.peso?.toFixed(2)}</span>
-                              ) : idx === bloqueActual ? (
-                                <span className="text-amber-400 animate-pulse">⏳</span>
-                              ) : (
-                                <span className="text-gray-700">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              <span className="text-[10px] font-mono" style={{ color: bloque.pesado ? '#f59e0b' : '#666' }}>
-                                {bloque.contenedorTipo}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              <span className="text-[10px] font-mono" style={{ color: '#ccaa00' }}>
-                                {bloque.pesoContenedor.toFixed(1)} kg
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              {bloque.pesado ? (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-900/20 text-green-400 border border-green-800/30">✓</span>
-                              ) : idx === bloqueActual ? (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-900/20 text-amber-400 border border-amber-800/30">Pesando</span>
-                              ) : (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-900/30 text-gray-600 border border-gray-800/30">Espera</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              {bloque.pesado && (
-                                <button onClick={() => corregirBloque(idx)} className="p-1 rounded-md hover:bg-amber-900/20 transition-colors" title="Repesar bloque">
-                                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+
+                  <div className="max-w-lg mx-auto space-y-6">
+                    <div className="text-center">
+                      <p className="text-amber-300 text-xl font-black uppercase tracking-wide mb-1">
+                        {esJabas ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
+                      </p>
+                      {esJabas && cantidadBloqueada && selectedPedido?.cantidadJabas && (
+                        <div className="flex items-center justify-center gap-2 mt-1 text-xs" style={{ color: '#f59e0b' }}>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Cantidad bloqueada: el pedido indica <strong>{selectedPedido.cantidadJabas} jabas</strong></span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selector de contenedor */}
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      {opcionesContenedor.map(cont => (
+                        <button key={cont.id}
+                          onClick={() => !esJabas && setContenedorFinalId(cont.id)}
+                          className={`px-5 py-3 rounded-xl font-bold transition-all text-center ${!esJabas ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
+                          style={{
+                            background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.04)',
+                            border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                            color: contenedorFinalId === cont.id ? '#f59e0b' : '#777',
+                            boxShadow: contenedorFinalId === cont.id ? '0 0 20px rgba(245,158,11,0.12)' : 'none',
+                          }}>
+                          <div className="flex items-center gap-2">
+                            {esJabas && <Lock className="w-3.5 h-3.5 opacity-60" />}
+                            <div>
+                              <div className="text-base">{cont.tipo}</div>
+                              <div className="text-xs opacity-60 font-mono">{cont.peso} kg/u</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Cantidad */}
+                    <div>
+                      <p className="text-center text-sm font-bold text-gray-300 mb-3">
+                        {esJabas ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
+                      </p>
+                      {cantidadBloqueada ? (
+                        <div className="relative max-w-xs mx-auto flex items-center justify-center gap-3 py-5 rounded-2xl"
+                          style={{ background: 'rgba(245,158,11,0.08)', border: '2px solid rgba(245,158,11,0.35)' }}>
+                          <Lock className="w-6 h-6 text-amber-400" />
+                          <span className="text-5xl font-black font-mono text-amber-400">{cantidadContenedoresInput}</span>
+                          <div className="text-left">
+                            <div className="text-xs text-amber-500 font-bold">jabas</div>
+                            <div className="text-[10px] text-gray-600">según pedido</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative max-w-xs mx-auto">
+                          <Box className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400/40" />
+                          <input type="number" min="1"
+                            value={cantidadContenedoresInput}
+                            onChange={(e) => setCantidadContenedoresInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedor(); }}
+                            placeholder="Ej: 5"
+                            className="w-full pl-12 pr-6 py-5 rounded-2xl text-white text-5xl font-black font-mono text-center placeholder-gray-700 focus:ring-4 transition-all"
+                            style={{ background: 'rgba(0,0,0,0.6)', border: '2px solid rgba(245,158,11,0.4)' }}
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preview tara/neto */}
+                    {contenedorFinalId && cantidadPreview > 0 && (
+                      <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl text-center"
+                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Peso Bruto</div>
+                          <div className="text-white font-bold font-mono">{pesoBrutoTotal.toFixed(2)} kg</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Tara ({cantidadPreview} × {contSeleccionadoPreview?.peso} kg)</div>
+                          <div className="text-amber-400 font-bold font-mono">{taraPreview.toFixed(2)} kg</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Peso Neto</div>
+                          <div className="text-green-400 font-black font-mono text-lg">{netoPreview.toFixed(2)} kg</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button onClick={() => setFase('pesando')}
+                        className="flex-1 py-3 rounded-xl text-gray-400 font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
+                        style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <RotateCcw className="w-4 h-4" /> Volver a pesar
+                      </button>
+                      <button onClick={confirmarContenedor} disabled={!contenedorFinalId || cantidadPreview <= 0}
+                        className="flex-[2] py-3 rounded-xl text-white font-black text-lg transition-all hover:scale-[1.02] disabled:opacity-30 flex items-center justify-center gap-2"
+                        style={{ background: 'linear-gradient(135deg, #78350f, #d97706, #f59e0b)', boxShadow: '0 6px 20px rgba(245,158,11,0.3)' }}>
+                        <CheckCircle className="w-5 h-5" /> Confirmar
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Conductor y Zona + Confirmar */}
-              {todosCompletados && (
-                <div className="rounded-2xl p-5 space-y-4" style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.12)' }}>
+              {/* ─────────── FASE 3: ASIGNAR ENTREGA ───────────── */}
+              {fase === 'asignando-entrega' && (
+                <div className="rounded-3xl p-8 space-y-6"
+                  style={{ background: 'linear-gradient(145deg, rgba(34,197,94,0.04), rgba(0,0,0,0.85))', border: '3px solid rgba(34,197,94,0.4)', boxShadow: '0 0 40px rgba(34,197,94,0.08)' }}>
+
+                  <div className="text-center mb-2">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <span className="text-sm font-bold text-green-400">LISTO PARA DESPACHO</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div className="text-xs text-gray-500 mb-1">Pesadas</div>
+                        <div className="text-3xl font-black text-white">{pesadas.length}</div>
+                        <div className="text-[10px] text-gray-600 mt-1">{pesadas.map(p => p.peso.toFixed(1)).join(' + ')} kg</div>
+                      </div>
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div className="text-xs text-gray-500 mb-1">{esJabas ? 'Jabas' : 'Contenedores'}</div>
+                        <div className="text-3xl font-black text-amber-400 flex items-center justify-center gap-1">
+                          {cantidadBloqueada && <Lock className="w-5 h-5" />}
+                          {cantidadPreview}
+                        </div>
+                        <div className="text-[10px] text-gray-600 mt-1">{contSeleccionadoPreview?.tipo}</div>
+                      </div>
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div className="text-xs text-gray-500 mb-1">Tara total</div>
+                        <div className="text-3xl font-black text-orange-400">{taraPreview.toFixed(2)}</div>
+                        <div className="text-[10px] text-gray-600 mt-1">kg</div>
+                      </div>
+                      <div className="rounded-2xl p-4" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                        <div className="text-xs text-green-600 mb-1">Peso Neto</div>
+                        <div className="text-3xl font-black text-green-400">{netoPreview.toFixed(2)}</div>
+                        <div className="text-[10px] text-green-700 mt-1">kg neto</div>
+                      </div>
+                    </div>
+                  </div>
+
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Conductor */}
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#3b82f6' }} />
-                      <select 
-                        value={conductorId} 
-                        onChange={(e) => setConductorId(e.target.value)} 
-                        className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none cursor-pointer focus:ring-2 transition-all" 
-                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(59,130,246,0.2)', outlineColor: '#3b82f6' }}
-                      >
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                      <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
+                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(59,130,246,0.25)' }}>
                         <option value="">Seleccionar conductor...</option>
-                        {CONDUCTORES.map((c) => (
-                          <option key={c.id} value={c.id} className="bg-gray-900">
-                            {c.nombre} — {c.placa}
-                          </option>
-                        ))}
+                        {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
                       </select>
                     </div>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#a855f7' }} />
-                      <select
-                        value={zonaId}
-                        onChange={(e) => setZonaId(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
-                      >
-                        <option value="">Seleccionar zona...</option>
-                        {ZONAS.map((z) => (
-                          <option key={z.id} value={z.id} className="bg-gray-900">
-                            {z.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  {/* Resumen final */}
-                  <div className="grid grid-cols-3 gap-3 p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.3)' }}>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Peso Bruto</div>
-                      <div className="text-white font-bold font-mono">{pesoTotalAcumulado.toFixed(2)} kg</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Tara Total</div>
-                      <div className="text-amber-400 font-bold font-mono">
-                        {bloques.reduce((sum, b) => sum + b.pesoContenedor, 0).toFixed(2)} kg
+
+                    {/* Zona: bloqueada o editable */}
+                    {zonaBloqueada ? (
+                      <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                        style={{ background: 'rgba(168,85,247,0.08)', border: '2px solid rgba(168,85,247,0.35)' }}>
+                        <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
+                          <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-400">Peso Neto</div>
-                      <div className="text-green-400 font-bold font-mono">
-                        {(pesoTotalAcumulado - bloques.reduce((sum, b) => sum + b.pesoContenedor, 0)).toFixed(2)} kg
+                    ) : (
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+                        <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
+                          style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                          <option value="">Seleccionar zona...</option>
+                          {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
+                        </select>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  <button 
-                    onClick={handleConfirmar} 
-                    className="w-full py-4 rounded-2xl font-black text-white text-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-3"
-                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 8px 25px -5px rgba(34,197,94,0.4)' }}
-                  >
-                    <Printer className="w-6 h-6" />
-                    CONFIRMAR Y EMITIR TICKET
-                  </button>
+                  <div className="flex gap-3">
+                    <button onClick={() => setFase('confirmando-contenedor')}
+                      className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/10 transition-all"
+                      style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <RotateCcw className="w-4 h-4" /> Volver
+                    </button>
+                    <button onClick={handleConfirmar}
+                      className="flex-1 py-4 rounded-2xl font-black text-white text-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-3"
+                      style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 8px 25px -5px rgba(34,197,94,0.4)' }}>
+                      <Printer className="w-6 h-6" />
+                      CONFIRMAR Y EMITIR TICKET
+                    </button>
+                  </div>
                 </div>
               )}
+
             </div>
           ) : (
-            /* Estado vacío cuando no hay pedido seleccionado */
-            <div className="h-full flex items-center justify-center rounded-2xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', minHeight: '60vh' }}>
+            <div className="h-full flex items-center justify-center rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', minHeight: '60vh' }}>
               <div className="text-center">
                 <Scale className="w-20 h-20 mx-auto mb-4" style={{ color: 'rgba(34,197,94,0.1)' }} />
                 <p className="text-gray-500 text-base font-medium">Seleccione un pedido de la cola</p>
-                <p className="text-gray-700 text-xs mt-1">Los contenedores se seleccionan durante el pesaje</p>
+                <p className="text-gray-700 text-xs mt-1">Suma las pesadas → confirma jabas/contenedores → emite ticket</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* ===== MODAL TICKET (2 copias: Cliente + Negocio) ===== */}
+      {/* ===== MODAL TICKET ===== */}
       {ticketVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
-          <div className="bg-gray-950 rounded-3xl border border-gray-800 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8)' }}>
+          <div className="bg-gray-950 rounded-3xl border border-gray-800 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8)' }}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-green-400" />
-                Tickets Emitidos
+                <FileText className="w-5 h-5 text-green-400" /> Tickets Emitidos  
               </h2>
-              <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+              <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
 
-            {/* 2 tickets lado a lado */}
             <div ref={ticketRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {['CLIENTE', 'NEGOCIO'].map((tipo) => (
-                <div key={tipo} className="ticket rounded-2xl p-5 relative overflow-hidden" style={{ background: 'rgba(10,10,10,0.95)', border: '2px solid rgba(51,51,51,0.6)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-1" style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
+              {(['CLIENTE', 'NEGOCIO'] as const).map((tipo) => (
+                <div key={tipo} className="ticket rounded-2xl p-5 relative overflow-hidden"
+                  style={{ background: 'rgba(10,10,10,0.95)', border: '2px solid rgba(51,51,51,0.6)' }}>
+                  <div className="absolute top-0 left-0 right-0 h-1"
+                    style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
 
-                  {/* Tipo de copia */}
-                  <div className="text-center mb-1">
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full" style={{ background: tipo === 'CLIENTE' ? 'rgba(34,197,94,0.1)' : 'rgba(204,170,0,0.1)', color: tipo === 'CLIENTE' ? '#22c55e' : '#ccaa00', border: `1px solid ${tipo === 'CLIENTE' ? 'rgba(34,197,94,0.2)' : 'rgba(204,170,0,0.2)'}` }}>
-                      Copia {tipo}
-                    </span>
-                  </div>
+                  
 
-                  {/* Header */}
+                  {/* Encabezado */}
                   <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #333' }}>
                     <h3 className="text-lg font-extrabold tracking-widest">
-                      <span style={{ color: '#22c55e' }}>AVÍCOLA </span>
-                      <span style={{ color: '#ccaa00' }}>JOSSY</span>
+                      <span style={{ color: '#22c55e' }}>AVÍCOLA </span><span style={{ color: '#ccaa00' }}>JOSSY</span>
                     </h3>
-                    <p className="text-[9px] text-gray-500 tracking-[0.2em] mt-0.5 uppercase">Ticket de Despacho</p>
+                    <p className="text-[9px] text-gray-500 tracking-[0.2em] mt-0.5 uppercase">Ticket de Pedido</p>
                   </div>
 
-                  {/* Ticket number */}
-                  <div className="text-center py-1.5 px-3 rounded-lg mb-3 font-mono text-xs" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)', color: '#ccaa00' }}>
+                  {/* N° ticket */}
+                  <div className="text-center py-1.5 px-3 rounded-lg mb-3 font-mono text-xs"
+                    style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)', color: 'white' }}>
                     {ticketVisible.numeroTicket}
                   </div>
 
                   {/* Datos pedido */}
                   <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos del Pedido</p>
-                    <div className="space-y-0.5">
-                      {[
-                        ['Cliente', ticketVisible.pedido.cliente],
-                        ['Producto', ticketVisible.pedido.tipoAve],
-                        ['Presentación', ticketVisible.pedido.presentacion],
-                        ['Cantidad', `${ticketVisible.pedido.cantidad} unids.`],
-                      ].map(([label, value]) => (
-                        <div key={label} className="flex justify-between text-[11px]">
-                          <span className="text-gray-500">{label}</span>
-                          <span className="text-white font-bold">{value}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {[
+                      ['Cliente', ticketVisible.pedido.cliente],
+                      ['Producto', ticketVisible.pedido.tipoAve],
+                      ['Presentación', ticketVisible.pedido.presentacion],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between text-[11px]">
+                        <span className="text-gray-500">{label}</span>
+                        <span className="text-white font-bold">{value}</span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Tabla bloques */}
+                  {/* Detalle pesadas */}
                   <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
-                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Detalle por Bloques</p>
+                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Detalle de Pesaje</p>
                     <table className="w-full text-[10px]">
                       <thead>
                         <tr>
-                          <th className="text-left text-gray-500 pb-1">Bloque</th>
-                          <th className="text-center text-gray-500 pb-1">Unids.</th>
-                          <th className="text-center text-gray-500 pb-1">Contenedor</th>
-                          <th className="text-right text-gray-500 pb-1">Peso (Kg)</th>
+                          <th className="text-left text-gray-500 pb-1 font-semibold">Pesada</th>
+                          <th className="text-right text-gray-500 pb-1 font-semibold">Peso (kg)</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {ticketVisible.bloques.map((b) => (
-                          <tr key={b.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td className="py-0.5 text-gray-400">Bloque {b.numero}</td>
-                            <td className="py-0.5 text-center text-gray-400">{b.tamaño}</td>
-                            <td className="py-0.5 text-center text-gray-400">{b.contenedorTipo}</td>
-                            <td className="py-0.5 text-right font-mono font-bold text-white">{b.peso?.toFixed(2)}</td>
+                        {ticketVisible.pesadas.map(p => (
+                          <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td className="py-0.5 text-gray-400">Pesada {p.numero}</td>
+                            <td className="py-0.5 text-right font-mono font-bold text-white">{p.peso.toFixed(2)}</td>
                           </tr>
                         ))}
+                        <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)' }}>
+                          <td className="py-1 text-gray-300 font-bold text-xs">TOTAL BRUTO</td>
+                          <td className="py-1 text-right font-mono font-black text-white text-sm">{ticketVisible.pesoBrutoTotal.toFixed(2)}</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Resumen de pesos */}
-                  <div className="text-center p-3 rounded-xl mb-3" style={{ background: 'rgba(34,197,94,0.08)', border: '2px solid rgba(34,197,94,0.25)' }}>
-                    <div className="grid grid-cols-3 gap-2 text-[10px]">
-                      <div>
-                        <div className="text-gray-500">Bruto</div>
-                        <div className="text-white font-bold">{ticketVisible.pesoTotal.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500">Tara</div>
-                        <div className="text-amber-400 font-bold">{ticketVisible.pesoContenedores.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500">Neto</div>
-                        <div className="text-green-400 font-bold">{ticketVisible.pesoNeto.toFixed(2)}</div>
-                      </div>
-                    </div>
-                  </div>
+               
 
-                  {/* Datos entrega */}
+                  {/* Datos de entrega */}
                   <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos de Entrega</p>
-                    <div className="space-y-0.5">
-                      {[
-                        ['Conductor', ticketVisible.conductor],
-                        ['Placa', ticketVisible.conductorPlaca],
-                        ['Zona', ticketVisible.zona],
-                      ].map(([label, value]) => (
-                        <div key={label} className="flex justify-between text-[11px]">
-                          <span className="text-gray-500">{label}</span>
-                          <span className="text-white font-bold">{value}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {[
+                      ['Conductor', ticketVisible.conductor],
+                      ['Placa', ticketVisible.conductorPlaca],
+                      ['Zona', ticketVisible.zona],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between text-[11px]">
+                        <span className="text-gray-500">{label}</span>
+                        <span className="text-white font-bold">{value}</span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Footer */}
                   <div className="text-center pt-1">
                     <p className="text-[10px] text-gray-500">{ticketVisible.fechaEmision} — {ticketVisible.horaEmision}</p>
                     <p className="text-[8px] text-gray-700 mt-1 tracking-[0.2em] uppercase">Avícola Jossy — Sistema de Gestión</p>
@@ -1224,14 +926,15 @@ export function PesajeOperador() {
               ))}
             </div>
 
-            {/* Botones del modal */}
             <div className="flex gap-3 mt-5">
-              <button onClick={handlePrint} className="flex-1 py-3.5 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+              <button onClick={handlePrint}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #0d4a24, #22c55e)', boxShadow: '0 6px 18px rgba(34,197,94,0.3)' }}>
-                <Printer className="w-5 h-5" />
-                Imprimir Tickets (2 copias)
+                <Printer className="w-5 h-5" /> Imprimir Tickets
               </button>
-              <button onClick={() => setTicketVisible(null)} className="px-6 py-3.5 rounded-2xl font-bold text-gray-400 transition-all hover:scale-[1.02]" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <button onClick={() => setTicketVisible(null)}
+                className="px-6 py-3.5 rounded-2xl font-bold text-gray-400 flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
