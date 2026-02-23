@@ -102,10 +102,6 @@ interface PedidoPesaje {
   unidadesPorJaba?: number;
   presentacion: string;
   contenedor: string;
-  pesoContenedores?: number;
-  numeroContenedores?: number;
-  pesoBruto?: number;
-  conductor?: Conductor;
   estadoPesaje: 'Pendiente' | 'Completado' | 'Verificado';
   fechaPesaje?: string;
   horaPesaje?: string;
@@ -223,65 +219,6 @@ export function ListaPedidos() {
   useEffect(() => {
     localStorage.setItem('modificacionesHistorial', JSON.stringify(modificacionesHistorial));
   }, [modificacionesHistorial]);
-
-  // Sincronizar datos de pesaje desde PedidoConfirmado (cuando PesajeOperador confirma)
-  useEffect(() => {
-    if (!pedidosConfirmados) return;
-
-    const completadosParaControl: PedidoPesaje[] = [];
-
-    pedidosConfirmados.forEach(pc => {
-      if (pc.pesoKg && pc.conductor && pc.zonaEntrega) {
-        const conductorObj = conductores.find(c => c.nombre === pc.conductor);
-
-        const esVivoP = pc.presentacion?.toLowerCase().includes('vivo');
-        const numCont = esVivoP && pc.cantidadJabas
-          ? pc.cantidadJabas
-          : Math.ceil(pc.cantidad / 10);
-
-        const pedidoCompletado: PedidoPesaje = {
-          id: `pesaje-${pc.id}`,
-          numeroPedido: pc.numeroPedido || '',
-          cliente: pc.cliente,
-          producto: pc.tipoAve,
-          cantidad: pc.cantidad,
-          cantidadJabas: pc.cantidadJabas,
-          unidadesPorJaba: pc.unidadesPorJaba,
-          presentacion: pc.presentacion,
-          contenedor: pc.contenedor,
-          pesoBruto: pc.pesoKg,
-          numeroContenedores: numCont,
-          pesoContenedores: pc.pesoContenedores || 0,
-          conductor: conductorObj || {
-            id: 'pesaje',
-            nombre: pc.conductor,
-            licencia: '',
-            vehiculo: '',
-            zonaAsignada: pc.zonaEntrega || '',
-          },
-          estadoPesaje: 'Completado' as const,
-          fechaPesaje: pc.fecha,
-          horaPesaje: pc.hora,
-          cantidadMachos: extraerInfoGenero(pc.tipoAve)?.machos,
-          cantidadHembras: extraerInfoGenero(pc.tipoAve)?.hembras
-        };
-        completadosParaControl.push(pedidoCompletado);
-      }
-    });
-
-    if (completadosParaControl.length > 0) {
-      try {
-        const existentes = JSON.parse(localStorage.getItem('pedidosPesajeControl') || '[]');
-        const idsExistentes = new Set(existentes.map((p: PedidoPesaje) => p.id));
-        const nuevos = completadosParaControl.filter(p => !idsExistentes.has(p.id));
-        if (nuevos.length > 0) {
-          localStorage.setItem('pedidosPesajeControl', JSON.stringify([...existentes, ...nuevos]));
-        }
-      } catch {
-        localStorage.setItem('pedidosPesajeControl', JSON.stringify(completadosParaControl));
-      }
-    }
-  }, [pedidosConfirmados, conductores, updatePedidoConfirmado]);
 
   // ============ PROCESAR PEDIDOS DESDE EL CONTEXTO ============
   useEffect(() => {
@@ -942,7 +879,7 @@ export function ListaPedidos() {
     setFormEdicion(null);
   };
 
-  // 3. FUNCIÓN PARA MOVER A PESAJE
+  // 3. FUNCIÓN PARA MOVER A PESAJE (UN PEDIDO A LA VEZ)
   const moverAPesaje = (pedido: PedidoLista) => {
     if (pedido.estado !== 'En Producción') {
       toast.error('Solo se pueden mover a pesaje pedidos en producción');
@@ -1213,7 +1150,7 @@ export function ListaPedidos() {
     }
   };
 
-  // Mover a producción
+  // Mover a producción (UN PEDIDO A LA VEZ)
   const moverAProduccion = (pedido: PedidoLista) => {
     const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedido.id);
     if (pedidoOriginal) {
@@ -1314,8 +1251,7 @@ export function ListaPedidos() {
     const matchesSearch =
       pedido.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pedido.contenedor.toLowerCase().includes(searchTerm.toLowerCase());
+      pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCliente = filterCliente === 'all' || pedido.cliente === filterCliente;
     const matchesTipoAve = filterTipoAve === 'all' || pedido.tipoAve === filterTipoAve;
     const matchesEstado = filterEstado === 'all' || pedido.estado === filterEstado;
@@ -1630,8 +1566,6 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* Grupos de Clientes - Comentado como en original */}
-
       {/* ========== SECCIONES ANTES DE PESAJE ========== */}
       {[
         { 
@@ -1707,7 +1641,6 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
                     </tr>
@@ -1824,9 +1757,6 @@ export function ListaPedidos() {
                           ) : (
                             <span className="text-gray-500 font-mono">—</span>
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-300 font-medium">{pedido.contenedor}</div>
                         </td>
                         <td className="px-6 py-4">
                           <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
@@ -1964,15 +1894,6 @@ export function ListaPedidos() {
                     <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedores</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Peso Bruto</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Conductor</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div>
                   </th>
                   <th className="px-6 py-4 text-left">
@@ -1983,7 +1904,7 @@ export function ListaPedidos() {
               <tbody>
                 {pedidosPesaje.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-6 py-12 text-center">
+                    <td colSpan={9} className="px-6 py-12 text-center">
                       <div className="text-gray-400">
                         No hay pedidos en proceso de pesaje
                       </div>
@@ -2036,21 +1957,6 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="text-white font-medium">{pedido.contenedor}</div>
-                          <div className="text-xs text-gray-400">Pendiente de pesaje</div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span className="text-gray-500">—</span>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span className="text-gray-400 text-xs">Sin asignar</span>
-                      </td>
-
-                      <td className="px-6 py-4">
                         <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
                           pedido.estado === 'Pesaje'
                             ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-purple-300 shadow-purple-500/20'
@@ -2062,14 +1968,6 @@ export function ListaPedidos() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => pedido.conductor && setConductorSeleccionado(pedido.conductor)}
-                            className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl"
-                            title="Ver/editar conductor"
-                          >
-                            <UserIcon className="w-4 h-4 text-blue-400" />
-                          </button>
-
                           <button
                             onClick={() => eliminarDePesaje(pedido.id)}
                             className="p-2 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-lg hover:from-amber-900/50 hover:to-amber-800/40 transition-all shadow-lg hover:shadow-xl"
@@ -2159,6 +2057,7 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Conductor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
                     </tr>
@@ -2226,6 +2125,9 @@ export function ListaPedidos() {
                           <div className="text-sm text-gray-300 font-medium">{pedido.contenedor}</div>
                         </td>
                         <td className="px-6 py-4">
+                          <span className="text-gray-400 text-sm">Pendiente</span>
+                        </td>
+                        <td className="px-6 py-4">
                           <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
                             pedido.estado === 'En Despacho' 
                               ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 text-blue-300 shadow-blue-500/20' 
@@ -2248,6 +2150,15 @@ export function ListaPedidos() {
                             >
                               <Eye className="w-4 h-4 text-gray-300" />
                             </button>
+                            {seccion.titulo === 'Pedidos en Entrega' && (
+                              <button
+                                onClick={() => completarEntrega(pedido)}
+                                className="p-2 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-lg hover:from-green-900/50 hover:to-green-800/40 transition-all shadow-lg hover:shadow-xl"
+                                title="Completar entrega"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-400" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

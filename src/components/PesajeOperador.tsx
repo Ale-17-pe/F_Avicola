@@ -32,12 +32,14 @@ const CONDUCTORES = [
 ];
 
 const ZONAS = [
-  { id: '1', nombre: 'Zona 1 - Independencia, Provincia, Jicamarca' },
-  { id: '2', nombre: 'Zona 2 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
-  { id: '3', nombre: 'Zona 3 - Vencedores' },
-  { id: '4', nombre: 'Zona 4 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
-  { id: '5', nombre: 'Zona 5 - Valle Sagrado, Saruta' },
-  { id: '6', nombre: 'Zona 6 - Bayovar, Huáscar, Peladero, Sta. María' },
+  { id: '1', nombre: 'Zona 1 - Independencia' },
+  { id: '2', nombre: 'Zona 2 - Provincia' },
+  { id: '3', nombre: 'Zona 3 - Jicamarca' },
+  { id: '4', nombre: 'Zona 4 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
+  { id: '5', nombre: 'Zona 5 - Vencedores' },
+  { id: '6', nombre: 'Zona 6 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
+  { id: '7', nombre: 'Zona 7 - Valle Sagrado, Saruta' },
+  { id: '8', nombre: 'Zona 8 - Bayovar, Huáscar, Peladero, Sta. María' },
 ];
 
 const JABA_ESTANDAR = { id: 'jaba-std', tipo: 'Jaba Estándar', peso: 6.9 };
@@ -382,15 +384,6 @@ export function PesajeOperador() {
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <Scale className="w-6 h-6" style={{ color: '#22c55e' }} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Pesaje de Pedidos</h1>
-            <p className="text-gray-500 text-xs">Suma las pesadas → confirma contenedores/jabas → emite ticket</p>
-          </div>
-        </div>
         <div className="flex items-center gap-2">
           <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa' }}>
             <Monitor className="w-3.5 h-3.5" /> Display
@@ -403,10 +396,6 @@ export function PesajeOperador() {
             {scale.connected ? <Wifi className="w-3.5 h-3.5" /> : <Usb className="w-3.5 h-3.5" />}
             {scale.connected ? 'Conectada' : 'Balanza'}
           </button>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)' }}>
-            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-xs font-bold" style={{ color: '#ccaa00' }}>{pedidosEnPesaje.length}</span>
-          </div>
         </div>
       </div>
 

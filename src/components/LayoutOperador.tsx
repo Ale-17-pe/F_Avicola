@@ -46,6 +46,13 @@ export function LayoutOperador() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Redirigir a nuevo-pedido si estamos en la raíz del dashboard-operador
+  useEffect(() => {
+    if (location.pathname === '/dashboard-operador') {
+      navigate('/dashboard-operador/nuevo-pedido', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -81,7 +88,7 @@ export function LayoutOperador() {
     for (const item of navigationItems) {
       if (item.path && location.pathname === item.path) return item.label;
     }
-    if (location.pathname === '/dashboard-operador') return "Dashboard";
+    if (location.pathname === '/dashboard-operador') return "Nuevo Pedido"; // Cambiado para que muestre "Nuevo Pedido" como título
     return "Avícola Jossy";
   };
 

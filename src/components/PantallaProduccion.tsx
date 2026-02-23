@@ -118,11 +118,6 @@ export function PantallaProduccion() {
     }).toUpperCase();
   };
 
-  // Obtener hora actual para el reloj analógico
-  const horas = horaActual.getHours() % 12;
-  const minutos = horaActual.getMinutes();
-  const segundos = horaActual.getSeconds();
-
   return (
     <div className="fixed inset-0 bg-black text-gray-300 font-sans overflow-hidden p-4 md:p-6">
       {/* Header mejorado */}
@@ -135,16 +130,14 @@ export function PantallaProduccion() {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight">
-                COLA DE PEDIDOS
+                PEDIDOS EN PRODUCCIÓN
                 </h1>
-                <p className="text-gray-400 text-sm md:text-base mt-1">
-                  Monitoreo de pedidos
-                </p>
+               
               </div>
             </div>
           </div>
           
-          {/* Reloj digital grande y destacado CON LOGO */}
+          {/* Reloj digital grande y destacado */}
           <div className="flex flex-col items-end space-y-2">
             <div className="text-right">
               <div className="flex items-center justify-end gap-2 mb-1">
@@ -154,21 +147,13 @@ export function PantallaProduccion() {
                 </div>
               </div>
               <div className="flex items-center gap-4 md:gap-6">
-                {/* Logo de la empresa - A la izquierda del reloj */}
                 <div className="hidden md:flex items-center">
                   <div className="relative">
-
-                    {/* Efecto de brillo */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 pointer-events-none"></div>
                   </div>
-                  {/* Separador decorativo */}
                   <div className="h-20 w-px bg-gradient-to-b from-transparent via-gray-800 to-transparent mx-4"></div>
                 </div>
-                {/* Reloj */}
                 <div className="flex items-center gap-3 md:gap-4">
-                  {/* Reloj analógico */}
-                
-                  {/* Reloj digital */}
                   <div className="text-right">
                     <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white font-mono tracking-tighter leading-none">
                       {formatearHora(horaActual)}
@@ -184,20 +169,9 @@ export function PantallaProduccion() {
             </div>
           </div>
         </div>
-
-        {/* Indicadores de estado */}
-        <div className="flex flex-wrap items-center gap-4 mt-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${produccionActiva ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-              <span className="text-sm font-semibold">{produccionActiva ? 'PRODUCCIÓN ACTIVA' : 'PRODUCCIÓN PAUSADA'}</span>
-            </div>
-          </div>
-          <div className="flex-1"></div>
-        </div>
       </div>
       
-      {/* Lista de Pedidos - Mejorada */}
+      {/* Lista de Pedidos */}
       <div className="mb-6 md:mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
@@ -205,10 +179,7 @@ export function PantallaProduccion() {
               <Layers className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
             </div>
             <span>Cola de Producción</span>
-            <span className="px-3 py-1 bg-gradient-to-r from-blue-900/30 to-blue-900/10 text-blue-300 text-sm font-bold rounded-full border border-blue-700/30">
-              {pedidosEnProduccion.length}
-            </span>
-          </h2>
+            </h2>
         </div>
         
         <div className="bg-gradient-to-b from-gray-900/20 to-black border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
@@ -217,16 +188,16 @@ export function PantallaProduccion() {
               <thead>
                 <tr className="bg-gradient-to-r from-gray-900/80 to-black border-b border-gray-800">
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Cliente</div>
+                    <div className="text-xs font-bold text-white uppercase tracking-wider">Cliente</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Producto</div>
+                    <div className="text-xs font-bold text-white uppercase tracking-wider">Producto</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Variedad</div>
+                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Variedad</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Cantidad</div>
+                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Cantidad</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-center">
                     <div className="text-xs font-bold text-blue-400 uppercase tracking-wider">Machos</div>
@@ -235,28 +206,24 @@ export function PantallaProduccion() {
                     <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">Hembras</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Presentación</div>
-                  </th>
-                  <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Contenedor</div>
+                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Presentación</div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {pedidosEnProduccion.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
-                      <div className="text-gray-500 flex flex-col items-center max-w-md mx-auto">
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="text-white-500 flex flex-col items-center max-w-md mx-auto">
                         <div className="relative mb-4">
-                          <Monitor className="w-20 h-20 text-gray-800" />
+                          <Monitor className="w-20 h-20 text-gray-800" /> 
                           <div className="absolute inset-0 flex items-center justify-center">
                             <AlertCircle className="w-10 h-10 text-gray-700" />
                           </div>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-700 mb-2">SIN PEDIDOS EN PRODUCCIÓN</h3>
-                        <p className="text-gray-600 text-center">
+                        <h3 className="text-xl font-bold text-white-700 mb-2">SIN PEDIDOS EN PRODUCCIÓN</h3>
+                        <p className="text-white-600 text-center">
                           La línea de producción está esperando nuevas órdenes.
-                          Los pedidos aparecerán aquí automáticamente cuando sean confirmados.
                         </p>
                       </div>
                     </td>
@@ -380,22 +347,6 @@ export function PantallaProduccion() {
                           }`}>
                             {pedido.presentacion}
                           </span>
-                        </td>
-                        
-                        {/* Contenedor */}
-                        <td className="px-4 md:px-6 py-3 md:py-4">
-                          <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg ${
-                              esPrimero 
-                                ? 'bg-gradient-to-br from-amber-900/30 to-amber-900/20 border border-amber-700/50' 
-                                : 'bg-gray-800/30 border border-gray-700/30'
-                            }`}>
-                              <Box className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
-                            </div>
-                            <div className="text-white font-bold text-sm md:text-base uppercase tracking-tight">
-                              {pedido.contenedor}
-                            </div>
-                          </div>
                         </td>
                       </tr>
                     );

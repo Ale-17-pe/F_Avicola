@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Eye, EyeOff, User, Lock, AlertCircle, Shield } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, AlertCircle, Shield, Mail, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -14,10 +14,20 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; code?: string; general?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<'login' | '2fa'>('login'); // Paso del formulario
-  const [code2FA, setCode2FA] = useState(['', '', '', '', '', '']); // 6 dígitos
+  const [step, setStep] = useState<'login' | '2fa' | 'recover'>('login');
+  const [code2FA, setCode2FA] = useState(['', '', '', '', '', '']);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [credencialesTemporales, setCredencialesTemporales] = useState<{username: string, password: string} | null>(null);
+  
+  // Estados para recuperación de contraseña
+  const [recoverEmail, setRecoverEmail] = useState('');
+  const [recoverCode, setRecoverCode] = useState(['', '', '', '', '', '']);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
+  const [recoverStep, setRecoverStep] = useState<'email' | 'code' | 'password'>('email');
+  const [recoverErrors, setRecoverErrors] = useState<{ email?: string; code?: string; password?: string; confirm?: string }>({});
+  const [recoverSuccess, setRecoverSuccess] = useState(false);
 
   useEffect(() => {
     document.title = "Iniciar Sesión | Avícola Jossy";
@@ -50,10 +60,10 @@ export function Login() {
     // Simulación de llamada a API
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Verificar si el usuario es operador (no requiere 2FA)
-    const loginExitosoDirecto = login(email, password);
+    // Verificar credenciales
+    const loginExitoso = login(email, password);
     
-    if (loginExitosoDirecto) {
+    if (loginExitoso) {
       // Obtener el rol del usuario que acaba de hacer login
       const usuarioInfo = [
         { username: 'admin', rol: 'administrador' },
@@ -64,21 +74,18 @@ export function Login() {
       ].find(u => u.username === email);
       
       if (usuarioInfo?.rol === 'operador') {
-        // Operador: NO requiere 2FA, redirigir directamente
         setIsLoading(false);
         navigate('/dashboard-operador');
         return;
       }
 
       if (usuarioInfo?.rol === 'conductor') {
-        // Conductor: NO requiere 2FA, redirigir directamente
         setIsLoading(false);
         navigate('/dashboard-conductor');
         return;
       }
 
       if (usuarioInfo?.rol === 'cobranza') {
-        // Cobranza: NO requiere 2FA, redirigir directamente
         setIsLoading(false);
         navigate('/dashboard-cobranza');
         return;
@@ -86,20 +93,19 @@ export function Login() {
       
       // Para otros roles, hacer logout temporal y continuar con 2FA
       logout();
+      setCredencialesTemporales({ username: email, password: password });
+      setIsLoading(false);
+      setStep('2fa');
+      setTimeout(() => {
+        if (inputsRef.current[0]) {
+          inputsRef.current[0].focus();
+        }
+      }, 100);
+    } else {
+      // Credenciales incorrectas - mostrar alerta
+      setIsLoading(false);
+      setErrors({ general: 'Usuario o contraseña incorrectos' });
     }
-    
-    // Guardar credenciales temporales
-    setCredencialesTemporales({ username: email, password: password });
-    
-    setIsLoading(false);
-    // Pasar al paso de 2FA
-    setStep('2fa');
-    // Auto-focus en el primer input
-    setTimeout(() => {
-      if (inputsRef.current[0]) {
-        inputsRef.current[0].focus();
-      }
-    }, 100);
   };
 
   const handle2FASubmit = async (e: React.FormEvent) => {
@@ -114,17 +120,14 @@ export function Login() {
 
     setIsLoading(true);
     
-    // Simulación de validación 2FA (código correcto: 123456)
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     if (fullCode === '123456') {
-      // Intentar hacer login con las credenciales guardadas
       if (credencialesTemporales) {
         const loginExitoso = login(credencialesTemporales.username, credencialesTemporales.password);
         
         if (loginExitoso) {
           setIsLoading(false);
-          // Redirigir según el rol
           if (credencialesTemporales.username === 'secretaria') {
             navigate('/dashboard-secretaria');
           } else if (credencialesTemporales.username === 'conductor') {
@@ -155,7 +158,6 @@ export function Login() {
     newCode2FA[index] = value;
     setCode2FA(newCode2FA);
 
-    // Mover al siguiente input si se ingresa un dígito
     if (value && index < 5) {
       const nextInput = inputsRef.current[index + 1];
       if (nextInput) {
@@ -164,30 +166,126 @@ export function Login() {
     }
   };
 
-  const handle2FAKeyPress = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && index > 0) {
-      const prevInput = inputsRef.current[index - 1];
-      if (prevInput) {
-        prevInput.focus();
-      }
+  // Funciones para recuperación de contraseña
+  const handleRecoverEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!recoverEmail) {
+      setRecoverErrors({ email: 'El correo es requerido' });
+      return;
     }
+
+    // Validar que sea un correo corporativo
+    if (!recoverEmail.endsWith('@avicolajossy.com')) {
+      setRecoverErrors({ email: 'Debe usar un correo corporativo (@avicolajossy.com)' });
+      return;
+    }
+
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Simular envío de código a secretaria@avicolajossy.com
+    console.log(`Código de recuperación enviado a secretaria@avicolajossy.com para el usuario ${recoverEmail}`);
+    
+    setIsLoading(false);
+    setRecoverStep('code');
+    setRecoverErrors({});
+    
+    // Auto-focus en el primer input del código
+    setTimeout(() => {
+      if (inputsRef.current[0]) {
+        inputsRef.current[0].focus();
+      }
+    }, 100);
+  };
+
+  const handleRecoverCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const fullCode = recoverCode.join('');
+    
+    if (fullCode.length !== 6) {
+      setRecoverErrors({ code: 'Por favor ingrese los 6 dígitos' });
+      return;
+    }
+
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Código de prueba: 123456
+    if (fullCode === '123456') {
+      setIsLoading(false);
+      setRecoverStep('password');
+      setRecoverErrors({});
+    } else {
+      setIsLoading(false);
+      setRecoverErrors({ code: 'Código incorrecto' });
+      setRecoverCode(['', '', '', '', '', '']);
+    }
+  };
+
+  const handleNewPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const newErrors: { password?: string; confirm?: string } = {};
+    
+    if (!newPassword) {
+      newErrors.password = 'La nueva contraseña es requerida';
+    } else if (newPassword.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+    
+    if (newPassword !== confirmPassword) {
+      newErrors.confirm = 'Las contraseñas no coinciden';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setRecoverErrors(newErrors);
+      return;
+    }
+
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Aquí iría la lógica para actualizar la contraseña
+    setRecoverSuccess(true);
+    setIsLoading(false);
+    
+    // Cerrar modal después de 2 segundos
+    setTimeout(() => {
+      setShowRecoverModal(false);
+      setRecoverSuccess(false);
+      setRecoverStep('email');
+      setRecoverEmail('');
+      setRecoverCode(['', '', '', '', '', '']);
+      setNewPassword('');
+      setConfirmPassword('');
+    }, 2000);
+  };
+
+  const closeRecoverModal = () => {
+    setShowRecoverModal(false);
+    setRecoverStep('email');
+    setRecoverEmail('');
+    setRecoverCode(['', '', '', '', '', '']);
+    setNewPassword('');
+    setConfirmPassword('');
+    setRecoverErrors({});
   };
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
-      {/* Imagen de fondo */}
+      {/* Imagen de fondo (sin cambios) */}
       <div className="absolute inset-0 z-0">
         <ImageWithFallback
           src={avicolaBackground}
           alt="Gallinas Avícola"
           className="w-full h-full object-cover"
         />
-        {/* Overlay más oscuro para uso nocturno */}
         <div className="absolute inset-0" style={{ 
           background: 'linear-gradient(to right, rgba(0, 0, 0, 0.85), rgba(15, 10, 0, 0.80), rgba(25, 20, 0, 0.75))' 
         }}></div>
         
-        {/* Partículas doradas animadas con menos intensidad */}
         <div className="absolute inset-0 opacity-10">
           {[...Array(8)].map((_, i) => (
             <div
@@ -206,12 +304,264 @@ export function Login() {
         </div>
       </div>
 
-      {/* Contenido */}
+      {/* Modal de Recuperación de Contraseña */}
+      {showRecoverModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={closeRecoverModal}
+          />
+          
+          <div 
+            className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl p-8"
+            style={{
+              background: 'rgba(0, 0, 0, 0.95)',
+              border: '1px solid rgba(204, 170, 0, 0.2)',
+              boxShadow: '0 8px 32px 0 rgba(13, 74, 36, 0.5)'
+            }}
+          >
+            {/* Botón cerrar */}
+            <button
+              onClick={closeRecoverModal}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors"
+              style={{ color: '#9ca3af' }}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {recoverSuccess ? (
+              <div className="text-center py-8">
+                <div 
+                  className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: '2px solid #22c55e'
+                  }}
+                >
+                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">¡Contraseña Actualizada!</h3>
+                <p className="text-gray-400">Ya puedes iniciar sesión con tu nueva contraseña</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                  Recuperar Contraseña
+                </h3>
+
+                {recoverStep === 'email' && (
+                  <form onSubmit={handleRecoverEmailSubmit} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#ccaa00' }}>
+                        Correo Corporativo
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Mail className="h-5 w-5" style={{ color: '#b8941e' }} />
+                        </div>
+                        <input
+                          type="email"
+                          value={recoverEmail}
+                          onChange={(e) => setRecoverEmail(e.target.value)}
+                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                            borderColor: recoverErrors.email ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
+                            outlineColor: '#ccaa00'
+                          }}
+                          placeholder="usuario@avicolajossy.com"
+                        />
+                      </div>
+                      {recoverErrors.email && (
+                        <p className="mt-2 text-red-400 text-sm">{recoverErrors.email}</p>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-gray-400 text-center">
+                      Se enviará un código de verificación al correo de la secretaria para autorizar el cambio
+                    </p>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-4 px-4 rounded-lg font-bold shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                      style={{
+                        background: 'linear-gradient(to right, #0d4a24, #166534)',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {isLoading ? 'Enviando...' : 'ENVIAR CÓDIGO'}
+                    </button>
+                  </form>
+                )}
+
+                {recoverStep === 'code' && (
+                  <form onSubmit={handleRecoverCodeSubmit} className="space-y-6">
+                    <div className="text-center mb-4">
+                      <p className="text-white">Se ha enviado un código a:</p>
+                      <p className="font-medium" style={{ color: '#ccaa00' }}>secretaria@avicolajossy.com</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-center gap-2 sm:gap-3 mb-4">
+                        {recoverCode.map((digit, index) => (
+                          <input
+                            key={index}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={digit}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, '');
+                              if (value.length <= 1) {
+                                const newCode = [...recoverCode];
+                                newCode[index] = value;
+                                setRecoverCode(newCode);
+                                if (value && index < 5) {
+                                  const nextInput = inputsRef.current[index + 1];
+                                  if (nextInput) nextInput.focus();
+                                }
+                              }
+                            }}
+                            ref={(el) => { inputsRef.current[index] = el; }}
+                            className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold text-white rounded-lg sm:rounded-xl"
+                            style={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              borderWidth: '2px',
+                              borderStyle: 'solid',
+                              borderColor: digit 
+                                ? 'rgba(204, 170, 0, 0.5)' 
+                                : recoverErrors.code 
+                                  ? '#ef4444' 
+                                  : 'rgba(255, 255, 255, 0.1)'
+                            }}
+                            maxLength={1}
+                          />
+                        ))}
+                      </div>
+                      {recoverErrors.code && (
+                        <p className="text-red-400 text-sm text-center mb-4">{recoverErrors.code}</p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-4 px-4 rounded-lg font-bold shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                      style={{
+                        background: 'linear-gradient(to right, #0d4a24, #166534)',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {isLoading ? 'Verificando...' : 'VERIFICAR CÓDIGO'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRecoverStep('email')}
+                      className="w-full text-sm transition-colors hover:underline"
+                      style={{ color: '#ccaa00' }}
+                    >
+                      ← Volver
+                    </button>
+                  </form>
+                )}
+
+                {recoverStep === 'password' && (
+                  <form onSubmit={handleNewPasswordSubmit} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#ccaa00' }}>
+                        Nueva Contraseña
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5" style={{ color: '#b8941e' }} />
+                        </div>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg"
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                            borderColor: recoverErrors.password ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
+                            outlineColor: '#ccaa00'
+                          }}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      {recoverErrors.password && (
+                        <p className="mt-2 text-red-400 text-sm">{recoverErrors.password}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#ccaa00' }}>
+                        Confirmar Contraseña
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5" style={{ color: '#b8941e' }} />
+                        </div>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg"
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                            borderColor: recoverErrors.confirm ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
+                            outlineColor: '#ccaa00'
+                          }}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      {recoverErrors.confirm && (
+                        <p className="mt-2 text-red-400 text-sm">{recoverErrors.confirm}</p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-4 px-4 rounded-lg font-bold shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                      style={{
+                        background: 'linear-gradient(to right, #0d4a24, #166534)',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {isLoading ? 'Actualizando...' : 'ACTUALIZAR CONTRASEÑA'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRecoverStep('code')}
+                      className="w-full text-sm transition-colors hover:underline"
+                      style={{ color: '#ccaa00' }}
+                    >
+                      ← Volver
+                    </button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Contenido principal (con alerta de error y enlace de recuperación) */}
       <div className="relative z-10 w-full flex flex-col lg:flex-row">
         
-        {/* Lado Izquierdo - Logo y Branding */}
+        {/* Lado Izquierdo - Logo y Branding (sin cambios) */}
         <div className="lg:w-1/2 flex flex-col lg:justify-center lg:items-center px-8 py-6 lg:py-0">
-          {/* Mobile: Logo izquierda, texto derecha */}
           <div className="flex lg:hidden items-start justify-between mb-6">
             <div>
               <img 
@@ -235,7 +585,6 @@ export function Login() {
             </div>
           </div>
 
-          {/* Desktop: Logo y texto centrados */}
           <div className="hidden lg:flex flex-col items-center">
             <div className="animate-float-logo mb-6">
               <img 
@@ -273,6 +622,20 @@ export function Login() {
                 <h2 className="text-3xl font-bold text-white mb-2">Iniciar Sesión</h2>
                 <p className="text-gray-300">Sistema de Gestión Empresarial</p>
               </div>
+
+              {/* Alerta de error general */}
+              {errors.general && (
+                <div 
+                  className="mb-6 p-4 rounded-lg flex items-center gap-3"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)'
+                  }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-400 text-sm flex-1">{errors.general}</p>
+                </div>
+              )}
 
               {/* Formulario */}
               <form onSubmit={step === 'login' ? handleSubmit : handle2FASubmit} className="space-y-6">
@@ -357,6 +720,18 @@ export function Login() {
                           <span>{errors.password}</span>
                         </div>
                       )}
+                    </div>
+
+                    {/* Enlace de recuperación */}
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowRecoverModal(true)}
+                        className="text-sm transition-colors hover:underline focus:outline-none"
+                        style={{ color: '#ccaa00' }}
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </button>
                     </div>
                   </>
                 )}
