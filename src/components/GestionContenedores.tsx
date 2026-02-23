@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Settings, Scale, Box, Layers, ArrowUpDown, Edit3, Trash2, AlertCircle, TrendingUp, Weight, BarChart3, X, Check } from 'lucide-react';
+import { Package, Settings, Scale, Box, Layers, ArrowUpDown, Edit3, Trash2, AlertCircle, TrendingUp, Weight, BarChart3, X, Check, History } from 'lucide-react';
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ interface Contenedor {
 }
 
 export function GestionContenedores() {
-  const { contenedores, setContenedores } = useApp();
+  const { contenedores, setContenedores, pedidosConfirmados } = useApp();
   const [isContenedoresModalOpen, setIsContenedoresModalOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editTipo, setEditTipo] = useState('');
@@ -41,12 +41,24 @@ export function GestionContenedores() {
     ? [...contenedores].sort((a, b) => a.peso - b.peso)[Math.floor(totalContenedores / 2)].peso
     : 0;
 
-  // Distribución por rangos de peso
   const distribucion = {
     livianos: contenedores.filter(c => c.peso < 2).length,
     medios: contenedores.filter(c => c.peso >= 2 && c.peso < 5).length,
     pesados: contenedores.filter(c => c.peso >= 5).length
   };
+
+  // Uso acumulado por tipo de contenedor
+  const usoPorTipo = contenedores.map(c => {
+    const weighings = pedidosConfirmados.filter((p: any) => p.contenedor === c.tipo && (p.ticketEmitido || p.estado === 'En Pesaje'));
+    const cantidadTotal = weighings.reduce((acc: number, p: any) => acc + (p.cantidadTotalContenedores || 0), 0);
+    const pesoTotal = weighings.reduce((acc: number, p: any) => acc + (p.pesoTotalContenedores || 0), 0);
+    return {
+      tipo: c.tipo,
+      cantidadTotal,
+      pesoTotal,
+      frecuencia: weighings.length
+    };
+  });
 
   // Función para iniciar edición
   const iniciarEdicion = (contenedor: Contenedor) => {
@@ -132,7 +144,7 @@ export function GestionContenedores() {
       </div>
 
       {/* Resumen Rápido con tarjetas mejoradas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Total Registrados */}
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
@@ -231,6 +243,34 @@ export function GestionContenedores() {
             {pesoTotalFlota.toFixed(2)}
           </p>
           <p className="text-[10px] sm:text-xs text-gray-500 mt-1">kg acumulado</p>
+        </div>
+
+        {/* Jabas Usadas Hoy */}
+        <div
+          className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(0, 0, 0, 0.6))',
+            border: '1px solid rgba(251, 191, 36, 0.25)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-xs sm:text-sm text-gray-300 font-medium">Jabas Usadas (Hoy)</p>
+            <div
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+              style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.25)' }}
+            >
+              <TrendingUp className="w-4 h-4 sm:w-[18px] sm:h-[18px]" style={{ color: '#fbbf24' }} />
+            </div>
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold text-amber-500">
+            {pedidosConfirmados
+              .filter((p: any) => (p.fechaPesaje === new Date().toISOString().split('T')[0] || p.fecha === new Date().toISOString().split('T')[0]) && p.ticketEmitido)
+              .reduce((acc: number, p: any) => acc + (p.cantidadTotalContenedores || 0), 0)
+            }
+          </p>
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">unidades en circulación</p>
         </div>
       </div>
 
@@ -683,6 +723,88 @@ export function GestionContenedores() {
             <p className="text-gray-500 text-xs mt-1">Toca "Gestionar" para agregar</p>
           </div>
         )}
+      </div>
+
+      {/* Uso Reciente de Contenedores (Log de Pesajes) */}
+      <div 
+        className="backdrop-blur-xl rounded-xl overflow-hidden border border-amber-800/30 shadow-2xl shadow-amber-900/10"
+        style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9))' }}
+      >
+        <div className="px-6 py-4 flex items-center justify-between border-b border-amber-800/30"
+          style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(0, 0, 0, 0.6))' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', boxShadow: '0 4px 15px rgba(59,130,246,0.4)' }}>
+              <History className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Uso Reciente de Contenedores</h3>
+              <p className="text-xs text-gray-500">Últimos pesajes registrados en el sistema</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-black/50 border-b border-amber-800/20">
+                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Fecha/Hora</th>
+                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Cliente</th>
+                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Contenedor</th>
+                <th className="px-6 py-4 text-center font-bold text-xs tracking-wider uppercase text-amber-400">Cant.</th>
+                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Tara Total</th>
+                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Peso Neto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pedidosConfirmados
+                .filter(p => (p.ticketEmitido || p.estado === 'En Pesaje') && p.contenedor !== 'Por definir en pesaje')
+                .sort((a, b) => {
+                  const dateA = new Date(`${a.fechaPesaje || a.fecha} ${a.horaPesaje || a.hora}`).getTime();
+                  const dateB = new Date(`${b.fechaPesaje || b.fecha} ${b.horaPesaje || b.hora}`).getTime();
+                  return dateB - dateA;
+                })
+                .slice(0, 10)
+                .map((pedido) => (
+                  <tr key={pedido.id} className="transition-all duration-200 hover:bg-white/5 border-b border-white/5">
+                    <td className="px-6 py-4">
+                      <div className="text-white text-xs font-medium">{pedido.fechaPesaje || pedido.fecha}</div>
+                      <div className="text-[10px] text-gray-500">{pedido.horaPesaje || pedido.hora}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-white font-semibold text-sm truncate max-w-[150px]">{pedido.cliente}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Box className="w-3.5 h-3.5 text-amber-500/70" />
+                        <span className="text-blue-300 font-medium text-xs">{pedido.contenedor}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-white font-bold text-sm">{pedido.cantidadTotalContenedores || '—'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-red-400 font-mono text-sm font-bold">
+                        {pedido.pesoTotalContenedores ? `-${pedido.pesoTotalContenedores.toFixed(1)} kg` : '—'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-green-400 font-mono text-sm font-bold">
+                        {pedido.pesoNetoTotal ? `${pedido.pesoNetoTotal.toFixed(1)} kg` : '—'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              {pedidosConfirmados.filter(p => (p.ticketEmitido || p.estado === 'En Pesaje') && p.contenedor !== 'Por definir en pesaje').length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-gray-500 italic text-sm">
+                    No hay registros de uso de contenedores aún
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal Gestionar Contenedores */}

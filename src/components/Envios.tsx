@@ -16,11 +16,13 @@ const COLORES_ZONA = [
 
 const ZONAS_DEFAULT: Zona[] = [
   { id: '1', nombre: 'Zona 1', descripcion: 'Independencia, Provincia, Jicamarca', color: '#3b82f6' },
-  { id: '2', nombre: 'Zona 2', descripcion: 'Sedapal, Zona Alta, Zona Baja, Corralito, Plumas', color: '#22c55e' },
-  { id: '3', nombre: 'Zona 3', descripcion: 'Vencedores', color: '#8b5cf6' },
-  { id: '4', nombre: 'Zona 4', descripcion: 'Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol', color: '#f59e0b' },
-  { id: '5', nombre: 'Zona 5', descripcion: 'Valle Sagrado, Saruta', color: '#ef4444' },
-  { id: '6', nombre: 'Zona 6', descripcion: 'Bayovar, Huáscar, Peladero, Sta. María', color: '#ec4899' },
+  { id: '2', nombre: 'Zona 2', descripcion: 'Provincia', color: '#3b82f6' },
+  { id: '3', nombre: 'Zona 3', descripcion: 'Jicamarca', color: '#3b82f6' },
+  { id: '4', nombre: 'Zona 4', descripcion: 'Sedapal, Zona Alta, Zona Baja, Corralito, Plumas', color: '#22c55e' },
+  { id: '5', nombre: 'Zona 5', descripcion: 'Vencedores', color: '#8b5cf6' },
+  { id: '6', nombre: 'Zona 6', descripcion: 'Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol', color: '#f59e0b' },
+  { id: '7', nombre: 'Zona 7', descripcion: 'Valle Sagrado, Saruta', color: '#ef4444' },
+  { id: '8', nombre: 'Zona 8', descripcion: 'Bayovar, Huáscar, Peladero, Sta. María', color: '#ec4899' },
 ];
 
 export function Envios() {

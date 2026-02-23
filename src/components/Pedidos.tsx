@@ -24,7 +24,7 @@ interface Pedido {
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'En Despacho' | 'Entregado' | 'Completado' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
@@ -312,7 +312,7 @@ export function Pedidos() {
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedido.id, {
         ...pedidoOriginal,
-        estado: 'Pesaje'
+        estado: 'En Pesaje'
       });
       toast.success(`Pedido ${pedido.numeroPedido} enviado a pesaje`);
     }
@@ -334,8 +334,9 @@ export function Pedidos() {
   const totalPedidos = filteredPedidos.length;
   const pedidosPendientes = filteredPedidos.filter(p => p.estado === 'Pendiente').length;
   const pedidosProduccion = filteredPedidos.filter(p => p.estado === 'En Producción').length;
-  const pedidosPesaje = filteredPedidos.filter(p => p.estado === 'Pesaje').length;
-  const pedidosCompletados = filteredPedidos.filter(p => p.estado === 'Completado').length;
+  const pedidosPesaje = filteredPedidos.filter(p => p.estado === 'En Pesaje').length;
+  const pedidosDespachando = filteredPedidos.filter(p => p.estado === 'Despachando').length;
+  const pedidosCompletados = filteredPedidos.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado)).length;
   const pedidosCancelados = filteredPedidos.filter(p => p.estado === 'Cancelado').length;
 
   const mermaTotal = pedidos.reduce((acc, p) => acc + p.mermaTotal, 0);
@@ -346,7 +347,8 @@ export function Pedidos() {
   const pedidosPorEstado = [
     { name: 'Pendiente', value: pedidosPendientes, color: '#f59e0b' },
     { name: 'Producción', value: pedidosProduccion, color: '#3b82f6' },
-    { name: 'Pesaje', value: pedidosPesaje, color: '#a855f7' },
+    { name: 'En Pesaje', value: pedidosPesaje, color: '#a855f7' },
+    { name: 'Despachando', value: pedidosDespachando, color: '#3b82f6' },
     { name: 'Completado', value: pedidosCompletados, color: '#10b981' },
     { name: 'Cancelado', value: pedidosCancelados, color: '#ef4444' }
   ];
@@ -357,8 +359,12 @@ export function Pedidos() {
         return { bg: 'from-amber-900/20 to-amber-800/20', border: 'border-amber-700/30', text: 'text-amber-300' };
       case 'En Producción':
         return { bg: 'from-blue-900/20 to-blue-800/20', border: 'border-blue-700/30', text: 'text-blue-300' };
-      case 'Pesaje':
+      case 'En Pesaje':
         return { bg: 'from-purple-900/20 to-purple-800/20', border: 'border-purple-700/30', text: 'text-purple-300' };
+      case 'En Despacho':
+      case 'Despachando':
+        return { bg: 'from-blue-900/20 to-blue-800/20', border: 'border-blue-700/30', text: 'text-blue-300' };
+      case 'Entregado':
       case 'Completado':
         return { bg: 'from-green-900/20 to-green-800/20', border: 'border-green-700/30', text: 'text-green-300' };
       case 'Cancelado':
@@ -425,7 +431,7 @@ export function Pedidos() {
               </div>
               <div className="h-8 w-px bg-gray-800"></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Pesaje</div>
+                <div className="text-sm text-gray-400">En Pesaje</div>
                 <div className="text-2xl font-bold text-purple-400">{pedidosPesaje}</div>
               </div>
             </div>
@@ -495,7 +501,9 @@ export function Pedidos() {
                 <option value="all" className="bg-black">Todos</option>
                 <option value="Pendiente" className="bg-black">Pendiente</option>
                 <option value="En Producción" className="bg-black">En Producción</option>
-                <option value="Pesaje" className="bg-black">Pesaje</option>
+                <option value="En Pesaje" className="bg-black">En Pesaje</option>
+                <option value="En Despacho" className="bg-black">En Despacho</option>
+                <option value="Despachando" className="bg-black">Despachando</option>
                 <option value="Completado" className="bg-black">Completado</option>
                 <option value="Cancelado" className="bg-black">Cancelado</option>
               </select>

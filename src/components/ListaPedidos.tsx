@@ -20,7 +20,8 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  conductor?: string;
 }
 
 interface PedidoLista {
@@ -44,12 +45,22 @@ interface PedidoLista {
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'Pesaje' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
   subNumero: number;
   ordenProduccion: number;
+  conductor?: string;
+  zonaEntrega?: string;
+  pesoBrutoTotal?: number;
+  pesoNetoTotal?: number;
+  pesoTotalContenedores?: number;
+  cantidadTotalContenedores?: number;
+  ticketEmitido?: boolean;
+  fechaPesaje?: string;
+  horaPesaje?: string;
+  numeroTicket?: string;
 }
 
 interface PedidoAgrupado {
@@ -381,7 +392,18 @@ export function ListaPedidos() {
       esSubPedido: numeracion.esSubPedido,
       prioridadBase: numeracion.prioridadBase,
       subNumero: numeracion.subNumero,
-      ordenProduccion: index + 1
+      ordenProduccion: index + 1,
+      // Campos de pesaje y entrega
+      pesoBrutoTotal: (pedido as any).pesoBrutoTotal,
+      pesoNetoTotal: (pedido as any).pesoNetoTotal,
+      pesoTotalContenedores: (pedido as any).pesoTotalContenedores,
+      cantidadTotalContenedores: (pedido as any).cantidadTotalContenedores,
+      conductor: (pedido as any).conductor,
+      zonaEntrega: (pedido as any).zonaEntrega,
+      ticketEmitido: (pedido as any).ticketEmitido,
+      fechaPesaje: (pedido as any).fechaPesaje,
+      horaPesaje: (pedido as any).horaPesaje,
+      numeroTicket: (pedido as any).numeroTicket
     };
   };
 
@@ -895,7 +917,7 @@ export function ListaPedidos() {
     if (pedidoOriginal) {
       updatePedidoConfirmado(pedido.id, {
         ...pedidoOriginal,
-        estado: 'Pesaje'
+        estado: 'En Pesaje'
       });
     }
 
@@ -1302,8 +1324,8 @@ export function ListaPedidos() {
   // Filtrar pedidos por estado para cada sección
   const pedidosPendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente');
   const pedidosEnProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción');
-  const pedidosPesaje = pedidosMostrar.filter(p => p.estado === 'Pesaje');
-  const pedidosEnEntrega = pedidosMostrar.filter(p => p.estado === 'En Despacho');
+  const pedidosPesaje = pedidosMostrar.filter(p => p.estado === 'En Pesaje');
+  const pedidosEnEntrega = pedidosMostrar.filter(p => ['En Despacho', 'Despachando', 'En Ruta', 'Con Incidencia'].includes(p.estado || ''));
   const pedidosEntregados = pedidosMostrar.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado));
 
   // Tabla de producción combinada (para backward compat)
@@ -1330,17 +1352,11 @@ export function ListaPedidos() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-amber-900/30 to-amber-800/20 border border-amber-500/30 rounded-xl shadow-lg shadow-amber-500/10">
+              <div className="p-3 bg-gradient-to-br rounded-xl shadow-lg shadow-amber-500/10">
                 <ListOrdered className="w-6 h-6 text-amber-400" />
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
                 <div className="text-white tracking-tight drop-shadow-lg">Lista de Pedidos</div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-lg shadow-inner">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                  <div className="text-sm font-bold text-amber-300 tracking-wider">
-                    {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
-                  </div>
-                </div>
               </div>
             </h1>
             <div className="flex flex-wrap items-center gap-3">
@@ -1398,14 +1414,6 @@ export function ListaPedidos() {
             {vistaGrupos ? 'Vista Consolidada' : 'Vista Individual'}
           </button>
 
-          <button
-            onClick={() => setMostrarHistorial(!mostrarHistorial)}
-            className="px-4 py-2 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-          >
-            <History className="w-4 h-4 text-amber-400" />
-            Historial ({modificacionesHistorial.length})
-          </button>
-
           {consolidacionesSugeridas.length > 0 && (
             <button
               onClick={() => setMostrarSugerencias(!mostrarSugerencias)}
@@ -1418,18 +1426,9 @@ export function ListaPedidos() {
               Consolidaciones ({consolidacionesSugeridas.length})
             </button>
           )}
-
-          <button
-            onClick={iniciarEdicionMultiple}
-            className="px-4 py-2 bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-500/30 rounded-lg text-blue-300 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-          >
-            <Edit2 className="w-4 h-4" />
-            Editar Múltiple
-          </button>
-
           <button
             onClick={() => window.open('/pantalla-produccion', '_blank')}
-            className="px-4 py-2 bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-500/30 rounded-lg text-amber-300 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+            className="px-4 py-2 bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-500/30 rounded-lg text-blue-300 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
           >
             <Eye className="w-4 h-4" />
             Pantalla Producción
@@ -1558,18 +1557,13 @@ export function ListaPedidos() {
               </div>
             ))}
           </div>
-
-          <div className="mt-4 pt-4 border-t border-gray-700 text-sm text-gray-300">
-            <AlertCircle className="w-4 h-4 inline mr-2 text-amber-400" />
-            Los pedidos similares se consolidan automáticamente sumando sus cantidades en un solo pedido.
-          </div>
         </div>
       )}
 
       {/* ========== SECCIONES ANTES DE PESAJE ========== */}
       {[
         { 
-          titulo: 'Pedidos Pendientes', 
+          titulo: 'Pendientes', 
           datos: pedidosPendientes, 
           color: '#f59e0b', 
           borderColor: 'border-amber-500/50', 
@@ -1581,7 +1575,7 @@ export function ListaPedidos() {
           gradientTo: 'to-amber-800/10'
         },
         { 
-          titulo: 'Pedidos en Producción', 
+          titulo: 'Producción', 
           datos: pedidosEnProduccion, 
           color: '#3b82f6', 
           borderColor: 'border-blue-500/50', 
@@ -1673,7 +1667,7 @@ export function ListaPedidos() {
                         <td className="px-6 py-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-lg ${
                             pedido.prioridadBase <= 3 
-                              ? 'bg-gradient-to-br from-red-900/40 to-red-800/30 border border-red-500/40 text-red-300 shadow-red-500/20' 
+                              ? 'bg-gradient-to-br from-white-900/40 to-blue-800/30 border border-red-500/40 text-white shadow-red-500/20' 
                               : pedido.prioridadBase <= 6 
                                 ? 'bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 border border-yellow-500/40 text-yellow-300 shadow-yellow-500/20' 
                                 : 'bg-gradient-to-br from-green-900/40 to-green-800/30 border border-green-500/40 text-green-300 shadow-green-500/20'
@@ -1890,8 +1884,11 @@ export function ListaPedidos() {
                   <th className="px-6 py-4 text-center">
                     <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div>
                   </th>
-                  <th className="px-6 py-4 text-center">
+                   <th className="px-6 py-4 text-center">
                     <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div>
@@ -1904,7 +1901,7 @@ export function ListaPedidos() {
               <tbody>
                 {pedidosPesaje.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center">
+                    <td colSpan={10} className="px-6 py-12 text-center">
                       <div className="text-gray-400">
                         No hay pedidos en proceso de pesaje
                       </div>
@@ -1946,7 +1943,7 @@ export function ListaPedidos() {
                           <span className="text-gray-500 font-mono">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                       <td className="px-6 py-4 text-center">
                         {pedido.cantidadHembras !== undefined ? (
                           <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20">
                             <span className="text-amber-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadHembras}</span>
@@ -1957,9 +1954,18 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
+                         <div className="flex flex-col">
+                            <span className="text-sm text-white font-bold">{pedido.contenedor}</span>
+                            {pedido.cantidadTotalContenedores && (
+                              <span className="text-[10px] text-white-500">{pedido.cantidadTotalContenedores} tandas</span>
+                            )}
+                          </div>
+                      </td>
+
+                      <td className="px-6 py-4">
                         <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
-                          pedido.estado === 'Pesaje'
-                            ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-purple-300 shadow-purple-500/20'
+                          pedido.estado === 'En Pesaje'
+                            ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-white shadow-purple-500/20'
                             : 'bg-gradient-to-r from-gray-900/40 to-gray-800/30 border border-gray-500/30 text-gray-300 shadow-gray-500/20'
                         }`}>
                           {pedido.estado || 'En Pesaje'}
@@ -2125,7 +2131,7 @@ export function ListaPedidos() {
                           <div className="text-sm text-gray-300 font-medium">{pedido.contenedor}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-gray-400 text-sm">Pendiente</span>
+                          <span className="text-gray-300 text-sm font-medium">{pedido.conductor || '—'}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
@@ -2135,10 +2141,15 @@ export function ListaPedidos() {
                           }`}>
                             {pedido.estado === 'En Despacho' ? (
                               <span className="flex items-center gap-1.5">
-                                <TruckIcon className="w-3.5 h-3.5" />
-                                En camino
-                              </span>
-                            ) : pedido.estado}
+                                 <TruckIcon className="w-3.5 h-3.5" />
+                                 En camino
+                               </span>
+                             ) : pedido.estado === 'Despachando' ? (
+                               <span className="flex items-center gap-1.5">
+                                 <TruckIcon className="w-3.5 h-3.5 animate-bounce" />
+                                 Despachando...
+                               </span>
+                             ) : pedido.estado}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -2150,15 +2161,7 @@ export function ListaPedidos() {
                             >
                               <Eye className="w-4 h-4 text-gray-300" />
                             </button>
-                            {seccion.titulo === 'Pedidos en Entrega' && (
-                              <button
-                                onClick={() => completarEntrega(pedido)}
-                                className="p-2 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-lg hover:from-green-900/50 hover:to-green-800/40 transition-all shadow-lg hover:shadow-xl"
-                                title="Completar entrega"
-                              >
-                                <CheckCircle className="w-4 h-4 text-green-400" />
-                              </button>
-                            )}
+                           
                           </div>
                         </td>
                       </tr>
@@ -2629,7 +2632,7 @@ export function ListaPedidos() {
                       ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 text-amber-300 shadow-amber-500/20'
                       : mostrarDetallePedido.estado === 'En Producción'
                         ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 text-blue-300 shadow-blue-500/20'
-                        : mostrarDetallePedido.estado === 'Pesaje'
+                        : mostrarDetallePedido.estado === 'En Pesaje'
                           ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-purple-300 shadow-purple-500/20'
                           : mostrarDetallePedido.estado === 'Entregado'
                             ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-800/30 border border-emerald-500/30 text-emerald-300 shadow-emerald-500/20'
@@ -2697,10 +2700,10 @@ export function ListaPedidos() {
                             mod.tipo === 'AUMENTO' ? 'text-green-400' :
                             mod.tipo === 'CONSOLIDACION' ? 'text-purple-400' : 'text-amber-400'
                           }`}>
-                            {mod.tipo === 'CANCELACION' && '❌ Cancelación'}
-                            {mod.tipo === 'MODIFICACION' && '✏️ Modificación'}
-                            {mod.tipo === 'AUMENTO' && '📈 Aumento'}
-                            {mod.tipo === 'CONSOLIDACION' && '🔀 Consolidación'}
+                            {mod.tipo === 'CANCELACION' && ' Cancelación'}
+                            {mod.tipo === 'MODIFICACION' && ' Modificación'}
+                            {mod.tipo === 'AUMENTO' && ' Aumento'}
+                            {mod.tipo === 'CONSOLIDACION' && 'Consolidación'}
                             {mod.tipo === 'EDICION_MULTIPLE' && '📋 Edición Múltiple'}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
@@ -2754,7 +2757,7 @@ export function ListaPedidos() {
         </div>
       )}
 
-      {/* Footer con estadísticas */}
+      {/* Footer con estadísticas/}
       <div className="mt-8 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-4 shadow-2xl">
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <div className="text-center p-3">
@@ -2789,6 +2792,7 @@ export function ListaPedidos() {
           </div>
         </div>
       </div>
+      */}
 
       {/* Modal de Nuevo Pedido Rápido */}
       {mostrarModalNuevoPedido && (

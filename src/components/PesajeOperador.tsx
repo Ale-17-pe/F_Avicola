@@ -184,7 +184,7 @@ export function PesajeOperador() {
   }, []);
 
   const pedidosEnPesaje = pedidosConfirmados
-    .filter((p) => p.estado === 'Pesaje')
+    .filter((p) => p.estado === 'En Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
   const esJabas = !!(

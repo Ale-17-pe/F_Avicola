@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Package,
   Download,
-  Calendar
+  Calendar,
+  Plus
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
@@ -55,6 +56,8 @@ export function GestionConductor() {
   const [formReason, setFormReason] = useState("");
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [newClientId, setNewClientId] = useState("");
+  const [sessionBlocks, setSessionBlocks] = useState<{ peso: number; foto: string }[]>([]);
+  const [showReasonStep, setShowReasonStep] = useState(false);
 
   // Historial local de registros
   const [registros, setRegistros] = useState<RegistroConductor[]>(() => {
@@ -71,8 +74,9 @@ export function GestionConductor() {
   }, [registros]);
 
   // Filtrar pedidos que están en estado 'En Despacho' (despachados pero sin confirmar entrega)
+  // Filtrar  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
   const pedidosRuta = pedidosConfirmados.filter((p: any) => 
-    p.estado === 'En Despacho' || p.estado === 'En Ruta' || p.estado === 'Con Incidencia'
+    p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' || p.estado === 'Con Incidencia'
   );
 
   const handleCapturePhoto = () => {
@@ -91,25 +95,36 @@ export function GestionConductor() {
 
   const generarId = () => `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const handleRepesada = () => {
+  const handleAddBlock = () => {
     if (!formWeight || capturedPhotos.length === 0) {
-      toast.error("Debe ingresar el peso y capturar al menos una foto");
+      toast.error("Debe ingresar el peso y capturar una foto");
+      return;
+    }
+    setSessionBlocks([...sessionBlocks, { peso: parseFloat(formWeight), foto: capturedPhotos[0] }]);
+    setFormWeight("");
+    setCapturedPhotos([]);
+    toast.success("Pesada agregada");
+  };
+
+  const handleFinishRepesada = () => {
+    if (sessionBlocks.length === 0) {
+      toast.error("Debe agregar al menos una pesada");
       return;
     }
 
-    const pesoRepesada = parseFloat(formWeight);
+    const pesoTotalRepesada = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
     const pesoOriginal = selectedPedido.pesoKg || 0;
-    const diferencia = Math.abs(pesoOriginal - pesoRepesada);
+    const diferencia = Math.abs(pesoOriginal - pesoTotalRepesada);
     const margenTolerancia = 0.5;
 
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
       pedidoId: selectedPedido.id,
       tipo: 'repesada',
-      peso: pesoRepesada,
-      fotos: capturedPhotos.map(url => ({ 
+      peso: pesoTotalRepesada,
+      fotos: sessionBlocks.map(b => ({ 
         tipo: 'repesada', 
-        url, 
+        url: b.foto, 
         fecha: new Date().toISOString() 
       })),
       fecha: new Date().toISOString(),
@@ -118,34 +133,40 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    // Actualizar estado del pedido
     updatePedidoConfirmado(selectedPedido.id, {
       ...selectedPedido,
       estado: diferencia <= margenTolerancia ? 'En Ruta' : 'Con Incidencia',
-      pesoRepesada: pesoRepesada,
+      pesoRepesada: pesoTotalRepesada,
       ultimaIncidencia: diferencia <= margenTolerancia ? null : 'Diferencia de peso detectada'
     });
 
-    toast.success(`Repesada registrada: ${pesoRepesada.toFixed(1)} kg`);
+    toast.success(`Repesada finalizada: ${pesoTotalRepesada.toFixed(1)} kg totales`);
     setModo('DETALLE');
+    setSessionBlocks([]);
     resetForm();
   };
 
-  const handleDevolucion = () => {
-    if (!formWeight || !formReason || capturedPhotos.length === 0) {
-      toast.error("Complete todos los campos y capture una foto");
+  const handleFinishDevolucion = () => {
+    if (sessionBlocks.length === 0) {
+      toast.error("Debe agregar al menos una pesada de devolución");
       return;
     }
+    if (!formReason) {
+      toast.error("Debe ingresar el motivo de la devolución");
+      return;
+    }
+
+    const pesoTotalDevolucion = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
 
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
       pedidoId: selectedPedido.id,
       tipo: 'devolucion',
-      peso: parseFloat(formWeight),
+      peso: pesoTotalDevolucion,
       motivo: formReason,
-      fotos: capturedPhotos.map(url => ({ 
+      fotos: sessionBlocks.map(b => ({ 
         tipo: 'devolucion', 
-        url, 
+        url: b.foto, 
         fecha: new Date().toISOString() 
       })),
       fecha: new Date().toISOString(),
@@ -154,38 +175,43 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    // Actualizar estado del pedido
     updatePedidoConfirmado(selectedPedido.id, {
       ...selectedPedido,
       estado: 'Devolución',
-      pesoDevolucion: parseFloat(formWeight),
+      pesoDevolucion: pesoTotalDevolucion,
       motivoDevolucion: formReason,
       ultimaIncidencia: 'Producto devuelto'
     });
 
-    toast.warning(`Devolución registrada: ${formWeight} kg - ${formReason}`);
+    toast.warning(`Devolución finalizada: ${pesoTotalDevolucion.toFixed(1)} kg totales`);
     setModo('DETALLE');
+    setSessionBlocks([]);
     resetForm();
   };
 
-  const handleAsignacion = () => {
-    if (!formWeight || !newClientId || capturedPhotos.length === 0) {
-      toast.error("Complete la cantidad, el cliente y la foto");
+  const handleFinishAsignacion = () => {
+    if (sessionBlocks.length === 0) {
+      toast.error("Debe agregar al menos una pesada");
+      return;
+    }
+    if (!newClientId) {
+      toast.error("Debe seleccionar un cliente");
       return;
     }
 
+    const pesoTotalAsignacion = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
     const clienteObj = clientes.find((c: any) => c.id === newClientId);
 
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
       pedidoId: selectedPedido.id,
       tipo: 'asignacion',
-      peso: parseFloat(formWeight),
+      peso: pesoTotalAsignacion,
       nuevoClienteId: newClientId,
       nuevoClienteNombre: clienteObj?.nombre,
-      fotos: capturedPhotos.map(url => ({ 
+      fotos: sessionBlocks.map(b => ({ 
         tipo: 'asignacion', 
-        url, 
+        url: b.foto, 
         fecha: new Date().toISOString() 
       })),
       fecha: new Date().toISOString(),
@@ -194,16 +220,17 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    // Actualizar estado del pedido
     updatePedidoConfirmado(selectedPedido.id, {
       ...selectedPedido,
       estado: 'Confirmado con Adición',
-      pesoAdicion: parseFloat(formWeight),
-      nuevoCliente: clienteObj?.nombre
+      pesoAdicional: pesoTotalAsignacion,
+      clienteAdicionalId: newClientId,
+      ultimaIncidencia: `Adición para ${clienteObj?.nombre}`
     });
 
-    toast.success(`Adición registrada: ${formWeight} kg para ${clienteObj?.nombre}`);
+    toast.success(`Adición finalizada: ${pesoTotalAsignacion.toFixed(1)} kg para ${clienteObj?.nombre}`);
     setModo('DETALLE');
+    setSessionBlocks([]);
     resetForm();
   };
 
@@ -213,19 +240,10 @@ export function GestionConductor() {
       .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
   };
 
-  // Confirmar entrega con doble confirmación
+  // Confirmar entrega directa con advertencia simple
   const handleConfirmarEntrega = () => {
-    if (confirmStep === 0) {
-      setConfirmStep(1);
-      return;
-    }
-    if (confirmStep === 1) {
-      setConfirmStep(2);
-      return;
-    }
-    
     if (!selectedPedido) return;
-
+    
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
       pedidoId: selectedPedido.id,
@@ -272,9 +290,16 @@ export function GestionConductor() {
     }
   };
 
-  const getTipoLabel = (tipo: string) => {
+  const getTipoLabel = (tipo: string, id?: string) => {
+    if (tipo === 'repesada' && id && selectedPedido) {
+      const allReps = registros
+        .filter(r => r.pedidoId === selectedPedido.id && r.tipo === 'repesada')
+        .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+      const index = allReps.findIndex(r => r.id === id);
+      return index !== -1 ? `${index + 1}° Repesaje` : 'Repesaje';
+    }
     switch(tipo) {
-      case 'repesada': return 'Repesada';
+      case 'repesada': return 'Repesaje';
       case 'devolucion': return 'Devolución';
       case 'asignacion': return 'Adición';
       case 'entrega': return 'Entrega';
@@ -318,7 +343,17 @@ export function GestionConductor() {
               return (
                 <div
                   key={pedido.id}
-                  onClick={() => { setSelectedPedido(pedido); setModo('DETALLE'); }}
+                  onClick={() => { 
+                    // Cambiar estado a 'Despachando' si está 'En Despacho'
+                    if (pedido.estado === 'En Despacho') {
+                      const updatedPedido = { ...pedido, estado: 'Despachando' };
+                      updatePedidoConfirmado(pedido.id, updatedPedido);
+                      setSelectedPedido(updatedPedido);
+                    } else {
+                      setSelectedPedido(pedido);
+                    }
+                    setModo('DETALLE');
+                  }}
                   className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-emerald-500/50 transition-all cursor-pointer group relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 p-4">
@@ -329,6 +364,7 @@ export function GestionConductor() {
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                       pedido.estado === 'Devolución' ? 'bg-red-900/20 text-red-400' :
                       pedido.estado === 'Con Incidencia' ? 'bg-amber-900/20 text-amber-400' :
+                      pedido.estado === 'Despachando' ? 'bg-blue-900/20 text-blue-400' :
                       'bg-emerald-900/20 text-emerald-400'
                     }`}>
                       <Truck className="w-6 h-6" />
@@ -342,9 +378,10 @@ export function GestionConductor() {
                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
                           pedido.estado === 'Devolución' ? 'bg-red-400/10 text-red-400' :
                           pedido.estado === 'Con Incidencia' ? 'bg-amber-400/10 text-amber-400' :
+                          pedido.estado === 'Despachando' ? 'bg-blue-400/10 text-blue-400' :
                           'bg-purple-400/10 text-purple-400'
                         }`}>
-                          {pedido.estado}
+                          {pedido.estado === 'Despachando' ? 'Despachando...' : pedido.estado}
                         </span>
                         {ultimoRegistro && (
                           <span className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -420,6 +457,7 @@ export function GestionConductor() {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   selectedPedido.estado === 'Devolución' ? 'bg-red-900/20 text-red-400' :
                   selectedPedido.estado === 'Con Incidencia' ? 'bg-amber-900/20 text-amber-400' :
+                  selectedPedido.estado === 'Despachando' ? 'bg-blue-900/20 text-blue-400' :
                   'bg-emerald-900/20 text-emerald-400'
                 }`}>
                   <Package className="w-6 h-6" />
@@ -433,6 +471,7 @@ export function GestionConductor() {
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   selectedPedido.estado === 'Devolución' ? 'bg-red-900/20' :
                   selectedPedido.estado === 'Con Incidencia' ? 'bg-amber-900/20' :
+                  selectedPedido.estado === 'Despachando' ? 'bg-blue-900/20' :
                   'bg-emerald-900/20'
                 }`}>
                   {selectedPedido.estado === 'Devolución' ? <RotateCcw className="w-5 h-5 text-red-400" /> :
@@ -444,6 +483,7 @@ export function GestionConductor() {
                   <p className={`text-lg font-bold ${
                     selectedPedido.estado === 'Devolución' ? 'text-red-400' :
                     selectedPedido.estado === 'Con Incidencia' ? 'text-amber-400' :
+                    selectedPedido.estado === 'Despachando' ? 'text-blue-400' :
                     'text-emerald-400'
                   }`}>
                     {selectedPedido.estado}
@@ -457,44 +497,53 @@ export function GestionConductor() {
               </div>
             </div>
 
-            {/* Acciones Rápidas - CORREGIDO con 4 botones */}
-<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-  <button
-    onClick={() => setModo('REPESADA')}
-    className="flex flex-col items-center gap-2 p-4 bg-blue-900/20 border border-blue-500/30 rounded-2xl text-blue-300 hover:bg-blue-900/30 transition-all font-bold group"
-    disabled={selectedPedido.estado === 'Entregado' || selectedPedido.estado === 'Devolución'}
-  >
-    <Scale className="w-6 h-6 group-hover:scale-110 transition-transform" />
-    <span className="text-xs">REPESADA</span>
-  </button>
-  
-  <button
-    onClick={() => setModo('DEVOLUCION')}
-    className="flex flex-col items-center gap-2 p-4 bg-orange-900/20 border border-red-500/30 rounded-2xl text-red-300 hover:bg-orange-900/30 transition-all font-bold group"
-    disabled={selectedPedido.estado === 'Entregado' || selectedPedido.estado === 'Devolución'}
-  >
-    <RotateCcw className="w-6 h-6 group-hover:scale-110 transition-transform" />
-    <span className="text-xs">DEVOLUCIÓN</span>
-  </button>
-  
-  <button
-    onClick={() => setModo('ASIGNACION')}
-    className="flex flex-col items-center gap-2 p-4 bg-emerald-900/20 border border-gray-500/30 rounded-2xl text-gray-300 hover:bg-emerald-900/30 transition-all font-bold group"
-    disabled={selectedPedido.estado === 'Entregado' || selectedPedido.estado === 'Devolución'}
-  >
-    <UserPlus className="w-6 h-6 group-hover:scale-110 transition-transform" />
-    <span className="text-xs">ADICIÓN</span>
-  </button>
-  
-  <button
-    onClick={handleConfirmarEntrega}
-    className="flex flex-col items-center gap-2 p-4 bg-green-900/20 border border-green-500/30 rounded-2xl text-green-300 hover:bg-green-900/30 transition-all font-bold group"
-    disabled={selectedPedido.estado === 'Entregado' || selectedPedido.estado === 'Devolución'}
-  >
-    <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
-    <span className="text-xs">CONFIRMAR ENTREGA</span>
-  </button>
-</div>
+            {/* Acciones Rápidas */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <button
+                onClick={() => {
+                  setSessionBlocks([]);
+                  setModo('REPESADA');
+                }}
+                className="flex flex-col items-center gap-2 p-4 bg-blue-900/20 border border-blue-500/30 rounded-2xl text-blue-300 hover:bg-blue-900/30 transition-all font-bold group"
+                disabled={selectedPedido.estado === 'Entregado'}
+              >
+                <Scale className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-xs">REPESADA</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setSessionBlocks([]);
+                  setModo('DEVOLUCION');
+                }}
+                className="flex flex-col items-center gap-2 p-4 bg-orange-900/20 border border-red-500/30 rounded-2xl text-red-300 hover:bg-orange-900/30 transition-all font-bold group"
+                disabled={selectedPedido.estado === 'Entregado'}
+              >
+                <RotateCcw className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-xs">DEVOLUCIÓN</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setSessionBlocks([]);
+                  setModo('ASIGNACION');
+                }}
+                className="flex flex-col items-center gap-2 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-2xl text-emerald-300 hover:bg-emerald-900/30 transition-all font-bold group"
+                disabled={selectedPedido.estado === 'Entregado'}
+              >
+                <UserPlus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-xs">ADICIÓN</span>
+              </button>
+              
+              <button
+                onClick={handleConfirmarEntrega}
+                className="flex flex-col items-center gap-2 p-4 bg-green-900/20 border border-green-500/30 rounded-2xl text-green-300 hover:bg-green-900/30 transition-all font-bold group"
+                disabled={selectedPedido.estado === 'Entregado' || selectedPedido.estado === 'Devolución'}
+              >
+                <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-xs">CONFIRMAR ENTREGA</span>
+              </button>
+            </div>
           </div>
 
           {/* Historial de movimientos */}
@@ -526,7 +575,7 @@ export function GestionConductor() {
                           <div className="flex items-center gap-1.5">
                             {getTipoIcon(reg.tipo)}
                             <span className="text-sm font-bold text-white">
-                              {getTipoLabel(reg.tipo)}
+                              {getTipoLabel(reg.tipo, reg.id)}
                             </span>
                           </div>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getEstadoColor(reg.estado)}`}>
@@ -619,7 +668,10 @@ export function GestionConductor() {
         <div className="bg-gradient-to-br from-gray-900 to-black border border-emerald-500/30 rounded-2xl p-6 space-y-6 shadow-2xl relative">
           <div className="absolute top-0 right-0 p-4">
             <button 
-              onClick={() => setModo('DETALLE')} 
+              onClick={() => {
+                setModo('DETALLE');
+                setShowReasonStep(false);
+              }} 
               className="p-2 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
             >
               <X className="w-5 h-5" />
@@ -639,12 +691,12 @@ export function GestionConductor() {
             <div>
               <h2 className="text-xl font-black text-white uppercase tracking-tight">
                 {modo === 'REPESADA' ? 'Registrar Repesada' : 
-                 modo === 'DEVOLUCION' ? 'Registrar Devolución' : 
+                 modo === 'DEVOLUCION' ? (showReasonStep ? 'Motivo de Devolución' : 'Registrar Devolución') : 
                  'Registrar Adición'}
               </h2>
               <p className="text-xs text-gray-500">
                 {modo === 'REPESADA' ? 'Verifique el peso actual del producto' :
-                 modo === 'DEVOLUCION' ? 'Registre el producto que se devuelve' :
+                 modo === 'DEVOLUCION' ? (showReasonStep ? 'Indique la razón de la devolución' : 'Registre el producto que se devuelve') :
                  'Asigne parte del pedido a otro cliente'}
               </p>
             </div>
@@ -671,62 +723,63 @@ export function GestionConductor() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  {modo === 'ASIGNACION' ? 'Peso a Añadir (KG)' : 'Peso Registrado (KG)'}
-                  <span className="text-red-400 ml-1">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formWeight}
-                    onChange={(e) => setFormWeight(e.target.value)}
-                    placeholder="0.0"
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white text-2xl font-black focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all pr-12"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">kg</span>
+            {!showReasonStep && (
+              <div className="space-y-4">
+                {formWeight && capturedPhotos.length === 0 && (
+                  <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-xl p-4 flex items-center gap-3 animate-bounce">
+                    <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
+                    <p className="text-amber-200 font-bold text-sm leading-tight uppercase">
+                      ¡Atención! Debe tomar la foto de evidencia antes de poder sumar el peso.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      {modo === 'ASIGNACION' ? 'Peso a Añadir (KG)' : 'Peso Registrado (KG)'}
+                      <span className="text-red-400 ml-1">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formWeight}
+                        onChange={(e) => setFormWeight(e.target.value)}
+                        placeholder="0.0"
+                        className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-4 text-white text-3xl font-black focus:outline-none focus:border-emerald-500 transition-all pr-12 shadow-inner"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">kg</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 text-emerald-400">
+                      Evidencia Obligatoria <span className="text-red-400">*</span>
+                    </label>
+                    <button
+                      onClick={handleCapturePhoto}
+                      className={`w-full h-[68px] border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-lg group shadow-lg active:scale-95 ${
+                        capturedPhotos.length > 0 
+                        ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400' 
+                        : 'bg-gray-800 border-amber-500/50 text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <Camera className={`w-6 h-6 group-hover:scale-110 transition-transform ${capturedPhotos.length > 0 ? 'text-emerald-400' : 'text-amber-400'}`} /> 
+                      {capturedPhotos.length > 0 ? 'FOTO CAPTURADA' : 'TOMAR FOTO'}
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Evidencia Fotográfica <span className="text-red-400">*</span>
-                </label>
-                <button
-                  onClick={handleCapturePhoto}
-                  className="w-full h-[58px] bg-gray-800 border border-gray-700 rounded-xl flex items-center justify-center gap-2 text-gray-300 hover:bg-gray-700 hover:border-emerald-500/50 transition-all font-bold group"
-                >
-                  <Camera className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" /> 
-                  Tomar Foto ({capturedPhotos.length}/5)
-                </button>
-              </div>
-            </div>
-
-            {modo === 'DEVOLUCION' && (
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Motivo de la Devolución <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  value={formReason}
-                  onChange={(e) => setFormReason(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-colors h-24 resize-none"
-                  placeholder="Ej: Producto en mal estado, cliente no conforme, etc..."
-                  maxLength={200}
-                />
-                <p className="text-xs text-gray-500 mt-1 text-right">
-                  {formReason.length}/200 caracteres
-                </p>
-              </div>
             )}
+
+            
 
             {capturedPhotos.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Fotos capturadas ({capturedPhotos.length})
+                  Evidencia actual
                 </p>
                 <div className="flex flex-wrap gap-2 p-3 bg-black/40 border border-gray-800 rounded-xl">
                   {capturedPhotos.map((p, i) => (
@@ -736,14 +789,11 @@ export function GestionConductor() {
                           src={p} 
                           alt={`Foto ${i + 1}`}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Error';
-                          }}
                         />
                       </div>
                       <button
-                        onClick={() => setCapturedPhotos(capturedPhotos.filter((_, idx) => idx !== i))}
-                        className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                        onClick={() => setCapturedPhotos([])}
+                        className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5"
                       >
                         <X className="w-3 h-3 text-white" />
                       </button>
@@ -753,88 +803,137 @@ export function GestionConductor() {
               </div>
             )}
 
-            <button
-              onClick={modo === 'REPESADA' ? handleRepesada : 
-                      modo === 'DEVOLUCION' ? handleDevolucion : 
-                      handleAsignacion}
-              className={`w-full py-4 rounded-xl font-black shadow-2xl transition-all hover:scale-[1.02] hover:shadow-lg flex items-center justify-center gap-2 ${
-                modo === 'REPESADA' ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20' :
-                modo === 'DEVOLUCION' ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-500/20' :
-                'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-              disabled={!formWeight || (modo === 'DEVOLUCION' && !formReason) || (modo === 'ASIGNACION' && !newClientId) || capturedPhotos.length === 0}
-            >
-              <CheckCircle2 className="w-5 h-5" /> 
-              CONFIRMAR {modo === 'REPESADA' ? 'REPESADA' : 
-                         modo === 'DEVOLUCION' ? 'DEVOLUCIÓN' : 
-                         'ADICIÓN'}
-            </button>
+            {(modo === 'REPESADA' || modo === 'DEVOLUCION' || modo === 'ASIGNACION') ? (
+              <div className="space-y-4">
+                {!showReasonStep && (
+                  <button
+                    onClick={handleAddBlock}
+                    className={`w-full py-6 border-4 rounded-3xl font-black text-2xl flex items-center justify-center gap-4 transition-all shadow-2xl active:scale-95 disabled:opacity-30 disabled:grayscale ${
+                      modo === 'REPESADA' ? 'bg-blue-600 border-blue-400 text-white hover:bg-blue-500' :
+                      modo === 'DEVOLUCION' ? 'bg-orange-600 border-orange-400 text-white hover:bg-orange-500' :
+                      'bg-emerald-600 border-emerald-400 text-white hover:bg-emerald-500'
+                    }`}
+                    disabled={!formWeight || capturedPhotos.length === 0}
+                  >
+                    <Plus className="w-8 h-8" /> 
+                    SUMAR {modo === 'REPESADA' ? 'PESADA' : 'BLOQUE'}
+                  </button>
+                )}
+
+                {sessionBlocks.length > 0 && (
+                  <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                      REGISTROS ACUMULADOS ({sessionBlocks.length})
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {sessionBlocks.map((b, i) => (
+                        <div key={i} className="flex items-center justify-between bg-black/40 border border-gray-700 rounded-xl p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-600">
+                              <img src={b.foto} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-white font-bold text-lg">{i + 1}° Bloque</span>
+                          </div>
+                          <span className={`text-2xl font-black ${
+                            modo === 'REPESADA' ? 'text-blue-400' : 
+                            modo === 'DEVOLUCION' ? 'text-orange-400' : 
+                            'text-emerald-400'
+                          }`}>{b.peso.toFixed(1)} kg</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={`p-5 border-2 rounded-2xl flex justify-between items-center ${
+                      modo === 'REPESADA' ? 'bg-blue-900/40 border-blue-500/50' : 
+                      modo === 'DEVOLUCION' ? 'bg-orange-900/40 border-orange-500/50' : 
+                      'bg-emerald-900/40 border-emerald-500/50'
+                    }`}>
+                      <span className="text-white font-black text-lg">TOTAL:</span>
+                      <span className="text-3xl font-black text-white">{sessionBlocks.reduce((acc, b) => acc + b.peso, 0).toFixed(1)} kg</span>
+                    </div>
+                  </div>
+                )}
+
+                {modo === 'DEVOLUCION' && showReasonStep && (
+                  <div className="pt-4 animate-in zoom-in-95 duration-300">
+                    <div className="bg-orange-500/10 border-2 border-orange-500/30 rounded-2xl p-6 shadow-2xl">
+                      <label className="block text-sm font-bold text-orange-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        ¿Cuál es el motivo de la devolución? <span className="text-red-400">*</span>
+                      </label>
+                      <textarea
+                        value={formReason}
+                        autoFocus
+                        onChange={(e) => setFormReason(e.target.value)}
+                        className="w-full bg-black/60 border-2 border-gray-700 rounded-2xl px-5 py-4 text-white text-lg focus:outline-none focus:border-orange-500 transition-all h-36 resize-none shadow-inner placeholder:text-gray-600"
+                        placeholder="Ej: Producto dañado, cliente no aceptó, etc..."
+                        maxLength={200}
+                      />
+                      <div className="flex justify-between items-center mt-3">
+                        <button 
+                          onClick={() => setShowReasonStep(false)}
+                          className="text-xs text-orange-400/50 hover:text-orange-400 font-bold uppercase underline"
+                        >
+                          Volver a pesar
+                        </button>
+                        <p className="text-[10px] text-gray-500 font-mono">
+                          {formReason.length}/200 caracteres
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(modo === 'REPESADA' || (modo === 'ASIGNACION' && !showReasonStep)) && (
+                  <button
+                    onClick={modo === 'REPESADA' ? handleFinishRepesada : handleFinishAsignacion}
+                    className={`w-full py-5 rounded-2xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
+                      sessionBlocks.length > 0 && (modo !== 'ASIGNACION' || newClientId)
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+                      : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700 opacity-50'
+                    }`}
+                    disabled={sessionBlocks.length === 0 || (modo === 'ASIGNACION' && !newClientId)}
+                  >
+                    <CheckCircle2 className="w-6 h-6" /> FINALIZAR {modo === 'REPESADA' ? 'REPESADA' : 'ADICIÓN'}
+                  </button>
+                )}
+
+                {modo === 'DEVOLUCION' && (
+                  showReasonStep ? (
+                    <button
+                      onClick={handleFinishDevolucion}
+                      className={`w-full py-6 rounded-2xl font-black text-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
+                        formReason.length >= 3
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700 opacity-50'
+                      }`}
+                      disabled={formReason.length < 3}
+                    >
+                      <CheckCircle2 className="w-7 h-7" /> CONFIRMAR DEVOLUCIÓN
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (sessionBlocks.length > 0) setShowReasonStep(true);
+                        else toast.error("Debe agregar al menos una pesada");
+                      }}
+                      className={`w-full py-5 rounded-2xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
+                        sessionBlocks.length > 0
+                        ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-500/20'
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700 opacity-50'
+                      }`}
+                      disabled={sessionBlocks.length === 0}
+                    >
+                      <ArrowRight className="w-6 h-6" /> CONTINUAR A MOTIVO
+                    </button>
+                  )
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       )}
 
-      {/* Modal de doble confirmación */}
-      {confirmStep > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            {confirmStep === 1 ? (
-              <>
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-900/30 border-2 border-green-500/50 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-8 h-8 text-green-400" />
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-2">¿Confirmar entrega?</h3>
-                  <p className="text-sm text-gray-400">
-                    Está a punto de confirmar la entrega del pedido de{' '}
-                    <span className="text-white font-bold">{selectedPedido?.cliente}</span>
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={cancelarConfirmacion}
-                    className="flex-1 py-3 px-4 bg-gray-800 border border-gray-700 rounded-xl text-gray-300 font-bold hover:bg-gray-700 transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleConfirmarEntrega}
-                    className="flex-1 py-3 px-4 bg-green-600 rounded-xl text-white font-bold hover:bg-green-500 transition-all shadow-lg shadow-green-500/20"
-                  >
-                    Sí, confirmar
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-amber-900/30 border-2 border-amber-500/50 flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle className="w-8 h-8 text-amber-400" />
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-2">Confirmación final</h3>
-                  <p className="text-sm text-gray-400">
-                    Esta acción <span className="text-amber-400 font-bold">no se puede deshacer</span>. 
-                    El pedido quedará marcado como entregado definitivamente.
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={cancelarConfirmacion}
-                    className="flex-1 py-3 px-4 bg-gray-800 border border-gray-700 rounded-xl text-gray-300 font-bold hover:bg-gray-700 transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleConfirmarEntrega}
-                    className="flex-1 py-3 px-4 bg-amber-600 rounded-xl text-white font-bold hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    Confirmar definitivamente
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Modal de confirmación eliminado por solicitud */}
     </div>
   );
 }

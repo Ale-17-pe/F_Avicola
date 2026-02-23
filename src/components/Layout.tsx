@@ -87,7 +87,16 @@ export function Layout() {
           path: "/dashboard/proveedores",
           icon: Users,
         },
-        { label: "Aves", path: "/dashboard/aves", icon: Bird },
+        {
+          label: "Aves",
+          path: "/dashboard/aves",
+          icon: Bird
+        },
+        {
+          label: "Contenedores",
+          path: "/dashboard-secretaria/contenedores",
+          icon: PackageOpen,
+        },
       ],
     },
     {

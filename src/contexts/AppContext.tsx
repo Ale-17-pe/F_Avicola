@@ -76,7 +76,7 @@ export interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'Pesaje' | 'En Despacho' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
   
   // CAMPOS DE PESAJE (se llenan en PesajeOperador)
   pesoBrutoTotal?: number; // Suma de todos los bloques
@@ -96,6 +96,15 @@ export interface PedidoConfirmado {
   fechaPesaje?: string;
   horaPesaje?: string;
   numeroTicket?: string;
+
+  // NUEVOS: Campos de acciones del conductor en ruta
+  pesoRepesada?: number;
+  pesoDevolucion?: number;
+  motivoDevolucion?: string;
+  pesoAdicional?: number;
+  clienteAdicionalId?: string;
+  clienteAdicionalNombre?: string;
+  ultimaIncidencia?: string | null;
 }
 
 export interface Presentacion {
@@ -333,26 +342,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage('avicola_presentaciones', [
       { id: '1', tipoAve: 'Pollo', nombre: 'Vivo', mermaKg: 0 },
       { id: '2', tipoAve: 'Pollo', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '3', tipoAve: 'Pollo', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '3', tipoAve: 'Pollo', nombre: 'Destripado', mermaKg: 0.0 },
       { id: '4', tipoAve: 'Gallina', nombre: 'Vivo', mermaKg: 0 },
       { id: '5', tipoAve: 'Gallina', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '6', tipoAve: 'Gallina', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '6', tipoAve: 'Gallina', nombre: 'Destripado', mermaKg: 0.0 },
       { id: '7', tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
       { id: '8', tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '9', tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '9', tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.0 },
       { id: '10', tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
       { id: '11', tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '12', tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.20 },
+      { id: '12', tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.0 },
     ])
   );
 
   // Estado inicial de Contenedores
   const [contenedores, setContenedores] = useState<Contenedor[]>(() =>
     loadFromStorage('avicola_contenedores', [
-      { id: '1', tipo: 'Jabas Nuevas', peso: 7.1 },
-      { id: '2', tipo: 'Jabas Viejas', peso: 6.9 },
-      { id: '3', tipo: 'Bandeja Amarilla', peso: 5.10 },
-      { id: '4', tipo: 'Bandeja Verde', peso: 3.0 }
+      { id: '1', tipo: 'Jaba Estándar', peso: 6.9 },
+      { id: '2', tipo: 'Jabas Nuevas', peso: 6.9 },
+      { id: '3', tipo: 'Jabas Viejas', peso: 6.9 },
+      { id: '4', tipo: 'Bandeja Amarilla', peso: 5.10 },
+      { id: '5', tipo: 'Bandeja Verde', peso: 3.0 }
     ])
   );
 

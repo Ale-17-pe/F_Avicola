@@ -307,7 +307,7 @@ export function NuevoPedido() {
           tipoAve: `${sub.tipoAve}${varInfo}${detalleSexo}`,
           variedad: sub.variedad, presentacion: sub.presentacion,
           cantidad: cantidadFinal, cantidadJabas: jabas, unidadesPorJaba: uPorJaba,
-          contenedor: 'Por definir en pesaje', fecha, hora,
+          contenedor: 'Jaba Estándar', fecha, hora,
           prioridad: pedido.prioridadBase, esSubPedido: pedido.subPedidos.length > 1
         };
       })
@@ -724,7 +724,7 @@ export function NuevoPedido() {
                       placeholder={esVivo || esCatOtro ? 'Nº de jabas' : '0'} min="1"
                       className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 transition-all" />
                     {esVivo && form.cantidadTotal && (
-                      <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">🐔 {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje</p>
+                      <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1"> {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje</p>
                     )}
                   </div>
                 )}
@@ -740,15 +740,9 @@ export function NuevoPedido() {
                       <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
                         style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                         <span className="text-gray-400">Total aves</span>
-                        <span className="text-green-400 font-bold font-mono">🐔 {form.totalAves} unidades</span>
+                        <span className="text-green-400 font-bold font-mono">{form.totalAves} unidades</span>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {form.completado && (
-                  <div className="mt-2 text-[10px] text-center text-blue-400 bg-blue-900/10 border border-blue-800/30 rounded-lg py-1">
-                    ✅ Listo para enviar - Contenedor se asignará en pesaje
                   </div>
                 )}
               </div>
