@@ -46,7 +46,15 @@ export function Control() {
 
   // Cargar datos de pesaje completados y en proceso desde AppContext
   useEffect(() => {
-    const pesados = pedidosConfirmados.filter((p) => p.estado === 'En Pesaje');
+    const pesados = pedidosConfirmados.filter((p) => 
+      p.estado === 'En Pesaje' || 
+      p.estado === 'En Despacho' || 
+      p.estado === 'Despachando' || 
+      p.estado === 'En Ruta' || 
+      p.estado === 'Entregado' || 
+      p.estado === 'Completado' ||
+      (p.pesoBrutoTotal || 0) > 0
+    );
     setPedidosPesaje(pesados);
   }, [pedidosConfirmados]);
 

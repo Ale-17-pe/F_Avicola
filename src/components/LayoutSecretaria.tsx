@@ -31,7 +31,7 @@ export function LayoutSecretaria() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // 👈 CAMBIADO A false (inicia cerrado)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const handleLogout = () => {
