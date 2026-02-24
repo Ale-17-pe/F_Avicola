@@ -1,11 +1,21 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, User, Phone, MapPin, Mail, TrendingUp, ShoppingCart, X, Building2, Users, DollarSign } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Search, User, Phone, MapPin, Mail, TrendingUp, ShoppingCart, X, Building2, Users, DollarSign, Bird, CheckSquare, Square } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CostosClientes } from './CostosClientes';
 import { useApp } from '../contexts/AppContext';
+import { toast } from 'sonner';
+
+interface ProductoSeleccionado {
+  key: string; // tipoAveId_variedad
+  tipoAveId: string;
+  tipoAveNombre: string;
+  variedad: string;
+  color: string;
+  presentaciones: Set<'Vivo' | 'Pelado' | 'Destripado'>;
+}
 
 export function Clientes() {
-  const { clientes, addCliente, updateCliente, deleteCliente } = useApp();
+  const { clientes, addCliente, updateCliente, deleteCliente, tiposAve, costosClientes, setCostosClientes } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('all');
@@ -20,6 +30,57 @@ export function Clientes() {
     zona: '',
     estado: 'Activo' as 'Activo' | 'Inactivo'
   });
+  const [productosSeleccionados, setProductosSeleccionados] = useState<ProductoSeleccionado[]>([]);
+
+  // Aves activas para seleccion de productos
+  const avesActivas = useMemo(
+    () => tiposAve.filter((t) => (t.categoria === 'Ave' || !t.categoria) && t.estado !== 'Inactivo'),
+    [tiposAve]
+  );
+
+  // Generar lista de productos disponibles
+  const productosDisponibles = useMemo(() => {
+    const items: { key: string; tipoAveId: string; nombre: string; variedad: string; color: string }[] = [];
+    avesActivas.forEach((tipo) => {
+      if (tipo.tieneSexo && !tipo.tieneVariedad) {
+        items.push({ key: `${tipo.id}_Mixto`, tipoAveId: tipo.id, nombre: tipo.nombre, variedad: 'Mixto', color: tipo.color });
+      } else if (tipo.tieneVariedad && tipo.variedades) {
+        tipo.variedades.forEach((v) => {
+          items.push({ key: `${tipo.id}_${v}`, tipoAveId: tipo.id, nombre: tipo.nombre, variedad: v, color: tipo.color });
+        });
+      } else {
+        items.push({ key: `${tipo.id}_-`, tipoAveId: tipo.id, nombre: tipo.nombre, variedad: '-', color: tipo.color });
+      }
+    });
+    return items;
+  }, [avesActivas]);
+
+  const toggleProducto = (item: typeof productosDisponibles[0]) => {
+    setProductosSeleccionados(prev => {
+      const exists = prev.find(p => p.key === item.key);
+      if (exists) {
+        return prev.filter(p => p.key !== item.key);
+      }
+      return [...prev, {
+        key: item.key,
+        tipoAveId: item.tipoAveId,
+        tipoAveNombre: item.nombre,
+        variedad: item.variedad,
+        color: item.color,
+        presentaciones: new Set<'Vivo' | 'Pelado' | 'Destripado'>(['Vivo', 'Pelado', 'Destripado']),
+      }];
+    });
+  };
+
+  const togglePresentacion = (key: string, pres: 'Vivo' | 'Pelado' | 'Destripado') => {
+    setProductosSeleccionados(prev => prev.map(p => {
+      if (p.key !== key) return p;
+      const newSet = new Set(p.presentaciones);
+      if (newSet.has(pres)) newSet.delete(pres);
+      else newSet.add(pres);
+      return { ...p, presentaciones: newSet };
+    }));
+  };
 
   const filteredClientes = clientes.filter(cliente => {
     const matchesSearch =
@@ -41,6 +102,7 @@ export function Clientes() {
         zona: cliente.zona,
         estado: cliente.estado
       });
+      setProductosSeleccionados([]);
     } else {
       setEditingCliente(null);
       setFormData({
@@ -51,6 +113,7 @@ export function Clientes() {
         zona: '',
         estado: 'Activo'
       });
+      setProductosSeleccionados([]);
     }
     setIsModalOpen(true);
   };
@@ -66,6 +129,7 @@ export function Clientes() {
       zona: '',
       estado: 'Activo'
     });
+    setProductosSeleccionados([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,8 +147,9 @@ export function Clientes() {
       };
       updateCliente(clienteActualizado);
     } else {
+      const clienteId = Date.now().toString();
       const nuevoCliente: any = {
-        id: Date.now().toString(),
+        id: clienteId,
         nombre: formData.nombre,
         contacto: formData.contacto,
         telefono: formData.telefono,
@@ -95,6 +160,50 @@ export function Clientes() {
         estado: formData.estado
       };
       addCliente(nuevoCliente);
+
+      // Crear costos iniciales desde precios generales
+      if (productosSeleccionados.length > 0) {
+        const hoy = new Date().toISOString().split('T')[0];
+        let saved: any[] = [];
+        try {
+          const raw = localStorage.getItem('avicola_preciosGenerales');
+          if (raw) saved = JSON.parse(raw);
+        } catch { /* ignore */ }
+
+        const nuevosCostos = [...costosClientes];
+        productosSeleccionados.forEach((prod) => {
+          const general = saved.find(
+            (g: any) => g.tipoAveId === prod.tipoAveId && g.variedad === prod.variedad
+          );
+          const precioVivo = prod.presentaciones.has('Vivo') ? (general?.precioVivo || 0) : 0;
+          const precioPelado = prod.presentaciones.has('Pelado') ? (general?.precioPelado || 0) : 0;
+          const precioDestripado = prod.presentaciones.has('Destripado') ? (general?.precioDestripado || 0) : 0;
+
+          if (precioVivo === 0 && precioPelado === 0 && precioDestripado === 0 && !general) {
+            // Si no hay precios generales, igual crear con 0 para que aparezca
+          }
+
+          const label = prod.variedad !== '-' && prod.variedad !== 'Mixto'
+            ? `${prod.tipoAveNombre} - ${prod.variedad}`
+            : prod.tipoAveNombre;
+
+          nuevosCostos.push({
+            id: `${Date.now()}-${clienteId}-${prod.tipoAveId}-${prod.variedad}-${Math.random()}`,
+            clienteId,
+            clienteNombre: formData.nombre,
+            tipoAveId: prod.tipoAveId,
+            tipoAveNombre: label,
+            variedad: prod.variedad !== '-' ? prod.variedad : undefined,
+            precioPorKg: precioVivo || precioPelado || precioDestripado,
+            precioVivo,
+            precioPelado,
+            precioDestripado,
+            fecha: hoy,
+          });
+        });
+        setCostosClientes(nuevosCostos);
+        toast.success(`Cliente registrado con ${productosSeleccionados.length} producto(s)`);
+      }
     }
 
     handleCloseModal();
@@ -466,6 +575,78 @@ export function Clientes() {
                         </select>
                       </div>
                     </div>
+
+                    {/* Seleccion de productos para nuevo cliente */}
+                    {!editingCliente && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs sm:text-sm font-bold mb-1 sm:mb-2" style={{ color: '#ccaa00' }}>
+                          <div className="flex items-center gap-2">
+                            <Bird className="w-4 h-4" />
+                            Productos Iniciales (opcional)
+                          </div>
+                        </label>
+                        <p className="text-xs text-gray-500 mb-2">
+                          Seleccione los tipos de ave y presentaciones que este cliente maneja. Los precios se obtienen de la tabla general.
+                        </p>
+                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1 rounded-lg p-2" style={{ background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                          {productosDisponibles.map((item) => {
+                            const isSelected = productosSeleccionados.some(p => p.key === item.key);
+                            const productoSel = productosSeleccionados.find(p => p.key === item.key);
+                            return (
+                              <div key={item.key} className={`rounded-lg transition-all ${isSelected ? 'ring-1 ring-amber-500/40' : ''}`} style={{ background: isSelected ? 'rgba(204, 170, 0, 0.08)' : 'transparent' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleProducto(item)}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all hover:bg-white/5"
+                                >
+                                  {isSelected
+                                    ? <CheckSquare className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                                    : <Square className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                                  }
+                                  <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ background: `${item.color}20`, border: `1px solid ${item.color}40` }}>
+                                    <Bird className="w-3 h-3" style={{ color: item.color }} />
+                                  </div>
+                                  <span className="text-white text-xs sm:text-sm font-medium">{item.nombre}</span>
+                                  {item.variedad !== '-' && (
+                                    <span className="text-gray-400 text-xs">({item.variedad})</span>
+                                  )}
+                                </button>
+                                {isSelected && productoSel && (
+                                  <div className="flex items-center gap-2 px-3 pb-2 pl-11">
+                                    {(['Vivo', 'Pelado', 'Destripado'] as const).map((pres) => {
+                                      const active = productoSel.presentaciones.has(pres);
+                                      return (
+                                        <button
+                                          key={pres}
+                                          type="button"
+                                          onClick={() => togglePresentacion(item.key, pres)}
+                                          className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${active ? 'scale-105' : 'opacity-50'}`}
+                                          style={{
+                                            background: active ? 'rgba(204, 170, 0, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                            border: active ? '1px solid rgba(204, 170, 0, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: active ? '#ccaa00' : '#666',
+                                          }}
+                                        >
+                                          {pres}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {productosDisponibles.length === 0 && (
+                            <p className="text-center text-gray-500 text-xs py-3">No hay aves activas registradas</p>
+                          )}
+                        </div>
+                        {productosSeleccionados.length > 0 && (
+                          <p className="text-xs text-amber-400 mt-1.5">
+                            {productosSeleccionados.length} producto(s) seleccionado(s)
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {editingCliente && (
                       <div className="md:col-span-2">

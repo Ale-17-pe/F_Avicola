@@ -77,6 +77,9 @@ export function CostosClientes() {
   const [ajustePorcentaje, setAjustePorcentaje] = useState("");
   const [ajusteMonto, setAjusteMonto] = useState("");
   const [ajusteMetodo, setAjusteMetodo] = useState<"porcentaje" | "monto">("porcentaje");
+  const [ajusteFilterTipoAve, setAjusteFilterTipoAve] = useState<string>("all");
+  const [ajusteFilterVariedad, setAjusteFilterVariedad] = useState<string>("all");
+  const [ajusteFilterPresentacion, setAjusteFilterPresentacion] = useState<string>("all");
 
   // ============ AVES ACTIVAS ============
   const avesActivas = useMemo(
@@ -468,6 +471,16 @@ export function CostosClientes() {
     setExpandedClients(n);
   };
 
+  // ============ VARIEDADES DISPONIBLES PARA FILTRO AJUSTE ============
+  const ajusteVariedadesDisponibles = useMemo(() => {
+    if (ajusteFilterTipoAve === "all") return [];
+    const tipo = tiposAve.find((t) => t.id === ajusteFilterTipoAve);
+    if (!tipo) return [];
+    if (tipo.tieneSexo && !tipo.tieneVariedad) return ["Mixto"];
+    if (tipo.tieneVariedad && tipo.variedades) return tipo.variedades;
+    return ["-"];
+  }, [ajusteFilterTipoAve, tiposAve]);
+
   // ============ AJUSTE MASIVO ============
   const handleAjusteMasivo = () => {
     if (selectedClientes.size === 0) {
@@ -489,33 +502,55 @@ export function CostosClientes() {
 
     const factor = ajusteTipo === "subir" ? 1 : -1;
 
+    let registrosAfectados = 0;
     const costosActualizados = costosClientes.map((c) => {
       if (!selectedClientes.has(c.clienteId)) return c;
 
+      // Filtro por tipo de ave
+      if (ajusteFilterTipoAve !== "all" && c.tipoAveId !== ajusteFilterTipoAve) return c;
+
+      // Filtro por variedad
+      if (ajusteFilterVariedad !== "all") {
+        const costVar = c.variedad || (c.sexo ? "Mixto" : "-");
+        if (costVar !== ajusteFilterVariedad) return c;
+      }
+
       const updated = { ...c };
+      const aplicarVivo = ajusteFilterPresentacion === "all" || ajusteFilterPresentacion === "Vivo";
+      const aplicarPelado = ajusteFilterPresentacion === "all" || ajusteFilterPresentacion === "Pelado";
+      const aplicarDestripado = ajusteFilterPresentacion === "all" || ajusteFilterPresentacion === "Destripado";
+
       if (ajusteMetodo === "porcentaje") {
         const mult = 1 + (factor * porcentaje) / 100;
-        updated.precioVivo = Math.max(0, (updated.precioVivo || 0) * mult);
-        updated.precioPelado = Math.max(0, (updated.precioPelado || 0) * mult);
-        updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) * mult);
-        updated.precioPorKg = Math.max(0, updated.precioPorKg * mult);
+        if (aplicarVivo) updated.precioVivo = Math.max(0, (updated.precioVivo || 0) * mult);
+        if (aplicarPelado) updated.precioPelado = Math.max(0, (updated.precioPelado || 0) * mult);
+        if (aplicarDestripado) updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) * mult);
       } else {
         const delta = factor * monto;
-        updated.precioVivo = Math.max(0, (updated.precioVivo || 0) + delta);
-        updated.precioPelado = Math.max(0, (updated.precioPelado || 0) + delta);
-        updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) + delta);
-        updated.precioPorKg = Math.max(0, updated.precioPorKg + delta);
+        if (aplicarVivo) updated.precioVivo = Math.max(0, (updated.precioVivo || 0) + delta);
+        if (aplicarPelado) updated.precioPelado = Math.max(0, (updated.precioPelado || 0) + delta);
+        if (aplicarDestripado) updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) + delta);
       }
+      updated.precioPorKg = updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
+      registrosAfectados++;
       return updated;
     });
 
+    if (registrosAfectados === 0) {
+      toast.error("No se encontraron registros que coincidan con los filtros seleccionados");
+      return;
+    }
+
     setCostosClientes(costosActualizados);
     toast.success(
-      `Precios ${ajusteTipo === "subir" ? "incrementados" : "reducidos"} para ${selectedClientes.size} cliente(s)`
+      `Precios ${ajusteTipo === "subir" ? "incrementados" : "reducidos"} en ${registrosAfectados} registro(s) de ${selectedClientes.size} cliente(s)`
     );
     setIsAjusteMasivoOpen(false);
     setAjustePorcentaje("");
     setAjusteMonto("");
+    setAjusteFilterTipoAve("all");
+    setAjusteFilterVariedad("all");
+    setAjusteFilterPresentacion("all");
   };
 
   const clienteSeleccionado = clientes.find((c) => c.id === selectedClienteId);
@@ -1296,6 +1331,58 @@ export function CostosClientes() {
                   Se ajustaran los precios de{" "}
                   <span className="font-bold text-white">{selectedClientes.size}</span> cliente(s)
                 </p>
+
+                {/* Filtros granulares: Tipo de Ave, Variedad, Presentacion */}
+                <div className="space-y-3 p-3 rounded-xl" style={{ background: "rgba(168, 85, 247, 0.05)", border: "1px solid rgba(168, 85, 247, 0.15)" }}>
+                  <p className="text-xs font-bold text-purple-300 uppercase tracking-wider">Aplicar a:</p>
+                  
+                  <div>
+                    <label className="block text-xs font-bold mb-1 text-gray-400">Tipo de Ave</label>
+                    <select
+                      value={ajusteFilterTipoAve}
+                      onChange={(e) => { setAjusteFilterTipoAve(e.target.value); setAjusteFilterVariedad("all"); }}
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
+                      style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
+                    >
+                      <option value="all">Todos los tipos</option>
+                      {avesActivas.map((t) => (
+                        <option key={t.id} value={t.id}>{t.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {ajusteFilterTipoAve !== "all" && ajusteVariedadesDisponibles.length > 1 && (
+                    <div>
+                      <label className="block text-xs font-bold mb-1 text-gray-400">Variedad</label>
+                      <select
+                        value={ajusteFilterVariedad}
+                        onChange={(e) => setAjusteFilterVariedad(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-sm text-white"
+                        style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
+                      >
+                        <option value="all">Todas las variedades</option>
+                        {ajusteVariedadesDisponibles.map((v) => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold mb-1 text-gray-400">Presentacion</label>
+                    <select
+                      value={ajusteFilterPresentacion}
+                      onChange={(e) => setAjusteFilterPresentacion(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
+                      style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
+                    >
+                      <option value="all">Todas las presentaciones</option>
+                      <option value="Vivo">Vivo</option>
+                      <option value="Pelado">Pelado</option>
+                      <option value="Destripado">Destripado</option>
+                    </select>
+                  </div>
+                </div>
 
                 {/* Tipo de ajuste: Subir / Bajar */}
                 <div className="flex gap-2">
