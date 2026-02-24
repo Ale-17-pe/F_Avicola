@@ -17,7 +17,8 @@ import {
   Banknote,
   Camera,
   User,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronDown
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ export function GestionCobranza() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
   const [modalType, setModalType] = useState<'PAGO' | 'DEVOLUCION' | 'PEDIDO' | null>(null);
+  const [statsCollapsed, setStatsCollapsed] = useState(false);
   
   // Estados para Pago
   const [amount, setAmount] = useState('');
@@ -145,7 +147,17 @@ export function GestionCobranza() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Header Stats */}
+      {/* Header Stats - Collapsible */}
+      <div>
+        <button 
+          onClick={() => setStatsCollapsed(!statsCollapsed)}
+          className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-emerald-400"
+          style={{ color: 'rgba(156,163,175,0.7)' }}
+        >
+          {statsCollapsed ? <ChevronDown className="w-3.5 h-3.5 -rotate-90" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          Estadísticas {statsCollapsed ? '(expandir)' : ''}
+        </button>
+        {!statsCollapsed && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -157,6 +169,8 @@ export function GestionCobranza() {
             <TrendingUp className="w-3 h-3" /> +12% vs mes anterior
           </div>
         </div>
+      </div>
+        )}
       </div>
 
       {/* Buscador y Filtros */}

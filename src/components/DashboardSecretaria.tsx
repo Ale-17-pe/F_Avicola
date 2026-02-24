@@ -131,6 +131,7 @@ export function DashboardSecretaria() {
   const [confirmModal, setConfirmModal]           = useState<{open:boolean;filaId:string|null;cliente:string}>({open:false,filaId:null,cliente:''});
   const [hoveredRow, setHoveredRow]               = useState<string|null>(null);
   const [showCal, setShowCal]                     = useState(false);
+  const [statsCollapsed, setStatsCollapsed]       = useState(false);
   const calRef                                    = useRef<HTMLDivElement>(null);
 
   // cerrar calendario si click fuera
@@ -196,23 +197,45 @@ export function DashboardSecretaria() {
         const cantidadDisplay = p.cantidad;
         const cantidadLabel = esVivo ? `${p.cantidadJabas || 0} jabas` : 'unids';
 
-        // Calcular merma por presentación
-        const pres = presentaciones.find(pr => 
-          pr.tipoAve.toLowerCase() === p.tipoAve.toLowerCase() && 
-          pr.nombre.toLowerCase() === p.presentacion.toLowerCase()
+        // Calcular merma por presentación (con variedad y sexo específicos)
+        const tipoAveBase = p.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
+        
+        // Intentar match específico por variedad/sexo, luego general
+        let pres = presentaciones.find(pr => 
+          pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+          pr.nombre.toLowerCase() === p.presentacion?.toLowerCase() &&
+          (p.variedad ? pr.variedad === p.variedad : !pr.variedad) &&
+          (p.sexo ? pr.sexo === p.sexo : !pr.sexo)
         );
+        // Fallback: match solo por variedad
+        if (!pres && p.variedad) {
+          pres = presentaciones.find(pr => 
+            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+            pr.nombre.toLowerCase() === p.presentacion?.toLowerCase() &&
+            pr.variedad === p.variedad
+          );
+        }
+        // Fallback: match general por tipo/presentacion
+        if (!pres) {
+          pres = presentaciones.find(pr => 
+            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+            pr.nombre.toLowerCase() === p.presentacion?.toLowerCase()
+          );
+        }
+
         const mermaPorUnidad = pres?.mermaKg || 0;
         const mermaTotal = mermaPorUnidad * p.cantidad;
 
         const pesoContenedor = p.pesoTotalContenedores || 0;
         const pesoBruto = p.pesoBrutoTotal || 0;
+        // Fórmula: Peso Neto = (Peso Bruto + Merma) - Peso Contenedor - Devoluciones
+        const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor;
         const pesoPedido = pesoBruto - pesoContenedor;
-        const pesoNeto = pesoPedido + mermaTotal;
 
         // LÓGICA DE PRECIO AUTO-RELLENABLE (Segunda petición del usuario)
         let precio = 0;
         const clienteObj = clientes.find(c => c.nombre === p.cliente);
-        const tipoAveObj = tiposAve.find(t => t.nombre === p.tipoAve);
+        const tipoAveObj = tiposAve.find(t => t.nombre === tipoAveBase);
 
         if (clienteObj && tipoAveObj) {
           // Buscamos costos específicos del cliente para este tipo de ave
@@ -221,13 +244,24 @@ export function DashboardSecretaria() {
             cc.tipoAveId === tipoAveObj.id
           );
 
-          // Tratamos de encontrar por variedad exacta (incluyendo "Mixto" como default)
+          // Buscar por variedad y sexo específicos
           const variedadBuscada = p.variedad || 'Mixto';
+          const sexoBuscado = p.sexo;
+          
+          // 1. Match exacto por variedad + sexo
           let costoEncontrado = costosDelCliente.find(cc => 
-            (cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto'))
+            (cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')) &&
+            (sexoBuscado ? cc.sexo === sexoBuscado : true)
           );
 
-          // Si no hay por variedad, tomamos el primero que aparezca para ese ave
+          // 2. Match por variedad solamente
+          if (!costoEncontrado) {
+            costoEncontrado = costosDelCliente.find(cc => 
+              cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')
+            );
+          }
+
+          // 3. Fallback: primer costo del cliente para ese ave
           if (!costoEncontrado) {
             costoEncontrado = costosDelCliente[0];
           }
@@ -290,10 +324,12 @@ export function DashboardSecretaria() {
       localStorage.setItem(storageKey(fechaSeleccionada), JSON.stringify(filasCartera));
   }, [filasCartera, fechaSeleccionada]);
 
-  // Recalcular: pesoNeto = (repesada>0 ? repesada : pesoBruto) - pesoContenedor + merma - devolucion + adicion
+  // Recalcular: Peso Neto = (Peso Bruto + Merma) - Peso Contenedor - Devoluciones
+  // Si hay repesada, usarla en lugar de pesoBruto
+  // Total = Peso Neto × Precio
   const recalcularFila = (f: FilaCartera): FilaCartera => {
     const base    = f.repesada > 0 ? f.repesada : f.pesoBruto;
-    const pesoNeto= base - f.pesoContenedor + f.merma - f.devolucionPeso + f.adicionPeso;
+    const pesoNeto= (base + f.merma) - f.pesoContenedor - f.devolucionPeso + f.adicionPeso;
     return { ...f, pesoNeto: Math.max(0,pesoNeto), total: Math.max(0,pesoNeto)*f.precio };
   };
 
@@ -489,7 +525,25 @@ export function DashboardSecretaria() {
         </div>
       </motion.div>
 
-      {/* METRIC CARDS */}
+      {/* METRIC CARDS - Collapsible */}
+      <div>
+        <button 
+          onClick={() => setStatsCollapsed(!statsCollapsed)}
+          className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-amber-400"
+          style={{ color: 'rgba(156,163,175,0.7)' }}
+        >
+          {statsCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          Estadísticas {statsCollapsed ? '(expandir)' : ''}
+        </button>
+        <AnimatePresence>
+          {!statsCollapsed && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {[
           {label:'Total Ventas',    value:`S/ ${totalVentas.toFixed(2)}`,          icon:DollarSign, col:COL.pedido,     border:'rgba(34,197,94,0.25)'},
@@ -512,6 +566,10 @@ export function DashboardSecretaria() {
             <p className="text-lg md:text-xl font-bold tabular-nums" style={{color:m.col}}>{m.value}</p>
           </motion.div>
         ))}
+      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* CONTROLS */}
