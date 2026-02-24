@@ -14,7 +14,6 @@ import {
   ShoppingCart,
   Search,
   UserCircle,
-  Container,
   Truck,
   ClipboardList,
 } from "lucide-react";
@@ -60,11 +59,6 @@ export function LayoutSecretaria() {
       label: "Compras y Almacén",
       path: "/dashboard-secretaria/inventario",
       icon: Package,
-    },
-    {
-      label: "Gestión de Contenedores",
-      path: "/dashboard-secretaria/contenedores",
-      icon: Container,
     },
     {
       label: "Consulta de Clientes",

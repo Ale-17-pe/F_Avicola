@@ -22,6 +22,7 @@ export interface TipoAve {
   variedades?: string[];
   color: string;
   categoria?: 'Ave' | 'Otro';
+  estado?: 'Activo' | 'Inactivo';
 }
 
 export interface CostoCliente {
@@ -33,6 +34,10 @@ export interface CostoCliente {
   variedad?: string;
   sexo?: 'Macho' | 'Hembra';
   precioPorKg: number;
+  precioVivo?: number;
+  precioPelado?: number;
+  precioDestripado?: number;
+  presentacion?: string;
   fecha: string;
 }
 
@@ -252,11 +257,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Estado inicial de Tipos de Ave
   const [tiposAve, setTiposAve] = useState<TipoAve[]>(() =>
     loadFromStorage('avicola_tiposAve', [
-      { id: '1', nombre: 'Pollo', tieneSexo: true, tieneVariedad: false, color: '#22c55e', categoria: 'Ave' },
-      { id: '2', nombre: 'Pato', tieneSexo: true, tieneVariedad: false, color: '#3b82f6', categoria: 'Ave' },
-      { id: '3', nombre: 'Pavo', tieneSexo: true, tieneVariedad: false, color: '#8b5cf6', categoria: 'Ave' },
-      { id: '4', nombre: 'Gallina', tieneSexo: false, tieneVariedad: true, variedades: ['Rojas', 'Doble Pechuga'], color: '#ec4899', categoria: 'Ave' },
-      { id: '5', nombre: 'Huevos', tieneSexo: false, tieneVariedad: true, variedades: ['Rosados', 'Pardos', 'Blancos'], color: '#eab308', categoria: 'Otro' }
+      { id: '1', nombre: 'Pollo', tieneSexo: true, tieneVariedad: false, color: '#22c55e', categoria: 'Ave', estado: 'Activo' },
+      { id: '2', nombre: 'Pato', tieneSexo: true, tieneVariedad: false, color: '#3b82f6', categoria: 'Ave', estado: 'Activo' },
+      { id: '3', nombre: 'Pavo', tieneSexo: true, tieneVariedad: false, color: '#8b5cf6', categoria: 'Ave', estado: 'Activo' },
+      { id: '4', nombre: 'Gallina', tieneSexo: false, tieneVariedad: true, variedades: ['Rojas', 'Doble Pechuga'], color: '#ec4899', categoria: 'Ave', estado: 'Activo' },
+      { id: '5', nombre: 'Huevos', tieneSexo: false, tieneVariedad: true, variedades: ['Rosados', 'Pardos', 'Blancos'], color: '#eab308', categoria: 'Otro', estado: 'Activo' }
     ])
   );
 
