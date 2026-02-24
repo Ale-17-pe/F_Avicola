@@ -1,36 +1,46 @@
-import { useState } from "react";
+﻿import { useState, useMemo } from "react";
 import {
-  Plus,
-  Edit2,
-  Trash2,
   Search,
   DollarSign,
   User,
   Bird,
   X,
-  TrendingUp,
   ChevronDown,
   ChevronUp,
   Settings,
-  Calendar,
-  History,
+  Trash2,
+  Check,
+  Users,
+  TrendingUp,
   TrendingDown,
-  Minus,
-  ArrowUpDown,
+  CheckSquare,
+  Square,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
 import { useApp } from "../contexts/AppContext";
+import { toast } from "sonner";
+
+// ============ TIPOS ============
+interface PrecioGeneral {
+  tipoAveId: string;
+  tipoAveNombre: string;
+  variedad: string;
+  color: string;
+  precioVivo: number;
+  precioPelado: number;
+  precioDestripado: number;
+  selected: boolean;
+}
+
+interface PrecioCliente {
+  id: string;
+  tipoAveId: string;
+  tipoAveNombre: string;
+  variedad: string;
+  color: string;
+  precioVivo: number;
+  precioPelado: number;
+  precioDestripado: number;
+}
 
 export function CostosClientes() {
   const {
@@ -40,887 +50,1017 @@ export function CostosClientes() {
     setCostosClientes,
   } = useApp();
 
-  // Generar entradas de combo precio: tipo + variedad o tipo + sexo
-  interface PrecioCombo {
-    key: string; // unique key for form
-    tipoAveId: string;
-    tipoAveNombre: string;
-    variedad?: string;
-    sexo?: 'Macho' | 'Hembra';
-    label: string;
-    sublabel: string;
-    color: string;
-  }
+  // ============ ESTADOS ============
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterTipoAve, setFilterTipoAve] = useState<string>("all");
+  const [filterPrecioMin, setFilterPrecioMin] = useState("");
+  const [filterPrecioMax, setFilterPrecioMax] = useState("");
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
-  const generarCombosPrecios = (): PrecioCombo[] => {
-    const combos: PrecioCombo[] = [];
-    tiposAve.forEach((tipo) => {
-      // Modificación solicitada: Juntar Pollo, Pato, Pavo independiente de sexo
-      if (['Pollo', 'Pato', 'Pavo'].includes(tipo.nombre)) {
-        combos.push({
-          key: tipo.id, // Key simplificada
+  // Estado para Costos Generales
+  const [preciosGenerales, setPreciosGenerales] = useState<PrecioGeneral[]>([]);
+  const [editingGeneralCell, setEditingGeneralCell] = useState<string | null>(null);
+  const [editingGeneralValue, setEditingGeneralValue] = useState("");
+
+  // Estado para el modal de gestion individual
+  const [isGestionModalOpen, setIsGestionModalOpen] = useState(false);
+  const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
+
+  // Estado para edicion inline de precios de clientes
+  const [editingClientCell, setEditingClientCell] = useState<string | null>(null);
+  const [editingClientValue, setEditingClientValue] = useState("");
+
+  // Estado para ajuste masivo
+  const [isAjusteMasivoOpen, setIsAjusteMasivoOpen] = useState(false);
+  const [ajusteTipo, setAjusteTipo] = useState<"subir" | "bajar">("subir");
+  const [ajustePorcentaje, setAjustePorcentaje] = useState("");
+  const [ajusteMonto, setAjusteMonto] = useState("");
+  const [ajusteMetodo, setAjusteMetodo] = useState<"porcentaje" | "monto">("porcentaje");
+
+  // ============ AVES ACTIVAS ============
+  const avesActivas = useMemo(
+    () => tiposAve.filter((t) => (t.categoria === "Ave" || !t.categoria) && t.estado !== "Inactivo"),
+    [tiposAve]
+  );
+
+  // ============ GENERAR FILAS DE PRECIOS GENERALES ============
+  const generarPreciosGenerales = (): PrecioGeneral[] => {
+    const filas: PrecioGeneral[] = [];
+    avesActivas.forEach((tipo) => {
+      if (tipo.tieneSexo && !tipo.tieneVariedad) {
+        filas.push({
           tipoAveId: tipo.id,
           tipoAveNombre: tipo.nombre,
-          label: tipo.nombre,
-          sublabel: '',
+          variedad: "Mixto",
           color: tipo.color,
+          precioVivo: 0,
+          precioPelado: 0,
+          precioDestripado: 0,
+          selected: false,
         });
-        return; // Salir para usar lógica personalizada
-      }
-
-      if (tipo.tieneSexo && tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) {
-        // Has both sex AND variety: generate variety+sex combos
+      } else if (tipo.tieneVariedad && tipo.variedades) {
         tipo.variedades.forEach((v) => {
-          (['Macho', 'Hembra'] as const).forEach((s) => {
-            combos.push({
-              key: `${tipo.id}_${v}_${s}`,
-              tipoAveId: tipo.id,
-              tipoAveNombre: tipo.nombre,
-              variedad: v,
-              sexo: s,
-              label: `${tipo.nombre} - ${v}`,
-              sublabel: s,
-              color: tipo.color,
-            });
-          });
-        });
-      } else if (tipo.tieneSexo) {
-        // Has sex only (Pollo, Pato, Pavo)
-        (['Macho', 'Hembra'] as const).forEach((s) => {
-          combos.push({
-            key: `${tipo.id}_${s}`,
-            tipoAveId: tipo.id,
-            tipoAveNombre: tipo.nombre,
-            sexo: s,
-            label: `${tipo.nombre}`,
-            sublabel: s,
-            color: tipo.color,
-          });
-        });
-      } else if (tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) {
-        // Has variety only (Gallina, Huevos)
-        tipo.variedades.forEach((v) => {
-          combos.push({
-            key: `${tipo.id}_${v}`,
+          filas.push({
             tipoAveId: tipo.id,
             tipoAveNombre: tipo.nombre,
             variedad: v,
-            label: `${tipo.nombre}`,
-            sublabel: v,
             color: tipo.color,
+            precioVivo: 0,
+            precioPelado: 0,
+            precioDestripado: 0,
+            selected: false,
           });
         });
       } else {
-        // Simple type
-        combos.push({
-          key: tipo.id,
+        filas.push({
           tipoAveId: tipo.id,
           tipoAveNombre: tipo.nombre,
-          label: tipo.nombre,
-          sublabel: '',
+          variedad: "-",
           color: tipo.color,
+          precioVivo: 0,
+          precioPelado: 0,
+          precioDestripado: 0,
+          selected: false,
         });
       }
     });
-    return combos;
+    return filas;
   };
 
-  const combosPrecios = generarCombosPrecios();
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [expandedClients, setExpandedClients] = useState<
-    Set<string>
-  >(new Set(["1"]));
-  const [isGestionModalOpen, setIsGestionModalOpen] =
-    useState(false);
-  const [isHistorialModalOpen, setIsHistorialModalOpen] =
-    useState(false);
-  const [selectedClienteId, setSelectedClienteId] = useState<
-    string | null
-  >(null);
-  const [historialClienteId, setHistorialClienteId] = useState<
-    string | null
-  >(null);
-  const [preciosForm, setPreciosForm] = useState<{
-    [tipoAveId: string]: string;
-  }>({});
-
-  // Estado para agendar precios (HOY o MAÑANA)
-  const [diaSeleccionado, setDiaSeleccionado] = useState<
-    "hoy" | "manana"
-  >("hoy");
-
-  // Filtros para el historial
-  const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
-  const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
-  const [filtroTipoAve, setFiltroTipoAve] =
-    useState<string>("");
-  const [ordenFecha, setOrdenFecha] = useState<"desc" | "asc">(
-    "desc",
-  );
-
-  // Estado para editar precio individual
-  const [isEditPrecioModalOpen, setIsEditPrecioModalOpen] =
-    useState(false);
-  const [editingCosto, setEditingCosto] = useState<
-    (typeof costosClientes)[0] | null
-  >(null);
-  const [editPrecio, setEditPrecio] = useState("");
-  const [editFecha, setEditFecha] = useState("");
-
-  const filteredClientes = clientes.filter((cliente) =>
-    cliente.nombre
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
-  );
-
-  const toggleClientExpansion = (clienteId: string) => {
-    const newExpanded = new Set(expandedClients);
-    if (newExpanded.has(clienteId)) {
-      newExpanded.delete(clienteId);
+  // Inicializar precios generales si estan vacios
+  if (preciosGenerales.length === 0 && avesActivas.length > 0) {
+    const saved = localStorage.getItem("avicola_preciosGenerales");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const base = generarPreciosGenerales();
+        const merged = base.map((b) => {
+          const found = parsed.find(
+            (p: PrecioGeneral) => p.tipoAveId === b.tipoAveId && p.variedad === b.variedad
+          );
+          return found
+            ? {
+                ...b,
+                precioVivo: found.precioVivo || 0,
+                precioPelado: found.precioPelado || 0,
+                precioDestripado: found.precioDestripado || 0,
+              }
+            : b;
+        });
+        setPreciosGenerales(merged);
+      } catch {
+        setPreciosGenerales(generarPreciosGenerales());
+      }
     } else {
-      newExpanded.add(clienteId);
+      setPreciosGenerales(generarPreciosGenerales());
     }
-    setExpandedClients(newExpanded);
+  }
+
+  // Guardar precios generales
+  const guardarPreciosGenerales = (precios: PrecioGeneral[]) => {
+    setPreciosGenerales(precios);
+    localStorage.setItem("avicola_preciosGenerales", JSON.stringify(precios));
   };
 
-  const getCostosDelCliente = (clienteId: string) => {
-    return costosClientes.filter(
-      (c) => c.clienteId === clienteId,
-    );
-  };
+  // ============ PRECIOS POR CLIENTE ============
+  const getPreciosCliente = (clienteId: string): PrecioCliente[] => {
+    const costos = costosClientes.filter((c) => c.clienteId === clienteId);
+    const mapaPrecios = new Map<string, PrecioCliente>();
 
-  // Obtener precios de HOY y AYER solamente
-  const getPreciosHoyYAyer = (clienteId: string) => {
-    const costos = getCostosDelCliente(clienteId);
-    const hoy = new Date().toISOString().split("T")[0];
-    const ayer = new Date(Date.now() - 86400000)
-      .toISOString()
-      .split("T")[0];
-
-    return costos.filter(
-      (c) => c.fecha === hoy || c.fecha === ayer,
-    );
-  };
-
-  // Agrupar precios por fecha (HOY y AYER)
-  const getPreciosAgrupadosPorFecha = (clienteId: string) => {
-    const costos = getPreciosHoyYAyer(clienteId);
-    const hoy = new Date().toISOString().split("T")[0];
-    const ayer = new Date(Date.now() - 86400000)
-      .toISOString()
-      .split("T")[0];
-
-    const grupos: {
-      fecha: string;
-      label: string;
-      costos: typeof costosClientes;
-    }[] = [];
-
-    const costosHoy = costos.filter((c) => c.fecha === hoy);
-    const costosAyer = costos.filter((c) => c.fecha === ayer);
-
-    if (costosHoy.length > 0) {
-      grupos.push({
-        fecha: hoy,
-        label: "HOY",
-        costos: costosHoy,
+    costos.forEach((c) => {
+      const variedad = c.variedad || (c.sexo ? "Mixto" : "-");
+      const key = `${c.tipoAveId}_${variedad}`;
+      const tipoAve = tiposAve.find((t) => t.id === c.tipoAveId);
+      mapaPrecios.set(key, {
+        id: c.id,
+        tipoAveId: c.tipoAveId,
+        tipoAveNombre: tipoAve?.nombre || c.tipoAveNombre,
+        variedad,
+        color: tipoAve?.color || "#888",
+        precioVivo: c.precioVivo || (c.presentacion === "Vivo" ? c.precioPorKg : 0),
+        precioPelado: c.precioPelado || (c.presentacion === "Pelado" ? c.precioPorKg : 0),
+        precioDestripado: c.precioDestripado || (c.presentacion === "Destripado" ? c.precioPorKg : 0),
       });
-    }
-
-    if (costosAyer.length > 0) {
-      grupos.push({
-        fecha: ayer,
-        label: "AYER",
-        costos: costosAyer,
-      });
-    }
-
-    return grupos;
-  };
-
-  // Helper: generar combo key desde un costo
-  // Modificado para soportar precios combinados sin sexo
-  const costoComboKey = (c: (typeof costosClientes)[0]) => {
-    const tipoMerged = ['Pollo', 'Pato', 'Pavo'].find(n => n === c.tipoAveNombre || n === c.tipoAveId || (tiposAve.find(t => t.id === c.tipoAveId)?.nombre === n));
-    
-    if (tipoMerged && !c.variedad) {
-      // Si es de los tipos combinados y no tiene variedad, retornamos key simple
-      return c.tipoAveId;
-    }
-
-    let key = c.tipoAveId;
-    if (c.variedad) key += `_${c.variedad}`;
-    if (c.sexo) key += `_${c.sexo}`;
-    return key;
-  };
-
-  // Obtener precios más recientes por cliente (por combo key)
-  const getPreciosMasRecientes = (clienteId: string) => {
-    const costos = getCostosDelCliente(clienteId);
-    const fechasMasRecientes = new Map<
-      string,
-      (typeof costosClientes)[0]
-    >();
-
-    costos.forEach((costo) => {
-      const key = costoComboKey(costo);
-      const existing = fechasMasRecientes.get(key);
-      if (!existing || costo.fecha > existing.fecha) {
-        fechasMasRecientes.set(key, costo);
-      }
     });
 
-    return Array.from(fechasMasRecientes.values());
+    return Array.from(mapaPrecios.values());
   };
 
-  // Obtener historial agrupado por fecha con filtros
-  const getHistorialPorFecha = (clienteId: string) => {
-    let costos = getCostosDelCliente(clienteId);
+  // ============ FILTRADO DE CLIENTES ============
+  const filteredClientes = useMemo(() => {
+    return clientes.filter((cliente) => {
+      const matchesSearch = cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Aplicar filtro de rango de fechas
-    if (filtroFechaDesde) {
-      costos = costos.filter(
-        (c) => c.fecha >= filtroFechaDesde,
-      );
-    }
-    if (filtroFechaHasta) {
-      costos = costos.filter(
-        (c) => c.fecha <= filtroFechaHasta,
-      );
-    }
-
-    // Aplicar filtro por tipo de ave
-    if (filtroTipoAve) {
-      costos = costos.filter(
-        (c) => c.tipoAveId === filtroTipoAve,
-      );
-    }
-
-    const porFecha = new Map<string, typeof costosClientes>();
-
-    costos.forEach((costo) => {
-      const fechaKey = costo.fecha;
-      if (!porFecha.has(fechaKey)) {
-        porFecha.set(fechaKey, []);
+      if (filterTipoAve !== "all") {
+        const preciosCliente = getPreciosCliente(cliente.id);
+        const tieneAve = preciosCliente.some((p) => p.tipoAveId === filterTipoAve);
+        if (!tieneAve) return false;
       }
-      porFecha.get(fechaKey)!.push(costo);
+
+      if (filterPrecioMin || filterPrecioMax) {
+        const preciosCliente = getPreciosCliente(cliente.id);
+        const min = parseFloat(filterPrecioMin) || 0;
+        const max = parseFloat(filterPrecioMax) || Infinity;
+        const tieneEnRango = preciosCliente.some((p) => {
+          const precios = [p.precioVivo, p.precioPelado, p.precioDestripado].filter((v) => v > 0);
+          return precios.some((pr) => pr >= min && pr <= max);
+        });
+        if (!tieneEnRango && preciosCliente.length > 0) return false;
+      }
+
+      return matchesSearch;
     });
+  }, [clientes, searchTerm, filterTipoAve, filterPrecioMin, filterPrecioMax, costosClientes]);
 
-    // Ordenar por fecha según el orden seleccionado
-    return Array.from(porFecha.entries()).sort((a, b) =>
-      ordenFecha === "desc"
-        ? b[0].localeCompare(a[0])
-        : a[0].localeCompare(b[0]),
-    );
-  };
-
-  // Función para limpiar filtros
-  const limpiarFiltros = () => {
-    setFiltroFechaDesde("");
-    setFiltroFechaHasta("");
-    setFiltroTipoAve("");
-    setOrdenFecha("desc");
-  };
-
-  // Calcular cambio de precio
-  const getChangePrecio = (
-    precioActual: number,
-    precioAnterior: number | null,
+  // ============ HANDLERS GENERALES ============
+  const handleEditGeneralCell = (
+    rowIdx: number,
+    field: "precioVivo" | "precioPelado" | "precioDestripado"
   ) => {
-    if (precioAnterior === null)
-      return { tipo: "nuevo", diferencia: 0 };
-    const diferencia = precioActual - precioAnterior;
-
-    if (diferencia > 0) return { tipo: "subio", diferencia };
-    if (diferencia < 0) return { tipo: "bajo", diferencia };
-    return { tipo: "igual", diferencia: 0 };
+    const key = `${rowIdx}_${field}`;
+    setEditingGeneralCell(key);
+    setEditingGeneralValue(preciosGenerales[rowIdx][field].toString());
   };
 
+  const handleSaveGeneralCell = (
+    rowIdx: number,
+    field: "precioVivo" | "precioPelado" | "precioDestripado"
+  ) => {
+    const valor = parseFloat(editingGeneralValue) || 0;
+    const nuevos = [...preciosGenerales];
+    nuevos[rowIdx] = { ...nuevos[rowIdx], [field]: valor };
+    guardarPreciosGenerales(nuevos);
+    setEditingGeneralCell(null);
+  };
+
+  const toggleGeneralRowSelection = (rowIdx: number) => {
+    const nuevos = [...preciosGenerales];
+    nuevos[rowIdx] = { ...nuevos[rowIdx], selected: !nuevos[rowIdx].selected };
+    guardarPreciosGenerales(nuevos);
+  };
+
+  const toggleSelectAllGeneral = () => {
+    const allSelected = preciosGenerales.every((p) => p.selected);
+    const nuevos = preciosGenerales.map((p) => ({ ...p, selected: !allSelected }));
+    guardarPreciosGenerales(nuevos);
+  };
+
+  // ============ SELECCION DE CLIENTES ============
+  const toggleClienteSelection = (clienteId: string) => {
+    const newSet = new Set(selectedClientes);
+    if (newSet.has(clienteId)) newSet.delete(clienteId);
+    else newSet.add(clienteId);
+    setSelectedClientes(newSet);
+  };
+
+  const toggleSelectAllClientes = () => {
+    if (selectedClientes.size === filteredClientes.length) {
+      setSelectedClientes(new Set());
+    } else {
+      setSelectedClientes(new Set(filteredClientes.map((c) => c.id)));
+    }
+  };
+
+  // ============ APLICAR PRECIOS GENERALES A CLIENTES ============
+  const aplicarPreciosAClientes = () => {
+    const filasSeleccionadas = preciosGenerales.filter((p) => p.selected);
+    if (filasSeleccionadas.length === 0) {
+      toast.error("Seleccione al menos un producto de la tabla general");
+      return;
+    }
+    if (selectedClientes.size === 0) {
+      toast.error("Seleccione al menos un cliente");
+      return;
+    }
+
+    const hoy = new Date().toISOString().split("T")[0];
+    const nuevosCostos = [...costosClientes];
+
+    selectedClientes.forEach((clienteId) => {
+      const cliente = clientes.find((c) => c.id === clienteId);
+      if (!cliente) return;
+
+      filasSeleccionadas.forEach((fila) => {
+        const idxToRemove: number[] = [];
+        nuevosCostos.forEach((c, idx) => {
+          if (c.clienteId === clienteId && c.tipoAveId === fila.tipoAveId) {
+            const varMatch = (c.variedad || (c.sexo ? "Mixto" : "-")) === fila.variedad;
+            if (varMatch) idxToRemove.push(idx);
+          }
+        });
+        idxToRemove.reverse().forEach((idx) => nuevosCostos.splice(idx, 1));
+
+        const label =
+          fila.variedad !== "-" && fila.variedad !== "Mixto"
+            ? `${fila.tipoAveNombre} - ${fila.variedad}`
+            : fila.tipoAveNombre;
+
+        nuevosCostos.push({
+          id: `${Date.now()}-${clienteId}-${fila.tipoAveId}-${fila.variedad}-${Math.random()}`,
+          clienteId,
+          clienteNombre: cliente.nombre,
+          tipoAveId: fila.tipoAveId,
+          tipoAveNombre: label,
+          variedad: fila.variedad !== "-" ? fila.variedad : undefined,
+          precioPorKg: fila.precioVivo || fila.precioPelado || fila.precioDestripado,
+          precioVivo: fila.precioVivo,
+          precioPelado: fila.precioPelado,
+          precioDestripado: fila.precioDestripado,
+          fecha: hoy,
+        });
+      });
+    });
+
+    setCostosClientes(nuevosCostos);
+    toast.success(`Precios aplicados a ${selectedClientes.size} cliente(s)`);
+    setSelectedClientes(new Set());
+    guardarPreciosGenerales(preciosGenerales.map((p) => ({ ...p, selected: false })));
+  };
+
+  // ============ HANDLER INDIVIDUAL (GESTIONAR) ============
   const handleOpenGestionModal = (clienteId: string) => {
     setSelectedClienteId(clienteId);
-    setDiaSeleccionado("hoy");
-    const preciosMasRecientes = getPreciosMasRecientes(clienteId);
-    const preciosInicial: { [key: string]: string } = {};
-    preciosMasRecientes.forEach((costo) => {
-      preciosInicial[costoComboKey(costo)] = costo.precioPorKg.toString();
-    });
-    setPreciosForm(preciosInicial);
     setIsGestionModalOpen(true);
-  };
-
-  const handleOpenHistorialModal = (clienteId: string) => {
-    setHistorialClienteId(clienteId);
-    setIsHistorialModalOpen(true);
   };
 
   const handleCloseGestionModal = () => {
     setIsGestionModalOpen(false);
     setSelectedClienteId(null);
-    setPreciosForm({});
-    setDiaSeleccionado("hoy"); // Reset al cerrar
   };
 
-  // Función para cambiar de día y cargar precios correspondientes
-  const handleCambioDia = (dia: "hoy" | "manana") => {
-    setDiaSeleccionado(dia);
+  // Estado interno del modal de gestion
+  const [gestionPrecios, setGestionPrecios] = useState<{
+    [key: string]: { vivo: string; pelado: string; destripado: string };
+  }>({});
 
-    if (!selectedClienteId) return;
+  const initGestionPrecios = (clienteId: string) => {
+    const precios: { [key: string]: { vivo: string; pelado: string; destripado: string } } = {};
+    const existentes = getPreciosCliente(clienteId);
 
-    const fecha =
-      dia === "hoy"
-        ? new Date().toISOString().split("T")[0]
-        : new Date(Date.now() + 86400000)
-            .toISOString()
-            .split("T")[0];
-
-    // Cargar precios de ese día si existen
-    const costosDelDia = costosClientes.filter(
-      (c) =>
-        c.clienteId === selectedClienteId && c.fecha === fecha,
-    );
-
-    const preciosDelDia: { [key: string]: string } = {};
-
-    if (costosDelDia.length > 0) {
-      costosDelDia.forEach((costo) => {
-        preciosDelDia[costoComboKey(costo)] = costo.precioPorKg.toString();
-      });
-    } else if (dia === "manana") {
-      const preciosMasRecientes = getPreciosMasRecientes(selectedClienteId);
-      preciosMasRecientes.forEach((costo) => {
-        preciosDelDia[costoComboKey(costo)] = costo.precioPorKg.toString();
-      });
-    }
-
-    setPreciosForm(preciosDelDia);
-  };
-
-  const handleSubmitGestion = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedClienteId) return;
-
-    const cliente = clientes.find(
-      (c) => c.id === selectedClienteId,
-    );
-    if (!cliente) return;
-
-    const nuevaFecha =
-      diaSeleccionado === "hoy"
-        ? new Date().toISOString().split("T")[0]
-        : new Date(Date.now() + 86400000).toISOString().split("T")[0];
-    const costosActualizados = [...costosClientes];
-
-    // Procesar cada combo de precio
-    combosPrecios.forEach((combo) => {
-      const precioStr = preciosForm[combo.key];
-
-      if (
-        precioStr &&
-        precioStr.trim() !== "" &&
-        parseFloat(precioStr) > 0
-      ) {
-        const precio = parseFloat(precioStr);
-        const label = combo.sublabel
-          ? `${combo.tipoAveNombre} - ${combo.sublabel}`
-          : combo.tipoAveNombre;
-
-        const nuevoCosto = {
-          id: Date.now().toString() + "-" + combo.key + "-" + Math.random(),
-          clienteId: selectedClienteId,
-          clienteNombre: cliente.nombre,
-          tipoAveId: combo.tipoAveId,
-          tipoAveNombre: label,
-          variedad: combo.variedad,
-          sexo: combo.sexo,
-          precioPorKg: precio,
-          fecha: nuevaFecha,
+    avesActivas.forEach((tipo) => {
+      if (tipo.tieneSexo && !tipo.tieneVariedad) {
+        const key = `${tipo.id}_Mixto`;
+        const exist = existentes.find((e) => e.tipoAveId === tipo.id && e.variedad === "Mixto");
+        precios[key] = {
+          vivo: exist ? (exist.precioVivo > 0 ? exist.precioVivo.toString() : "") : "",
+          pelado: exist ? (exist.precioPelado > 0 ? exist.precioPelado.toString() : "") : "",
+          destripado: exist ? (exist.precioDestripado > 0 ? exist.precioDestripado.toString() : "") : "",
         };
-        costosActualizados.push(nuevoCosto);
+      } else if (tipo.tieneVariedad && tipo.variedades) {
+        tipo.variedades.forEach((v) => {
+          const key = `${tipo.id}_${v}`;
+          const exist = existentes.find((e) => e.tipoAveId === tipo.id && e.variedad === v);
+          precios[key] = {
+            vivo: exist ? (exist.precioVivo > 0 ? exist.precioVivo.toString() : "") : "",
+            pelado: exist ? (exist.precioPelado > 0 ? exist.precioPelado.toString() : "") : "",
+            destripado: exist
+              ? exist.precioDestripado > 0
+                ? exist.precioDestripado.toString()
+                : ""
+              : "",
+          };
+        });
+      } else {
+        const key = `${tipo.id}_-`;
+        const exist = existentes.find((e) => e.tipoAveId === tipo.id && e.variedad === "-");
+        precios[key] = {
+          vivo: exist ? (exist.precioVivo > 0 ? exist.precioVivo.toString() : "") : "",
+          pelado: exist ? (exist.precioPelado > 0 ? exist.precioPelado.toString() : "") : "",
+          destripado: exist ? (exist.precioDestripado > 0 ? exist.precioDestripado.toString() : "") : "",
+        };
       }
     });
+    setGestionPrecios(precios);
+  };
 
-    setCostosClientes(costosActualizados);
+  const handleSubmitGestion = () => {
+    if (!selectedClienteId) return;
+    const cliente = clientes.find((c) => c.id === selectedClienteId);
+    if (!cliente) return;
+
+    const hoy = new Date().toISOString().split("T")[0];
+    const nuevosCostos = [...costosClientes];
+
+    Object.entries(gestionPrecios).forEach(([key, precios]) => {
+      const [tipoAveId, ...rest] = key.split("_");
+      const variedad = rest.join("_");
+      const vivo = parseFloat(precios.vivo) || 0;
+      const pelado = parseFloat(precios.pelado) || 0;
+      const destripado = parseFloat(precios.destripado) || 0;
+
+      if (vivo === 0 && pelado === 0 && destripado === 0) return;
+
+      const tipo = tiposAve.find((t) => t.id === tipoAveId);
+      if (!tipo) return;
+
+      const label =
+        variedad !== "-" && variedad !== "Mixto"
+          ? `${tipo.nombre} - ${variedad}`
+          : tipo.nombre;
+
+      const idxToRemove: number[] = [];
+      nuevosCostos.forEach((c, idx) => {
+        if (c.clienteId === selectedClienteId && c.tipoAveId === tipoAveId) {
+          const varMatch = (c.variedad || (c.sexo ? "Mixto" : "-")) === variedad;
+          if (varMatch) idxToRemove.push(idx);
+        }
+      });
+      idxToRemove.reverse().forEach((idx) => nuevosCostos.splice(idx, 1));
+
+      nuevosCostos.push({
+        id: `${Date.now()}-${selectedClienteId}-${tipoAveId}-${variedad}-${Math.random()}`,
+        clienteId: selectedClienteId,
+        clienteNombre: cliente.nombre,
+        tipoAveId,
+        tipoAveNombre: label,
+        variedad: variedad !== "-" ? variedad : undefined,
+        precioPorKg: vivo || pelado || destripado,
+        precioVivo: vivo,
+        precioPelado: pelado,
+        precioDestripado: destripado,
+        fecha: hoy,
+      });
+    });
+
+    setCostosClientes(nuevosCostos);
+    toast.success(`Precios asignados para ${cliente.nombre}`);
     handleCloseGestionModal();
   };
 
-  const handleEliminarPrecio = (costoId: string) => {
-    if (confirm("¿Está seguro de eliminar este precio?")) {
-      setCostosClientes(
-        costosClientes.filter((c) => c.id !== costoId),
-      );
+  // ============ ELIMINAR PRECIO INDIVIDUAL ============
+  const handleEliminarPrecioCliente = (costoId: string, clienteNombre: string) => {
+    if (confirm(`Eliminar este producto de ${clienteNombre}?`)) {
+      setCostosClientes(costosClientes.filter((c) => c.id !== costoId));
+      toast.success("Producto eliminado");
     }
   };
 
-  // Funciones para editar precio individual
-  const handleOpenEditPrecioModal = (
-    costo: (typeof costosClientes)[0],
+  // ============ EDICION INLINE DE CLIENTE ============
+  const handleEditClientCell = (costoId: string, field: string, value: number) => {
+    setEditingClientCell(`${costoId}_${field}`);
+    setEditingClientValue(value.toString());
+  };
+
+  const handleSaveClientCell = (
+    costoId: string,
+    field: "precioVivo" | "precioPelado" | "precioDestripado"
   ) => {
-    setEditingCosto(costo);
-    setEditPrecio(costo.precioPorKg.toString());
-    setEditFecha(costo.fecha);
-    setIsEditPrecioModalOpen(true);
+    const valor = parseFloat(editingClientValue) || 0;
+    const costosActualizados = costosClientes.map((c) => {
+      if (c.id === costoId) {
+        const updated = { ...c, [field]: valor };
+        updated.precioPorKg =
+          updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
+        return updated;
+      }
+      return c;
+    });
+    setCostosClientes(costosActualizados);
+    setEditingClientCell(null);
   };
 
-  const handleCloseEditPrecioModal = () => {
-    setIsEditPrecioModalOpen(false);
-    setEditingCosto(null);
-    setEditPrecio("");
-    setEditFecha("");
+  // ============ TOGGLE EXPANSION ============
+  const toggleClientExpansion = (clienteId: string) => {
+    const n = new Set(expandedClients);
+    if (n.has(clienteId)) n.delete(clienteId);
+    else n.add(clienteId);
+    setExpandedClients(n);
   };
 
-  const handleSubmitEditPrecio = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!editingCosto || !editPrecio || !editFecha) return;
-
-    const nuevoPrecio = parseFloat(editPrecio);
-    if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
-      alert("Por favor ingrese un precio válido");
+  // ============ AJUSTE MASIVO ============
+  const handleAjusteMasivo = () => {
+    if (selectedClientes.size === 0) {
+      toast.error("Seleccione al menos un cliente");
       return;
     }
 
-    // Actualizar el precio
-    const costosActualizados = costosClientes.map((c) =>
-      c.id === editingCosto.id
-        ? { ...c, precioPorKg: nuevoPrecio, fecha: editFecha }
-        : c,
-    );
+    const porcentaje = parseFloat(ajustePorcentaje) || 0;
+    const monto = parseFloat(ajusteMonto) || 0;
+
+    if (ajusteMetodo === "porcentaje" && porcentaje === 0) {
+      toast.error("Ingrese un porcentaje valido");
+      return;
+    }
+    if (ajusteMetodo === "monto" && monto === 0) {
+      toast.error("Ingrese un monto valido");
+      return;
+    }
+
+    const factor = ajusteTipo === "subir" ? 1 : -1;
+
+    const costosActualizados = costosClientes.map((c) => {
+      if (!selectedClientes.has(c.clienteId)) return c;
+
+      const updated = { ...c };
+      if (ajusteMetodo === "porcentaje") {
+        const mult = 1 + (factor * porcentaje) / 100;
+        updated.precioVivo = Math.max(0, (updated.precioVivo || 0) * mult);
+        updated.precioPelado = Math.max(0, (updated.precioPelado || 0) * mult);
+        updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) * mult);
+        updated.precioPorKg = Math.max(0, updated.precioPorKg * mult);
+      } else {
+        const delta = factor * monto;
+        updated.precioVivo = Math.max(0, (updated.precioVivo || 0) + delta);
+        updated.precioPelado = Math.max(0, (updated.precioPelado || 0) + delta);
+        updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) + delta);
+        updated.precioPorKg = Math.max(0, updated.precioPorKg + delta);
+      }
+      return updated;
+    });
 
     setCostosClientes(costosActualizados);
-    handleCloseEditPrecioModal();
+    toast.success(
+      `Precios ${ajusteTipo === "subir" ? "incrementados" : "reducidos"} para ${selectedClientes.size} cliente(s)`
+    );
+    setIsAjusteMasivoOpen(false);
+    setAjustePorcentaje("");
+    setAjusteMonto("");
   };
 
-  // Estadísticas
-  const totalCostos = costosClientes.length;
-  const precioPromedio =
-    costosClientes.length > 0
-      ? (
-          costosClientes.reduce(
-            (acc, c) => acc + c.precioPorKg,
-            0,
-          ) / costosClientes.length
-        ).toFixed(2)
-      : "0.00";
-  const precioMinimo =
-    costosClientes.length > 0
-      ? Math.min(
-          ...costosClientes.map((c) => c.precioPorKg),
-        ).toFixed(2)
-      : "0.00";
-  const precioMaximo =
-    costosClientes.length > 0
-      ? Math.max(
-          ...costosClientes.map((c) => c.precioPorKg),
-        ).toFixed(2)
-      : "0.00";
-
-  // Datos para gráfico
-  const preciosPorTipoAve = tiposAve
-    .map((tipo) => {
-      const costosDelTipo = costosClientes.filter(
-        (c) => c.tipoAveId === tipo.id,
-      );
-      const promedio =
-        costosDelTipo.length > 0
-          ? costosDelTipo.reduce(
-              (acc, c) => acc + c.precioPorKg,
-              0,
-            ) / costosDelTipo.length
-          : 0;
-      return {
-        nombre: tipo.nombre,
-        precio: parseFloat(promedio.toFixed(2)),
-        color: tipo.color,
-      };
-    })
-    .filter((item) => item.precio > 0);
-
-  const clienteSeleccionado = clientes.find(
-    (c) => c.id === selectedClienteId,
-  );
+  const clienteSeleccionado = clientes.find((c) => c.id === selectedClienteId);
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 md:mb-6">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">
-            Costos por Cliente
-          </h2>
-          <p className="text-sm md:text-base text-gray-400">
-            Gestiona los precios de forma visual por cliente
-          </p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <div
-          className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-          style={{
-            background: "rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-400 text-xs md:text-sm">
-              Total Precios
-            </p>
-            <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-          </div>
-          <p className="text-2xl md:text-3xl font-bold text-white">
-            {totalCostos}
-          </p>
-        </div>
-
-        <div
-          className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-          style={{
-            background: "rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(204, 170, 0, 0.3)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-400 text-xs md:text-sm">
-              Promedio
-            </p>
-            <TrendingUp
-              className="w-4 h-4 md:w-5 md:h-5"
-              style={{ color: "#ccaa00" }}
-            />
-          </div>
-          <p
-            className="text-2xl md:text-3xl font-bold"
-            style={{ color: "#ccaa00" }}
-          >
-            S/ {precioPromedio}
-          </p>
-        </div>
-
-        <div
-          className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-          style={{
-            background: "rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(34, 197, 94, 0.3)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-400 text-xs md:text-sm">
-              Mínimo
-            </p>
-            <DollarSign
-              className="w-4 h-4 md:w-5 md:h-5"
-              style={{ color: "#22c55e" }}
-            />
-          </div>
-          <p
-            className="text-2xl md:text-3xl font-bold"
-            style={{ color: "#22c55e" }}
-          >
-            S/ {precioMinimo}
-          </p>
-        </div>
-
-        <div
-          className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-          style={{
-            background: "rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-400 text-xs md:text-sm">
-              Máximo
-            </p>
-            <DollarSign
-              className="w-4 h-4 md:w-5 md:h-5"
-              style={{ color: "#ef4444" }}
-            />
-          </div>
-          <p
-            className="text-2xl md:text-3xl font-bold"
-            style={{ color: "#ef4444" }}
-          >
-            S/ {precioMaximo}
-          </p>
-        </div>
-      </div>
-
-      {/* Búsqueda */}
+    <div className="space-y-5">
+      {/* ========== SECCION 1: COSTOS GENERALES ========== */}
       <div
-        className="backdrop-blur-xl rounded-lg md:rounded-xl p-3 md:p-4"
+        className="backdrop-blur-xl rounded-xl overflow-hidden"
+        style={{
+          background: "rgba(0, 0, 0, 0.4)",
+          border: "1px solid rgba(204, 170, 0, 0.3)",
+        }}
+      >
+        <div
+          className="px-4 sm:px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{
+            borderColor: "rgba(204, 170, 0, 0.2)",
+            background: "linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(0, 0, 0, 0.5))",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
+            >
+              <DollarSign className="w-5 h-5 text-black" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-white">Costos Generales</h2>
+              <p className="text-xs text-gray-400">
+                Tabla de precios base por tipo de ave y presentacion
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {preciosGenerales.some((p) => p.selected) && selectedClientes.size > 0 && (
+              <button
+                onClick={aplicarPreciosAClientes}
+                className="px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 flex items-center gap-2"
+                style={{
+                  background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
+                  color: "white",
+                  boxShadow: "0 4px 15px rgba(204, 170, 0, 0.4)",
+                }}
+              >
+                <Check className="w-4 h-4" />
+                Aplicar a {selectedClientes.size} cliente(s)
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{ minWidth: "650px" }}>
+            <thead>
+              <tr
+                className="bg-black/40 border-b"
+                style={{ borderColor: "rgba(204, 170, 0, 0.15)" }}
+              >
+                <th className="px-3 py-3 text-center w-10">
+                  <button
+                    onClick={toggleSelectAllGeneral}
+                    className="p-1 rounded hover:bg-amber-500/20 transition-colors"
+                  >
+                    {preciosGenerales.every((p) => p.selected) ? (
+                      <CheckSquare className="w-4 h-4 text-amber-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Tipo de Ave
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Variedad
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Vivo
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Pelado
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Destripado
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {preciosGenerales.map((fila, idx) => (
+                <tr
+                  key={`${fila.tipoAveId}_${fila.variedad}`}
+                  className={`border-b transition-colors hover:bg-white/5 ${fila.selected ? "bg-amber-500/10" : ""}`}
+                  style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+                >
+                  <td className="px-3 py-3 text-center">
+                    <button
+                      onClick={() => toggleGeneralRowSelection(idx)}
+                      className="p-1 rounded hover:bg-amber-500/20 transition-colors"
+                    >
+                      {fila.selected ? (
+                        <CheckSquare className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center"
+                        style={{
+                          background: `${fila.color}20`,
+                          border: `1px solid ${fila.color}40`,
+                        }}
+                      >
+                        <Bird className="w-3.5 h-3.5" style={{ color: fila.color }} />
+                      </div>
+                      <span className="text-white font-bold text-sm">{fila.tipoAveNombre}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-gray-300 text-sm">{fila.variedad}</span>
+                  </td>
+                  {(["precioVivo", "precioPelado", "precioDestripado"] as const).map((field) => {
+                    const cellKey = `${idx}_${field}`;
+                    const isEditing = editingGeneralCell === cellKey;
+                    return (
+                      <td key={field} className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editingGeneralValue}
+                              onChange={(e) => setEditingGeneralValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveGeneralCell(idx, field);
+                                if (e.key === "Escape") setEditingGeneralCell(null);
+                              }}
+                              autoFocus
+                              className="w-24 px-2 py-1 rounded-lg text-sm text-right text-white bg-gray-800 border border-amber-500/50 focus:outline-none focus:border-amber-400"
+                            />
+                            <button
+                              onClick={() => handleSaveGeneralCell(idx, field)}
+                              className="p-1 rounded hover:bg-green-500/20"
+                            >
+                              <Check className="w-3.5 h-3.5 text-green-400" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${fila[field] > 0 ? "text-white" : "text-gray-600"}`}
+                            onDoubleClick={() => handleEditGeneralCell(idx, field)}
+                            title="Doble clic para editar"
+                          >
+                            {fila[field] > 0 ? `S/ ${fila[field].toFixed(2)}` : "\u2014"}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {preciosGenerales.length === 0 && (
+          <div className="text-center py-8">
+            <Bird className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <p className="text-gray-400 text-sm">No hay aves activas registradas</p>
+          </div>
+        )}
+
+        {preciosGenerales.some((p) => p.selected) && (
+          <div
+            className="px-4 py-3 border-t flex items-center gap-2 text-xs text-amber-400"
+            style={{
+              borderColor: "rgba(204, 170, 0, 0.15)",
+              background: "rgba(204, 170, 0, 0.05)",
+            }}
+          >
+            <CheckSquare className="w-4 h-4" />
+            <span>
+              {preciosGenerales.filter((p) => p.selected).length} producto(s) seleccionado(s) —
+              Seleccione clientes abajo y presione "Aplicar"
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ========== ACCIONES MASIVAS ========== */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <button
+          onClick={() => setIsAjusteMasivoOpen(true)}
+          className="px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 flex items-center gap-2"
+          style={{
+            background: "rgba(168, 85, 247, 0.15)",
+            border: "1px solid rgba(168, 85, 247, 0.3)",
+            color: "#a855f7",
+          }}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Ajuste Masivo de Precios
+        </button>
+
+        {selectedClientes.size > 0 && (
+          <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+            {selectedClientes.size} cliente(s) seleccionado(s)
+          </span>
+        )}
+      </div>
+
+      {/* ========== SECCION 2: BUSQUEDA Y FILTROS ========== */}
+      <div
+        className="backdrop-blur-xl rounded-xl p-3 sm:p-4"
         style={{
           background: "rgba(0, 0, 0, 0.3)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
         }}
       >
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar cliente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 md:pl-12 pr-3 md:pr-4 py-2.5 md:py-3 rounded-lg text-sm md:text-base text-white placeholder-gray-400"
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar cliente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            />
+          </div>
+          <select
+            value={filterTipoAve}
+            onChange={(e) => setFilterTipoAve(e.target.value)}
+            className="px-3 py-2.5 rounded-lg text-sm text-white"
             style={{
               background: "rgba(255, 255, 255, 0.05)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
             }}
-          />
+          >
+            <option value="all">Todos los tipos</option>
+            {avesActivas.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              placeholder="Precio min"
+              value={filterPrecioMin}
+              onChange={(e) => setFilterPrecioMin(e.target.value)}
+              className="w-28 px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-500"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            />
+            <input
+              type="number"
+              placeholder="Precio max"
+              value={filterPrecioMax}
+              onChange={(e) => setFilterPrecioMax(e.target.value)}
+              className="w-28 px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-500"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Boton seleccionar todos los clientes */}
+        <div
+          className="mt-3 flex items-center gap-3 pt-3 border-t"
+          style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+        >
+          <button
+            onClick={toggleSelectAllClientes}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+            style={{
+              background:
+                selectedClientes.size === filteredClientes.length && filteredClientes.length > 0
+                  ? "rgba(204, 170, 0, 0.2)"
+                  : "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(204, 170, 0, 0.2)",
+              color: "#ccaa00",
+            }}
+          >
+            {selectedClientes.size === filteredClientes.length && filteredClientes.length > 0 ? (
+              <CheckSquare className="w-3.5 h-3.5" />
+            ) : (
+              <Square className="w-3.5 h-3.5" />
+            )}
+            Seleccionar todos ({filteredClientes.length})
+          </button>
         </div>
       </div>
 
-      {/* Tarjetas de Clientes */}
+      {/* ========== SECCION 3: TARJETAS DE CLIENTES ========== */}
       <div className="grid grid-cols-1 gap-4">
         {filteredClientes.map((cliente) => {
-          const costosCliente = getCostosDelCliente(cliente.id);
+          const preciosCliente = getPreciosCliente(cliente.id);
           const isExpanded = expandedClients.has(cliente.id);
+          const isSelected = selectedClientes.has(cliente.id);
 
           return (
             <div
               key={cliente.id}
-              className="backdrop-blur-xl rounded-lg md:rounded-xl overflow-hidden transition-all"
+              className={`backdrop-blur-xl rounded-xl overflow-hidden transition-all ${isSelected ? "ring-2 ring-amber-500/50" : ""}`}
               style={{
                 background: "rgba(0, 0, 0, 0.3)",
-                border: "1px solid rgba(204, 170, 0, 0.3)",
+                border: isSelected
+                  ? "1px solid rgba(204, 170, 0, 0.5)"
+                  : "1px solid rgba(204, 170, 0, 0.2)",
               }}
             >
               {/* Header del Cliente */}
-              <div className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div
-                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #ccaa00, #b8941e)",
-                      }}
+              <div className="p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Checkbox de seleccion */}
+                    <button
+                      onClick={() => toggleClienteSelection(cliente.id)}
+                      className="p-1 rounded hover:bg-amber-500/20 transition-colors flex-shrink-0"
                     >
-                      <User className="w-6 h-6 md:w-7 md:h-7 text-white" />
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-amber-400" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-500" />
+                      )}
+                    </button>
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
+                    >
+                      <User className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg md:text-xl font-bold text-white truncate">
+                      <h3 className="text-base sm:text-lg font-bold text-white truncate">
                         {cliente.nombre}
                       </h3>
-                      <p className="text-xs md:text-sm text-gray-400">
-                        {costosCliente.length}{" "}
-                        {costosCliente.length === 1
-                          ? "precio configurado"
-                          : "precios configurados"}
+                      <p className="text-xs text-gray-400">
+                        {preciosCliente.length}{" "}
+                        {preciosCliente.length === 1 ? "producto" : "productos"} configurados
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() =>
-                        handleOpenGestionModal(cliente.id)
-                      }
-                      className="px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-bold transition-all hover:scale-105 flex items-center gap-2"
+                      onClick={() => {
+                        handleOpenGestionModal(cliente.id);
+                        initGestionPrecios(cliente.id);
+                      }}
+                      className="px-3 py-2 rounded-lg font-bold transition-all hover:scale-105 flex items-center gap-1.5 text-xs sm:text-sm"
                       style={{
                         background:
                           "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
                         color: "white",
-                        boxShadow:
-                          "0 4px 15px rgba(204, 170, 0, 0.4)",
+                        boxShadow: "0 4px 15px rgba(204, 170, 0, 0.3)",
                       }}
                     >
-                      <Settings className="w-4 h-4" />
-                      <span className="hidden sm:inline text-sm">
-                        Gestionar
-                      </span>
+                      <Settings className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Gestionar</span>
                     </button>
                     <button
-                      onClick={() =>
-                        handleOpenHistorialModal(cliente.id)
-                      }
-                      className="p-2 md:p-2.5 rounded-lg transition-all hover:scale-105"
+                      onClick={() => toggleClientExpansion(cliente.id)}
+                      className="p-2 rounded-lg transition-all hover:scale-105"
                       style={{
                         background: "rgba(255, 255, 255, 0.1)",
-                        border:
-                          "1px solid rgba(255, 255, 255, 0.2)",
-                      }}
-                    >
-                      <History className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        toggleClientExpansion(cliente.id)
-                      }
-                      className="p-2 md:p-2.5 rounded-lg transition-all hover:scale-105"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.1)",
-                        border:
-                          "1px solid rgba(255, 255, 255, 0.2)",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
                       }}
                     >
                       {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                        <ChevronUp className="w-4 h-4 text-gray-400" />
                       ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                        <ChevronDown className="w-4 h-4 text-gray-400" />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* Precios del Cliente (expandible) */}
-                {isExpanded &&
-                  (() => {
-                    const preciosAgrupados =
-                      getPreciosAgrupadosPorFecha(cliente.id);
-
-                    return (
-                      <div
-                        className="space-y-4 mt-4 pt-4 border-t"
-                        style={{
-                          borderColor:
-                            "rgba(255, 255, 255, 0.1)",
-                        }}
-                      >
-                        {preciosAgrupados.length > 0 ? (
-                          preciosAgrupados.map((grupo) => (
-                            <div key={grupo.fecha}>
-                              {/* Etiqueta de día */}
-                              <div className="flex items-center gap-2 mb-3">
-                                <div
-                                  className="px-3 py-1 rounded-lg"
-                                  style={{
-                                    background:
-                                      grupo.label === "HOY"
-                                        ? "rgba(34, 197, 94, 0.2)"
-                                        : "rgba(255, 255, 255, 0.1)",
-                                    border:
-                                      grupo.label === "HOY"
-                                        ? "1px solid rgba(34, 197, 94, 0.3)"
-                                        : "1px solid rgba(255, 255, 255, 0.2)",
-                                  }}
-                                >
-                                  <p
-                                    className="text-xs font-bold"
-                                    style={{
-                                      color:
-                                        grupo.label === "HOY"
-                                          ? "#22c55e"
-                                          : "#ffffff",
-                                    }}
-                                  >
-                                    {grupo.label}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {grupo.fecha}
-                                </p>
-                              </div>
-
-                              {/* Grid de precios */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-3">
-                                {grupo.costos.map((costo) => {
-                                  const tipoAve = tiposAve.find(
-                                    (t) =>
-                                      t.id === costo.tipoAveId,
-                                  );
-
-                                  return (
+                {/* Tabla de precios del cliente (expandible) */}
+                {isExpanded && (
+                  <div
+                    className="mt-4 pt-4 border-t"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                  >
+                    {preciosCliente.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full" style={{ minWidth: "500px" }}>
+                          <thead>
+                            <tr
+                              className="bg-black/30 border-b"
+                              style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+                            >
+                              <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                                Producto
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                                Variedad
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                                Vivo
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                                Pelado
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                                Destripado
+                              </th>
+                              <th className="px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-amber-400 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {preciosCliente.map((precio) => (
+                              <tr
+                                key={precio.id}
+                                className="border-b hover:bg-white/5 transition-colors"
+                                style={{ borderColor: "rgba(255, 255, 255, 0.03)" }}
+                              >
+                                <td className="px-3 py-2.5">
+                                  <div className="flex items-center gap-2">
                                     <div
-                                      key={costo.id}
-                                      className="p-3 rounded-lg transition-all hover:scale-105"
+                                      className="w-6 h-6 rounded flex items-center justify-center"
                                       style={{
-                                        background:
-                                          "rgba(255, 255, 255, 0.05)",
-                                        border: `2px solid ${tipoAve?.color || "#888"}20`,
+                                        background: `${precio.color}20`,
+                                        border: `1px solid ${precio.color}40`,
                                       }}
                                     >
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <div
-                                          className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                          style={{
-                                            backgroundColor:
-                                              tipoAve?.color ||
-                                              "#888",
-                                          }}
-                                        >
-                                          <Bird className="w-4 h-4 text-white" />
-                                        </div>
-                                        <p className="font-bold text-white text-sm flex-1 truncate">
-                                          {costo.tipoAveNombre}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-end justify-between">
-                                        <div>
-                                          <p className="text-xs text-gray-400 mb-1">
-                                            Precio/Kg
-                                          </p>
-                                          <p
-                                            className="text-xl font-bold"
-                                            style={{
-                                              color:
-                                                tipoAve?.color ||
-                                                "#888",
+                                      <Bird
+                                        className="w-3 h-3"
+                                        style={{ color: precio.color }}
+                                      />
+                                    </div>
+                                    <span className="text-white font-medium text-sm">
+                                      {precio.tipoAveNombre}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-gray-300 text-sm">
+                                  {precio.variedad}
+                                </td>
+                                {(
+                                  ["precioVivo", "precioPelado", "precioDestripado"] as const
+                                ).map((field) => {
+                                  const cellKey = `${precio.id}_${field}`;
+                                  const isEditingThis = editingClientCell === cellKey;
+                                  return (
+                                    <td key={field} className="px-3 py-2.5 text-right">
+                                      {isEditingThis ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={editingClientValue}
+                                            onChange={(e) =>
+                                              setEditingClientValue(e.target.value)
+                                            }
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter")
+                                                handleSaveClientCell(precio.id, field);
+                                              if (e.key === "Escape")
+                                                setEditingClientCell(null);
                                             }}
+                                            autoFocus
+                                            className="w-20 px-2 py-1 rounded text-sm text-right text-white bg-gray-800 border border-amber-500/50 focus:outline-none"
+                                          />
+                                          <button
+                                            onClick={() =>
+                                              handleSaveClientCell(precio.id, field)
+                                            }
+                                            className="p-0.5 rounded hover:bg-green-500/20"
                                           >
-                                            S/{" "}
-                                            {costo.precioPorKg.toFixed(
-                                              2,
-                                            )}
-                                          </p>
+                                            <Check className="w-3 h-3 text-green-400" />
+                                          </button>
                                         </div>
-                                        <button
-                                          onClick={() =>
-                                            handleOpenEditPrecioModal(
-                                              costo,
+                                      ) : (
+                                        <span
+                                          className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${precio[field] > 0 ? "text-white" : "text-gray-600"}`}
+                                          onDoubleClick={() =>
+                                            handleEditClientCell(
+                                              precio.id,
+                                              field,
+                                              precio[field]
                                             )
                                           }
-                                          className="p-1.5 rounded-lg transition-all hover:scale-110"
-                                          style={{
-                                            background:
-                                              "rgba(204, 170, 0, 0.2)",
-                                            border:
-                                              "1px solid rgba(204, 170, 0, 0.3)",
-                                          }}
+                                          title="Doble clic para editar"
                                         >
-                                          <Edit2
-                                            className="w-3.5 h-3.5"
-                                            style={{
-                                              color: "#ccaa00",
-                                            }}
-                                          />
-                                        </button>
-                                      </div>
-                                    </div>
+                                          {precio[field] > 0
+                                            ? `S/ ${precio[field].toFixed(2)}`
+                                            : "\u2014"}
+                                        </span>
+                                      )}
+                                    </td>
                                   );
                                 })}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <Bird className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                            <p className="text-gray-400 text-sm">
-                              No hay precios de hoy o ayer
-                            </p>
-                            <button
-                              onClick={() =>
-                                handleOpenGestionModal(
-                                  cliente.id,
-                                )
-                              }
-                              className="mt-3 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
-                              style={{
-                                background:
-                                  "rgba(204, 170, 0, 0.2)",
-                                border:
-                                  "1px solid rgba(204, 170, 0, 0.3)",
-                                color: "#ccaa00",
-                              }}
-                            >
-                              Agregar Precios
-                            </button>
-                          </div>
-                        )}
+                                <td className="px-3 py-2.5 text-center">
+                                  <button
+                                    onClick={() =>
+                                      handleEliminarPrecioCliente(precio.id, cliente.nombre)
+                                    }
+                                    className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
+                                    title="Eliminar producto"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    );
-                  })()}
+                    ) : (
+                      <div className="text-center py-6">
+                        <Bird className="w-10 h-10 mx-auto mb-2 text-gray-600" />
+                        <p className="text-gray-400 text-sm">Sin precios configurados</p>
+                        <button
+                          onClick={() => {
+                            handleOpenGestionModal(cliente.id);
+                            initGestionPrecios(cliente.id);
+                          }}
+                          className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                          style={{
+                            background: "rgba(204, 170, 0, 0.15)",
+                            border: "1px solid rgba(204, 170, 0, 0.3)",
+                            color: "#ccaa00",
+                          }}
+                        >
+                          Asignar Precios
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -930,80 +1070,11 @@ export function CostosClientes() {
       {filteredClientes.length === 0 && (
         <div className="text-center py-12">
           <User className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">
-            No se encontraron clientes
-          </p>
+          <p className="text-gray-400">No se encontraron clientes</p>
         </div>
       )}
 
-      {/* Gráfico */}
-      {preciosPorTipoAve.length > 0 && (
-        <div
-          className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-          style={{
-            background: "rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(204, 170, 0, 0.3)",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp
-              className="w-5 h-5"
-              style={{ color: "#ccaa00" }}
-            />
-            <h3 className="text-base md:text-lg font-bold text-white">
-              Precio Promedio por Tipo de Ave
-            </h3>
-          </div>
-          <div style={{ width: '100%', height: '250px', minHeight: '250px', minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={preciosPorTipoAve}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.1)"
-                />
-                <XAxis
-                  dataKey="nombre"
-                  stroke="#888"
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis
-                  stroke="#888"
-                  tick={{ fontSize: 12 }}
-                  label={{
-                    value: "Precio S/",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fill: "#888" },
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "rgba(0, 0, 0, 0.9)",
-                    border: "1px solid rgba(204, 170, 0, 0.5)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                  labelStyle={{ color: "#fff" }}
-                  formatter={(value: number) => [
-                    `S/ ${value.toFixed(2)}`,
-                    "Precio",
-                  ]}
-                />
-                <Bar dataKey="precio" radius={[8, 8, 0, 0]}>
-                  {preciosPorTipoAve.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Gestión de Precios */}
+      {/* ========== MODAL: GESTIONAR PRECIOS INDIVIDUAL ========== */}
       {isGestionModalOpen && clienteSeleccionado && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
@@ -1011,722 +1082,370 @@ export function CostosClientes() {
           onClick={handleCloseGestionModal}
         >
           <div
-            className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl w-full max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
+            className="backdrop-blur-2xl rounded-2xl w-full max-w-3xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
             style={{
               background:
                 "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)",
               border: "2px solid rgba(204, 170, 0, 0.3)",
-              boxShadow:
-                "0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.15)",
+              boxShadow: "0 30px 60px rgba(0, 0, 0, 0.8)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div
-              className="flex items-center justify-between mb-4 sm:mb-6 pb-4 border-b"
+              className="flex items-center justify-between mb-5 pb-4 border-b"
               style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
             >
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #ccaa00, #b8941e)",
-                    boxShadow:
-                      "0 10px 30px rgba(204, 170, 0, 0.4)",
-                  }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
                 >
-                  <Settings className="w-6 h-6 sm:w-7 sm:h-7 text-black" />
+                  <Settings className="w-6 h-6 text-black" />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">
-                    Gestionar Precios
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-400">
-                    {clienteSeleccionado.nombre}
-                  </p>
+                  <h2 className="text-xl font-bold text-white">Asignar Precios</h2>
+                  <p className="text-sm text-gray-400">{clienteSeleccionado.nombre}</p>
                 </div>
               </div>
               <button
                 onClick={handleCloseGestionModal}
-                className="p-2 sm:p-3 rounded-xl transition-all hover:scale-110 hover:rotate-90"
+                className="p-2 rounded-xl hover:scale-110 hover:rotate-90 transition-all"
                 style={{
                   background: "rgba(239, 68, 68, 0.2)",
                   border: "1px solid rgba(239, 68, 68, 0.3)",
                 }}
               >
-                <X
-                  className="w-5 h-5 sm:w-6 sm:h-6"
-                  style={{ color: "#ef4444" }}
-                />
+                <X className="w-5 h-5 text-red-400" />
               </button>
             </div>
 
-            <form
-              onSubmit={handleSubmitGestion}
-              className="space-y-3 sm:space-y-4"
+            <p className="text-sm text-gray-400 mb-4">
+              Asigne precios por Kg para cada tipo de ave y presentacion. Solo aparecen aves{" "}
+              <span className="text-green-400 font-bold">Activas</span>. Los precios existentes
+              se pre-cargan automaticamente.
+            </p>
+
+            {/* Tabla de asignacion */}
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full" style={{ minWidth: "550px" }}>
+                <thead>
+                  <tr
+                    className="bg-black/30 border-b"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                  >
+                    <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                      Producto
+                    </th>
+                    <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
+                      Variedad
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                      Vivo (S/)
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                      Pelado (S/)
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-amber-400">
+                      Destripado (S/)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(gestionPrecios).map(([key, precios]) => {
+                    const [tipoAveId, ...rest] = key.split("_");
+                    const variedad = rest.join("_");
+                    const tipo = tiposAve.find((t) => t.id === tipoAveId);
+                    if (!tipo) return null;
+
+                    return (
+                      <tr
+                        key={key}
+                        className="border-b hover:bg-white/5"
+                        style={{ borderColor: "rgba(255, 255, 255, 0.03)" }}
+                      >
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{
+                                background: `${tipo.color}20`,
+                                border: `1px solid ${tipo.color}40`,
+                              }}
+                            >
+                              <Bird className="w-3.5 h-3.5" style={{ color: tipo.color }} />
+                            </div>
+                            <span className="text-white font-medium text-sm">{tipo.nombre}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-gray-300 text-sm">{variedad}</td>
+                        {(["vivo", "pelado", "destripado"] as const).map((campo) => (
+                          <td key={campo} className="px-3 py-2.5 text-right">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={precios[campo]}
+                              onChange={(e) => {
+                                setGestionPrecios((prev) => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], [campo]: e.target.value },
+                                }));
+                              }}
+                              className="w-24 px-2 py-1.5 rounded-lg text-sm text-right text-white placeholder-gray-500"
+                              style={{
+                                background: "rgba(255, 255, 255, 0.08)",
+                                border: `1px solid ${tipo.color}30`,
+                              }}
+                              placeholder="0.00"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Botones */}
+            <div
+              className="flex gap-3 pt-4 border-t"
+              style={{ borderColor: "rgba(204, 170, 0, 0.15)" }}
             >
-              {/* Selector de Día (HOY / MAÑANA) */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  type="button"
-                  onClick={() => handleCambioDia("hoy")}
-                  className="flex-1 px-4 py-3 rounded-lg font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
-                  style={{
-                    background:
-                      diaSeleccionado === "hoy"
-                        ? "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)"
-                        : "rgba(255, 255, 255, 0.05)",
-                    border:
-                      diaSeleccionado === "hoy"
-                        ? "2px solid rgba(204, 170, 0, 0.5)"
-                        : "1px solid rgba(255, 255, 255, 0.2)",
-                    color:
-                      diaSeleccionado === "hoy"
-                        ? "#ffffff"
-                        : "#888",
-                    boxShadow:
-                      diaSeleccionado === "hoy"
-                        ? "0 4px 15px rgba(204, 170, 0, 0.4)"
-                        : "none",
-                  }}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <div className="text-left">
-                    <p className="text-xs">HOY</p>
-                    <p className="text-xs font-normal opacity-75">
-                      {new Date().toISOString().split("T")[0]}
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleCambioDia("manana")}
-                  className="flex-1 px-4 py-3 rounded-lg font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
-                  style={{
-                    background:
-                      diaSeleccionado === "manana"
-                        ? "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)"
-                        : "rgba(255, 255, 255, 0.05)",
-                    border:
-                      diaSeleccionado === "manana"
-                        ? "2px solid rgba(204, 170, 0, 0.5)"
-                        : "1px solid rgba(255, 255, 255, 0.2)",
-                    color:
-                      diaSeleccionado === "manana"
-                        ? "#ffffff"
-                        : "#888",
-                    boxShadow:
-                      diaSeleccionado === "manana"
-                        ? "0 4px 15px rgba(204, 170, 0, 0.4)"
-                        : "none",
-                  }}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <div className="text-left">
-                    <p className="text-xs">MAÑANA</p>
-                    <p className="text-xs font-normal opacity-75">
-                      {
-                        new Date(Date.now() + 86400000)
-                          .toISOString()
-                          .split("T")[0]
-                      }
-                    </p>
-                  </div>
-                </button>
-              </div>
-
-              
-
-              <p className="text-sm text-gray-400 mb-4">
-                Configure los precios por Kg para cada tipo de
-                ave. Deje vacío para eliminar el precio.
-              </p>
-
-              {/* Grid de Precios por Combo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {combosPrecios.map((combo) => {
-                  const costoExistente = costosClientes.find(
-                    (c) =>
-                      c.clienteId === selectedClienteId &&
-                      c.tipoAveId === combo.tipoAveId &&
-                      (c.variedad || '') === (combo.variedad || '') &&
-                      (c.sexo || '') === (combo.sexo || ''),
-                  );
-
-                  return (
-                    <div
-                      key={combo.key}
-                      className="p-4 rounded-lg transition-all"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border: `2px solid ${combo.color}30`,
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{
-                            backgroundColor: combo.color,
-                          }}
-                        >
-                          <Bird className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white text-sm truncate">
-                            {combo.label}
-                          </p>
-                          {combo.sublabel && (
-                            <p className="text-xs" style={{ color: combo.color }}>
-                              {combo.sublabel}
-                            </p>
-                          )}
-                          {costoExistente && (
-                            <p className="text-xs text-gray-400">
-                              Actual: S/{" "}
-                              {costoExistente.precioPorKg.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={preciosForm[combo.key] || ""}
-                          onChange={(e) =>
-                            setPreciosForm({
-                              ...preciosForm,
-                              [combo.key]: e.target.value,
-                            })
-                          }
-                          className="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-400 transition-all focus:ring-2"
-                          style={{
-                            background: "rgba(255, 255, 255, 0.08)",
-                            border: `1.5px solid ${combo.color}50`,
-                            outlineColor: combo.color,
-                          }}
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Botones */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseGestionModal}
-                  className="flex-1 px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 text-sm sm:text-base"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                    border:
-                      "1px solid rgba(255, 255, 255, 0.2)",
-                    color: "#ffffff",
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 text-sm sm:text-base"
-                  style={{
-                    background:
-                      "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
-                    color: "white",
-                    boxShadow:
-                      "0 4px 15px rgba(204, 170, 0, 0.4)",
-                  }}
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
+              <button
+                onClick={handleCloseGestionModal}
+                className="flex-1 px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-105 text-sm"
+                style={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "#fff",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmitGestion}
+                className="flex-1 px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-105 text-sm"
+                style={{
+                  background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
+                  color: "white",
+                  boxShadow: "0 4px 15px rgba(204, 170, 0, 0.4)",
+                }}
+              >
+                Guardar Precios
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal de Historial de Precios */}
-      {isHistorialModalOpen && historialClienteId && (
+      {/* ========== MODAL: AJUSTE MASIVO ========== */}
+      {isAjusteMasivoOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6"
           style={{ background: "rgba(0, 0, 0, 0.85)" }}
-          onClick={() => setIsHistorialModalOpen(false)}
+          onClick={() => setIsAjusteMasivoOpen(false)}
         >
           <div
-            className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl w-full max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
+            className="backdrop-blur-2xl rounded-2xl w-full max-w-md p-5 sm:p-6"
             style={{
               background:
-                "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)",
-              border: "2px solid rgba(204, 170, 0, 0.3)",
-              boxShadow:
-                "0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.15)",
+                "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(0, 0, 0, 0.7) 100%)",
+              border: "2px solid rgba(168, 85, 247, 0.3)",
+              boxShadow: "0 30px 60px rgba(0, 0, 0, 0.8)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div
-              className="flex items-center justify-between mb-4 sm:mb-6 pb-4 border-b"
-              style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+              className="flex items-center justify-between mb-5 pb-4 border-b"
+              style={{ borderColor: "rgba(168, 85, 247, 0.2)" }}
             >
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #ccaa00, #b8941e)",
-                    boxShadow:
-                      "0 10px 30px rgba(204, 170, 0, 0.4)",
-                  }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)" }}
                 >
-                  <History className="w-6 h-6 sm:w-7 sm:h-7 text-black" />
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">
-                    Historial de Precios
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-400">
-                    {clienteSeleccionado?.nombre}
+                  <h2 className="text-xl font-bold text-white">Ajuste Masivo</h2>
+                  <p className="text-sm text-gray-400">
+                    Modificar precios de clientes seleccionados
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setIsHistorialModalOpen(false)}
-                className="p-2 sm:p-3 rounded-xl transition-all hover:scale-110 hover:rotate-90"
-                style={{
-                  background: "rgba(239, 68, 68, 0.2)",
-                  border: "1px solid rgba(239, 68, 68, 0.3)",
-                }}
+                onClick={() => setIsAjusteMasivoOpen(false)}
+                className="p-2 rounded-xl hover:scale-110 transition-all"
+                style={{ background: "rgba(239, 68, 68, 0.2)" }}
               >
-                <X
-                  className="w-5 h-5 sm:w-6 sm:h-6"
-                  style={{ color: "#ef4444" }}
-                />
+                <X className="w-5 h-5 text-red-400" />
               </button>
             </div>
 
-            {/* Filtros */}
-            <div className="mb-4 space-y-3">
-              <div
-                className="backdrop-blur-xl rounded-lg p-3"
-                style={{
-                  background: "rgba(0, 0, 0, 0.3)",
-                  border: "1px solid rgba(204, 170, 0, 0.2)",
-                }}
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Filtro Fecha Desde */}
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                      Desde
-                    </label>
-                    <input
-                      type="date"
-                      value={filtroFechaDesde}
-                      onChange={(e) =>
-                        setFiltroFechaDesde(e.target.value)
-                      }
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border:
-                          "1px solid rgba(204, 170, 0, 0.3)",
-                      }}
-                    />
-                  </div>
+            {selectedClientes.size === 0 ? (
+              <div className="text-center py-6">
+                <Users className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <p className="text-gray-400 text-sm">Primero seleccione clientes en la lista</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-purple-300">
+                  Se ajustaran los precios de{" "}
+                  <span className="font-bold text-white">{selectedClientes.size}</span> cliente(s)
+                </p>
 
-                  {/* Filtro Fecha Hasta */}
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                      Hasta
-                    </label>
-                    <input
-                      type="date"
-                      value={filtroFechaHasta}
-                      onChange={(e) =>
-                        setFiltroFechaHasta(e.target.value)
-                      }
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border:
-                          "1px solid rgba(204, 170, 0, 0.3)",
-                      }}
-                    />
-                  </div>
-
-                  {/* Filtro Tipo de Ave */}
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                      Tipo de Ave
-                    </label>
-                    <select
-                      value={filtroTipoAve}
-                      onChange={(e) =>
-                        setFiltroTipoAve(e.target.value)
-                      }
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border:
-                          "1px solid rgba(204, 170, 0, 0.3)",
-                      }}
-                    >
-                      <option value="">Todas</option>
-                      {tiposAve.map((tipo) => (
-                        <option key={tipo.id} value={tipo.id}>
-                          {tipo.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Orden y Limpiar Filtros */}
-                <div
-                  className="flex items-center justify-between mt-3 pt-3 border-t"
-                  style={{
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        setOrdenFecha(
-                          ordenFecha === "desc"
-                            ? "asc"
-                            : "desc",
-                        )
-                      }
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 flex items-center gap-1.5"
-                      style={{
-                        background: "rgba(204, 170, 0, 0.2)",
-                        border:
-                          "1px solid rgba(204, 170, 0, 0.3)",
-                        color: "#ccaa00",
-                      }}
-                    >
-                      <ArrowUpDown className="w-3 h-3" />
-                      {ordenFecha === "desc"
-                        ? "Más reciente"
-                        : "Más antiguo"}
-                    </button>
-                  </div>
+                {/* Tipo de ajuste: Subir / Bajar */}
+                <div className="flex gap-2">
                   <button
-                    onClick={limpiarFiltros}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                    onClick={() => setAjusteTipo("subir")}
+                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm ${ajusteTipo === "subir" ? "ring-2 ring-green-500" : ""}`}
                     style={{
-                      background: "rgba(255, 255, 255, 0.1)",
+                      background:
+                        ajusteTipo === "subir"
+                          ? "rgba(34, 197, 94, 0.2)"
+                          : "rgba(255, 255, 255, 0.05)",
                       border:
-                        "1px solid rgba(255, 255, 255, 0.2)",
-                      color: "#ffffff",
+                        ajusteTipo === "subir"
+                          ? "1px solid rgba(34, 197, 94, 0.4)"
+                          : "1px solid rgba(255, 255, 255, 0.1)",
+                      color: ajusteTipo === "subir" ? "#22c55e" : "#888",
                     }}
                   >
-                    Limpiar Filtros
+                    <TrendingUp className="w-4 h-4" />
+                    Subir Precios
+                  </button>
+                  <button
+                    onClick={() => setAjusteTipo("bajar")}
+                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm ${ajusteTipo === "bajar" ? "ring-2 ring-red-500" : ""}`}
+                    style={{
+                      background:
+                        ajusteTipo === "bajar"
+                          ? "rgba(239, 68, 68, 0.2)"
+                          : "rgba(255, 255, 255, 0.05)",
+                      border:
+                        ajusteTipo === "bajar"
+                          ? "1px solid rgba(239, 68, 68, 0.4)"
+                          : "1px solid rgba(255, 255, 255, 0.1)",
+                      color: ajusteTipo === "bajar" ? "#ef4444" : "#888",
+                    }}
+                  >
+                    <TrendingDown className="w-4 h-4" />
+                    Bajar Precios
+                  </button>
+                </div>
+
+                {/* Metodo: Porcentaje / Monto fijo */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAjusteMetodo("porcentaje")}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    style={{
+                      background:
+                        ajusteMetodo === "porcentaje"
+                          ? "rgba(168, 85, 247, 0.2)"
+                          : "rgba(255, 255, 255, 0.05)",
+                      border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168, 85, 247, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
+                      color: ajusteMetodo === "porcentaje" ? "#c084fc" : "#888",
+                    }}
+                  >
+                    Porcentaje %
+                  </button>
+                  <button
+                    onClick={() => setAjusteMetodo("monto")}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    style={{
+                      background:
+                        ajusteMetodo === "monto"
+                          ? "rgba(168, 85, 247, 0.2)"
+                          : "rgba(255, 255, 255, 0.05)",
+                      border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168, 85, 247, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
+                      color: ajusteMetodo === "monto" ? "#c084fc" : "#888",
+                    }}
+                  >
+                    Monto fijo S/
+                  </button>
+                </div>
+
+                {/* Input */}
+                {ajusteMetodo === "porcentaje" ? (
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
+                      Porcentaje de ajuste (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={ajustePorcentaje}
+                      onChange={(e) => setAjustePorcentaje(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl text-white text-lg font-bold text-center"
+                      style={{
+                        background: "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(168, 85, 247, 0.3)",
+                      }}
+                      placeholder="Ej: 5"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
+                      Monto de ajuste (S/)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={ajusteMonto}
+                      onChange={(e) => setAjusteMonto(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl text-white text-lg font-bold text-center"
+                      style={{
+                        background: "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(168, 85, 247, 0.3)",
+                      }}
+                      placeholder="Ej: 0.50"
+                    />
+                  </div>
+                )}
+
+                {/* Botones */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setIsAjusteMasivoOpen(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.1)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      color: "#fff",
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAjusteMasivo}
+                    className="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                    style={{
+                      background:
+                        ajusteTipo === "subir"
+                          ? "linear-gradient(to right, #0d4a24, #166534, #22c55e)"
+                          : "linear-gradient(to right, #7f1d1d, #991b1b, #ef4444)",
+                      color: "white",
+                      boxShadow:
+                        ajusteTipo === "subir"
+                          ? "0 4px 15px rgba(34, 197, 94, 0.3)"
+                          : "0 4px 15px rgba(239, 68, 68, 0.3)",
+                    }}
+                  >
+                    {ajusteTipo === "subir" ? "Subir" : "Bajar"} Precios
                   </button>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-4">
-              {getHistorialPorFecha(historialClienteId).map(
-                ([fecha, costos]) => (
-                  <div
-                    key={fecha}
-                    className="backdrop-blur-xl rounded-lg md:rounded-xl p-4 md:p-6"
-                    style={{
-                      background: "rgba(0, 0, 0, 0.3)",
-                      border:
-                        "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <p className="text-sm md:text-base font-bold text-white">
-                          {fecha}
-                        </p>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {costos.length}{" "}
-                        {costos.length === 1
-                          ? "precio"
-                          : "precios"}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {costos.map((costo) => {
-                        const tipoAve = tiposAve.find(
-                          (t) => t.id === costo.tipoAveId,
-                        );
-
-                        return (
-                          <div
-                            key={costo.id}
-                            className="p-3 rounded-lg relative"
-                            style={{
-                              background:
-                                "rgba(255, 255, 255, 0.05)",
-                              border: `2px solid ${tipoAve?.color || "#888"}30`,
-                            }}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                  style={{
-                                    backgroundColor:
-                                      tipoAve?.color || "#888",
-                                  }}
-                                >
-                                  <Bird className="w-4 h-4 text-white" />
-                                </div>
-                                <p className="font-bold text-white text-sm truncate">
-                                  {costo.tipoAveNombre}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() =>
-                                  handleOpenEditPrecioModal(
-                                    costo,
-                                  )
-                                }
-                                className="p-1.5 rounded-lg transition-all hover:scale-110"
-                                style={{
-                                  background:
-                                    "rgba(204, 170, 0, 0.2)",
-                                  border:
-                                    "1px solid rgba(204, 170, 0, 0.3)",
-                                }}
-                              >
-                                <Edit2
-                                  className="w-3 h-3"
-                                  style={{ color: "#ccaa00" }}
-                                />
-                              </button>
-                            </div>
-                            <p
-                              className="text-2xl font-bold"
-                              style={{
-                                color: tipoAve?.color || "#888",
-                              }}
-                            >
-                              S/ {costo.precioPorKg.toFixed(2)}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              por Kg
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* Modal de Edición de Precio */}
-      {isEditPrecioModalOpen &&
-        editingCosto &&
-        (() => {
-          const tipoAveEditing = tiposAve.find(
-            (t) => t.id === editingCosto.tipoAveId,
-          );
-          return (
-            <div
-              className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
-              style={{ background: "rgba(0, 0, 0, 0.85)" }}
-              onClick={handleCloseEditPrecioModal}
-            >
-              <div
-                className="backdrop-blur-2xl rounded-2xl w-full max-w-md p-4 sm:p-6"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)",
-                  border: "2px solid rgba(204, 170, 0, 0.3)",
-                  boxShadow:
-                    "0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.15)",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Header */}
-                <div
-                  className="flex items-center justify-between mb-4 pb-4 border-b"
-                  style={{
-                    borderColor: "rgba(204, 170, 0, 0.2)",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #ccaa00, #b8941e)",
-                        boxShadow:
-                          "0 10px 30px rgba(204, 170, 0, 0.4)",
-                      }}
-                    >
-                      <Edit2 className="w-6 h-6 text-black" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-bold text-white">
-                        Editar Precio
-                      </h2>
-                      <p className="text-xs text-gray-400">
-                        {editingCosto.clienteNombre}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleCloseEditPrecioModal}
-                    className="p-2 rounded-xl transition-all hover:scale-110 hover:rotate-90"
-                    style={{
-                      background: "rgba(239, 68, 68, 0.2)",
-                      border:
-                        "1px solid rgba(239, 68, 68, 0.3)",
-                    }}
-                  >
-                    <X
-                      className="w-5 h-5"
-                      style={{ color: "#ef4444" }}
-                    />
-                  </button>
-                </div>
-
-                <form
-                  onSubmit={handleSubmitEditPrecio}
-                  className="space-y-4"
-                >
-                  <p className="text-sm text-gray-400">
-                    Edite el precio y/o la fecha del registro
-                    histórico.
-                  </p>
-
-                  {/* Tipo de Ave */}
-                  <div
-                    className="p-4 rounded-lg"
-                    style={{
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: `2px solid ${tipoAveEditing?.color || "#888"}30`,
-                    }}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className="w-12 h-12 rounded-lg flex items-center justify-center"
-                        style={{
-                          backgroundColor:
-                            tipoAveEditing?.color || "#888",
-                        }}
-                      >
-                        <Bird className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-white">
-                          {editingCosto.tipoAveNombre}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          Actual: S/{" "}
-                          {editingCosto.precioPorKg.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Precio */}
-                    <div className="mb-3">
-                      <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                        Precio por Kg
-                      </label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={editPrecio}
-                          onChange={(e) =>
-                            setEditPrecio(e.target.value)
-                          }
-                          className="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-400 transition-all focus:ring-2"
-                          style={{
-                            background:
-                              "rgba(255, 255, 255, 0.08)",
-                            border: `1.5px solid ${tipoAveEditing?.color || "#888"}50`,
-                            outlineColor:
-                              tipoAveEditing?.color || "#888",
-                          }}
-                          placeholder="0.00"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Fecha */}
-                    <div>
-                      <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                        Fecha
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="date"
-                          value={editFecha}
-                          onChange={(e) =>
-                            setEditFecha(e.target.value)
-                          }
-                          className="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm text-white"
-                          style={{
-                            background:
-                              "rgba(255, 255, 255, 0.08)",
-                            border: `1.5px solid ${tipoAveEditing?.color || "#888"}50`,
-                          }}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botones */}
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleCloseEditPrecioModal}
-                      className="flex-1 px-4 py-2.5 rounded-lg font-bold transition-all hover:scale-105 text-sm"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.1)",
-                        border:
-                          "1px solid rgba(255, 255, 255, 0.2)",
-                        color: "#ffffff",
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 px-4 py-2.5 rounded-lg font-bold transition-all hover:scale-105 text-sm"
-                      style={{
-                        background:
-                          "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
-                        color: "white",
-                        boxShadow:
-                          "0 4px 15px rgba(204, 170, 0, 0.4)",
-                      }}
-                    >
-                      Guardar Cambios
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          );
-        })()}
     </div>
   );
 }

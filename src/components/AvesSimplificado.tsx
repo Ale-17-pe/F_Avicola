@@ -10,6 +10,8 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
 
@@ -120,6 +122,8 @@ export function AvesSimplificado() {
           ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
           : undefined,
         color: nuevoTipoForm.color,
+        categoria: editingTipo.categoria,
+        estado: editingTipo.estado || 'Activo',
       };
       updateTipoAve(tipoActualizado);
       setEditingTipo(null);
@@ -151,6 +155,7 @@ export function AvesSimplificado() {
           : undefined,
         color: nuevoTipoForm.color,
         categoria: 'Ave',
+        estado: 'Activo',
       };
       addTipoAve(nuevoTipo);
       setNuevoTipoForm({
@@ -301,6 +306,20 @@ export function AvesSimplificado() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    const updated = { ...tipo, estado: tipo.estado === 'Inactivo' ? 'Activo' as const : 'Inactivo' as const };
+                    updateTipoAve(updated);
+                  }}
+                  className={`p-1.5 rounded-lg transition-colors ${tipo.estado === 'Inactivo' ? 'bg-red-500/20 hover:bg-green-500/30' : 'bg-green-500/20 hover:bg-red-500/30'}`}
+                  title={tipo.estado === 'Inactivo' ? 'Activar' : 'Desactivar'}
+                >
+                  {tipo.estado === 'Inactivo' 
+                    ? <ToggleLeft className="w-3.5 h-3.5 text-red-400" />
+                    : <ToggleRight className="w-3.5 h-3.5 text-green-400" />
+                  }
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleEditTipo(tipo);
                   }}
                   className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 transition-colors"
@@ -339,6 +358,13 @@ export function AvesSimplificado() {
                         : tipo.tieneVariedad
                           ? "Con Variedad"
                           : "Simple"}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                      tipo.estado === 'Inactivo'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    }`}>
+                      {tipo.estado === 'Inactivo' ? 'Inactivo' : 'Activo'}
                     </span>
                   </div>
                 </div>

@@ -146,16 +146,16 @@ export const router = createBrowserRouter([
         Component: InventarioCompleto 
       },
       
-      // Redirección desde la ruta eliminada de pedidos a contenedores
+      // Redirección desde rutas eliminadas
       { 
         path: "pedidos", 
-        element: <Navigate to="/dashboard-secretaria/contenedores" replace /> 
+        element: <Navigate to="/dashboard-secretaria/inventario" replace /> 
       },
       
-      // Gestión de Contenedores
+      // Redirección de contenedores a inventario
       { 
         path: "contenedores", 
-        Component: GestionContenedores 
+        element: <Navigate to="/dashboard-secretaria/inventario" replace /> 
       },
       
       // Consulta de Clientes (solo lectura)
