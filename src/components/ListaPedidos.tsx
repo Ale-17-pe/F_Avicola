@@ -190,6 +190,74 @@ export function ListaPedidos() {
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoLista | null>(null);
   const [formEdicion, setFormEdicion] = useState<EdicionPedidoForm | null>(null);
 
+  // ESTADO PARA EDICIÓN INLINE DE PENDIENTES
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEditData, setInlineEditData] = useState<{
+    cantidad: number;
+    cantidadMachos?: number;
+    cantidadHembras?: number;
+  }>({ cantidad: 0 });
+
+  const iniciarEdicionInline = (pedido: PedidoLista) => {
+    setInlineEditId(pedido.id);
+    setInlineEditData({
+      cantidad: pedido.cantidad,
+      cantidadMachos: pedido.cantidadMachos,
+      cantidadHembras: pedido.cantidadHembras,
+    });
+  };
+
+  const guardarEdicionInline = (pedidoId: string) => {
+    const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedidoId);
+    if (!pedidoOriginal) { toast.error('Pedido no encontrado'); return; }
+    
+    const cambios: Partial<PedidoConfirmado> = {};
+    const cambiosTexto: string[] = [];
+    const pedidoLista = pedidosLista.find(p => p.id === pedidoId);
+    
+    if (inlineEditData.cantidad !== pedidoLista?.cantidad) {
+      cambios.cantidad = inlineEditData.cantidad;
+      cambiosTexto.push(`Cantidad: ${pedidoLista?.cantidad} → ${inlineEditData.cantidad}`);
+    }
+
+    // Actualizar sexo en el string tipoAve si corresponde
+    const infoTipo = tiposAve.find(t => t.nombre === pedidoOriginal.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, ''));
+    if (infoTipo?.tieneSexo && inlineEditData.cantidadMachos !== undefined && inlineEditData.cantidadHembras !== undefined) {
+      const nuevoTipoAve = `${infoTipo.nombre} (M:${inlineEditData.cantidadMachos}, H:${inlineEditData.cantidadHembras})`;
+      if (nuevoTipoAve !== pedidoOriginal.tipoAve) {
+        cambios.tipoAve = nuevoTipoAve;
+        cambiosTexto.push(`Sexo: M:${inlineEditData.cantidadMachos}, H:${inlineEditData.cantidadHembras}`);
+      }
+    }
+
+    if (cambiosTexto.length === 0) {
+      setInlineEditId(null);
+      return;
+    }
+
+    updatePedidoConfirmado(pedidoId, { ...pedidoOriginal, ...cambios });
+    
+    const ahora = new Date();
+    setModificacionesHistorial(prev => [...prev, {
+      id: `inline-${Date.now()}-${pedidoId}`,
+      pedidoOriginalId: pedidoId,
+      tipo: 'EDICION_MULTIPLE',
+      cantidadAnterior: pedidoLista?.cantidad || 0,
+      cantidadNueva: inlineEditData.cantidad,
+      fecha: ahora.toISOString().split('T')[0],
+      hora: ahora.toTimeString().slice(0, 5),
+      motivo: 'Edición inline',
+      detalles: cambiosTexto.join(', ')
+    }]);
+
+    toast.success('Pedido actualizado');
+    setInlineEditId(null);
+  };
+
+  const cancelarEdicionInline = () => {
+    setInlineEditId(null);
+  };
+
   // Estado para nuevo sub-pedido
   const [nuevoSubPedido, setNuevoSubPedido] = useState<Partial<PedidoConfirmado>>({
     cliente: '',
@@ -1711,7 +1779,15 @@ export function ListaPedidos() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
+                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' ? (
+                            <input 
+                              type="number" 
+                              value={inlineEditData.cantidad} 
+                              onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))} 
+                              className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
+                              autoFocus
+                            />
+                          ) : editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
                             <input 
                               type="number" 
                               value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad} 
@@ -1719,8 +1795,8 @@ export function ListaPedidos() {
                               className="w-24 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-center focus:ring-2 focus:ring-blue-500" 
                             />
                           ) : (
-                            <div>
-                              <div className="text-white font-bold text-lg drop-shadow">{pedido.cantidad}</div>
+                            <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
+                              <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{pedido.cantidad}</div>
                               {pedido.cantidadJabas && pedido.unidadesPorJaba && (
                                 <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ 
                                   background: 'rgba(245,158,11,0.2)', 
@@ -1731,12 +1807,24 @@ export function ListaPedidos() {
                                   {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u
                                 </div>
                               )}
+                              {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {pedido.cantidadMachos !== undefined ? (
-                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20">
+                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadMachos !== undefined ? (
+                            <input 
+                              type="number" 
+                              value={inlineEditData.cantidadMachos ?? ''} 
+                              onChange={(e) => {
+                                const m = parseInt(e.target.value) || 0;
+                                setInlineEditData(prev => ({ ...prev, cantidadMachos: m, cantidad: m + (prev.cantidadHembras || 0) }));
+                              }} 
+                              className="w-20 px-2 py-2 bg-blue-900/30 border border-blue-500/40 rounded-lg text-blue-300 text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                            />
+                          ) : pedido.cantidadMachos !== undefined ? (
+                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20 ${pedido.estado === 'Pendiente' ? 'cursor-pointer hover:border-blue-400/50' : ''}`}
+                              onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
                               <span className="text-blue-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadMachos}</span>
                             </div>
                           ) : (
@@ -1744,8 +1832,19 @@ export function ListaPedidos() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {pedido.cantidadHembras !== undefined ? (
-                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20">
+                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadHembras !== undefined ? (
+                            <input 
+                              type="number" 
+                              value={inlineEditData.cantidadHembras ?? ''} 
+                              onChange={(e) => {
+                                const h = parseInt(e.target.value) || 0;
+                                setInlineEditData(prev => ({ ...prev, cantidadHembras: h, cantidad: (prev.cantidadMachos || 0) + h }));
+                              }} 
+                              className="w-20 px-2 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-amber-300 text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
+                            />
+                          ) : pedido.cantidadHembras !== undefined ? (
+                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20 ${pedido.estado === 'Pendiente' ? 'cursor-pointer hover:border-amber-400/50' : ''}`}
+                              onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
                               <span className="text-amber-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadHembras}</span>
                             </div>
                           ) : (
@@ -1777,6 +1876,32 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5">
+                            {inlineEditId === pedido.id && pedido.estado === 'Pendiente' ? (
+                              <>
+                                <button 
+                                  onClick={() => guardarEdicionInline(pedido.id)} 
+                                  className="p-2 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-lg hover:from-green-900/50 hover:to-green-800/40 transition-all shadow-lg hover:shadow-xl" 
+                                  title="Guardar cambios"
+                                >
+                                  <Save className="w-4 h-4 text-green-400" />
+                                </button>
+                                <button 
+                                  onClick={cancelarEdicionInline} 
+                                  className="p-2 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl" 
+                                  title="Cancelar"
+                                >
+                                  <X className="w-4 h-4 text-gray-300" />
+                                </button>
+                                <button 
+                                  onClick={() => { cancelarEdicionInline(); abrirEdicionPedido(pedido); }} 
+                                  className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" 
+                                  title="Editar producto/presentación"
+                                >
+                                  <Edit2 className="w-4 h-4 text-blue-400" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
                             {pedido.estado === 'Pendiente' && !editandoMultiple && (
                               <button 
                                 onClick={() => moverAProduccion(pedido)} 
@@ -1818,6 +1943,8 @@ export function ListaPedidos() {
                                 >
                                   <Trash2 className="w-4 h-4 text-red-400" />
                                 </button>
+                              </>
+                            )}
                               </>
                             )}
                           </div>

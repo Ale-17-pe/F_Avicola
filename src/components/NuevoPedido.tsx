@@ -53,7 +53,22 @@ const emptySubForm = (): Partial<SubPedido> => ({
 });
 
 export function NuevoPedido() {
-  const { addMultiplePedidosConfirmados, tiposAve, clientes, presentaciones, contenedores } = useApp();
+  const { addMultiplePedidosConfirmados, tiposAve, clientes, presentaciones, contenedores, costosClientes } = useApp();
+
+  // Filtrar solo clientes y productos activos
+  const clientesActivos = clientes.filter(c => c.estado !== 'Inactivo');
+  const tiposAveActivos = tiposAve.filter(t => t.estado !== 'Inactivo');
+
+  // Filtrar productos según costos asignados al cliente
+  const getProductosParaCliente = (nombreCliente: string) => {
+    if (!nombreCliente) return tiposAveActivos;
+    const cliente = clientes.find(c => c.nombre === nombreCliente);
+    if (!cliente) return tiposAveActivos;
+    const costosDelCliente = costosClientes.filter(cc => cc.clienteId === cliente.id);
+    if (costosDelCliente.length === 0) return tiposAveActivos;
+    const tipoIdsConCosto = [...new Set(costosDelCliente.map(cc => cc.tipoAveId))];
+    return tiposAveActivos.filter(t => tipoIdsConCosto.includes(t.id));
+  };
 
   const [numeroClienteActual, setNumeroClienteActual] = useState(1);
   const [clientesNumerados, setClientesNumerados] = useState<ClienteNumerado[]>(() => {
@@ -184,6 +199,14 @@ export function NuevoPedido() {
     setFormularios(prev => prev.map(form => {
       if (form.id !== id) return form;
       const f = { ...form, [campo]: valor };
+
+      // Al cambiar cliente, verificar si el producto seleccionado sigue disponible
+      if (campo === 'cliente' && f.tipoAve) {
+        const productosDelCliente = getProductosParaCliente(valor);
+        if (!productosDelCliente.some(p => p.nombre === f.tipoAve)) {
+          Object.assign(f, { tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
+        }
+      }
 
       if (campo === 'tipoAve') {
         Object.assign(f, { variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
@@ -439,8 +462,10 @@ export function NuevoPedido() {
     setData: (v: Partial<SubPedido>) => void,
     onSubmit: () => void,
     submitContent: React.ReactNode,
-    submitClassName: string
+    submitClassName: string,
+    clienteDelPedido?: string
   ) => {
+    const productosDisponibles = clienteDelPedido ? getProductosParaCliente(clienteDelPedido) : tiposAveActivos;
     const info = getTipoAveInfo(data.tipoAve || '');
     const necesitaVariedad = info?.tieneVariedad;
     const necesitaSexo = info?.tieneSexo;
@@ -452,12 +477,12 @@ export function NuevoPedido() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">Tipo de Ave</label>
+            <label className="block text-xs font-medium text-gray-400 mb-2">Producto</label>
             <select value={data.tipoAve || ''}
               onChange={e => actualizarSubForm(data, setData, 'tipoAve', e.target.value)}
               className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm">
               <option value="" className="bg-black">Seleccionar...</option>
-              {tiposAve.map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
+              {productosDisponibles.map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
             </select>
           </div>
 
@@ -654,17 +679,17 @@ export function NuevoPedido() {
                   <select value={form.cliente} onChange={e => actualizarFormulario(form.id, 'cliente', e.target.value)}
                     className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all">
                     <option value="" className="bg-black">Seleccionar cliente...</option>
-                    {clientes.map(c => <option key={c.id} value={c.nombre} className="bg-black">{c.nombre}</option>)}
+                    {clientesActivos.map(c => <option key={c.id} value={c.nombre} className="bg-black">{c.nombre}</option>)}
                   </select>
                 </div>
 
-                {/* Tipo Ave */}
+                {/* Producto */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2"><Bird className="w-4 h-4 text-green-400" /> Tipo de Ave</label>
+                  <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2"><Package className="w-4 h-4 text-green-400" /> Producto</label>
                   <select value={form.tipoAve} onChange={e => actualizarFormulario(form.id, 'tipoAve', e.target.value)}
                     className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 transition-all">
-                    <option value="" className="bg-black">Seleccionar tipo...</option>
-                    {tiposAve.map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
+                    <option value="" className="bg-black">Seleccionar producto...</option>
+                    {getProductosParaCliente(form.cliente).map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
                   </select>
                 </div>
 
@@ -893,7 +918,8 @@ export function NuevoPedido() {
                                           setEditandoSubData,
                                           guardarEdicion,
                                           <><Save className="w-4 h-4" /> Guardar cambios</>,
-                                          'bg-gradient-to-r from-amber-900/40 to-green-900/40 border border-amber-700/30 hover:from-amber-900/50 hover:to-green-900/50'
+                                          'bg-gradient-to-r from-amber-900/40 to-green-900/40 border border-amber-700/30 hover:from-amber-900/50 hover:to-green-900/50',
+                                          pedido.cliente
                                         )}
                                       </div>
                                     ) : (
@@ -957,7 +983,8 @@ export function NuevoPedido() {
                                 setNuevoSubPedido,
                                 agregarSubPedidoAlPedido,
                                 <><Plus className="w-5 h-5" /> Agregar Sub-Pedido</>,
-                                'bg-gradient-to-r from-green-900/30 to-amber-900/30 border border-green-700/30 hover:from-green-900/40 hover:to-amber-900/40 hover:border-green-600/40'
+                                'bg-gradient-to-r from-green-900/30 to-amber-900/30 border border-green-700/30 hover:from-green-900/40 hover:to-amber-900/40 hover:border-green-600/40',
+                                pedido.cliente
                               )}
                             </div>
                           )}

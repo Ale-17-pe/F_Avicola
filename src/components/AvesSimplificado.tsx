@@ -12,15 +12,16 @@ import {
   ChevronUp,
   ToggleLeft,
   ToggleRight,
+  Egg,
+  Package,
 } from "lucide-react";
 import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
 
 
 
-
 export function AvesSimplificado() {
   const { 
-    tiposAve: allTiposAve, 
+    tiposAve, 
     addTipoAve, 
     updateTipoAve, 
     deleteTipoAve,
@@ -30,8 +31,7 @@ export function AvesSimplificado() {
     deletePresentacion
   } = useApp();
 
-  // Filtrar solo aves
-  const tiposAve = allTiposAve.filter(t => t.categoria === 'Ave' || !t.categoria);
+  // Mostrar todos los productos (Ave + Otro)
 
 
   const [isAddTipoModalOpen, setIsAddTipoModalOpen] = useState(false);
@@ -42,6 +42,7 @@ export function AvesSimplificado() {
     tieneVariedad: false,
     variedades: "",
     color: "#22c55e",
+    categoria: 'Ave' as 'Ave' | 'Otro',
   });
 
   const [isPresentacionesModalOpen, setIsPresentacionesModalOpen] =
@@ -53,6 +54,8 @@ export function AvesSimplificado() {
     tipoAve: tiposAve[0]?.nombre || "Pollo",
     nombre: "",
     mermaKg: "",
+    variedad: "",
+    sexo: "" as '' | 'Macho' | 'Hembra',
   });
 
   const [filtroPresentacionTipo, setFiltroPresentacionTipo] =
@@ -105,6 +108,7 @@ export function AvesSimplificado() {
       tieneVariedad: tipo.tieneVariedad,
       variedades: tipo.variedades ? tipo.variedades.join(", ") : "",
       color: tipo.color,
+      categoria: tipo.categoria || 'Ave',
     });
     setIsAddTipoModalOpen(true);
   };
@@ -116,13 +120,13 @@ export function AvesSimplificado() {
       const tipoActualizado: TipoAve = {
         id: editingTipo.id,
         nombre: nuevoTipoForm.nombre.trim(),
-        tieneSexo: nuevoTipoForm.tieneSexo,
+        tieneSexo: nuevoTipoForm.categoria === 'Otro' ? false : nuevoTipoForm.tieneSexo,
         tieneVariedad: nuevoTipoForm.tieneVariedad,
         variedades: nuevoTipoForm.tieneVariedad
           ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
           : undefined,
         color: nuevoTipoForm.color,
-        categoria: editingTipo.categoria,
+        categoria: nuevoTipoForm.categoria,
         estado: editingTipo.estado || 'Activo',
       };
       updateTipoAve(tipoActualizado);
@@ -133,6 +137,7 @@ export function AvesSimplificado() {
         tieneVariedad: false,
         variedades: "",
         color: "#22c55e",
+        categoria: 'Ave',
       });
     } else {
       const nombreNormalizado = nuevoTipoForm.nombre.trim().toLowerCase();
@@ -148,13 +153,13 @@ export function AvesSimplificado() {
       const nuevoTipo: TipoAve = {
         id: Date.now().toString(),
         nombre: nuevoTipoForm.nombre.trim(),
-        tieneSexo: nuevoTipoForm.tieneSexo,
+        tieneSexo: nuevoTipoForm.categoria === 'Otro' ? false : nuevoTipoForm.tieneSexo,
         tieneVariedad: nuevoTipoForm.tieneVariedad,
         variedades: nuevoTipoForm.tieneVariedad
           ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
           : undefined,
         color: nuevoTipoForm.color,
-        categoria: 'Ave',
+        categoria: nuevoTipoForm.categoria,
         estado: 'Activo',
       };
       addTipoAve(nuevoTipo);
@@ -164,6 +169,7 @@ export function AvesSimplificado() {
         tieneVariedad: false,
         variedades: "",
         color: "#22c55e",
+        categoria: 'Ave',
       });
     }
     setIsAddTipoModalOpen(false);
@@ -178,6 +184,8 @@ export function AvesSimplificado() {
         tipoAve: nuevaPresentacionForm.tipoAve,
         nombre: nuevaPresentacionForm.nombre,
         mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
+        variedad: nuevaPresentacionForm.variedad || undefined,
+        sexo: (nuevaPresentacionForm.sexo as 'Macho' | 'Hembra') || undefined,
       });
       setEditingPresentacion(null);
     } else {
@@ -186,6 +194,8 @@ export function AvesSimplificado() {
         tipoAve: nuevaPresentacionForm.tipoAve,
         nombre: nuevaPresentacionForm.nombre,
         mermaKg: parseFloat(nuevaPresentacionForm.mermaKg),
+        variedad: nuevaPresentacionForm.variedad || undefined,
+        sexo: (nuevaPresentacionForm.sexo as 'Macho' | 'Hembra') || undefined,
       };
       addPresentacion(nuevaPresentacion);
     }
@@ -194,6 +204,8 @@ export function AvesSimplificado() {
       tipoAve: tiposAve[0]?.nombre || "Pollo",
       nombre: "",
       mermaKg: "",
+      variedad: "",
+      sexo: "",
     });
     setIsPresentacionesModalOpen(false);
   };
@@ -209,11 +221,11 @@ export function AvesSimplificado() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
-          <Bird className="w-8 h-8 text-amber-400" />
-          Gestión de Aves
+          <Package className="w-8 h-8 text-amber-400" />
+          Gestión de Productos
         </h1>
         <p className="text-gray-300">
-          Configuración completa de tipos de aves y presentaciones comerciales
+          Configuración completa de tipos de productos, presentaciones y mermas
         </p>
       </div>
 
@@ -222,10 +234,10 @@ export function AvesSimplificado() {
         <div className="bg-gradient-to-r from-green-900/30 to-green-800/20 border border-green-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Tipos de Aves</p>
+              <p className="text-sm text-gray-300">Tipos de Productos</p>
               <p className="text-2xl font-bold text-white">{tiposAve.length}</p>
             </div>
-            <Bird className="w-8 h-8 text-green-400" />
+            <Package className="w-8 h-8 text-green-400" />
           </div>
         </div>
         <div className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-800/30 rounded-xl p-4">
@@ -265,7 +277,7 @@ export function AvesSimplificado() {
           }}
         >
           <Plus className="w-4 h-4" />
-          Nuevo Tipo de Ave
+          Nuevo Tipo de Producto
         </button>
         <button
           onClick={() => setIsPresentacionesModalOpen(true)}
@@ -285,7 +297,7 @@ export function AvesSimplificado() {
       {/* Tipos de Aves Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Tipos de Aves</h2>
+          <h2 className="text-xl font-bold text-white">Tipos de Productos</h2>
           <span className="text-sm text-gray-400 bg-black/30 px-3 py-1 rounded-lg">
             {tiposAve.length} registros
           </span>
@@ -345,13 +357,16 @@ export function AvesSimplificado() {
                     border: `2px solid ${tipo.color}40`,
                   }}
                 >
-                  <Bird className="w-6 h-6" style={{ color: tipo.color }} />
+                  {tipo.categoria === 'Otro' ? <Egg className="w-6 h-6" style={{ color: tipo.color }} /> : <Bird className="w-6 h-6" style={{ color: tipo.color }} />}
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg">
                     {tipo.nombre}
                   </h3>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    <span className={`px-2 py-0.5 rounded text-xs ${tipo.categoria === 'Otro' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                      {tipo.categoria === 'Otro' ? 'Otro Producto' : 'Ave'}
+                    </span>
                     <span className="px-2 py-0.5 rounded text-xs bg-black/40 text-gray-300">
                       {tipo.tieneSexo
                         ? "Con Sexo"
@@ -469,10 +484,10 @@ export function AvesSimplificado() {
                         border: `1px solid ${tipoInfo.color}40`,
                       }}
                     >
-                      <Bird
-                        className="w-4 h-4"
-                        style={{ color: tipoInfo.color }}
-                      />
+                      {tipoInfo.categoria === 'Otro' 
+                        ? <Egg className="w-4 h-4" style={{ color: tipoInfo.color }} />
+                        : <Bird className="w-4 h-4" style={{ color: tipoInfo.color }} />
+                      }
                     </div>
                   )}
                   <div className="text-left">
@@ -502,7 +517,21 @@ export function AvesSimplificado() {
                           <h4 className="text-white font-medium">
                             {pres.nombre}
                           </h4>
-                          <p className="text-sm text-gray-400">Presentación</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {pres.variedad && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20">
+                                {pres.variedad}
+                              </span>
+                            )}
+                            {pres.sexo && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] ${pres.sexo === 'Macho' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-pink-500/20 text-pink-400 border border-pink-500/20'}`}>
+                                {pres.sexo === 'Macho' ? '♂ Macho' : '♀ Hembra'}
+                              </span>
+                            )}
+                            {!pres.variedad && !pres.sexo && (
+                              <span className="text-xs text-gray-500">General</span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -512,6 +541,8 @@ export function AvesSimplificado() {
                                 tipoAve: pres.tipoAve,
                                 nombre: pres.nombre,
                                 mermaKg: pres.mermaKg.toString(),
+                                variedad: pres.variedad || '',
+                                sexo: pres.sexo || '',
                               });
                               setIsPresentacionesModalOpen(true);
                             }}
@@ -604,6 +635,7 @@ export function AvesSimplificado() {
                       tieneVariedad: false,
                       variedades: "",
                       color: "#22c55e",
+                      categoria: 'Ave',
                     });
                   }}
                   className="p-2 rounded-lg hover:scale-110 transition-all"
@@ -616,6 +648,41 @@ export function AvesSimplificado() {
 
             {/* Form */}
             <form onSubmit={handleSubmitTipo} className="p-6 space-y-5">
+              {/* Categoría */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-white">
+                  Categoría *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                    style={{
+                      background: nuevoTipoForm.categoria === 'Ave' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${nuevoTipoForm.categoria === 'Ave' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    }}
+                  >
+                    <input type="radio" name="categoria" checked={nuevoTipoForm.categoria === 'Ave'}
+                      onChange={() => setNuevoTipoForm({ ...nuevoTipoForm, categoria: 'Ave' })}
+                      className="w-4 h-4" />
+                    <Bird className="w-5 h-5 text-green-400" />
+                    <span className="text-white font-medium">Ave</span>
+                  </label>
+                  <label
+                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                    style={{
+                      background: nuevoTipoForm.categoria === 'Otro' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${nuevoTipoForm.categoria === 'Otro' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    }}
+                  >
+                    <input type="radio" name="categoria" checked={nuevoTipoForm.categoria === 'Otro'}
+                      onChange={() => setNuevoTipoForm({ ...nuevoTipoForm, categoria: 'Otro', tieneSexo: false })}
+                      className="w-4 h-4" />
+                    <Egg className="w-5 h-5 text-yellow-400" />
+                    <span className="text-white font-medium">Otro Producto</span>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2 text-white">
                   Nombre del Tipo *
@@ -833,6 +900,8 @@ export function AvesSimplificado() {
                       tipoAve: tiposAve[0]?.nombre || "Pollo",
                       nombre: "",
                       mermaKg: "",
+                      variedad: "",
+                      sexo: "",
                     });
                   }}
                   className="p-2 rounded-lg hover:scale-110 transition-all"
@@ -847,7 +916,7 @@ export function AvesSimplificado() {
             <form onSubmit={handleSubmitPresentacion} className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium mb-2 text-white">
-                  Tipo de Ave *
+                  Tipo de Producto *
                 </label>
                 <select
                   value={nuevaPresentacionForm.tipoAve}
@@ -933,6 +1002,53 @@ export function AvesSimplificado() {
                   para pelado
                 </p>
               </div>
+
+              {/* Variedad - solo si el tipo tiene variedades */}
+              {(() => {
+                const tipoSel = tiposAve.find(t => t.nombre === nuevaPresentacionForm.tipoAve);
+                return tipoSel?.tieneVariedad && tipoSel.variedades && tipoSel.variedades.length > 0 ? (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-white">
+                      Variedad (opcional - para merma específica)
+                    </label>
+                    <select
+                      value={nuevaPresentacionForm.variedad}
+                      onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, variedad: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl text-white"
+                      style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <option value="" style={{ background: '#1a1a1a' }}>General (todas las variedades)</option>
+                      {tipoSel.variedades.map((v) => (
+                        <option key={v} value={v} style={{ background: '#1a1a1a' }}>{v}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Si selecciona una variedad, la merma aplicará solo a esa variedad</p>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Sexo - solo si el tipo tiene sexo */}
+              {(() => {
+                const tipoSel = tiposAve.find(t => t.nombre === nuevaPresentacionForm.tipoAve);
+                return tipoSel?.tieneSexo ? (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-white">
+                      Sexo (opcional - para merma específica)
+                    </label>
+                    <select
+                      value={nuevaPresentacionForm.sexo}
+                      onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, sexo: e.target.value as any })}
+                      className="w-full px-4 py-3 rounded-xl text-white"
+                      style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <option value="" style={{ background: '#1a1a1a' }}>General (ambos sexos)</option>
+                      <option value="Macho" style={{ background: '#1a1a1a' }}>♂ Macho</option>
+                      <option value="Hembra" style={{ background: '#1a1a1a' }}>♀ Hembra</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Si selecciona un sexo, la merma aplicará solo a ese sexo</p>
+                  </div>
+                ) : null;
+              })()}
 
               <button
                 type="submit"

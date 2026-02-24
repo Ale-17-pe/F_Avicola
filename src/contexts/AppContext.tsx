@@ -110,6 +110,9 @@ export interface PedidoConfirmado {
   clienteAdicionalId?: string;
   clienteAdicionalNombre?: string;
   ultimaIncidencia?: string | null;
+  // Merma calculada del pedido
+  mermaTotal?: number;
+  sexo?: 'Macho' | 'Hembra' | 'Mixto';
 }
 
 export interface Presentacion {
@@ -117,6 +120,8 @@ export interface Presentacion {
   tipoAve: string;
   nombre: string;
   mermaKg: number;
+  variedad?: string;
+  sexo?: 'Macho' | 'Hembra';
 }
 
 export interface Contenedor {

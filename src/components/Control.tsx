@@ -43,6 +43,7 @@ export function Control() {
   const [sortColumn, setSortColumn] = useState<string>('fechaPesaje');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
+  const [statsCollapsed, setStatsCollapsed] = useState(false);
 
   // Cargar datos de pesaje completados y en proceso desde AppContext
   useEffect(() => {
@@ -168,7 +169,17 @@ export function Control() {
         </div>
       </div>
 
-      {/* Dashboard de Métricas */}
+      {/* Dashboard de Métricas - Collapsible */}
+      <div>
+        <button 
+          onClick={() => setStatsCollapsed(!statsCollapsed)}
+          className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-amber-400"
+          style={{ color: 'rgba(156,163,175,0.7)' }}
+        >
+          {statsCollapsed ? <ChevronDown className="w-3.5 h-3.5 -rotate-90" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          Estadísticas {statsCollapsed ? '(expandir)' : ''}
+        </button>
+        {!statsCollapsed && (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
         {[
           { label: 'Total Registros', value: totalPedidos, icon: ClipboardCheck, color: '#a855f7', border: 'rgba(168,85,247,0.3)' },
@@ -188,6 +199,8 @@ export function Control() {
             <p className="text-lg sm:text-xl md:text-2xl font-bold" style={{ color: metric.color }}>{metric.value}</p>
           </div>
         ))}
+      </div>
+        )}
       </div>
 
       {/* Filtros y Búsqueda */}
