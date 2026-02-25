@@ -11,7 +11,6 @@ import {
   Usb,
   Wifi,
   RotateCcw,
-  ChevronRight,
   Monitor,
   Box,
   Info,
@@ -187,12 +186,12 @@ export function PesajeOperador() {
     .filter((p) => p.estado === 'En Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
-  // Vivo → siempre Jaba Estándar; cualquier otra presentación → contenedores del sistema
+  // Vivo → siempre Jaba Estándar; cualquier otra presentación → Jaba Estándar + contenedores del sistema
   const esVivo = !!selectedPedido?.presentacion?.toLowerCase().includes('vivo');
 
   const opcionesContenedor: ContenedorOpcion[] = esVivo
     ? [JABA_ESTANDAR]
-    : contenedores.map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }));
+    : [JABA_ESTANDAR, ...contenedores.filter(c => c.tipo !== 'Jaba Estándar').map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }))];
 
   const resetearTodo = () => {
     setPesadas([]);
@@ -380,18 +379,25 @@ export function PesajeOperador() {
 
   // ===================== RENDER =====================
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <Package className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-bold text-amber-400">{pedidosEnPesaje.length}</span>
+            <span className="text-xs text-gray-500">en cola</span>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa' }}>
+          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }}>
             <Monitor className="w-3.5 h-3.5" /> Display
           </button>
           <button
             onClick={() => { if (scale.connected) { scale.disconnect(); setModoManual(true); } else { scale.connect().then(ok => { if (ok) setModoManual(false); }); } }}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: scale.connected ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}
+            style={{ background: scale.connected ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}
           >
             {scale.connected ? <Wifi className="w-3.5 h-3.5" /> : <Usb className="w-3.5 h-3.5" />}
             {scale.connected ? 'Conectada' : 'Balanza'}
@@ -399,419 +405,408 @@ export function PesajeOperador() {
         </div>
       </div>
 
-      {/* LAYOUT */}
-      <div className="flex gap-5" style={{ minHeight: '80vh' }}>
-
-        {/* COLA */}
-        <div className="w-72 flex-shrink-0">
-          <div className="sticky top-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Package className="w-4 h-4" style={{ color: '#f59e0b' }} />
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cola de Pesaje</span>
-              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>{pedidosEnPesaje.length}</span>
-            </div>
-            <div className="space-y-1.5 max-h-[75vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-              {pedidosEnPesaje.length === 0 ? (
-                <div className="rounded-xl p-8 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-                  <Scale className="w-10 h-10 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.06)' }} />
-                  <p className="text-gray-600 text-xs">Sin pedidos en cola</p>
-                </div>
-              ) : (
-                pedidosEnPesaje.map((pedido, idx) => (
-                  <button
-                    key={pedido.id}
-                    onClick={() => handleSelectPedido(pedido)}
-                    className="w-full text-left rounded-xl px-4 py-3 transition-all duration-200 group"
-                    style={{
-                      background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
-                      border: selectedPedido?.id === pedido.id ? '2px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-                        style={{ background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: selectedPedido?.id === pedido.id ? '#22c55e' : '#666' }}>
-                        {idx + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{pedido.cliente}</div>
-                        <div className="text-[10px] text-gray-600 truncate">{pedido.cantidad} · {pedido.presentacion}</div>
-                        {pedido.cantidadJabas && (
-                          <div className="text-[10px] font-bold flex items-center gap-1" style={{ color: '#f59e0b' }}>
-                            <Lock className="w-2.5 h-2.5" /> {pedido.cantidadJabas} jabas
-                          </div>
-                        )}
-                      </div>
-                      {selectedPedido?.id === pedido.id && <ChevronRight className="w-4 h-4 text-green-400 flex-shrink-0" />}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+      {/* Cola horizontal de pedidos */}
+      <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+        {pedidosEnPesaje.length === 0 ? (
+          <div className="flex-1 rounded-xl p-6 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}>
+            <Scale className="w-8 h-8 mx-auto mb-2 text-gray-800" />
+            <p className="text-gray-600 text-xs">Sin pedidos en cola de pesaje</p>
           </div>
-        </div>
-
-        {/* PANEL DERECHO */}
-        <div className="flex-1 min-w-0">
-          {selectedPedido ? (
-            <div className="space-y-4">
-
-              {/* Cabecera del pedido */}
-              <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                <div className="flex items-center gap-4">
-                  <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                    <User className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white">{selectedPedido.cliente}</h2>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{selectedPedido.numeroPedido || 'S/N'}</span>
-                      <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{selectedPedido.tipoAve}</span>
-                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{selectedPedido.presentacion}</span>
-                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{selectedPedido.cantidad} unids.</span>
-                      {selectedPedido.cantidadJabas && (
-                        <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
-                          <Lock className="w-3 h-3" /> {selectedPedido.cantidadJabas} jabas
-                        </span>
-                      )}
-                      {zonaBloqueada && zonaSeleccionada && (
-                        <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)' }}>
-                          <Lock className="w-3 h-3" /> {zonaSeleccionada.nombre.split(' - ')[0]}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        ) : (
+          pedidosEnPesaje.map((pedido, idx) => (
+            <button
+              key={pedido.id}
+              onClick={() => handleSelectPedido(pedido)}
+              className="flex-shrink-0 text-left rounded-xl px-4 py-3 transition-all duration-200 group min-w-[200px]"
+              style={{
+                background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
+                border: selectedPedido?.id === pedido.id ? '2px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                  style={{ background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: selectedPedido?.id === pedido.id ? '#22c55e' : '#555' }}>
+                  {idx + 1}
                 </div>
-                {fase === 'pesando' && (
-                  <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                    style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
-                    {modoManual ? '⌨ Manual' : '⚖ Balanza'}
-                  </button>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{pedido.cliente}</div>
+                  <div className="text-[10px] text-gray-600 truncate">{pedido.cantidad} · {pedido.presentacion}</div>
+                </div>
+                {pedido.cantidadJabas && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                    <Lock className="w-2.5 h-2.5 inline mr-0.5" />{pedido.cantidadJabas}j
+                  </span>
+                )}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* PANEL PRINCIPAL */}
+      {selectedPedido ? (
+        <div className="space-y-4">
+
+          {/* Cabecera del pedido */}
+          <div className="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <User className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">{selectedPedido.cliente}</h2>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{selectedPedido.numeroPedido || 'S/N'}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{selectedPedido.tipoAve}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{selectedPedido.presentacion}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{selectedPedido.cantidad} unids.</span>
+                  {selectedPedido.cantidadJabas && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                      <Lock className="w-3 h-3" /> {selectedPedido.cantidadJabas} jabas
+                    </span>
+                  )}
+                  {zonaBloqueada && zonaSeleccionada && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)' }}>
+                      <Lock className="w-3 h-3" /> {zonaSeleccionada.nombre.split(' - ')[0]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {fase === 'pesando' && (
+              <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold self-start sm:self-auto"
+                style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
+                {modoManual ? '⌨ Manual' : '⚖ Balanza'}
+              </button>
+            )}
+          </div>
+
+          {/* ─────────────── FASE 1: PESANDO ─────────────── */}
+          {fase === 'pesando' && (
+            <div className="rounded-2xl relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(160deg, #080808, #111)',
+                border: modoManual ? '2px solid rgba(59,130,246,0.35)' : scale.stable ? '2px solid rgba(34,197,94,0.5)' : '2px solid rgba(245,158,11,0.4)',
+                boxShadow: modoManual ? '0 0 20px rgba(59,130,246,0.06)' : scale.stable ? '0 0 30px rgba(34,197,94,0.1)' : '0 0 20px rgba(245,158,11,0.06)',
+              }}
+            >
+              {/* Status bar */}
+              <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full"
+                  style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
+                </span>
+                {pesadas.length > 0 && (
+                  <span className="text-xs font-bold font-mono px-3 py-1 rounded-full"
+                    style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+                    Acumulado: {pesoBrutoTotal.toFixed(2)} kg
+                  </span>
                 )}
               </div>
 
-              {/* ─────────────── FASE 1: PESANDO ─────────────── */}
-              {fase === 'pesando' && (
-                <div
-                  className="rounded-3xl p-8 text-center relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(145deg, #0a0a0a, #1a1a1a)',
-                    border: modoManual ? '3px solid rgba(59,130,246,0.5)' : scale.stable ? '3px solid #22c55e' : '3px solid #f59e0b',
-                    boxShadow: modoManual ? '0 0 30px rgba(59,130,246,0.12)' : scale.stable ? '0 0 40px rgba(34,197,94,0.2)' : '0 0 25px rgba(245,158,11,0.1)',
-                  }}
-                >
-                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center flex-wrap gap-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full"
-                      style={{ background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)' }}>
-                      {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
-                    </span>
-                    {pesadas.length > 0 && (
-                      <span className="text-sm font-black font-mono px-4 py-1.5 rounded-full"
-                        style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
-                        Acumulado: {pesoBrutoTotal.toFixed(2)} kg
-                      </span>
-                    )}
+              {/* Weight display */}
+              <div className="px-6 py-8 text-center">
+                {modoManual ? (
+                  <div>
+                    <div className="relative max-w-xl mx-auto">
+                      <Scale className="absolute left-5 top-1/2 -translate-y-1/2 w-7 h-7 text-blue-400/30" />
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={pesoManualInput}
+                        onChange={(e) => setPesoManualInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                        placeholder="0.00"
+                        className="w-full pl-16 pr-16 py-6 rounded-2xl text-white text-6xl md:text-7xl font-black font-mono text-center placeholder-gray-800 focus:ring-2 focus:ring-blue-500/30 transition-all"
+                        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(59,130,246,0.25)' }}
+                        autoFocus
+                      />
+                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-white text-[10px]">Enter</kbd> para sumar
+                    </p>
                   </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                      <span className="text-xs text-gray-500">{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
+                      {scale.connected && (scale.stable
+                        ? <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Estable</span>
+                        : <span className="text-xs text-amber-400">Estabilizando...</span>
+                      )}
+                    </div>
+                    <p className="text-7xl font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
+                      {scale.currentWeight.toFixed(2)}
+                    </p>
+                    <p className="text-xl font-light text-gray-600 mt-1">Kilogramos</p>
+                  </div>
+                )}
+              </div>
 
-                  {modoManual ? (
-                    <div className="py-4 mt-10">
-                      <div className="relative max-w-2xl mx-auto">
-                        <Scale className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/40" />
-                        <input
-                          type="number" step="0.01" min="0"
-                          value={pesoManualInput}
-                          onChange={(e) => setPesoManualInput(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
-                          placeholder="0.00"
-                          className="w-full pl-20 pr-20 py-8 rounded-3xl text-white text-7xl md:text-8xl font-black font-mono text-center placeholder-gray-700 focus:ring-4 transition-all"
-                          style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(59,130,246,0.35)' }}
-                          autoFocus
-                        />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-blue-400/40">Kg</span>
+              {/* Pesadas chips */}
+              {pesadas.length > 0 && (
+                <div className="flex items-center justify-center gap-1.5 flex-wrap px-6 pb-3">
+                  {pesadas.map(p => (
+                    <span key={p.numero} className="text-[11px] font-mono px-2.5 py-1 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
+                      #{p.numero}: {p.peso.toFixed(2)}kg
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3 px-6 pb-6">
+                <button onClick={sumarPesada} disabled={pesoActual <= 0}
+                  className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: pesoActual > 0 ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.03)', boxShadow: pesoActual > 0 ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
+                  <Plus className="w-5 h-5" /> SUMAR
+                  {pesoActual > 0 && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}</span>}
+                </button>
+                <button onClick={terminarPesaje} disabled={pesadas.length === 0}
+                  className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: pesadas.length > 0 ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : 'rgba(255,255,255,0.03)', boxShadow: pesadas.length > 0 ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
+                  <CheckCircle className="w-5 h-5" /> TERMINAR
+                  {pesadas.length > 0 && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
+                </button>
+              </div>
+
+              {pesadas.length > 0 && (
+                <div className="text-center pb-4">
+                  <button onClick={quitarUltimaPesada} className="text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto">
+                    <RotateCcw className="w-3 h-3" /> Deshacer última
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─────────── FASE 2: CONFIRMAR CONTENEDOR ──────────── */}
+          {fase === 'confirmando-contenedor' && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'linear-gradient(160deg, #080808, #111)', border: '2px solid rgba(245,158,11,0.35)' }}>
+
+              {/* Summary bar */}
+              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-xs font-bold text-green-400">PESAJE COMPLETADO</span>
+                </div>
+                <p className="text-4xl font-black font-mono text-white tabular-nums">
+                  {pesoBrutoTotal.toFixed(2)} <span className="text-lg text-gray-500 font-light">kg bruto</span>
+                </p>
+                <div className="flex justify-center gap-1.5 flex-wrap mt-2">
+                  {pesadas.map(p => (
+                    <span key={p.numero} className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.06)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.1)' }}>
+                      #{p.numero}: {p.peso.toFixed(2)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div className="text-center">
+                  <p className="text-amber-300 text-lg font-black uppercase tracking-wide">
+                    {esVivo ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
+                  </p>
+                  {esVivo && cantidadBloqueada && selectedPedido?.cantidadJabas && (
+                    <div className="flex items-center justify-center gap-2 mt-1 text-xs text-amber-500">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Cantidad bloqueada: <strong>{selectedPedido.cantidadJabas} jabas</strong></span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selector de contenedor */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {opcionesContenedor.map(cont => (
+                    <button key={cont.id}
+                      onClick={() => !esVivo && setContenedorFinalId(cont.id)}
+                      className={`px-4 py-2.5 rounded-xl font-bold transition-all text-center ${!esVivo ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
+                      style={{
+                        background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.06)'}`,
+                        color: contenedorFinalId === cont.id ? '#f59e0b' : '#666',
+                      }}>
+                      <div className="flex items-center gap-2">
+                        {esVivo && <Lock className="w-3 h-3 opacity-50" />}
+                        <div>
+                          <div className="text-sm">{cont.tipo}</div>
+                          <div className="text-[10px] opacity-50 font-mono">{cont.peso} kg/u</div>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-600 mt-3">
-                        <kbd className="px-2 py-0.5 bg-gray-800 rounded text-white text-[10px]">Enter</kbd> o botón <strong className="text-blue-400">+ Sumar</strong>
-                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Cantidad */}
+                <div>
+                  <p className="text-center text-sm font-medium text-gray-400 mb-3">
+                    {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
+                  </p>
+                  {cantidadBloqueada ? (
+                    <div className="relative max-w-xs mx-auto flex items-center justify-center gap-3 py-4 rounded-xl"
+                      style={{ background: 'rgba(245,158,11,0.06)', border: '2px solid rgba(245,158,11,0.3)' }}>
+                      <Lock className="w-5 h-5 text-amber-400" />
+                      <span className="text-4xl font-black font-mono text-amber-400 tabular-nums">{cantidadContenedoresInput}</span>
+                      <div className="text-left">
+                        <div className="text-xs text-amber-500 font-bold">jabas</div>
+                        <div className="text-[10px] text-gray-600">según pedido</div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="py-4 mt-10">
-                      <div className="flex items-center justify-center gap-3 mb-3">
-                        <div className={`w-3 h-3 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className="text-xs text-gray-400">{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
-                        {scale.connected && (scale.stable
-                          ? <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Estable</span>
-                          : <span className="text-xs text-amber-400">Estabilizando...</span>
-                        )}
-                      </div>
-                      <p className="text-8xl font-black font-mono" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
-                        {scale.currentWeight.toFixed(2)}
-                      </p>
-                      <p className="text-2xl font-light text-gray-500 mt-1">Kilogramos</p>
+                    <div className="relative max-w-xs mx-auto">
+                      <Box className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400/30" />
+                      <input type="number" min="1"
+                        value={cantidadContenedoresInput}
+                        onChange={(e) => setCantidadContenedoresInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedor(); }}
+                        placeholder="Ej: 5"
+                        className="w-full pl-12 pr-6 py-4 rounded-xl text-white text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.3)' }}
+                        autoFocus
+                      />
                     </div>
-                  )}
-
-                  {pesadas.length > 0 && (
-                    <div className="flex items-center justify-center gap-2 flex-wrap mt-3 mb-1">
-                      {pesadas.map(p => (
-                        <span key={p.numero} className="text-xs font-mono px-3 py-1.5 rounded-full"
-                          style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
-                          #{p.numero}: {p.peso.toFixed(2)} kg
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 max-w-2xl mx-auto mt-5">
-                    <button onClick={sumarPesada} disabled={pesoActual <= 0}
-                      className="flex-1 py-5 rounded-2xl font-black text-white text-xl transition-all hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                      style={{ background: pesoActual > 0 ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.04)', boxShadow: pesoActual > 0 ? '0 12px 25px -8px rgba(37,99,235,0.5)' : 'none' }}>
-                      <Plus className="w-7 h-7" />
-                      SUMAR
-                      {pesoActual > 0 && <span className="text-base font-mono bg-white/20 px-3 py-1 rounded-xl">{pesoActual.toFixed(2)} kg</span>}
-                    </button>
-                    <button onClick={terminarPesaje} disabled={pesadas.length === 0}
-                      className="flex-1 py-5 rounded-2xl font-black text-white text-xl transition-all hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                      style={{ background: pesadas.length > 0 ? 'linear-gradient(165deg, #0a4d2a, #1a6e3c, #2e8b57)' : 'rgba(255,255,255,0.04)', boxShadow: pesadas.length > 0 ? '0 12px 25px -8px rgba(34,197,94,0.5)' : 'none' }}>
-                      <CheckCircle className="w-7 h-7" />
-                      TERMINAR PESAJE
-                      {pesadas.length > 0 && <span className="text-base font-mono bg-white/20 px-3 py-1 rounded-xl">{pesoBrutoTotal.toFixed(2)} kg</span>}
-                    </button>
-                  </div>
-
-                  {pesadas.length > 0 && (
-                    <button onClick={quitarUltimaPesada} className="mt-3 text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto">
-                      <RotateCcw className="w-3 h-3" /> Deshacer última pesada
-                    </button>
                   )}
                 </div>
-              )}
 
-              {/* ─────────── FASE 2: CONFIRMAR CONTENEDOR ──────────── */}
-              {fase === 'confirmando-contenedor' && (
-                <div className="rounded-3xl p-8"
-                  style={{ background: 'linear-gradient(145deg, #0a0a0a, #1a1a1a)', border: '3px solid rgba(245,158,11,0.45)', boxShadow: '0 0 40px rgba(245,158,11,0.08)' }}>
-
-                  <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="text-sm font-bold text-green-400">PESAJE COMPLETADO</span>
-                    </div>
-                    <p className="text-6xl font-black font-mono text-white">
-                      {pesoBrutoTotal.toFixed(2)} <span className="text-2xl text-gray-500 font-light">kg bruto</span>
-                    </p>
-                    <div className="flex justify-center gap-2 flex-wrap mt-3">
-                      {pesadas.map(p => (
-                        <span key={p.numero} className="text-xs font-mono px-3 py-1 rounded-full"
-                          style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
-                          #{p.numero}: {p.peso.toFixed(2)} kg
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="max-w-lg mx-auto space-y-6">
-                    <div className="text-center">
-                      <p className="text-amber-300 text-xl font-black uppercase tracking-wide mb-1">
-                        {esVivo ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
-                      </p>
-                      {esVivo && cantidadBloqueada && selectedPedido?.cantidadJabas && (
-                        <div className="flex items-center justify-center gap-2 mt-1 text-xs" style={{ color: '#f59e0b' }}>
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Cantidad bloqueada: el pedido indica <strong>{selectedPedido.cantidadJabas} jabas</strong></span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Selector de contenedor */}
-                    <div className="flex flex-wrap gap-3 justify-center">
-                      {opcionesContenedor.map(cont => (
-                        <button key={cont.id}
-                          onClick={() => !esVivo && setContenedorFinalId(cont.id)}
-                          className={`px-5 py-3 rounded-xl font-bold transition-all text-center ${!esVivo ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
-                          style={{
-                            background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.04)',
-                            border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.08)'}`,
-                            color: contenedorFinalId === cont.id ? '#f59e0b' : '#777',
-                            boxShadow: contenedorFinalId === cont.id ? '0 0 20px rgba(245,158,11,0.12)' : 'none',
-                          }}>
-                          <div className="flex items-center gap-2">
-                            {esVivo && <Lock className="w-3.5 h-3.5 opacity-60" />}
-                            <div>
-                              <div className="text-base">{cont.tipo}</div>
-                              <div className="text-xs opacity-60 font-mono">{cont.peso} kg/u</div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Cantidad */}
+                {/* Preview tara/neto */}
+                {contenedorFinalId && cantidadPreview > 0 && (
+                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl text-center"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <div>
-                      <p className="text-center text-sm font-bold text-gray-300 mb-3">
-                        {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
-                      </p>
-                      {cantidadBloqueada ? (
-                        <div className="relative max-w-xs mx-auto flex items-center justify-center gap-3 py-5 rounded-2xl"
-                          style={{ background: 'rgba(245,158,11,0.08)', border: '2px solid rgba(245,158,11,0.35)' }}>
-                          <Lock className="w-6 h-6 text-amber-400" />
-                          <span className="text-5xl font-black font-mono text-amber-400">{cantidadContenedoresInput}</span>
-                          <div className="text-left">
-                            <div className="text-xs text-amber-500 font-bold">jabas</div>
-                            <div className="text-[10px] text-gray-600">según pedido</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="relative max-w-xs mx-auto">
-                          <Box className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400/40" />
-                          <input type="number" min="1"
-                            value={cantidadContenedoresInput}
-                            onChange={(e) => setCantidadContenedoresInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedor(); }}
-                            placeholder="Ej: 5"
-                            className="w-full pl-12 pr-6 py-5 rounded-2xl text-white text-5xl font-black font-mono text-center placeholder-gray-700 focus:ring-4 transition-all"
-                            style={{ background: 'rgba(0,0,0,0.6)', border: '2px solid rgba(245,158,11,0.4)' }}
-                            autoFocus
-                          />
-                        </div>
-                      )}
+                      <div className="text-[10px] text-gray-500 mb-0.5">Peso Bruto</div>
+                      <div className="text-white font-bold font-mono tabular-nums">{pesoBrutoTotal.toFixed(2)} kg</div>
                     </div>
-
-                    {/* Preview tara/neto */}
-                    {contenedorFinalId && cantidadPreview > 0 && (
-                      <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl text-center"
-                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Peso Bruto</div>
-                          <div className="text-white font-bold font-mono">{pesoBrutoTotal.toFixed(2)} kg</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Tara ({cantidadPreview} × {contSeleccionadoPreview?.peso} kg)</div>
-                          <div className="text-amber-400 font-bold font-mono">{taraPreview.toFixed(2)} kg</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Peso Neto</div>
-                          <div className="text-green-400 font-black font-mono text-lg">{netoPreview.toFixed(2)} kg</div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button onClick={() => setFase('pesando')}
-                        className="flex-1 py-3 rounded-xl text-gray-400 font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
-                        style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <RotateCcw className="w-4 h-4" /> Volver a pesar
-                      </button>
-                      <button onClick={confirmarContenedor} disabled={!contenedorFinalId || cantidadPreview <= 0}
-                        className="flex-[2] py-3 rounded-xl text-white font-black text-lg transition-all hover:scale-[1.02] disabled:opacity-30 flex items-center justify-center gap-2"
-                        style={{ background: 'linear-gradient(135deg, #78350f, #d97706, #f59e0b)', boxShadow: '0 6px 20px rgba(245,158,11,0.3)' }}>
-                        <CheckCircle className="w-5 h-5" /> Confirmar
-                      </button>
+                    <div>
+                      <div className="text-[10px] text-gray-500 mb-0.5">Tara ({cantidadPreview}×{contSeleccionadoPreview?.peso})</div>
+                      <div className="text-amber-400 font-bold font-mono tabular-nums">{taraPreview.toFixed(2)} kg</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-500 mb-0.5">Peso Neto</div>
+                      <div className="text-green-400 font-black font-mono text-lg tabular-nums">{netoPreview.toFixed(2)} kg</div>
                     </div>
                   </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button onClick={() => setFase('pesando')}
+                    className="flex-1 py-3 rounded-xl text-gray-400 font-semibold flex items-center justify-center gap-2 hover:bg-white/5 transition-all"
+                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <RotateCcw className="w-4 h-4" /> Volver
+                  </button>
+                  <button onClick={confirmarContenedor} disabled={!contenedorFinalId || cantidadPreview <= 0}
+                    className="flex-[2] py-3 rounded-xl text-white font-black text-base transition-all hover:scale-[1.01] disabled:opacity-20 flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #78350f, #d97706)', boxShadow: '0 4px 15px rgba(245,158,11,0.25)' }}>
+                    <CheckCircle className="w-5 h-5" /> Confirmar
+                  </button>
                 </div>
-              )}
-
-              {/* ─────────── FASE 3: ASIGNAR ENTREGA ───────────── */}
-              {fase === 'asignando-entrega' && (
-                <div className="rounded-3xl p-8 space-y-6"
-                  style={{ background: 'linear-gradient(145deg, rgba(34,197,94,0.04), rgba(0,0,0,0.85))', border: '3px solid rgba(34,197,94,0.4)', boxShadow: '0 0 40px rgba(34,197,94,0.08)' }}>
-
-                  <div className="text-center mb-2">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="text-sm font-bold text-green-400">LISTO PARA DESPACHO</span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="text-xs text-gray-500 mb-1">Pesadas</div>
-                        <div className="text-3xl font-black text-white">{pesadas.length}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">{pesadas.map(p => p.peso.toFixed(1)).join(' + ')} kg</div>
-                      </div>
-                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="text-xs text-gray-500 mb-1">{esVivo ? 'Jabas' : 'Contenedores'}</div>
-                        <div className="text-3xl font-black text-amber-400 flex items-center justify-center gap-1">
-                          {cantidadBloqueada && <Lock className="w-5 h-5" />}
-                          {cantidadPreview}
-                        </div>
-                        <div className="text-[10px] text-gray-600 mt-1">{contSeleccionadoPreview?.tipo}</div>
-                      </div>
-                      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="text-xs text-gray-500 mb-1">Tara total</div>
-                        <div className="text-3xl font-black text-orange-400">{taraPreview.toFixed(2)}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">kg</div>
-                      </div>
-                      <div className="rounded-2xl p-4" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                        <div className="text-xs text-green-600 mb-1">Peso Neto</div>
-                        <div className="text-3xl font-black text-green-400">{netoPreview.toFixed(2)}</div>
-                        <div className="text-[10px] text-green-700 mt-1">kg neto</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Conductor */}
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                      <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
-                        style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(59,130,246,0.25)' }}>
-                        <option value="">Seleccionar conductor...</option>
-                        {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
-                      </select>
-                    </div>
-
-                    {/* Zona: bloqueada o editable */}
-                    {zonaBloqueada ? (
-                      <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                        style={{ background: 'rgba(168,85,247,0.08)', border: '2px solid rgba(168,85,247,0.35)' }}>
-                        <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
-                          <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
-                        <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
-                          style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.25)' }}>
-                          <option value="">Seleccionar zona...</option>
-                          {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button onClick={() => setFase('confirmando-contenedor')}
-                      className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/10 transition-all"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <RotateCcw className="w-4 h-4" /> Volver
-                    </button>
-                    <button onClick={handleConfirmar}
-                      className="flex-1 py-4 rounded-2xl font-black text-white text-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-3"
-                      style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 8px 25px -5px rgba(34,197,94,0.4)' }}>
-                      <Printer className="w-6 h-6" />
-                      CONFIRMAR Y EMITIR TICKET
-                    </button>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.06)', minHeight: '60vh' }}>
-              <div className="text-center">
-                <Scale className="w-20 h-20 mx-auto mb-4" style={{ color: 'rgba(34,197,94,0.1)' }} />
-                <p className="text-gray-500 text-base font-medium">Seleccione un pedido de la cola</p>
-                <p className="text-gray-700 text-xs mt-1">Suma las pesadas → confirma jabas/contenedores → emite ticket</p>
               </div>
             </div>
           )}
+
+          {/* ─────────── FASE 3: ASIGNAR ENTREGA ───────────── */}
+          {fase === 'asignando-entrega' && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'linear-gradient(160deg, rgba(34,197,94,0.03), #080808)', border: '2px solid rgba(34,197,94,0.3)' }}>
+
+              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-xs font-bold text-green-400">LISTO PARA DESPACHO</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="text-[10px] text-gray-500 mb-0.5">Pesadas</div>
+                    <div className="text-2xl font-black text-white">{pesadas.length}</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5 font-mono">{pesadas.map(p => p.peso.toFixed(1)).join(' + ')}</div>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="text-[10px] text-gray-500 mb-0.5">{esVivo ? 'Jabas' : 'Contenedores'}</div>
+                    <div className="text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
+                      {cantidadBloqueada && <Lock className="w-4 h-4" />}{cantidadPreview}
+                    </div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">{contSeleccionadoPreview?.tipo}</div>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="text-[10px] text-gray-500 mb-0.5">Tara total</div>
+                    <div className="text-2xl font-black text-orange-400 tabular-nums">{taraPreview.toFixed(2)}</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">kg</div>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                    <div className="text-[10px] text-green-600 mb-0.5">Peso Neto</div>
+                    <div className="text-2xl font-black text-green-400 tabular-nums">{netoPreview.toFixed(2)}</div>
+                    <div className="text-[10px] text-green-700 mt-0.5">kg neto</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Conductor */}
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                    <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
+                      className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
+                      style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                      <option value="">Seleccionar conductor...</option>
+                      {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Zona */}
+                  {zonaBloqueada ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                      style={{ background: 'rgba(168,85,247,0.06)', border: '2px solid rgba(168,85,247,0.3)' }}>
+                      <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
+                        <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+                      <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
+                        style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                        <option value="">Seleccionar zona...</option>
+                        {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={() => setFase('confirmando-contenedor')}
+                    className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
+                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <RotateCcw className="w-4 h-4" /> Volver
+                  </button>
+                  <button onClick={handleConfirmar}
+                    className="flex-1 py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}>
+                    <Printer className="w-5 h-5" /> CONFIRMAR Y EMITIR TICKET
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-center rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.05)', minHeight: '50vh' }}>
+          <div className="text-center">
+            <Scale className="w-16 h-16 mx-auto mb-3" style={{ color: 'rgba(34,197,94,0.08)' }} />
+            <p className="text-gray-500 text-sm font-medium">Seleccione un pedido de la cola</p>
+            <p className="text-gray-700 text-xs mt-1">Suma pesadas → confirma contenedores → emite ticket</p>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODAL TICKET ===== */}
       {ticketVisible && (
