@@ -4,63 +4,39 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 
 export function Dashboard() {
   // Datos para gráficas
-  const avesData = [
-    { name: 'Pollo', cantidad: 450, valor: 11475 },
-    { name: 'Gallina', cantidad: 380, valor: 13300 },
-    { name: 'Pato', cantidad: 280, valor: 8960 },
-    { name: 'Pavo', cantidad: 138, valor: 6900 },
-  ];
+  const avesData: { name: string; cantidad: number; valor: number }[] = [];
 
-  const tendenciaData = [
-    { mes: 'Ago', cantidad: 850, valor: 28500 },
-    { mes: 'Sep', cantidad: 920, valor: 31200 },
-    { mes: 'Oct', cantidad: 1050, valor: 36800 },
-    { mes: 'Nov', cantidad: 1180, valor: 39500 },
-    { mes: 'Dic', cantidad: 1150, valor: 38900 },
-    { mes: 'Ene', cantidad: 1248, valor: 40635 },
-  ];
+  const tendenciaData: { mes: string; cantidad: number; valor: number }[] = [];
 
-  const distribucionData = [
-    { name: 'Pollo Macho', value: 250, color: '#22c55e' },
-    { name: 'Pollo Hembra', value: 200, color: '#16a34a' },
-    { name: 'Gallina Rojas', value: 200, color: '#ec4899' },
-    { name: 'Gallina Doble P.', value: 180, color: '#db2777' },
-    { name: 'Pato', value: 280, color: '#3b82f6' },
-    { name: 'Pavo', value: 138, color: '#8b5cf6' },
-  ];
+  const distribucionData: { name: string; value: number; color: string }[] = [];
 
-  const proveedoresData = [
-    { name: 'Dist. San Martín', aves: 520, valor: 18200 },
-    { name: 'Avícola Norte', value: 380, valor: 13100 },
-    { name: 'Granja El Sol', value: 220, valor: 7800 },
-    { name: 'Otros', value: 128, valor: 1535 },
-  ];
+  const proveedoresData: { name: string; aves?: number; value?: number; valor: number }[] = [];
 
   const stats = [
     { 
       label: 'Total Proveedores', 
-      value: '12', 
+      value: '0', 
       icon: Users, 
       color: '#22c55e',
       link: '/dashboard/proveedores'
     },
     { 
       label: 'Total Aves', 
-      value: '1,248', 
+      value: '0', 
       icon: Bird, 
       color: '#ccaa00',
       link: '/dashboard/aves'
     },
     { 
       label: 'Tipos de Aves', 
-      value: '4', 
+      value: '0', 
       icon: Package, 
       color: '#3b82f6',
       link: '/dashboard/aves'
     },
     { 
       label: 'Crecimiento Mensual', 
-      value: '+15%', 
+      value: '0%', 
       icon: TrendingUp, 
       color: '#8b5cf6',
       link: '/dashboard'

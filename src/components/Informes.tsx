@@ -60,62 +60,35 @@ export function Informes() {
     document.body.removeChild(link);
   };
 
-  // Datos de ejemplo para los módulos que no están en el contexto
-  const proveedoresMock = [
-    { nombre: 'Granja San José', contacto: 'José Pérez', telefono: '987654321', email: 'contacto@granjasanjose.com', direccion: 'Av. Granja 123', tipoAves: 'Pollo, Gallina', estado: 'Activo' },
-    { nombre: 'Avícola Los Andes', contacto: 'María Torres', telefono: '912345678', email: 'info@avicolalosandes.com', direccion: 'Jr. Andes 456', tipoAves: 'Pato, Pavo', estado: 'Activo' },
-    { nombre: 'Distribuidora El Gallo', contacto: 'Carlos Ruiz', telefono: '998877665', email: 'carlos@elgallo.com', direccion: 'Calle Gallo 789', tipoAves: 'Pollo', estado: 'Inactivo' }
-  ];
+  // Datos vacíos - se llenarán con datos reales del contexto
+  const proveedoresMock: any[] = [];
 
-  const avesMock = [
-    { tipoAve: 'Pollo', proveedor: 'Granja San José', sexo: 'Macho', presentacion: 'Entero', pesoPromedio: 2.5, merma: 0.15, precioCompra: 8.5, stock: 150 },
-    { tipoAve: 'Pollo', proveedor: 'Granja San José', sexo: 'Hembra', presentacion: 'Entero', pesoPromedio: 2.2, merma: 0.12, precioCompra: 8.2, stock: 120 },
-    { tipoAve: 'Gallina', proveedor: 'Granja San José', sexo: 'N/A', presentacion: 'Entera', pesoPromedio: 1.8, merma: 0.10, precioCompra: 10.5, stock: 80 },
-    { tipoAve: 'Pato', proveedor: 'Avícola Los Andes', sexo: 'Macho', presentacion: 'Entero', pesoPromedio: 3.0, merma: 0.18, precioCompra: 12.0, stock: 45 }
-  ];
+  const avesMock: any[] = [];
 
-  const pedidosMock = [
-    { numeroPedido: 'PED-001', cliente: 'Restaurante El Sabor', tipoAve: 'Pollo', cantidad: 50, fechaPedido: '2025-02-01', fechaEntrega: '2025-02-03', estado: 'Completado', total: 425.00 },
-    { numeroPedido: 'PED-002', cliente: 'Pollería Don José', tipoAve: 'Pollo', cantidad: 80, fechaPedido: '2025-02-02', fechaEntrega: '2025-02-04', estado: 'Pendiente', total: 704.00 },
-    { numeroPedido: 'PED-003', cliente: 'Mercado Central', tipoAve: 'Gallina', cantidad: 30, fechaPedido: '2025-01-30', fechaEntrega: '2025-02-01', estado: 'Completado', total: 360.00 }
-  ];
+  const pedidosMock: any[] = [];
 
-  const clientesMock = [
-    { nombre: 'Restaurante El Sabor', contacto: 'Carlos Mendoza', telefono: '987654321', direccion: 'Av. Principal 123, Lima', estado: 'Activo' },
-    { nombre: 'Pollería Don José', contacto: 'José Ramirez', telefono: '912345678', direccion: 'Jr. Comercio 456, Callao', estado: 'Activo' },
-    { nombre: 'Mercado Central', contacto: 'Ana Torres', telefono: '998765432', direccion: 'Calle Los Olivos 789, Lima', estado: 'Inactivo' }
-  ];
+  const clientesMock = clientes.map(c => ({
+    nombre: c.nombre,
+    contacto: c.contacto,
+    telefono: c.telefono,
+    direccion: '',
+    estado: c.estado
+  }));
 
-  const costosClientesMock = [
-    { cliente: 'Restaurante El Sabor', tipoAve: 'Pollo', precioPorKg: 8.50, fecha: '2025-02-02' },
-    { cliente: 'Restaurante El Sabor', tipoAve: 'Gallina', precioPorKg: 12.00, fecha: '2025-02-02' },
-    { cliente: 'Pollería Don José', tipoAve: 'Pollo', precioPorKg: 8.80, fecha: '2025-02-02' },
-    { cliente: 'Mercado Central', tipoAve: 'Pollo', precioPorKg: 8.20, fecha: '2025-02-02' }
-  ];
+  const costosClientesMock = costosClientes.map(cc => ({
+    cliente: cc.clienteNombre,
+    tipoAve: cc.tipoAveNombre,
+    precioPorKg: cc.precioPorKg,
+    fecha: cc.fecha
+  }));
 
-  const enviosMock = [
-    { numeroEnvio: 'ENV-001', pedido: 'PED-001', cliente: 'Restaurante El Sabor', chofer: 'Juan Pérez', vehiculo: 'ABC-123', fechaSalida: '2025-02-03 08:00', estado: 'Entregado' },
-    { numeroEnvio: 'ENV-002', pedido: 'PED-002', cliente: 'Pollería Don José', chofer: 'Luis García', vehiculo: 'DEF-456', fechaSalida: '2025-02-04 09:00', estado: 'En tránsito' },
-    { numeroEnvio: 'ENV-003', pedido: 'PED-003', cliente: 'Mercado Central', chofer: 'María López', vehiculo: 'GHI-789', fechaSalida: '2025-02-01 07:30', estado: 'Entregado' }
-  ];
+  const enviosMock: any[] = [];
 
-  const controlEnviosMock = [
-    { numeroEnvio: 'ENV-001', ubicacionActual: 'Av. Principal 123, Lima', temperatura: '4°C', estadoVehiculo: 'Óptimo', horaActualizacion: '2025-02-03 10:30' },
-    { numeroEnvio: 'ENV-002', ubicacionActual: 'Jr. Comercio 200, Callao', temperatura: '5°C', estadoVehiculo: 'Óptimo', horaActualizacion: '2025-02-04 11:15' },
-    { numeroEnvio: 'ENV-003', ubicacionActual: 'Completado', temperatura: 'N/A', estadoVehiculo: 'N/A', horaActualizacion: '2025-02-01 12:00' }
-  ];
+  const controlEnviosMock: any[] = [];
 
-  const ingresosMock = [
-    { fecha: '2025-02-01', concepto: 'Venta Pollo', cliente: 'Restaurante El Sabor', cantidad: 50, precioUnitario: 8.50, total: 425.00 },
-    { fecha: '2025-02-02', concepto: 'Venta Pollo', cliente: 'Pollería Don José', cantidad: 80, precioUnitario: 8.80, total: 704.00 },
-    { fecha: '2025-01-30', concepto: 'Venta Gallina', cliente: 'Mercado Central', cantidad: 30, precioUnitario: 12.00, total: 360.00 }
-  ];
+  const ingresosMock: any[] = [];
 
-  const cobranzasMock = [
-    { numeroFactura: 'FAC-001', cliente: 'Restaurante El Sabor', fechaEmision: '2025-02-01', fechaVencimiento: '2025-02-15', monto: 425.00, montoPagado: 425.00, estado: 'Pagado' },
-    { numeroFactura: 'FAC-002', cliente: 'Pollería Don José', fechaEmision: '2025-02-02', fechaVencimiento: '2025-02-16', monto: 704.00, montoPagado: 0, estado: 'Pendiente' },
-    { numeroFactura: 'FAC-003', cliente: 'Mercado Central', fechaEmision: '2025-01-30', fechaVencimiento: '2025-02-13', monto: 360.00, montoPagado: 180.00, estado: 'Parcial' }
-  ];
+  const cobranzasMock: any[] = [];
 
   const empleadosData = empleados.map(emp => ({
     nombre: `${emp.nombre} ${emp.apellidos}`,
@@ -129,12 +102,7 @@ export function Informes() {
     email: emp.email || 'N/A'
   }));
 
-  const asistenciaMock = [
-    { empleado: 'Ana García López', cargo: 'Secretaria', fecha: '2025-02-03', horaEntrada: '08:15', horaSalida: '17:30', estado: 'Presente' },
-    { empleado: 'Carlos Mendoza Ruiz', cargo: 'Producción', fecha: '2025-02-03', horaEntrada: '09:05', horaSalida: '17:45', estado: 'Tardanza' },
-    { empleado: 'María Torres Silva', cargo: 'Pesaje', fecha: '2025-02-03', horaEntrada: '08:00', horaSalida: 'Pendiente', estado: 'Presente' },
-    { empleado: 'Jorge Ramírez Pérez', cargo: 'Seguridad', fecha: '2025-02-03', horaEntrada: '07:45', horaSalida: '16:00', estado: 'Presente' }
-  ];
+  const asistenciaMock: any[] = [];
 
   // Definición de módulos
   const modulos: Modulo[] = [

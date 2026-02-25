@@ -79,6 +79,12 @@ export function GestionConductor() {
     p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' || p.estado === 'Con Incidencia'
   );
 
+  // Helper: obtener datos frescos del pedido desde el contexto (evita estado local obsoleto)
+  const getFreshPedido = () => {
+    if (!selectedPedido) return null;
+    return pedidosConfirmados.find((p: any) => p.id === selectedPedido.id) || selectedPedido;
+  };
+
   const handleCapturePhoto = () => {
     // Simulación de captura de foto con timestamp
     const mockPhoto = `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?w=400&t=${Date.now()}`;
@@ -113,7 +119,8 @@ export function GestionConductor() {
     }
 
     const pesoTotalRepesada = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
-    const pesoOriginal = selectedPedido.pesoBrutoTotal || 0;
+    const fresh = getFreshPedido();
+    const pesoOriginal = fresh?.pesoBrutoTotal || 0;
     const diferencia = Math.abs(pesoOriginal - pesoTotalRepesada);
     const margenTolerancia = 0.5;
 
@@ -133,13 +140,15 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    console.log(`[CONDUCTOR] Enviando repesada: pedidoId=${selectedPedido.id}, pesoRepesada=${pesoTotalRepesada}, fechaPesaje=${selectedPedido.fechaPesaje}, ticketEmitido=${selectedPedido.ticketEmitido}`);
-    updatePedidoConfirmado(selectedPedido.id, {
-      ...selectedPedido,
+    const updatedPedido = {
+      ...fresh,
       estado: diferencia <= margenTolerancia ? 'En Ruta' : 'Con Incidencia',
       pesoRepesada: pesoTotalRepesada,
       ultimaIncidencia: diferencia <= margenTolerancia ? null : 'Diferencia de peso detectada'
-    });
+    };
+    console.log(`[CONDUCTOR] Enviando repesada: pedidoId=${selectedPedido.id}, pesoRepesada=${pesoTotalRepesada}, fechaPesaje=${fresh?.fechaPesaje}, ticketEmitido=${fresh?.ticketEmitido}`);
+    updatePedidoConfirmado(selectedPedido.id, updatedPedido);
+    setSelectedPedido(updatedPedido);
 
     toast.success(`Repesada finalizada: ${pesoTotalRepesada.toFixed(1)} kg totales`);
     setModo('DETALLE');
@@ -158,6 +167,7 @@ export function GestionConductor() {
     }
 
     const pesoTotalDevolucion = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
+    const fresh = getFreshPedido();
 
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
@@ -176,13 +186,15 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    updatePedidoConfirmado(selectedPedido.id, {
-      ...selectedPedido,
+    const updatedPedido = {
+      ...fresh,
       estado: 'Devolución',
       pesoDevolucion: pesoTotalDevolucion,
       motivoDevolucion: formReason,
       ultimaIncidencia: 'Producto devuelto'
-    });
+    };
+    updatePedidoConfirmado(selectedPedido.id, updatedPedido);
+    setSelectedPedido(updatedPedido);
 
     toast.warning(`Devolución finalizada: ${pesoTotalDevolucion.toFixed(1)} kg totales`);
     setModo('DETALLE');
@@ -202,6 +214,7 @@ export function GestionConductor() {
 
     const pesoTotalAsignacion = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
     const clienteObj = clientes.find((c: any) => c.id === newClientId);
+    const fresh = getFreshPedido();
 
     const nuevoRegistro: RegistroConductor = {
       id: generarId(),
@@ -221,13 +234,15 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
-    updatePedidoConfirmado(selectedPedido.id, {
-      ...selectedPedido,
+    const updatedPedido = {
+      ...fresh,
       estado: 'Confirmado con Adición',
       pesoAdicional: pesoTotalAsignacion,
       clienteAdicionalId: newClientId,
       ultimaIncidencia: `Adición para ${clienteObj?.nombre}`
-    });
+    };
+    updatePedidoConfirmado(selectedPedido.id, updatedPedido);
+    setSelectedPedido(updatedPedido);
 
     toast.success(`Adición finalizada: ${pesoTotalAsignacion.toFixed(1)} kg para ${clienteObj?.nombre}`);
     setModo('DETALLE');
@@ -256,8 +271,9 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
+    const fresh = getFreshPedido();
     updatePedidoConfirmado(selectedPedido.id, {
-      ...selectedPedido,
+      ...fresh,
       estado: 'Entregado',
       fechaEntrega: new Date().toISOString()
     });
