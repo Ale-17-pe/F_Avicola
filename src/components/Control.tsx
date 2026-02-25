@@ -35,7 +35,7 @@ interface PedidoPesajeControl {
 }
 
 export function Control() {
-  const { pedidosConfirmados, removePedidoConfirmado } = useApp();
+  const { pedidosConfirmados, removePedidoConfirmado, clientes } = useApp();
   const [pedidosPesaje, setPedidosPesaje] = useState<PedidoConfirmado[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('all');
@@ -43,7 +43,7 @@ export function Control() {
   const [sortColumn, setSortColumn] = useState<string>('fechaPesaje');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
-  const [statsCollapsed, setStatsCollapsed] = useState(false);
+  const [statsCollapsed, setStatsCollapsed] = useState(true);
 
   // Cargar datos de pesaje completados y en proceso desde AppContext
   useEffect(() => {
@@ -404,10 +404,13 @@ export function Control() {
                         )}
                       </td>
 
-                      {/* Zona */}
+                      {/* Zona (del cliente) */}
                       <td className="px-3 py-2.5">
                         <span className="text-purple-300 text-xs font-semibold">
-                          {pedido.zonaEntrega || '—'}
+                          {(() => {
+                            const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
+                            return clienteObj?.zona ? `Zona ${clienteObj.zona}` : '—';
+                          })()}
                         </span>
                       </td>
 

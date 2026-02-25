@@ -28,7 +28,7 @@ export function GestionCobranza() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
   const [modalType, setModalType] = useState<'PAGO' | 'DEVOLUCION' | 'PEDIDO' | null>(null);
-  const [statsCollapsed, setStatsCollapsed] = useState(false);
+  const [statsCollapsed, setStatsCollapsed] = useState(true);
   
   // Estados para Pago
   const [amount, setAmount] = useState('');
