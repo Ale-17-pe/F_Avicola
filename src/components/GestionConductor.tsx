@@ -113,7 +113,7 @@ export function GestionConductor() {
     }
 
     const pesoTotalRepesada = sessionBlocks.reduce((acc, b) => acc + b.peso, 0);
-    const pesoOriginal = selectedPedido.pesoKg || 0;
+    const pesoOriginal = selectedPedido.pesoBrutoTotal || 0;
     const diferencia = Math.abs(pesoOriginal - pesoTotalRepesada);
     const margenTolerancia = 0.5;
 
@@ -133,6 +133,7 @@ export function GestionConductor() {
 
     setRegistros([...registros, nuevoRegistro]);
 
+    console.log(`[CONDUCTOR] Enviando repesada: pedidoId=${selectedPedido.id}, pesoRepesada=${pesoTotalRepesada}, fechaPesaje=${selectedPedido.fechaPesaje}, ticketEmitido=${selectedPedido.ticketEmitido}`);
     updatePedidoConfirmado(selectedPedido.id, {
       ...selectedPedido,
       estado: diferencia <= margenTolerancia ? 'En Ruta' : 'Con Incidencia',
@@ -400,7 +401,7 @@ export function GestionConductor() {
                         </div>
                         <div className="flex items-center gap-1 text-gray-400">
                           <Weight className="w-4 h-4 text-gray-600" />
-                          <span>{pedido.pesoKg?.toFixed(1)} kg</span>
+                          <span>{pedido.pesoBrutoTotal?.toFixed(1)} kg</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-400">
                           <MapPin className="w-4 h-4 text-gray-600" />
@@ -449,10 +450,10 @@ export function GestionConductor() {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="text-3xl font-black text-white">
-                    {selectedPedido.pesoKg?.toFixed(1) || '--'} 
+                    {selectedPedido.pesoBrutoTotal?.toFixed(1) || '--'} 
                     <span className="text-sm text-gray-500 font-normal ml-1">KG</span>
                   </div>
-                  <p className="text-xs text-gray-500">Peso Original</p>
+                  <p className="text-xs text-gray-500">Peso Bruto</p>
                 </div>
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   selectedPedido.estado === 'Devolución' ? 'bg-red-900/20 text-red-400' :

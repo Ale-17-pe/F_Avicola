@@ -143,6 +143,7 @@ export function DashboardSecretaria() {
   const [hoveredRow, setHoveredRow]               = useState<string|null>(null);
   const [showCal, setShowCal]                     = useState(false);
   const [statsCollapsed, setStatsCollapsed]       = useState(true);
+  const [refreshKey, setRefreshKey]               = useState(0);
   const calRef                                    = useRef<HTMLDivElement>(null);
 
   // cerrar calendario si click fuera
@@ -164,95 +165,33 @@ export function DashboardSecretaria() {
   useEffect(() => {
     setLoading(true);
     try {
-      const data = localStorage.getItem(storageKey(fechaSeleccionada));
-      if (data) {
-        const parsed = JSON.parse(data);
-        const migrados = parsed.map((f: any) => {
-          const base: FilaCartera = {
-            ...f,
-            repesada: f.repesada ?? 0,
-            merma: f.merma ?? 0,
-            devolucionPeso: f.devolucionPeso ?? 0,
-            adicionPeso: f.adicionPeso ?? 0,
-            pesoNeto: f.pesoNeto ?? 0,
-            precio: f.precio ?? 0,
-            total: f.total ?? 0,
-            pesoPedido: f.pesoPedido ?? 0,
-            pesoBruto: f.pesoBruto ?? 0,
-            pesoContenedor: f.pesoContenedor ?? 0,
-          };
-          // Sincronizar devolucion/repesada/adición del conductor desde datos vivos
-          // Match por id o por numeroPedido/pedidoId para soportar datos antiguos
-          const pedidoVivo = (pedidosConfirmados || []).find(pc =>
-            pc.id === f.id || (pc.numeroPedido && pc.numeroPedido === f.pedidoId)
-          );
-          if (pedidoVivo) {
-            const devVivo  = pedidoVivo.pesoDevolucion || 0;
-            const repVivo  = pedidoVivo.pesoRepesada   || 0;
-            const addVivo  = pedidoVivo.pesoAdicional  || 0;
-            if (
-              devVivo !== base.devolucionPeso ||
-              repVivo !== base.repesada ||
-              addVivo !== base.adicionPeso
-            ) {
-              base.devolucionPeso = devVivo;
-              base.repesada       = repVivo;
-              base.adicionPeso    = addVivo;
-              // Recalcular peso neto y total
-              const baseCalc = repVivo > 0 ? repVivo : base.pesoBruto;
-              base.pesoNeto = Math.max(
-                0,
-                (baseCalc + base.merma) - base.pesoContenedor - devVivo + base.adicionPeso
-              );
-              base.total = Math.max(0, base.pesoNeto) * base.precio;
-            }
-            // Sincronizar precio si era 0 (no se cargó bien antes)
-            if (base.precio === 0) {
-              const tipoAveSinSexo = pedidoVivo.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
-              const tipoAveNombre = tipoAveSinSexo.includes(' - ') ? tipoAveSinSexo.split(' - ')[0].trim() : tipoAveSinSexo.trim();
-              const clienteObj = clientes.find(c => c.nombre === pedidoVivo.cliente);
-              const tipoAveObj = tiposAve.find(t => t.nombre === tipoAveNombre);
-              if (clienteObj && tipoAveObj) {
-                const costosDelCl = costosClientes.filter(cc => cc.clienteId === clienteObj.id && cc.tipoAveId === tipoAveObj.id);
-                const varBusc = pedidoVivo.variedad || 'Mixto';
-                let costo = costosDelCl.find(cc => (cc.variedad === varBusc || (!cc.variedad && varBusc === 'Mixto')));
-                if (!costo) costo = costosDelCl[0];
-                if (costo) {
-                  const presNorm = pedidoVivo.presentacion?.toLowerCase() || '';
-                  if (presNorm.includes('vivo')) base.precio = costo.precioVivo || costo.precioPorKg || 0;
-                  else if (presNorm.includes('pelado')) base.precio = costo.precioPelado || costo.precioPorKg || 0;
-                  else if (presNorm.includes('destripado')) base.precio = costo.precioDestripado || costo.precioPorKg || 0;
-                  else base.precio = costo.precioPorKg || 0;
-                  const baseCalc = base.repesada > 0 ? base.repesada : base.pesoBruto;
-                  base.pesoNeto = Math.max(0, (baseCalc + base.merma) - base.pesoContenedor - base.devolucionPeso + base.adicionPeso);
-                  base.total = Math.max(0, base.pesoNeto) * base.precio;
-                }
-              }
-            }
-          }
-          return base;
-        });
-        setFilasCartera(migrados);
-      } else {
-        generarDesdePesajeControl();
-      }
-    } catch (e) {
-      console.error(e);
-      setFilasCartera([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [fechaSeleccionada, pedidosConfirmados]);
-
-  function generarDesdePesajeControl() {
-    try {
-      const delDia = (pedidosConfirmados || []).filter(p => 
+      // SIEMPRE regenerar desde datos vivos de pedidosConfirmados
+      // para capturar cambios del conductor (repesada, devolución, asignación) AL INSTANTE
+      const delDia = (pedidosConfirmados || []).filter(p =>
         p.ticketEmitido && p.fechaPesaje === fechaSeleccionada
       );
 
-      if (delDia.length === 0) { 
-        setFilasCartera([]); 
-        return; 
+      // DEBUG: Ver qué pedidos hay y sus datos del conductor
+      console.log(`[CARTERA] useEffect ejecutado. fechaSeleccionada=${fechaSeleccionada}`);
+      console.log(`[CARTERA] Total pedidosConfirmados: ${(pedidosConfirmados||[]).length}`);
+      console.log(`[CARTERA] Pedidos del día (con ticket): ${delDia.length}`);
+      delDia.forEach(p => {
+        console.log(`[CARTERA] Pedido ${p.id}: cliente=${p.cliente}, repesada=${p.pesoRepesada||0}, devolucion=${p.pesoDevolucion||0}, adicion=${p.pesoAdicional||0}, estado=${p.estado}, fechaPesaje=${p.fechaPesaje}, ticketEmitido=${p.ticketEmitido}`);
+      });
+
+      if (delDia.length === 0) {
+        setFilasCartera([]);
+        return;
+      }
+
+      // Cargar ediciones manuales previas de la secretaria (precios, confirmaciones)
+      const dataPrev = localStorage.getItem(storageKey(fechaSeleccionada));
+      const filasPrevias: Record<string, FilaCartera> = {};
+      if (dataPrev) {
+        try {
+          const parsed: FilaCartera[] = JSON.parse(dataPrev);
+          parsed.forEach(f => { filasPrevias[f.id] = f; });
+        } catch (_) { /* ignorar parse errors */ }
       }
 
       const nuevasFilas: FilaCartera[] = delDia.map(p => {
@@ -260,31 +199,27 @@ export function DashboardSecretaria() {
         const cantidadDisplay = p.cantidad;
         const cantidadLabel = esVivo ? `${p.cantidadJabas || 0} jabas` : 'unids';
 
-        // Calcular merma por presentación (con variedad y sexo específicos)
         // Extraer nombre base del tipo (sin variedad ni sexo)
-        // p.tipoAve puede ser "Gallina - Rojas (M:10, H:5)" → base = "Gallina"
         const tipoAveSinSexo = p.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
         const tipoAveBase = tipoAveSinSexo.includes(' - ') ? tipoAveSinSexo.split(' - ')[0].trim() : tipoAveSinSexo.trim();
-        
-        // Intentar match específico por variedad/sexo, luego general
-        let pres = presentaciones.find(pr => 
-          pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+
+        // Calcular merma por presentación
+        let pres = presentaciones.find(pr =>
+          pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() &&
           pr.nombre.toLowerCase() === p.presentacion?.toLowerCase() &&
           (p.variedad ? pr.variedad === p.variedad : !pr.variedad) &&
           (p.sexo ? pr.sexo === p.sexo : !pr.sexo)
         );
-        // Fallback: match solo por variedad
         if (!pres && p.variedad) {
-          pres = presentaciones.find(pr => 
-            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+          pres = presentaciones.find(pr =>
+            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() &&
             pr.nombre.toLowerCase() === p.presentacion?.toLowerCase() &&
             pr.variedad === p.variedad
           );
         }
-        // Fallback: match general por tipo/presentacion
         if (!pres) {
-          pres = presentaciones.find(pr => 
-            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() && 
+          pres = presentaciones.find(pr =>
+            pr.tipoAve.toLowerCase() === tipoAveBase.toLowerCase() &&
             pr.nombre.toLowerCase() === p.presentacion?.toLowerCase()
           );
         }
@@ -294,61 +229,57 @@ export function DashboardSecretaria() {
 
         const pesoContenedor = p.pesoTotalContenedores || 0;
         const pesoBruto = p.pesoBrutoTotal || 0;
-        // Devolución, repesada y adición del conductor
+        // Datos VIVOS del conductor — se leen siempre de pedidosConfirmados
         const devolucionFromConductor = p.pesoDevolucion || 0;
         const repesadaFromConductor   = p.pesoRepesada   || 0;
         const adicionFromConductor    = p.pesoAdicional  || 0;
-        // Fórmula: Peso Neto = (Base + Merma) - Peso Contenedor - Devoluciones + Adición
-        // Si hay repesada, usar repesada como base en vez de pesoBruto
+
         const base = repesadaFromConductor > 0 ? repesadaFromConductor : pesoBruto;
         const pesoNeto = (base + mermaTotal) - pesoContenedor - devolucionFromConductor + adicionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
 
-        // LÓGICA DE PRECIO AUTO-RELLENABLE (Segunda petición del usuario)
-        let precio = 0;
-        const clienteObj = clientes.find(c => c.nombre === p.cliente);
-        const tipoAveObj = tiposAve.find(t => t.nombre === tipoAveBase);
+        // Preservar precio editado manualmente por la secretaria, sino auto-rellenar
+        const filaPrev = filasPrevias[p.id];
+        let precio = filaPrev?.precio ?? 0;
 
-        if (clienteObj && tipoAveObj) {
-          // Buscamos costos específicos del cliente para este tipo de ave
-          const costosDelCliente = costosClientes.filter(cc => 
-            cc.clienteId === clienteObj.id && 
-            cc.tipoAveId === tipoAveObj.id
-          );
+        // Solo auto-rellenar precio si no fue editado (es 0) o no hay fila previa
+        if (precio === 0) {
+          const clienteObj = clientes.find(c => c.nombre === p.cliente);
+          const tipoAveObj = tiposAve.find(t => t.nombre === tipoAveBase);
 
-          // Buscar por variedad y sexo específicos
-          const variedadBuscada = p.variedad || 'Mixto';
-          const sexoBuscado = p.sexo;
-          
-          // 1. Match exacto por variedad + sexo
-          let costoEncontrado = costosDelCliente.find(cc => 
-            (cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')) &&
-            (sexoBuscado ? cc.sexo === sexoBuscado : true)
-          );
-
-          // 2. Match por variedad solamente
-          if (!costoEncontrado) {
-            costoEncontrado = costosDelCliente.find(cc => 
-              cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')
+          if (clienteObj && tipoAveObj) {
+            const costosDelCliente = costosClientes.filter(cc =>
+              cc.clienteId === clienteObj.id &&
+              cc.tipoAveId === tipoAveObj.id
             );
-          }
 
-          // 3. Fallback: primer costo del cliente para ese ave
-          if (!costoEncontrado) {
-            costoEncontrado = costosDelCliente[0];
-          }
+            const variedadBuscada = p.variedad || 'Mixto';
+            const sexoBuscado = p.sexo;
 
-          if (costoEncontrado) {
-            const presNorm = p.presentacion?.toLowerCase();
-            // Selección inteligente del precio según presentación de CostosClientes.tsx
-            if (presNorm.includes('vivo')) {
-              precio = costoEncontrado.precioVivo || costoEncontrado.precioPorKg || 0;
-            } else if (presNorm.includes('pelado')) {
-              precio = costoEncontrado.precioPelado || costoEncontrado.precioPorKg || 0;
-            } else if (presNorm.includes('destripado')) {
-              precio = costoEncontrado.precioDestripado || costoEncontrado.precioPorKg || 0;
-            } else {
-              precio = costoEncontrado.precioPorKg || 0;
+            let costoEncontrado = costosDelCliente.find(cc =>
+              (cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')) &&
+              (sexoBuscado ? cc.sexo === sexoBuscado : true)
+            );
+            if (!costoEncontrado) {
+              costoEncontrado = costosDelCliente.find(cc =>
+                cc.variedad === variedadBuscada || (!cc.variedad && variedadBuscada === 'Mixto')
+              );
+            }
+            if (!costoEncontrado) {
+              costoEncontrado = costosDelCliente[0];
+            }
+
+            if (costoEncontrado) {
+              const presNorm = p.presentacion?.toLowerCase();
+              if (presNorm.includes('vivo')) {
+                precio = costoEncontrado.precioVivo || costoEncontrado.precioPorKg || 0;
+              } else if (presNorm.includes('pelado')) {
+                precio = costoEncontrado.precioPelado || costoEncontrado.precioPorKg || 0;
+              } else if (presNorm.includes('destripado')) {
+                precio = costoEncontrado.precioDestripado || costoEncontrado.precioPorKg || 0;
+              } else {
+                precio = costoEncontrado.precioPorKg || 0;
+              }
             }
           }
         }
@@ -364,7 +295,7 @@ export function DashboardSecretaria() {
           cantidad: cantidadDisplay,
           cantidadLabel,
           merma: mermaTotal,
-          tara: pesoContenedor, // Mostramos la tara del contenedor aquí también
+          tara: pesoContenedor,
           contenedorTipo: p.contenedor,
           devolucionPeso: devolucionFromConductor,
           devolucionCantidad: 0,
@@ -376,8 +307,9 @@ export function DashboardSecretaria() {
           pesoNeto: Math.max(0, pesoNeto),
           precio,
           total: Math.max(0, total),
-          confirmado: false,
-          editando: false,
+          // Preservar estado de confirmación/edición de la secretaria
+          confirmado: filaPrev?.confirmado ?? false,
+          editando: filaPrev?.editando ?? false,
           fecha: fechaSeleccionada,
           zona: p.zonaEntrega || '—',
           conductor: p.conductor || '—',
@@ -385,11 +317,15 @@ export function DashboardSecretaria() {
       });
 
       setFilasCartera(nuevasFilas);
-    } catch (error) {
-      console.error('Error generando cartera:', error);
+    } catch (e) {
+      console.error('Error generando cartera:', e);
       setFilasCartera([]);
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [fechaSeleccionada, pedidosConfirmados, refreshKey]);
+
+
 
   useEffect(() => {
     if (filasCartera.length>0)
@@ -422,7 +358,7 @@ export function DashboardSecretaria() {
     setFilasCartera(prev=>prev.map(f=>f.id===id?{...f,editando:true,confirmado:false}:f));
   const confirmarTodas = () => { setFilasCartera(prev=>prev.map(f=>({...f,confirmado:true,editando:false}))); setEditandoAll(false); toast.success('Todas confirmadas'); };
   const editarTodas    = () => { setFilasCartera(prev=>prev.map(f=>({...f,editando:true,confirmado:false}))); setEditandoAll(true); };
-  const refrescar      = () => { setLoading(true); setTimeout(()=>{ generarDesdePesajeControl(); setLoading(false); toast.success('Actualizado'); },400); };
+  const refrescar      = () => { localStorage.removeItem(storageKey(fechaSeleccionada)); setRefreshKey(k => k + 1); toast.success('Actualizado'); };
   const irDia          = (n:number) => setFechaSeleccionada(prev=>addDays(prev,n));
 
   const exportarCSV = () => {

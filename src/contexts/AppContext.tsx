@@ -423,7 +423,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Escuchar cambios desde otras pestañas
+  // Escuchar cambios desde otras pestañas (storage event)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.newValue) return;
@@ -440,10 +440,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           case 'avicola_tiposAve':
             setTiposAve(data);
             break;
+          case 'avicola_costosClientes':
+            setCostosClientes(data);
+            break;
           case 'avicola_pagos':
             setPagos(data);
             break;
-          // ... se pueden agregar más si es necesario
         }
       } catch (err) {
         console.error('Error parsing storage event data:', err);
@@ -452,6 +454,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // SYNC CROSS-TAB: Re-leer datos de localStorage al volver a la pestaña
+  // Esto asegura que los cambios del conductor se reflejen al instante
+  // cuando la secretaria cambia a su pestaña
+  useEffect(() => {
+    const reloadFromStorage = () => {
+      try {
+        const pedidosStr = localStorage.getItem('avicola_pedidosConfirmados');
+        if (pedidosStr) setPedidosConfirmados(JSON.parse(pedidosStr));
+
+        const clientesStr = localStorage.getItem('avicola_clientes');
+        if (clientesStr) setClientes(JSON.parse(clientesStr));
+
+        const costosStr = localStorage.getItem('avicola_costosClientes');
+        if (costosStr) setCostosClientes(JSON.parse(costosStr));
+
+        const pagosStr = localStorage.getItem('avicola_pagos');
+        if (pagosStr) setPagos(JSON.parse(pagosStr));
+      } catch (err) {
+        console.error('Error recargando datos desde localStorage:', err);
+      }
+    };
+
+    // Al volver a la pestaña, recargar datos
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        reloadFromStorage();
+      }
+    };
+
+    // Polling cada 2s para mantener sync en tiempo real entre pestañas
+    const interval = setInterval(() => {
+      try {
+        const fresh = localStorage.getItem('avicola_pedidosConfirmados');
+        if (fresh) {
+          const parsed = JSON.parse(fresh);
+          setPedidosConfirmados(prev => {
+            // Solo actualizar si los datos realmente cambiaron
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== fresh) return parsed;
+            return prev;
+          });
+        }
+      } catch (_) { /* ignore */ }
+    }, 2000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    // También recargar al recibir focus (backup para visibilitychange)
+    window.addEventListener('focus', reloadFromStorage);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', reloadFromStorage);
+      clearInterval(interval);
+    };
   }, []);
 
   // ============ FUNCIONES PARA CLIENTES ============
