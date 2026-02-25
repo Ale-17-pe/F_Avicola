@@ -156,19 +156,59 @@ export function DashboardSecretaria() {
       const data = localStorage.getItem(storageKey(fechaSeleccionada));
       if (data) {
         const parsed = JSON.parse(data);
-        const migrados = parsed.map((f: any) => ({
-          ...f,
-          repesada: f.repesada ?? 0,
-          merma: f.merma ?? 0,
-          devolucionPeso: f.devolucionPeso ?? 0,
-          adicionPeso: f.adicionPeso ?? 0,
-          pesoNeto: f.pesoNeto ?? 0,
-          precio: f.precio ?? 0,
-          total: f.total ?? 0,
-          pesoPedido: f.pesoPedido ?? 0,
-          pesoBruto: f.pesoBruto ?? 0,
-          pesoContenedor: f.pesoContenedor ?? 0,
-        }));
+        const migrados = parsed.map((f: any) => {
+          const base: FilaCartera = {
+            ...f,
+            repesada: f.repesada ?? 0,
+            merma: f.merma ?? 0,
+            devolucionPeso: f.devolucionPeso ?? 0,
+            adicionPeso: f.adicionPeso ?? 0,
+            pesoNeto: f.pesoNeto ?? 0,
+            precio: f.precio ?? 0,
+            total: f.total ?? 0,
+            pesoPedido: f.pesoPedido ?? 0,
+            pesoBruto: f.pesoBruto ?? 0,
+            pesoContenedor: f.pesoContenedor ?? 0,
+          };
+          // Sincronizar devolucion/repesada del conductor desde datos vivos
+          const pedidoVivo = (pedidosConfirmados || []).find(pc => pc.id === f.id);
+          if (pedidoVivo) {
+            const devVivo = pedidoVivo.pesoDevolucion || 0;
+            const repVivo = pedidoVivo.pesoRepesada || 0;
+            if (devVivo !== base.devolucionPeso || repVivo !== base.repesada) {
+              base.devolucionPeso = devVivo;
+              base.repesada = repVivo;
+              // Recalcular peso neto y total
+              const baseCalc = repVivo > 0 ? repVivo : base.pesoBruto;
+              base.pesoNeto = Math.max(0, (baseCalc + base.merma) - base.pesoContenedor - devVivo + base.adicionPeso);
+              base.total = Math.max(0, base.pesoNeto) * base.precio;
+            }
+            // Sincronizar precio si era 0 (no se cargó bien antes)
+            if (base.precio === 0) {
+              const tipoAveSinSexo = pedidoVivo.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
+              const tipoAveNombre = tipoAveSinSexo.includes(' - ') ? tipoAveSinSexo.split(' - ')[0].trim() : tipoAveSinSexo.trim();
+              const clienteObj = clientes.find(c => c.nombre === pedidoVivo.cliente);
+              const tipoAveObj = tiposAve.find(t => t.nombre === tipoAveNombre);
+              if (clienteObj && tipoAveObj) {
+                const costosDelCl = costosClientes.filter(cc => cc.clienteId === clienteObj.id && cc.tipoAveId === tipoAveObj.id);
+                const varBusc = pedidoVivo.variedad || 'Mixto';
+                let costo = costosDelCl.find(cc => (cc.variedad === varBusc || (!cc.variedad && varBusc === 'Mixto')));
+                if (!costo) costo = costosDelCl[0];
+                if (costo) {
+                  const presNorm = pedidoVivo.presentacion?.toLowerCase() || '';
+                  if (presNorm.includes('vivo')) base.precio = costo.precioVivo || costo.precioPorKg || 0;
+                  else if (presNorm.includes('pelado')) base.precio = costo.precioPelado || costo.precioPorKg || 0;
+                  else if (presNorm.includes('destripado')) base.precio = costo.precioDestripado || costo.precioPorKg || 0;
+                  else base.precio = costo.precioPorKg || 0;
+                  const baseCalc = base.repesada > 0 ? base.repesada : base.pesoBruto;
+                  base.pesoNeto = Math.max(0, (baseCalc + base.merma) - base.pesoContenedor - base.devolucionPeso + base.adicionPeso);
+                  base.total = Math.max(0, base.pesoNeto) * base.precio;
+                }
+              }
+            }
+          }
+          return base;
+        });
         setFilasCartera(migrados);
       } else {
         generarDesdePesajeControl();
@@ -198,7 +238,10 @@ export function DashboardSecretaria() {
         const cantidadLabel = esVivo ? `${p.cantidadJabas || 0} jabas` : 'unids';
 
         // Calcular merma por presentación (con variedad y sexo específicos)
-        const tipoAveBase = p.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
+        // Extraer nombre base del tipo (sin variedad ni sexo)
+        // p.tipoAve puede ser "Gallina - Rojas (M:10, H:5)" → base = "Gallina"
+        const tipoAveSinSexo = p.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';
+        const tipoAveBase = tipoAveSinSexo.includes(' - ') ? tipoAveSinSexo.split(' - ')[0].trim() : tipoAveSinSexo.trim();
         
         // Intentar match específico por variedad/sexo, luego general
         let pres = presentaciones.find(pr => 
@@ -292,7 +335,7 @@ export function DashboardSecretaria() {
           id: p.id,
           pedidoId: p.numeroPedido || p.id,
           cliente: p.cliente,
-          tipo: p.tipoAve + (p.variedad ? ` (${p.variedad})` : ''),
+          tipo: tipoAveBase + (p.variedad ? ` (${p.variedad})` : ''),
           presentacion: p.presentacion,
           cantidad: cantidadDisplay,
           cantidadLabel,
