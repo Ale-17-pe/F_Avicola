@@ -187,12 +187,10 @@ export function PesajeOperador() {
     .filter((p) => p.estado === 'En Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
-  const esJabas = !!(
-    selectedPedido?.presentacion?.toLowerCase().includes('vivo') ||
-    selectedPedido?.contenedor?.toLowerCase().includes('jaba')
-  );
+  // Vivo → siempre Jaba Estándar; cualquier otra presentación → contenedores del sistema
+  const esVivo = !!selectedPedido?.presentacion?.toLowerCase().includes('vivo');
 
-  const opcionesContenedor: ContenedorOpcion[] = esJabas
+  const opcionesContenedor: ContenedorOpcion[] = esVivo
     ? [JABA_ESTANDAR]
     : contenedores.map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }));
 
@@ -226,12 +224,9 @@ export function PesajeOperador() {
       }
     }
 
-    // ── Contenedor / jabas ────────────────────────────────────────
-    const esJabasP = !!(
-      pedido.presentacion?.toLowerCase().includes('vivo') ||
-      pedido.contenedor?.toLowerCase().includes('jaba')
-    );
-    if (esJabasP) {
+    // ── Contenedor: Vivo → Jaba Estándar, otros → contenedores del sistema ──
+    const esVivoP = !!pedido.presentacion?.toLowerCase().includes('vivo');
+    if (esVivoP) {
       setContenedorFinalId(JABA_ESTANDAR.id);
       if (pedido.cantidadJabas && pedido.cantidadJabas > 0) {
         setCantidadContenedoresInput(String(pedido.cantidadJabas));
@@ -616,9 +611,9 @@ export function PesajeOperador() {
                   <div className="max-w-lg mx-auto space-y-6">
                     <div className="text-center">
                       <p className="text-amber-300 text-xl font-black uppercase tracking-wide mb-1">
-                        {esJabas ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
+                        {esVivo ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
                       </p>
-                      {esJabas && cantidadBloqueada && selectedPedido?.cantidadJabas && (
+                      {esVivo && cantidadBloqueada && selectedPedido?.cantidadJabas && (
                         <div className="flex items-center justify-center gap-2 mt-1 text-xs" style={{ color: '#f59e0b' }}>
                           <Lock className="w-3.5 h-3.5" />
                           <span>Cantidad bloqueada: el pedido indica <strong>{selectedPedido.cantidadJabas} jabas</strong></span>
@@ -630,8 +625,8 @@ export function PesajeOperador() {
                     <div className="flex flex-wrap gap-3 justify-center">
                       {opcionesContenedor.map(cont => (
                         <button key={cont.id}
-                          onClick={() => !esJabas && setContenedorFinalId(cont.id)}
-                          className={`px-5 py-3 rounded-xl font-bold transition-all text-center ${!esJabas ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
+                          onClick={() => !esVivo && setContenedorFinalId(cont.id)}
+                          className={`px-5 py-3 rounded-xl font-bold transition-all text-center ${!esVivo ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
                           style={{
                             background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.04)',
                             border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.08)'}`,
@@ -639,7 +634,7 @@ export function PesajeOperador() {
                             boxShadow: contenedorFinalId === cont.id ? '0 0 20px rgba(245,158,11,0.12)' : 'none',
                           }}>
                           <div className="flex items-center gap-2">
-                            {esJabas && <Lock className="w-3.5 h-3.5 opacity-60" />}
+                            {esVivo && <Lock className="w-3.5 h-3.5 opacity-60" />}
                             <div>
                               <div className="text-base">{cont.tipo}</div>
                               <div className="text-xs opacity-60 font-mono">{cont.peso} kg/u</div>
@@ -652,7 +647,7 @@ export function PesajeOperador() {
                     {/* Cantidad */}
                     <div>
                       <p className="text-center text-sm font-bold text-gray-300 mb-3">
-                        {esJabas ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
+                        {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
                       </p>
                       {cantidadBloqueada ? (
                         <div className="relative max-w-xs mx-auto flex items-center justify-center gap-3 py-5 rounded-2xl"
@@ -732,7 +727,7 @@ export function PesajeOperador() {
                         <div className="text-[10px] text-gray-600 mt-1">{pesadas.map(p => p.peso.toFixed(1)).join(' + ')} kg</div>
                       </div>
                       <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="text-xs text-gray-500 mb-1">{esJabas ? 'Jabas' : 'Contenedores'}</div>
+                        <div className="text-xs text-gray-500 mb-1">{esVivo ? 'Jabas' : 'Contenedores'}</div>
                         <div className="text-3xl font-black text-amber-400 flex items-center justify-center gap-1">
                           {cantidadBloqueada && <Lock className="w-5 h-5" />}
                           {cantidadPreview}
