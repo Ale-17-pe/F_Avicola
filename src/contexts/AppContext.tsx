@@ -207,6 +207,15 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Limpieza única de datos precargados anteriores
+const CLEAN_VERSION = 'v2_clean';
+if (localStorage.getItem('avicola_clean_version') !== CLEAN_VERSION) {
+  // Eliminar todas las claves avicola_* para empezar desde cero
+  const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('avicola_') || k.startsWith('cartera_'));
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('avicola_clean_version', CLEAN_VERSION);
+}
+
 // Función auxiliar para cargar de localStorage
 const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
   try {
@@ -221,161 +230,37 @@ const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
 export function AppProvider({ children }: { children: ReactNode }) {
   // Estado inicial de Clientes
   const [clientes, setClientes] = useState<Cliente[]>(() =>
-    loadFromStorage('avicola_clientes', [
-      {
-        id: '1',
-        nombre: 'Restaurante El Sabor',
-        contacto: 'Carlos Mendoza',
-        telefono: '987 654 321',
-        email: 'contacto@elsabor.com',
-        zona: '1',
-        totalPedidos: 45,
-        ultimoPedido: '2025-02-01',
-        estado: 'Activo',
-        saldoPendiente: 1500.50
-      },
-      {
-        id: '2',
-        nombre: 'Pollería Don José',
-        contacto: 'José Ramirez',
-        telefono: '912 345 678',
-        email: 'jose@polleriadonjose.com',
-        zona: '2',
-        totalPedidos: 32,
-        ultimoPedido: '2025-01-30',
-        estado: 'Activo',
-        saldoPendiente: 320.00
-      },
-      {
-        id: '3',
-        nombre: 'Mercado Central',
-        contacto: 'Ana Torres',
-        telefono: '998 765 432',
-        email: 'ana@mercadocentral.com',
-        zona: '3',
-        totalPedidos: 18,
-        ultimoPedido: '2025-01-25',
-        estado: 'Inactivo',
-        saldoPendiente: 0
-      }
-    ])
+    loadFromStorage('avicola_clientes', [] as Cliente[])
   );
 
   // Estado inicial de Tipos de Ave
   const [tiposAve, setTiposAve] = useState<TipoAve[]>(() =>
-    loadFromStorage('avicola_tiposAve', [
-      { id: '1', nombre: 'Pollo', tieneSexo: true, tieneVariedad: false, color: '#22c55e', categoria: 'Ave', estado: 'Activo' },
-      { id: '2', nombre: 'Pato', tieneSexo: true, tieneVariedad: false, color: '#3b82f6', categoria: 'Ave', estado: 'Activo' },
-      { id: '3', nombre: 'Pavo', tieneSexo: true, tieneVariedad: false, color: '#8b5cf6', categoria: 'Ave', estado: 'Activo' },
-      { id: '4', nombre: 'Gallina', tieneSexo: false, tieneVariedad: true, variedades: ['Rojas', 'Doble Pechuga'], color: '#ec4899', categoria: 'Ave', estado: 'Activo' },
-      { id: '5', nombre: 'Huevos', tieneSexo: false, tieneVariedad: true, variedades: ['Rosados', 'Pardos', 'Blancos'], color: '#eab308', categoria: 'Otro', estado: 'Activo' }
-    ])
+    loadFromStorage('avicola_tiposAve', [] as TipoAve[])
   );
 
   // Estado inicial de Costos de Clientes
   const [costosClientes, setCostosClientes] = useState<CostoCliente[]>(() =>
-    loadFromStorage('avicola_costosClientes', [
-      {
-        id: '1',
-        clienteId: '1',
-        clienteNombre: 'Restaurante El Sabor',
-        tipoAveId: '1',
-        tipoAveNombre: 'Pollo',
-        precioPorKg: 8.50,
-        fecha: '2025-02-02'
-      }
-    ])
+    loadFromStorage('avicola_costosClientes', [] as CostoCliente[])
   );
 
   // Estado inicial de Empleados
   const [empleados, setEmpleados] = useState<Empleado[]>(() =>
-    loadFromStorage('avicola_empleados', [
-      {
-        id: '1',
-        nombre: 'Ana',
-        apellidos: 'García López',
-        dni: '12345678',
-        telefono: '987654321',
-        direccion: 'Av. Principal 123, Lima',
-        cargo: 'Secretaria',
-        fechaContratacion: '2023-01-15',
-        salario: 1500,
-        estado: 'Activo',
-        email: 'ana.garcia@avicolajossy.com',
-        foto: 'https://images.unsplash.com/photo-1610387694365-19fafcc86d86?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400'
-      }
-    ])
+    loadFromStorage('avicola_empleados', [] as Empleado[])
   );
 
   // Estado inicial de Pedidos Confirmados
   const [pedidosConfirmados, setPedidosConfirmados] = useState<PedidoConfirmado[]>(() =>
-    loadFromStorage('avicola_pedidosConfirmados', [
-      {
-        id: '1',
-        cliente: 'Restaurante El Sabor',
-        tipoAve: 'Pollo',
-        presentacion: 'Entero',
-        cantidad: 10,
-        contenedor: 'Caja',
-        fecha: '2025-02-02',
-        hora: '10:00',
-        prioridad: 1,
-        estado: 'Pendiente'
-      },
-      {
-        id: '2',
-        cliente: 'Pollería Don José',
-        tipoAve: 'Pavo',
-        presentacion: 'Entero',
-        cantidad: 5,
-        contenedor: 'Caja',
-        fecha: '2025-02-02',
-        hora: '11:00',
-        prioridad: 2,
-        estado: 'Pendiente'
-      },
-      {
-        id: '3',
-        cliente: 'Restaurante El Sabor',
-        tipoAve: 'Gallina',
-        presentacion: 'Pelado',
-        cantidad: 8,
-        contenedor: 'Jabas Viejas',
-        fecha: '2025-02-02',
-        hora: '12:00',
-        prioridad: 1,
-        estado: 'En Producción'
-      }
-    ])
+    loadFromStorage('avicola_pedidosConfirmados', [] as PedidoConfirmado[])
   );
 
   // Estado inicial de Presentaciones
   const [presentaciones, setPresentaciones] = useState<Presentacion[]>(() =>
-    loadFromStorage('avicola_presentaciones', [
-      { id: '1', tipoAve: 'Pollo', nombre: 'Vivo', mermaKg: 0 },
-      { id: '2', tipoAve: 'Pollo', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '3', tipoAve: 'Pollo', nombre: 'Destripado', mermaKg: 0.0 },
-      { id: '4', tipoAve: 'Gallina', nombre: 'Vivo', mermaKg: 0 },
-      { id: '5', tipoAve: 'Gallina', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '6', tipoAve: 'Gallina', nombre: 'Destripado', mermaKg: 0.0 },
-      { id: '7', tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
-      { id: '8', tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '9', tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.0 },
-      { id: '10', tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
-      { id: '11', tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
-      { id: '12', tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.0 },
-    ])
+    loadFromStorage('avicola_presentaciones', [] as Presentacion[])
   );
 
   // Estado inicial de Contenedores
   const [contenedores, setContenedores] = useState<Contenedor[]>(() =>
-    loadFromStorage('avicola_contenedores', [
-      { id: '1', tipo: 'Jaba Estándar', peso: 6.9 },
-      { id: '2', tipo: 'Jabas Nuevas', peso: 6.9 },
-      { id: '3', tipo: 'Jabas Viejas', peso: 6.9 },
-      { id: '4', tipo: 'Bandeja Amarilla', peso: 5.10 },
-      { id: '5', tipo: 'Bandeja Verde', peso: 3.0 }
-    ])
+    loadFromStorage('avicola_contenedores', [] as Contenedor[])
   );
 
   // Estado inicial de Pagos
@@ -393,35 +278,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_contenedores', JSON.stringify(contenedores)), [contenedores]);
   useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
 
-  // MIGRACIÓN: Asegurar presentaciones de Pato y Pavo si no existen
-  useEffect(() => {
-    setPresentaciones(prev => {
-      const tienePato = prev.some(p => p.tipoAve === 'Pato');
-      const tienePavo = prev.some(p => p.tipoAve === 'Pavo');
-
-      if (tienePato && tienePavo) return prev;
-
-      const nuevas = [...prev];
-      const timestamp = Date.now();
-      
-      if (!tienePato) {
-        nuevas.push(
-          { id: `mig-pato-1-${timestamp}`, tipoAve: 'Pato', nombre: 'Vivo', mermaKg: 0 },
-          { id: `mig-pato-2-${timestamp}`, tipoAve: 'Pato', nombre: 'Pelado', mermaKg: 0.15 },
-          { id: `mig-pato-3-${timestamp}`, tipoAve: 'Pato', nombre: 'Destripado', mermaKg: 0.0 }
-        );
-      }
-      
-      if (!tienePavo) {
-        nuevas.push(
-          { id: `mig-pavo-1-${timestamp}`, tipoAve: 'Pavo', nombre: 'Vivo', mermaKg: 0 },
-          { id: `mig-pavo-2-${timestamp}`, tipoAve: 'Pavo', nombre: 'Pelado', mermaKg: 0.15 },
-          { id: `mig-pavo-3-${timestamp}`, tipoAve: 'Pavo', nombre: 'Destripado', mermaKg: 0.0 }
-        );
-      }
-      return nuevas;
-    });
-  }, []);
+  // MIGRACIÓN removida: las presentaciones ahora se crean desde cero por el usuario
 
   // Escuchar cambios desde otras pestañas (storage event)
   useEffect(() => {
