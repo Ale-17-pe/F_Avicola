@@ -468,6 +468,16 @@ export function AvesSimplificado() {
         {Object.entries(presentacionesPorTipo).map(([tipo, presList]) => {
           const tipoInfo = tiposAve.find((t) => t.nombre === tipo);
           const isExpanded = expandedTypes.includes(tipo);
+          // Para tipos con variedad, sub-agrupar presentaciones por variedad
+          const tieneVariedades = tipoInfo?.tieneVariedad && tipoInfo.variedades?.length;
+          const presPorVariedad = tieneVariedades
+            ? presList.reduce((acc, p) => {
+                const v = p.variedad || 'General';
+                if (!acc[v]) acc[v] = [];
+                acc[v].push(p);
+                return acc;
+              }, {} as Record<string, Presentacion[]>)
+            : null;
 
           return (
             <div key={tipo} className="mb-4">
@@ -504,7 +514,73 @@ export function AvesSimplificado() {
                 )}
               </button>
 
-              {isExpanded && (
+              {isExpanded && presPorVariedad && (
+                <div className="mt-4 space-y-5 animate-in slide-in-from-top-2">
+                  {Object.entries(presPorVariedad).map(([variedad, presVar]) => (
+                    <div key={variedad}>
+                      <div className="flex items-center gap-2 mb-3 ml-1">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          {variedad}
+                        </span>
+                        <span className="text-xs text-gray-500">{presVar.length} presentaciones</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {presVar.map((pres) => (
+                          <div
+                            key={pres.id}
+                            className="group bg-gradient-to-br from-black/30 to-black/20 rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
+                            style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="text-white font-medium">{pres.nombre}</h4>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {pres.sexo && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${pres.sexo === 'Macho' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-pink-500/20 text-pink-400 border border-pink-500/20'}`}>
+                                      {pres.sexo === 'Macho' ? '♂ Macho' : '♀ Hembra'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => {
+                                    setEditingPresentacion(pres);
+                                    setNuevaPresentacionForm({ tipoAve: pres.tipoAve, nombre: pres.nombre, mermaKg: pres.mermaKg.toString(), variedad: pres.variedad || '', sexo: pres.sexo || '' });
+                                    setIsPresentacionesModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 transition-colors"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5 text-green-400" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePresentacion(pres.id)}
+                                  className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-400">Merma</span>
+                                <span className={`text-lg font-bold ${pres.mermaKg === 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                                  {pres.mermaKg.toFixed(2)} kg
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-black/40 mt-1 overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(pres.mermaKg * 500, 100)}%`, background: pres.mermaKg === 0 ? 'linear-gradient(to right, #10b981, #22c55e)' : 'linear-gradient(to right, #f59e0b, #eab308)' }} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isExpanded && !presPorVariedad && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top-2">
                   {presList.map((pres) => (
                     <div

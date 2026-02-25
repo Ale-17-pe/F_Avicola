@@ -70,6 +70,20 @@ export function NuevoPedido() {
     return tiposAveActivos.filter(t => tipoIdsConCosto.includes(t.id));
   };
 
+  // Filtrar variedades según costos asignados al cliente para un tipo específico
+  const getVariedadesParaCliente = (nombreCliente: string, tipoAveNombre: string): string[] => {
+    const info = getTipoAveInfo(tipoAveNombre);
+    if (!info?.tieneVariedad || !info.variedades?.length) return [];
+    if (!nombreCliente) return info.variedades;
+    const cliente = clientes.find(c => c.nombre === nombreCliente);
+    if (!cliente) return info.variedades;
+    const costosDelCliente = costosClientes.filter(cc => cc.clienteId === cliente.id && cc.tipoAveId === info.id);
+    if (costosDelCliente.length === 0) return info.variedades;
+    // Filtrar solo variedades que el cliente tiene asignadas
+    const variedadesConCosto = [...new Set(costosDelCliente.filter(cc => cc.variedad).map(cc => cc.variedad!))];
+    return variedadesConCosto.length > 0 ? variedadesConCosto : info.variedades;
+  };
+
   const [numeroClienteActual, setNumeroClienteActual] = useState(1);
   const [clientesNumerados, setClientesNumerados] = useState<ClienteNumerado[]>(() => {
     try {
@@ -205,6 +219,12 @@ export function NuevoPedido() {
         const productosDelCliente = getProductosParaCliente(valor);
         if (!productosDelCliente.some(p => p.nombre === f.tipoAve)) {
           Object.assign(f, { tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
+        } else if (f.variedad) {
+          // Verificar si la variedad sigue disponible para el nuevo cliente
+          const variedadesDisponibles = getVariedadesParaCliente(valor, f.tipoAve);
+          if (!variedadesDisponibles.includes(f.variedad)) {
+            f.variedad = '';
+          }
         }
       }
 
@@ -486,14 +506,14 @@ export function NuevoPedido() {
             </select>
           </div>
 
-          {necesitaVariedad && info?.variedades && (
+          {necesitaVariedad && (
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">Variedad</label>
               <select value={data.variedad || ''}
                 onChange={e => actualizarSubForm(data, setData, 'variedad', e.target.value)}
                 className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm">
                 <option value="" className="bg-black">Seleccionar...</option>
-                {info.variedades.map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
+                {getVariedadesParaCliente(clienteDelPedido || '', data.tipoAve || '').map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
               </select>
             </div>
           )}
@@ -693,14 +713,14 @@ export function NuevoPedido() {
                   </select>
                 </div>
 
-                {/* Variedad */}
-                {necesitaVariedad && info?.variedades && (
+                {/* Variedad - filtrada por costos del cliente */}
+                {necesitaVariedad && (
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-2">Variedad</label>
                     <select value={form.variedad || ''} onChange={e => actualizarFormulario(form.id, 'variedad', e.target.value)}
                       className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition-all">
                       <option value="" className="bg-black">Seleccionar variedad...</option>
-                      {info.variedades.map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
+                      {getVariedadesParaCliente(form.cliente, form.tipoAve).map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
                     </select>
                   </div>
                 )}

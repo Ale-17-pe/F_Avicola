@@ -1779,7 +1779,7 @@ export function ListaPedidos() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' ? (
+                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && !pedido.cantidadMachos && pedido.cantidadMachos === undefined ? (
                             <input 
                               type="number" 
                               value={inlineEditData.cantidad} 
@@ -1787,6 +1787,11 @@ export function ListaPedidos() {
                               className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
                               autoFocus
                             />
+                          ) : inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadMachos !== undefined ? (
+                            <div>
+                              <div className="text-white font-bold text-lg drop-shadow">{inlineEditData.cantidad}</div>
+                              <div className="text-[9px] text-gray-500 italic mt-0.5">auto (M+H)</div>
+                            </div>
                           ) : editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
                             <input 
                               type="number" 
@@ -1821,6 +1826,7 @@ export function ListaPedidos() {
                                 setInlineEditData(prev => ({ ...prev, cantidadMachos: m, cantidad: m + (prev.cantidadHembras || 0) }));
                               }} 
                               className="w-20 px-2 py-2 bg-blue-900/30 border border-blue-500/40 rounded-lg text-blue-300 text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                              autoFocus
                             />
                           ) : pedido.cantidadMachos !== undefined ? (
                             <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20 ${pedido.estado === 'Pendiente' ? 'cursor-pointer hover:border-blue-400/50' : ''}`}

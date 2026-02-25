@@ -131,7 +131,7 @@ export function DashboardSecretaria() {
   const [confirmModal, setConfirmModal]           = useState<{open:boolean;filaId:string|null;cliente:string}>({open:false,filaId:null,cliente:''});
   const [hoveredRow, setHoveredRow]               = useState<string|null>(null);
   const [showCal, setShowCal]                     = useState(false);
-  const [statsCollapsed, setStatsCollapsed]       = useState(false);
+  const [statsCollapsed, setStatsCollapsed]       = useState(true);
   const calRef                                    = useRef<HTMLDivElement>(null);
 
   // cerrar calendario si click fuera
@@ -228,8 +228,13 @@ export function DashboardSecretaria() {
 
         const pesoContenedor = p.pesoTotalContenedores || 0;
         const pesoBruto = p.pesoBrutoTotal || 0;
-        // Fórmula: Peso Neto = (Peso Bruto + Merma) - Peso Contenedor - Devoluciones
-        const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor;
+        // Devolución y repesada del conductor
+        const devolucionFromConductor = p.pesoDevolucion || 0;
+        const repesadaFromConductor = p.pesoRepesada || 0;
+        // Fórmula: Peso Neto = (Base + Merma) - Peso Contenedor - Devoluciones
+        // Si hay repesada, usar repesada como base en vez de pesoBruto
+        const base = repesadaFromConductor > 0 ? repesadaFromConductor : pesoBruto;
+        const pesoNeto = (base + mermaTotal) - pesoContenedor - devolucionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
 
         // LÓGICA DE PRECIO AUTO-RELLENABLE (Segunda petición del usuario)
@@ -294,9 +299,9 @@ export function DashboardSecretaria() {
           merma: mermaTotal,
           tara: pesoContenedor, // Mostramos la tara del contenedor aquí también
           contenedorTipo: p.contenedor,
-          devolucionPeso: 0,
+          devolucionPeso: devolucionFromConductor,
           devolucionCantidad: 0,
-          repesada: 0,
+          repesada: repesadaFromConductor,
           adicionPeso: 0,
           pesoPedido: Math.max(0, pesoPedido),
           pesoContenedor,
