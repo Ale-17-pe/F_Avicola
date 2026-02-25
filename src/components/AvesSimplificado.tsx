@@ -14,8 +14,27 @@ import {
   ToggleRight,
   Egg,
   Package,
+  Check,
+  Zap,
+  Copy,
 } from "lucide-react";
 import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
+
+// Paleta de colores preseleccionados para tipos
+const COLOR_PALETTE = [
+  '#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+  '#6366f1', '#d946ef', '#0ea5e9', '#a3e635', '#fb923c',
+];
+
+// Presentaciones estándar predefinidas para creación rápida
+const PRESENTACIONES_RAPIDAS = [
+  { nombre: 'Vivo', merma: 0, desc: 'Sin procesamiento' },
+  { nombre: 'Pelado', merma: 0.15, desc: 'Desplumado' },
+  { nombre: 'Destripado', merma: 0.25, desc: 'Sin vísceras' },
+  { nombre: 'Fileteado', merma: 0.35, desc: 'En piezas' },
+  { nombre: 'Entero Limpio', merma: 0.20, desc: 'Limpio y empacado' },
+];
 
 
 
@@ -61,6 +80,15 @@ export function AvesSimplificado() {
   const [filtroPresentacionTipo, setFiltroPresentacionTipo] =
     useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Estado para creación rápida de presentaciones (batch)
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchTipoAve, setBatchTipoAve] = useState("");
+  const [batchSelections, setBatchSelections] = useState<Record<string, boolean>>({});
+  const [batchCustomMermas, setBatchCustomMermas] = useState<Record<string, string>>({});
+
+  // Estado para post-creación de tipo (ofrecer crear presentaciones)
+  const [postCreacionTipo, setPostCreacionTipo] = useState<string | null>(null);
 
   // Filtrar presentaciones
   const presentacionesFiltradas = presentaciones.filter((p) => {
@@ -163,6 +191,8 @@ export function AvesSimplificado() {
         estado: 'Activo',
       };
       addTipoAve(nuevoTipo);
+      // Ofrecer crear presentaciones rápidas para el nuevo tipo
+      setPostCreacionTipo(nuevoTipo.nombre);
       setNuevoTipoForm({
         nombre: "",
         tieneSexo: true,
@@ -173,6 +203,76 @@ export function AvesSimplificado() {
       });
     }
     setIsAddTipoModalOpen(false);
+  };
+
+  // Handler para creación por lotes de presentaciones
+  const handleBatchCreate = () => {
+    if (!batchTipoAve) return;
+    
+    const selected = PRESENTACIONES_RAPIDAS.filter(p => batchSelections[p.nombre]);
+    if (selected.length === 0) return;
+
+    const tipoObj = tiposAve.find(t => t.nombre === batchTipoAve);
+    let count = 0;
+
+    for (const pres of selected) {
+      const merma = batchCustomMermas[pres.nombre] ? parseFloat(batchCustomMermas[pres.nombre]) : pres.merma;
+      
+      // Si tiene variedades, crear una presentación por variedad
+      if (tipoObj?.tieneVariedad && tipoObj.variedades && tipoObj.variedades.length > 0) {
+        for (const variedad of tipoObj.variedades) {
+          const existe = presentaciones.some(
+            p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.variedad === variedad
+          );
+          if (!existe) {
+            addPresentacion({
+              id: `${Date.now()}-${count++}-${Math.random().toString(36).substr(2, 5)}`,
+              tipoAve: batchTipoAve,
+              nombre: pres.nombre,
+              mermaKg: merma,
+              variedad: variedad,
+            });
+          }
+        }
+      } 
+      // Si tiene sexo, crear una por sexo
+      else if (tipoObj?.tieneSexo) {
+        for (const sexo of ['Macho', 'Hembra'] as const) {
+          const existe = presentaciones.some(
+            p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.sexo === sexo
+          );
+          if (!existe) {
+            addPresentacion({
+              id: `${Date.now()}-${count++}-${Math.random().toString(36).substr(2, 5)}`,
+              tipoAve: batchTipoAve,
+              nombre: pres.nombre,
+              mermaKg: merma,
+              sexo: sexo,
+            });
+          }
+        }
+      }
+      // General
+      else {
+        const existe = presentaciones.some(
+          p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre
+        );
+        if (!existe) {
+          addPresentacion({
+            id: `${Date.now()}-${count++}-${Math.random().toString(36).substr(2, 5)}`,
+            tipoAve: batchTipoAve,
+            nombre: pres.nombre,
+            mermaKg: merma,
+          });
+        }
+      }
+    }
+
+    setIsBatchModalOpen(false);
+    setPostCreacionTipo(null);
+    setBatchSelections({});
+    setBatchCustomMermas({});
+    setBatchTipoAve("");
   };
 
   const handleSubmitPresentacion = (e: React.FormEvent) => {
@@ -291,6 +391,25 @@ export function AvesSimplificado() {
         >
           <PackageOpen className="w-4 h-4" />
           Nueva Presentación
+        </button>
+        <button
+          onClick={() => {
+            setBatchTipoAve(tiposAve[0]?.nombre || '');
+            setBatchSelections(
+              PRESENTACIONES_RAPIDAS.reduce((acc, p) => ({ ...acc, [p.nombre]: true }), {})
+            );
+            setBatchCustomMermas({});
+            setIsBatchModalOpen(true);
+          }}
+          className="px-5 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+          style={{
+            background: "rgba(168, 85, 247, 0.15)",
+            color: "#c084fc",
+            border: "1px solid rgba(168, 85, 247, 0.3)",
+          }}
+        >
+          <Zap className="w-4 h-4" />
+          Creación Rápida
         </button>
       </div>
 
@@ -787,36 +906,33 @@ export function AvesSimplificado() {
                 <label className="block text-sm font-medium mb-3 text-white">
                   Color Identificador
                 </label>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {COLOR_PALETTE.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNuevoTipoForm({ ...nuevoTipoForm, color })}
+                      className="w-8 h-8 rounded-lg cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+                      style={{
+                        background: color,
+                        border: nuevoTipoForm.color === color ? '3px solid white' : '2px solid rgba(255,255,255,0.15)',
+                        boxShadow: nuevoTipoForm.color === color ? `0 0 12px ${color}60` : 'none',
+                      }}
+                    >
+                      {nuevoTipoForm.color === color && <Check className="w-4 h-4 text-white drop-shadow-md" />}
+                    </button>
+                  ))}
                   <input
                     type="color"
                     value={nuevoTipoForm.color}
-                    onChange={(e) =>
-                      setNuevoTipoForm({
-                        ...nuevoTipoForm,
-                        color: e.target.value,
-                      })
-                    }
-                    className="w-14 h-14 rounded-xl cursor-pointer border-2 border-white/20"
+                    onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, color: e.target.value })}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-2 border-white/20"
+                    title="Color personalizado"
                   />
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={nuevoTipoForm.color}
-                      onChange={(e) =>
-                        setNuevoTipoForm({
-                          ...nuevoTipoForm,
-                          color: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl text-white"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                      placeholder="#22c55e"
-                    />
-                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md" style={{ background: nuevoTipoForm.color }} />
+                  <span className="text-xs text-gray-400 font-mono">{nuevoTipoForm.color}</span>
                 </div>
               </div>
 
@@ -1141,6 +1257,237 @@ export function AvesSimplificado() {
                   : "Crear Presentación"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Post-Creación de Tipo: Ofrecer crear presentaciones rápidas */}
+      {postCreacionTipo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: "radial-gradient(circle at center, rgba(13, 74, 36, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%)",
+          }}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(13, 74, 36, 0.3) 100%)",
+              border: "1px solid rgba(204, 170, 0, 0.2)",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                  <Check className="w-8 h-8 text-green-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white">
+                  Tipo "{postCreacionTipo}" creado
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  ¿Desea crear las presentaciones estándar para este tipo?
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    setBatchTipoAve(postCreacionTipo);
+                    setBatchSelections(
+                      PRESENTACIONES_RAPIDAS.reduce((acc, p) => ({ ...acc, [p.nombre]: true }), {})
+                    );
+                    setBatchCustomMermas({});
+                    setPostCreacionTipo(null);
+                    setIsBatchModalOpen(true);
+                  }}
+                  className="w-full px-5 py-3.5 rounded-xl font-bold text-white transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                  style={{
+                    background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
+                    boxShadow: "0 6px 20px rgba(204, 170, 0, 0.25)",
+                  }}
+                >
+                  <Zap className="w-5 h-5" />
+                  Sí, crear presentaciones
+                </button>
+                <button
+                  onClick={() => setPostCreacionTipo(null)}
+                  className="w-full px-5 py-3 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  No, lo haré después
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Creación Rápida por Lotes de Presentaciones */}
+      {isBatchModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: "radial-gradient(circle at center, rgba(13, 74, 36, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%)",
+          }}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+            style={{
+              background: "linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(13, 74, 36, 0.3) 100%)",
+              border: "1px solid rgba(204, 170, 0, 0.2)",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            {/* Header */}
+            <div className="p-6 border-b" style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg" style={{ background: "rgba(204, 170, 0, 0.1)" }}>
+                    <Zap className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Creación Rápida</h3>
+                    <p className="text-xs text-gray-400">Seleccione presentaciones a crear</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setIsBatchModalOpen(false); setBatchSelections({}); setBatchCustomMermas({}); }}
+                  className="p-2 rounded-lg hover:scale-110 transition-all"
+                  style={{ background: "rgba(239, 68, 68, 0.2)" }}
+                >
+                  <X className="w-5 h-5 text-red-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Selector de Tipo */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-white">Tipo de Producto</label>
+                <select
+                  value={batchTipoAve}
+                  onChange={(e) => setBatchTipoAve(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-white transition-all focus:ring-2 focus:ring-amber-500/50"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <option value="" style={{ background: '#1a1a1a' }}>-- Seleccionar tipo --</option>
+                  {tiposAve.map((tipo) => (
+                    <option key={tipo.id} value={tipo.nombre} style={{ background: '#1a1a1a' }}>
+                      {tipo.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {batchTipoAve && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-white">Presentaciones a crear:</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allSelected = PRESENTACIONES_RAPIDAS.every(p => batchSelections[p.nombre]);
+                        setBatchSelections(
+                          PRESENTACIONES_RAPIDAS.reduce((acc, p) => ({ ...acc, [p.nombre]: !allSelected }), {})
+                        );
+                      }}
+                      className="text-xs text-amber-400 hover:text-amber-300 font-medium"
+                    >
+                      {PRESENTACIONES_RAPIDAS.every(p => batchSelections[p.nombre]) ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {PRESENTACIONES_RAPIDAS.map((pres) => {
+                      const yaExiste = presentaciones.some(
+                        p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre
+                      );
+                      return (
+                        <label
+                          key={pres.nombre}
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${yaExiste ? 'opacity-40' : ''}`}
+                          style={{
+                            background: batchSelections[pres.nombre] && !yaExiste ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${batchSelections[pres.nombre] && !yaExiste ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!batchSelections[pres.nombre] && !yaExiste}
+                            disabled={yaExiste}
+                            onChange={(e) => setBatchSelections({ ...batchSelections, [pres.nombre]: e.target.checked })}
+                            className="w-4 h-4 cursor-pointer accent-green-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium">{pres.nombre}</span>
+                              {yaExiste && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Ya existe</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">{pres.desc}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={batchCustomMermas[pres.nombre] ?? pres.merma}
+                              onChange={(e) => setBatchCustomMermas({ ...batchCustomMermas, [pres.nombre]: e.target.value })}
+                              disabled={yaExiste}
+                              className="w-16 px-2 py-1 rounded-lg text-white text-xs text-right"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                            />
+                            <span className="text-[10px] text-gray-500">kg</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {(() => {
+                    const tipoObj = tiposAve.find(t => t.nombre === batchTipoAve);
+                    const selectedCount = PRESENTACIONES_RAPIDAS.filter(p => batchSelections[p.nombre] && !presentaciones.some(
+                      ex => ex.tipoAve === batchTipoAve && ex.nombre === p.nombre
+                    )).length;
+                    const totalToCreate = tipoObj?.tieneVariedad && tipoObj.variedades
+                      ? selectedCount * tipoObj.variedades.length
+                      : tipoObj?.tieneSexo ? selectedCount * 2 : selectedCount;
+                    
+                    return totalToCreate > 0 ? (
+                      <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                        <p className="text-sm text-green-400 font-medium">
+                          Se crearán <span className="font-black text-lg">{totalToCreate}</span> presentaciones
+                          {tipoObj?.tieneVariedad && tipoObj.variedades && (
+                            <span className="text-xs text-gray-400 block">
+                              ({selectedCount} × {tipoObj.variedades.length} variedades)
+                            </span>
+                          )}
+                          {tipoObj?.tieneSexo && (
+                            <span className="text-xs text-gray-400 block">
+                              ({selectedCount} × 2 sexos)
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <button
+                    onClick={handleBatchCreate}
+                    disabled={!PRESENTACIONES_RAPIDAS.some(p => batchSelections[p.nombre])}
+                    className="w-full px-6 py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{
+                      background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
+                      color: "white",
+                      boxShadow: "0 8px 32px rgba(204, 170, 0, 0.3)",
+                    }}
+                  >
+                    Crear Seleccionadas
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

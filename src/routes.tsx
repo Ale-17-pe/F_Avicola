@@ -219,18 +219,6 @@ export const router = createBrowserRouter([
         path: "entregas",
         Component: GestionConductor
       },
-      {
-        path: "repesadas",
-        Component: GestionConductor
-      },
-      {
-        path: "devoluciones",
-        Component: GestionConductor
-      },
-      {
-        path: "historial",
-        element: <ComingSoon title="Historial de Entregas" description="Próximamente: Consulta tus entregas pasadas" icon={HistoryIcon} />
-      }
     ]
   },
   {
