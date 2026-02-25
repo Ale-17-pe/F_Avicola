@@ -197,7 +197,56 @@ export function NuevoPedido() {
   };
 
   const getTipoAveInfo = (nombre: string) => tiposAve.find(t => t.nombre === nombre);
-  const getPresentacionesPorTipo = (tipo: string) => presentaciones.filter(p => p.tipoAve === tipo);
+
+  // Obtener presentaciones filtradas por variedad y costos del cliente (sin duplicados)
+  const getPresentacionesParaFormulario = (cliente: string, tipoAve: string, variedad: string) => {
+    if (!tipoAve) return [];
+    const info = getTipoAveInfo(tipoAve);
+
+    // 1. Filtrar por tipoAve
+    let pres = presentaciones.filter(p => p.tipoAve === tipoAve);
+
+    // 2. Si tiene variedad seleccionada, filtrar por esa variedad
+    if (info?.tieneVariedad && variedad) {
+      const presConVariedad = pres.filter(p => p.variedad === variedad);
+      if (presConVariedad.length > 0) pres = presConVariedad;
+    }
+
+    // 3. Deduplicar por nombre de presentación
+    const seen = new Set<string>();
+    pres = pres.filter(p => {
+      if (seen.has(p.nombre)) return false;
+      seen.add(p.nombre);
+      return true;
+    });
+
+    // 4. Filtrar según precios del cliente (si tiene costos asignados)
+    if (cliente) {
+      const clienteObj = clientes.find(c => c.nombre === cliente);
+      if (clienteObj && info) {
+        const costosMatch = costosClientes.filter(cc =>
+          cc.clienteId === clienteObj.id &&
+          cc.tipoAveId === info.id &&
+          (!info.tieneVariedad || !variedad || cc.variedad === variedad)
+        );
+        if (costosMatch.length > 0) {
+          const presPermitidas: string[] = [];
+          costosMatch.forEach(cm => {
+            if ((cm.precioVivo || 0) > 0) presPermitidas.push('Vivo');
+            if ((cm.precioPelado || 0) > 0) presPermitidas.push('Pelado');
+            if ((cm.precioDestripado || 0) > 0) presPermitidas.push('Destripado');
+          });
+          const unicas = [...new Set(presPermitidas)];
+          if (unicas.length > 0) {
+            pres = pres.filter(p => unicas.includes(p.nombre));
+          }
+        }
+      }
+    }
+
+    return pres;
+  };
+
   const calcularTotal = (m: string, h: string) => ((parseInt(m) || 0) + (parseInt(h) || 0)).toString();
 
   const recalcularTotalAves = (jabas: string, uPJ: string) => {
@@ -231,6 +280,9 @@ export function NuevoPedido() {
       if (campo === 'tipoAve') {
         Object.assign(f, { variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
       }
+      if (campo === 'variedad') {
+        f.presentacion = '';
+      }
       if (campo === 'cantidadMachos' || campo === 'cantidadHembras') {
         f.cantidadTotal = calcularTotal(campo === 'cantidadMachos' ? valor : f.cantidadMachos || '', campo === 'cantidadHembras' ? valor : f.cantidadHembras || '');
       }
@@ -262,6 +314,9 @@ export function NuevoPedido() {
     let next = { ...data, [campo]: valor };
     if (campo === 'tipoAve') {
       next = { ...next, variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' };
+    }
+    if (campo === 'variedad') {
+      next = { ...next, presentacion: '' };
     }
     if (campo === 'cantidadMachos' || campo === 'cantidadHembras') {
       next.cantidadTotal = calcularTotal(
@@ -489,7 +544,7 @@ export function NuevoPedido() {
     const info = getTipoAveInfo(data.tipoAve || '');
     const necesitaVariedad = info?.tieneVariedad;
     const necesitaSexo = info?.tieneSexo;
-    const presDisponibles = data.tipoAve ? getPresentacionesPorTipo(data.tipoAve) : [];
+    const presDisponibles = data.tipoAve ? getPresentacionesParaFormulario(clienteDelPedido || '', data.tipoAve, data.variedad || '') : [];
     const esVivo = data.presentacion?.toLowerCase().includes('vivo');
     const esCatOtro = info?.categoria === 'Otro';
 
@@ -664,7 +719,7 @@ export function NuevoPedido() {
           const info = getTipoAveInfo(form.tipoAve);
           const necesitaVariedad = info?.tieneVariedad;
           const necesitaSexo = info?.tieneSexo;
-          const presentacionesTipo = form.tipoAve ? getPresentacionesPorTipo(form.tipoAve) : [];
+          const presentacionesTipo = form.tipoAve ? getPresentacionesParaFormulario(form.cliente, form.tipoAve, form.variedad || '') : [];
           const formColor = getFormColor(index);
           const esVivo = form.presentacion?.toLowerCase().includes('vivo');
           const esCatOtro = info?.categoria === 'Otro';
