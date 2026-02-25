@@ -54,10 +54,21 @@ const COL = {
 };
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-const hoyStr    = () => new Date().toISOString().split('T')[0];
+// Devuelve la fecha YYYY-MM-DD en horario de Lima (America/Lima)
+const hoyStr    = () => {
+  const now = new Date();
+  const peru = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+  const y = peru.getFullYear();
+  const m = String(peru.getMonth() + 1).padStart(2, '0');
+  const d = String(peru.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 const addDays   = (dateStr: string, n: number) => {
-  const d = new Date(dateStr); d.setDate(d.getDate() + n);
-  return d.toISOString().split('T')[0];
+  const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate() + n);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 };
 const fmtDate   = (dateStr: string) => new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -170,17 +181,29 @@ export function DashboardSecretaria() {
             pesoBruto: f.pesoBruto ?? 0,
             pesoContenedor: f.pesoContenedor ?? 0,
           };
-          // Sincronizar devolucion/repesada del conductor desde datos vivos
-          const pedidoVivo = (pedidosConfirmados || []).find(pc => pc.id === f.id);
+          // Sincronizar devolucion/repesada/adición del conductor desde datos vivos
+          // Match por id o por numeroPedido/pedidoId para soportar datos antiguos
+          const pedidoVivo = (pedidosConfirmados || []).find(pc =>
+            pc.id === f.id || (pc.numeroPedido && pc.numeroPedido === f.pedidoId)
+          );
           if (pedidoVivo) {
-            const devVivo = pedidoVivo.pesoDevolucion || 0;
-            const repVivo = pedidoVivo.pesoRepesada || 0;
-            if (devVivo !== base.devolucionPeso || repVivo !== base.repesada) {
+            const devVivo  = pedidoVivo.pesoDevolucion || 0;
+            const repVivo  = pedidoVivo.pesoRepesada   || 0;
+            const addVivo  = pedidoVivo.pesoAdicional  || 0;
+            if (
+              devVivo !== base.devolucionPeso ||
+              repVivo !== base.repesada ||
+              addVivo !== base.adicionPeso
+            ) {
               base.devolucionPeso = devVivo;
-              base.repesada = repVivo;
+              base.repesada       = repVivo;
+              base.adicionPeso    = addVivo;
               // Recalcular peso neto y total
               const baseCalc = repVivo > 0 ? repVivo : base.pesoBruto;
-              base.pesoNeto = Math.max(0, (baseCalc + base.merma) - base.pesoContenedor - devVivo + base.adicionPeso);
+              base.pesoNeto = Math.max(
+                0,
+                (baseCalc + base.merma) - base.pesoContenedor - devVivo + base.adicionPeso
+              );
               base.total = Math.max(0, base.pesoNeto) * base.precio;
             }
             // Sincronizar precio si era 0 (no se cargó bien antes)
@@ -271,13 +294,14 @@ export function DashboardSecretaria() {
 
         const pesoContenedor = p.pesoTotalContenedores || 0;
         const pesoBruto = p.pesoBrutoTotal || 0;
-        // Devolución y repesada del conductor
+        // Devolución, repesada y adición del conductor
         const devolucionFromConductor = p.pesoDevolucion || 0;
-        const repesadaFromConductor = p.pesoRepesada || 0;
-        // Fórmula: Peso Neto = (Base + Merma) - Peso Contenedor - Devoluciones
+        const repesadaFromConductor   = p.pesoRepesada   || 0;
+        const adicionFromConductor    = p.pesoAdicional  || 0;
+        // Fórmula: Peso Neto = (Base + Merma) - Peso Contenedor - Devoluciones + Adición
         // Si hay repesada, usar repesada como base en vez de pesoBruto
         const base = repesadaFromConductor > 0 ? repesadaFromConductor : pesoBruto;
-        const pesoNeto = (base + mermaTotal) - pesoContenedor - devolucionFromConductor;
+        const pesoNeto = (base + mermaTotal) - pesoContenedor - devolucionFromConductor + adicionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
 
         // LÓGICA DE PRECIO AUTO-RELLENABLE (Segunda petición del usuario)
@@ -345,7 +369,7 @@ export function DashboardSecretaria() {
           devolucionPeso: devolucionFromConductor,
           devolucionCantidad: 0,
           repesada: repesadaFromConductor,
-          adicionPeso: 0,
+          adicionPeso: adicionFromConductor,
           pesoPedido: Math.max(0, pesoPedido),
           pesoContenedor,
           pesoBruto: pesoBruto,

@@ -86,6 +86,8 @@ export interface PedidoConfirmado {
   // CAMPOS DE PESAJE (se llenan en PesajeOperador)
   pesoBrutoTotal?: number; // Suma de todos los bloques
   pesoNetoTotal?: number; // pesoBrutoTotal - pesoTotalContenedores
+  // Peso de referencia mostrado en Conductor (kg netos del ticket)
+  pesoKg?: number;
   
   // Datos de contenedores por bloque (para tener trazabilidad)
   bloquesPesaje?: BloquePesaje[];

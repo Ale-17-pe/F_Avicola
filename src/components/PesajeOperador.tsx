@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Scale,
   MapPin,
@@ -311,10 +311,15 @@ export function PesajeOperador() {
       cantidadContenedores: 0,
     }));
 
+    // Fecha de Lima (America/Lima) para alinear con Cartera y reportes
+    const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const fechaPeru = `${peru.getFullYear()}-${String(peru.getMonth() + 1).padStart(2, '0')}-${String(peru.getDate()).padStart(2, '0')}`;
+
     const pedidoActualizado: PedidoConfirmado = {
       ...selectedPedido,
       pesoBrutoTotal,
       pesoNetoTotal: pesoNeto,
+      pesoKg: pesoNeto,
       pesoTotalContenedores,
       cantidadTotalContenedores: cantidadPreview,
       bloquesPesaje,
@@ -322,7 +327,7 @@ export function PesajeOperador() {
       zonaEntrega: zona.nombre,
       estado: 'En Despacho',
       ticketEmitido: true,
-      fechaPesaje: ahora.toISOString().split('T')[0],
+      fechaPesaje: fechaPeru,
       horaPesaje: ahora.toTimeString().slice(0, 5),
       numeroTicket,
     };

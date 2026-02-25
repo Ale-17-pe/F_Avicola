@@ -266,7 +266,15 @@ export function GestionContenedores() {
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-amber-500">
             {pedidosConfirmados
-              .filter((p: any) => (p.fechaPesaje === new Date().toISOString().split('T')[0] || p.fecha === new Date().toISOString().split('T')[0]) && p.ticketEmitido)
+              .filter((p: any) => {
+                const now = new Date();
+                const peru = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+                const y = peru.getFullYear();
+                const m = String(peru.getMonth() + 1).padStart(2, '0');
+                const d = String(peru.getDate()).padStart(2, '0');
+                const hoyPeru = `${y}-${m}-${d}`;
+                return (p.fechaPesaje === hoyPeru || p.fecha === hoyPeru) && p.ticketEmitido;
+              })
               .reduce((acc: number, p: any) => acc + (p.cantidadTotalContenedores || 0), 0)
             }
           </p>
