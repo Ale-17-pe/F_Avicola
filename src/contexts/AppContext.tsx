@@ -396,6 +396,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTipoAve = (tipo: TipoAve) => {
+    const prevTipo = tiposAve.find(t => t.id === tipo.id);
     setTiposAve(prev => prev.map(t => t.id === tipo.id ? tipo : t));
     // Actualizar nombre en costos si cambió
     setCostosClientes(prev => prev.map(costo =>
@@ -403,6 +404,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? { ...costo, tipoAveNombre: tipo.nombre }
         : costo
     ));
+    // Limpiar variedades eliminadas: presentaciones y costos huérfanos
+    if (prevTipo?.tieneVariedad && prevTipo.variedades) {
+      const nuevasVariedades = tipo.tieneVariedad && tipo.variedades ? tipo.variedades : [];
+      const variedadesEliminadas = prevTipo.variedades.filter(v => !nuevasVariedades.includes(v));
+      if (variedadesEliminadas.length > 0) {
+        setPresentaciones(prev => prev.filter(p =>
+          !(p.tipoAve === prevTipo.nombre && p.variedad && variedadesEliminadas.includes(p.variedad))
+        ));
+        setCostosClientes(prev => prev.filter(costo =>
+          !(costo.tipoAveId === tipo.id && costo.variedad && variedadesEliminadas.includes(costo.variedad))
+        ));
+      }
+    }
   };
 
   const deleteTipoAve = (id: string) => {

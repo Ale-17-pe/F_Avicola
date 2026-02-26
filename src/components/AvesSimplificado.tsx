@@ -85,6 +85,7 @@ export function AvesSimplificado() {
   // Estado para creación rápida de presentaciones (batch)
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [batchTipoAve, setBatchTipoAve] = useState("");
+  const [batchVariedad, setBatchVariedad] = useState<string>("");
   const [batchSelections, setBatchSelections] = useState<Record<string, boolean>>({});
   const [batchCustomMermas, setBatchCustomMermas] = useState<Record<string, string>>({});
 
@@ -247,9 +248,10 @@ export function AvesSimplificado() {
     for (const pres of selected) {
       const merma = batchCustomMermas[pres.nombre] ? parseFloat(batchCustomMermas[pres.nombre]) : pres.merma;
       
-      // Si tiene variedades, crear una presentación por variedad
+      // Si tiene variedades, crear solo para la variedad seleccionada
       if (tipoObj?.tieneVariedad && tipoObj.variedades && tipoObj.variedades.length > 0) {
-        for (const variedad of tipoObj.variedades) {
+        const variedadesTarget = batchVariedad ? [batchVariedad] : tipoObj.variedades;
+        for (const variedad of variedadesTarget) {
           const existe = presentaciones.some(
             p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.variedad === variedad
           );
@@ -302,6 +304,7 @@ export function AvesSimplificado() {
     setBatchSelections({});
     setBatchCustomMermas({});
     setBatchTipoAve("");
+    setBatchVariedad("");
   };
 
   const handleSubmitPresentacion = (e: React.FormEvent) => {
@@ -1404,7 +1407,7 @@ export function AvesSimplificado() {
                 <label className="block text-sm font-medium mb-2 text-white">Tipo de Producto</label>
                 <select
                   value={batchTipoAve}
-                  onChange={(e) => setBatchTipoAve(e.target.value)}
+                  onChange={(e) => { setBatchTipoAve(e.target.value); setBatchVariedad(""); setBatchSelections(PRESENTACIONES_RAPIDAS.reduce((acc, p) => ({ ...acc, [p.nombre]: true }), {})); }}
                   className="w-full px-4 py-3 rounded-xl text-white transition-all focus:ring-2 focus:ring-amber-500/50"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
                 >
@@ -1416,6 +1419,40 @@ export function AvesSimplificado() {
                   ))}
                 </select>
               </div>
+
+              {/* Selector de Variedad (solo si el tipo tiene variedades) */}
+              {(() => {
+                const tipoSel = tiposAve.find(t => t.nombre === batchTipoAve);
+                if (tipoSel?.tieneVariedad && tipoSel.variedades && tipoSel.variedades.length > 0) {
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-white">Variedad</label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBatchVariedad("")}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${!batchVariedad ? 'ring-2 ring-amber-500 text-amber-300' : 'text-gray-400 hover:text-white'}`}
+                          style={{ background: !batchVariedad ? 'rgba(204,170,0,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${!batchVariedad ? 'rgba(204,170,0,0.4)' : 'rgba(255,255,255,0.1)'}` }}
+                        >
+                          Todas ({tipoSel.variedades.length})
+                        </button>
+                        {tipoSel.variedades.map(v => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setBatchVariedad(v)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${batchVariedad === v ? 'ring-2 ring-purple-500 text-purple-300' : 'text-gray-400 hover:text-white'}`}
+                            style={{ background: batchVariedad === v ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${batchVariedad === v ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.1)'}` }}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {batchTipoAve && (
                 <>
@@ -1437,9 +1474,14 @@ export function AvesSimplificado() {
 
                   <div className="space-y-2">
                     {PRESENTACIONES_RAPIDAS.map((pres) => {
-                      const yaExiste = presentaciones.some(
-                        p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre
-                      );
+                      const tipoCheck = tiposAve.find(t => t.nombre === batchTipoAve);
+                      const yaExiste = tipoCheck?.tieneVariedad && tipoCheck.variedades
+                        ? batchVariedad
+                          ? presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.variedad === batchVariedad)
+                          : tipoCheck.variedades.every(v => presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.variedad === v))
+                        : tipoCheck?.tieneSexo
+                          ? (['Macho', 'Hembra'] as const).every(s => presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.sexo === s))
+                          : presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre);
                       return (
                         <label
                           key={pres.nombre}
@@ -1485,25 +1527,40 @@ export function AvesSimplificado() {
 
                   {(() => {
                     const tipoObj = tiposAve.find(t => t.nombre === batchTipoAve);
-                    const selectedCount = PRESENTACIONES_RAPIDAS.filter(p => batchSelections[p.nombre] && !presentaciones.some(
-                      ex => ex.tipoAve === batchTipoAve && ex.nombre === p.nombre
-                    )).length;
-                    const totalToCreate = tipoObj?.tieneVariedad && tipoObj.variedades
-                      ? selectedCount * tipoObj.variedades.length
-                      : tipoObj?.tieneSexo ? selectedCount * 2 : selectedCount;
+                    // Contar cuántas se crearán realmente (excluyendo las que ya existen)
+                    let totalToCreate = 0;
+                    const presSeleccionadas = PRESENTACIONES_RAPIDAS.filter(p => batchSelections[p.nombre]);
+                    for (const pres of presSeleccionadas) {
+                      if (tipoObj?.tieneVariedad && tipoObj.variedades) {
+                        const vars = batchVariedad ? [batchVariedad] : tipoObj.variedades;
+                        for (const v of vars) {
+                          if (!presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.variedad === v)) {
+                            totalToCreate++;
+                          }
+                        }
+                      } else if (tipoObj?.tieneSexo) {
+                        for (const s of ['Macho', 'Hembra']) {
+                          if (!presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre && p.sexo === s)) {
+                            totalToCreate++;
+                          }
+                        }
+                      } else {
+                        if (!presentaciones.some(p => p.tipoAve === batchTipoAve && p.nombre === pres.nombre)) {
+                          totalToCreate++;
+                        }
+                      }
+                    }
+                    const varLabel = tipoObj?.tieneVariedad && tipoObj.variedades
+                      ? batchVariedad ? `para ${batchVariedad}` : `para ${tipoObj.variedades.length} variedades`
+                      : tipoObj?.tieneSexo ? 'por sexo (M/H)' : '';
                     
                     return totalToCreate > 0 ? (
                       <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
                         <p className="text-sm text-green-400 font-medium">
                           Se crearán <span className="font-black text-lg">{totalToCreate}</span> presentaciones
-                          {tipoObj?.tieneVariedad && tipoObj.variedades && (
+                          {varLabel && (
                             <span className="text-xs text-gray-400 block">
-                              ({selectedCount} × {tipoObj.variedades.length} variedades)
-                            </span>
-                          )}
-                          {tipoObj?.tieneSexo && (
-                            <span className="text-xs text-gray-400 block">
-                              ({selectedCount} × 2 sexos)
+                              {varLabel}
                             </span>
                           )}
                         </p>
