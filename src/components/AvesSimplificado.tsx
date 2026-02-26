@@ -19,6 +19,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
+import { toast } from "sonner";
 
 // Paleta de colores preseleccionados para tipos
 const COLOR_PALETTE = [
@@ -123,7 +124,12 @@ export function AvesSimplificado() {
   };
 
   const handleDeleteTipo = (id: string) => {
-    if (confirm("¿Está seguro de eliminar este tipo de ave?")) {
+    const tipo = tiposAve.find(t => t.id === id);
+    const presAsociadas = tipo ? presentaciones.filter(p => p.tipoAve === tipo.nombre).length : 0;
+    const msg = presAsociadas > 0
+      ? `¿Está seguro de eliminar "${tipo?.nombre}"? Se eliminarán también sus ${presAsociadas} presentaciones asociadas.`
+      : `¿Está seguro de eliminar este tipo de ave?`;
+    if (confirm(msg)) {
       deleteTipoAve(id);
     }
   };
@@ -169,30 +175,53 @@ export function AvesSimplificado() {
       });
     } else {
       const nombreNormalizado = nuevoTipoForm.nombre.trim().toLowerCase();
-      const existe = tiposAve.some(
+      const existente = tiposAve.find(
         (t) => t.nombre.toLowerCase() === nombreNormalizado,
       );
 
-      if (existe) {
-        alert(`El tipo "${nuevoTipoForm.nombre}" ya existe.`);
-        return;
+      // Si existe y tiene variedad, permitir agregar nuevas variedades
+      if (existente) {
+        if (nuevoTipoForm.tieneVariedad && existente.tieneVariedad && existente.variedades) {
+          const nuevasVariedades = nuevoTipoForm.variedades
+            .split(",")
+            .map((v) => v.trim())
+            .filter((v) => v.length > 0);
+          const variedadesExistentes = existente.variedades.map(v => v.toLowerCase());
+          const variedadesNuevas = nuevasVariedades.filter(
+            (v) => !variedadesExistentes.includes(v.toLowerCase())
+          );
+          if (variedadesNuevas.length === 0) {
+            alert(`Todas las variedades ingresadas ya existen en "${existente.nombre}".`);
+            return;
+          }
+          const tipoActualizado: TipoAve = {
+            ...existente,
+            variedades: [...existente.variedades, ...variedadesNuevas],
+          };
+          updateTipoAve(tipoActualizado);
+          toast.success(`${variedadesNuevas.length} variedad(es) agregada(s) a "${existente.nombre}": ${variedadesNuevas.join(', ')}`);
+          setPostCreacionTipo(existente.nombre);
+        } else {
+          alert(`El tipo "${nuevoTipoForm.nombre}" ya existe.`);
+          return;
+        }
+      } else {
+        const nuevoTipo: TipoAve = {
+          id: Date.now().toString(),
+          nombre: nuevoTipoForm.nombre.trim(),
+          tieneSexo: nuevoTipoForm.categoria === 'Otro' ? false : nuevoTipoForm.tieneSexo,
+          tieneVariedad: nuevoTipoForm.tieneVariedad,
+          variedades: nuevoTipoForm.tieneVariedad
+            ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
+            : undefined,
+          color: nuevoTipoForm.color,
+          categoria: nuevoTipoForm.categoria,
+          estado: 'Activo',
+        };
+        addTipoAve(nuevoTipo);
+        // Ofrecer crear presentaciones rápidas para el nuevo tipo
+        setPostCreacionTipo(nuevoTipo.nombre);
       }
-
-      const nuevoTipo: TipoAve = {
-        id: Date.now().toString(),
-        nombre: nuevoTipoForm.nombre.trim(),
-        tieneSexo: nuevoTipoForm.categoria === 'Otro' ? false : nuevoTipoForm.tieneSexo,
-        tieneVariedad: nuevoTipoForm.tieneVariedad,
-        variedades: nuevoTipoForm.tieneVariedad
-          ? nuevoTipoForm.variedades.split(",").map((v) => v.trim())
-          : undefined,
-        color: nuevoTipoForm.color,
-        categoria: nuevoTipoForm.categoria,
-        estado: 'Activo',
-      };
-      addTipoAve(nuevoTipo);
-      // Ofrecer crear presentaciones rápidas para el nuevo tipo
-      setPostCreacionTipo(nuevoTipo.nombre);
       setNuevoTipoForm({
         nombre: "",
         tieneSexo: true,
@@ -589,14 +618,23 @@ export function AvesSimplificado() {
           const isExpanded = expandedTypes.includes(tipo);
           // Para tipos con variedad, sub-agrupar presentaciones por variedad
           const tieneVariedades = tipoInfo?.tieneVariedad && tipoInfo.variedades?.length;
-          const presPorVariedad = tieneVariedades
+          const tieneSexo = tipoInfo?.tieneSexo && !tipoInfo?.tieneVariedad;
+          // Sub-agrupar por variedad o por sexo
+          const presAgrupadas = tieneVariedades
             ? presList.reduce((acc, p) => {
                 const v = p.variedad || 'General';
                 if (!acc[v]) acc[v] = [];
                 acc[v].push(p);
                 return acc;
               }, {} as Record<string, Presentacion[]>)
-            : null;
+            : tieneSexo
+              ? presList.reduce((acc, p) => {
+                  const s = p.sexo || 'General';
+                  if (!acc[s]) acc[s] = [];
+                  acc[s].push(p);
+                  return acc;
+                }, {} as Record<string, Presentacion[]>)
+              : null;
 
           return (
             <div key={tipo} className="mb-4">
@@ -633,13 +671,13 @@ export function AvesSimplificado() {
                 )}
               </button>
 
-              {isExpanded && presPorVariedad && (
+              {isExpanded && presAgrupadas && (
                 <div className="mt-4 space-y-5 animate-in slide-in-from-top-2">
-                  {Object.entries(presPorVariedad).map(([variedad, presVar]) => (
-                    <div key={variedad}>
+                  {Object.entries(presAgrupadas).map(([grupo, presVar]) => (
+                    <div key={grupo}>
                       <div className="flex items-center gap-2 mb-3 ml-1">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                          {variedad}
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${tieneSexo ? (grupo === 'Macho' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : grupo === 'Hembra' ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30') : 'bg-purple-500/20 text-purple-300 border-purple-500/30'}`}>
+                          {tieneSexo ? (grupo === 'Macho' ? '♂ Macho' : grupo === 'Hembra' ? '♀ Hembra' : grupo) : grupo}
                         </span>
                         <span className="text-xs text-gray-500">{presVar.length} presentaciones</span>
                       </div>
@@ -699,7 +737,7 @@ export function AvesSimplificado() {
                 </div>
               )}
 
-              {isExpanded && !presPorVariedad && (
+              {isExpanded && !presAgrupadas && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top-2">
                   {presList.map((pres) => (
                     <div

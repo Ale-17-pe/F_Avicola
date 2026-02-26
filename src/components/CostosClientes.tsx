@@ -223,7 +223,8 @@ export function CostosClientes() {
   ) => {
     const key = `${rowIdx}_${field}`;
     setEditingGeneralCell(key);
-    setEditingGeneralValue(preciosGenerales[rowIdx][field].toString());
+    const val = preciosGenerales[rowIdx][field];
+    setEditingGeneralValue(val > 0 ? val.toString() : "");
   };
 
   const handleSaveGeneralCell = (
@@ -442,7 +443,7 @@ export function CostosClientes() {
   // ============ EDICION INLINE DE CLIENTE ============
   const handleEditClientCell = (costoId: string, field: string, value: number) => {
     setEditingClientCell(`${costoId}_${field}`);
-    setEditingClientValue(value.toString());
+    setEditingClientValue(value > 0 ? value.toString() : "");
   };
 
   const handleSaveClientCell = (
@@ -706,8 +707,8 @@ export function CostosClientes() {
                         ) : (
                           <span
                             className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${fila[field] > 0 ? "text-white" : "text-gray-600"}`}
-                            onDoubleClick={() => handleEditGeneralCell(idx, field)}
-                            title="Doble clic para editar"
+                            onClick={() => handleEditGeneralCell(idx, field)}
+                            title="Clic para editar"
                           >
                             {fila[field] > 0 ? `S/ ${fila[field].toFixed(2)}` : "\u2014"}
                           </span>
@@ -878,7 +879,14 @@ export function CostosClientes() {
               }}
             >
               {/* Header del Cliente */}
-              <div className="p-4 sm:p-5">
+              <div
+                className="p-4 sm:p-5 cursor-pointer"
+                onClick={(e) => {
+                  // No expandir si se hizo click en un botón o dentro de uno
+                  if ((e.target as HTMLElement).closest('button')) return;
+                  toggleClientExpansion(cliente.id);
+                }}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Checkbox de seleccion */}
@@ -941,11 +949,12 @@ export function CostosClientes() {
                     </button>
                   </div>
                 </div>
+              </div>
 
                 {/* Tabla de precios del cliente (expandible) */}
                 {isExpanded && (
                   <div
-                    className="mt-4 pt-4 border-t"
+                    className="mx-4 sm:mx-5 mb-4 sm:mb-5 pt-4 border-t"
                     style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
                   >
                     {preciosCliente.length > 0 ? (
@@ -1041,14 +1050,14 @@ export function CostosClientes() {
                                       ) : (
                                         <span
                                           className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${precio[field] > 0 ? "text-white" : "text-gray-600"}`}
-                                          onDoubleClick={() =>
+                                          onClick={() =>
                                             handleEditClientCell(
                                               precio.id,
                                               field,
                                               precio[field]
                                             )
                                           }
-                                          title="Doble clic para editar"
+                                          title="Clic para editar"
                                         >
                                           {precio[field] > 0
                                             ? `S/ ${precio[field].toFixed(2)}`
@@ -1096,7 +1105,6 @@ export function CostosClientes() {
                     )}
                   </div>
                 )}
-              </div>
             </div>
           );
         })}
