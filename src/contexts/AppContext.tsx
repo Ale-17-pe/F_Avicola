@@ -406,7 +406,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteTipoAve = (id: string) => {
+    const tipo = tiposAve.find(t => t.id === id);
     setTiposAve(prev => prev.filter(t => t.id !== id));
+    // Eliminar presentaciones asociadas
+    if (tipo) {
+      setPresentaciones(prev => prev.filter(p => p.tipoAve !== tipo.nombre));
+    }
     // Eliminar costos asociados
     setCostosClientes(prev => prev.filter(costo => costo.tipoAveId !== id));
   };
