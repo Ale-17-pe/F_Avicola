@@ -390,6 +390,11 @@ export function NuevoPedido() {
           const h = parseInt(sub.cantidadHembras || '0');
           cantidadFinal = m + h;
           detalleSexo = ` (M:${m}, H:${h})`;
+          if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
+            jabas = cantidadFinal; // total jabas = M + H
+            uPorJaba = parseInt(sub.unidadesPorJaba);
+            cantidadFinal = jabas * uPorJaba; // total aves
+          }
         } else if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
           jabas = parseInt(sub.cantidadTotal);
           uPorJaba = parseInt(sub.unidadesPorJaba);
@@ -596,13 +601,13 @@ export function NuevoPedido() {
           <>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">Machos</label>
+                <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
                 <input type="number" min="0" placeholder="0" value={data.cantidadMachos || ''}
                   onChange={e => actualizarSubForm(data, setData, 'cantidadMachos', e.target.value)}
                   className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">Hembras</label>
+                <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
                 <input type="number" min="0" placeholder="0" value={data.cantidadHembras || ''}
                   onChange={e => actualizarSubForm(data, setData, 'cantidadHembras', e.target.value)}
                   className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm" />
@@ -796,12 +801,12 @@ export function NuevoPedido() {
                   <>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2">Machos</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
                         <input type="number" value={form.cantidadMachos || ''} onChange={e => actualizarFormulario(form.id, 'cantidadMachos', e.target.value)}
                           placeholder="0" min="0" className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2">Hembras</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
                         <input type="number" value={form.cantidadHembras || ''} onChange={e => actualizarFormulario(form.id, 'cantidadHembras', e.target.value)}
                           placeholder="0" min="0" className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-pink-500 transition-all" />
                       </div>

@@ -48,6 +48,7 @@ const JABA_ESTANDAR = { id: 'jaba-std', tipo: 'Jaba Estándar', peso: 6.9 };
 interface PesadaParcial {
   numero: number;
   peso: number;
+  jabas?: number; // cantidad de jabas en esta pesada (solo Vivo)
 }
 
 interface ContenedorOpcion {
@@ -171,7 +172,11 @@ export function PesajeOperador() {
 
   const [conductorId, setConductorId] = useState('');
   const [zonaId, setZonaId] = useState('');
-  const [zonaBloqueada, setZonaBloqueada] = useState(false); // ← NUEVO
+  const [zonaBloqueada, setZonaBloqueada] = useState(false);
+
+  // Estados para pesaje Vivo por jabas
+  const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
+  const [pesoJabaEditable, setPesoJabaEditable] = useState(JABA_ESTANDAR.peso);
 
   const [ticketVisible, setTicketVisible] = useState<TicketData | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -203,6 +208,8 @@ export function PesajeOperador() {
     setConductorId('');
     setZonaId('');
     setZonaBloqueada(false);
+    setJabasEnEstaPesada('');
+    setPesoJabaEditable(JABA_ESTANDAR.peso);
   };
 
   const handleSelectPedido = (pedido: PedidoConfirmado) => {
@@ -245,22 +252,41 @@ export function PesajeOperador() {
   const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
   const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);
 
+  // Vivo jaba tracking
+  const totalJabasPedido = selectedPedido?.cantidadJabas || 0;
+  const unidadesPorJaba = selectedPedido?.unidadesPorJaba || 0;
+  const totalAvesPedido = totalJabasPedido * unidadesPorJaba;
+  const jabasPesadas = pesadas.reduce((sum, p) => sum + (p.jabas || 0), 0);
+  const jabasRestantes = totalJabasPedido - jabasPesadas;
+  const jabasInput = parseInt(jabasEnEstaPesada) || 0;
+
   const contSeleccionadoPreview = opcionesContenedor.find(c => c.id === contenedorFinalId);
   const cantidadPreview = parseInt(cantidadContenedoresInput) || 0;
-  const taraPreview = (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
+  const taraVivoPreview = esVivo ? pesoJabaEditable * cantidadPreview : 0;
+  const taraPreview = esVivo ? taraVivoPreview : (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
   const netoPreview = pesoBrutoTotal - taraPreview;
 
   const zonaSeleccionada = ZONAS.find(z => z.id === zonaId);
 
   const sumarPesada = () => {
     if (pesoActual <= 0) { toast.error('El peso debe ser mayor a 0'); return; }
-    const nueva: PesadaParcial = { numero: pesadas.length + 1, peso: pesoActual };
+    if (esVivo && totalJabasPedido > 0) {
+      if (jabasInput <= 0) { toast.error('Ingrese cuántas jabas se pesan en esta tanda'); return; }
+      if (jabasInput > jabasRestantes) { toast.error(`Solo quedan ${jabasRestantes} jabas por pesar`); return; }
+    }
+    const nueva: PesadaParcial = {
+      numero: pesadas.length + 1,
+      peso: pesoActual,
+      ...(esVivo && totalJabasPedido > 0 ? { jabas: jabasInput } : {}),
+    };
     const nuevasPesadas = [...pesadas, nueva];
     setPesadas(nuevasPesadas);
     setPesoManualInput('');
+    setJabasEnEstaPesada('');
     const acum = nuevasPesadas.reduce((s, p) => s + p.peso, 0);
     broadcastRef.current?.postMessage({ type: 'weight-update', weight: acum, stable: true, timestamp: Date.now() });
-    toast.success(`Pesada ${nueva.numero}: ${pesoActual.toFixed(2)} kg → Acumulado: ${acum.toFixed(2)} kg`);
+    const jabasMsg = nueva.jabas ? ` (${nueva.jabas} jabas)` : '';
+    toast.success(`Pesada ${nueva.numero}: ${pesoActual.toFixed(2)} kg${jabasMsg} → Acumulado: ${acum.toFixed(2)} kg`);
   };
 
   const quitarUltimaPesada = () => {
@@ -290,7 +316,9 @@ export function PesajeOperador() {
     const contFinal = opcionesContenedor.find(c => c.id === contenedorFinalId);
     if (!conductor || !zona || !contFinal) return;
 
-    const pesoTotalContenedores = contFinal.peso * cantidadPreview;
+    // Para Vivo usar pesoJabaEditable, para otros usar peso del contenedor seleccionado
+    const pesoUnitContFinal = esVivo ? pesoJabaEditable : contFinal.peso;
+    const pesoTotalContenedores = pesoUnitContFinal * cantidadPreview;
     const pesoNeto = pesoBrutoTotal - pesoTotalContenedores;
 
     const ahora = new Date();
@@ -336,7 +364,7 @@ export function PesajeOperador() {
       pesoNetoTotal: pesoNeto,
       tipoContenedor: contFinal.tipo,
       cantidadContenedores: cantidadPreview,
-      pesoUnitarioContenedor: contFinal.peso,
+      pesoUnitarioContenedor: pesoUnitContFinal,
       conductor: conductor.nombre,
       conductorPlaca: conductor.placa,
       zona: zona.nombre,
@@ -481,6 +509,24 @@ export function PesajeOperador() {
             )}
           </div>
 
+          {/* Info panel para pedidos Vivo */}
+          {esVivo && totalJabasPedido > 0 && (
+            <div className="grid grid-cols-3 gap-2 rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.1)' }}>
+                <div className="text-[10px] text-amber-500/70 font-bold uppercase tracking-wider">Total Jabas</div>
+                <div className="text-2xl font-black text-amber-400 tabular-nums">{totalJabasPedido}</div>
+              </div>
+              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.1)' }}>
+                <div className="text-[10px] text-green-500/70 font-bold uppercase tracking-wider">Aves/Jaba</div>
+                <div className="text-2xl font-black text-green-400 tabular-nums">{unidadesPorJaba || '—'}</div>
+              </div>
+              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                <div className="text-[10px] text-blue-500/70 font-bold uppercase tracking-wider">Total Aves</div>
+                <div className="text-2xl font-black text-blue-400 tabular-nums">{totalAvesPedido || '—'}</div>
+              </div>
+            </div>
+          )}
+
           {/* ─────────────── FASE 1: PESANDO ─────────────── */}
           {fase === 'pesando' && (
             <div className="rounded-2xl relative overflow-hidden"
@@ -491,17 +537,29 @@ export function PesajeOperador() {
               }}
             >
               {/* Status bar */}
-              <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex items-center justify-between px-5 py-3 flex-wrap gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full"
                   style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
                   {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
                 </span>
-                {pesadas.length > 0 && (
-                  <span className="text-xs font-bold font-mono px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
-                    Acumulado: {pesoBrutoTotal.toFixed(2)} kg
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {esVivo && totalJabasPedido > 0 && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full"
+                      style={{
+                        background: jabasRestantes === 0 ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
+                        color: jabasRestantes === 0 ? '#22c55e' : '#f59e0b',
+                        border: `1px solid ${jabasRestantes === 0 ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                      }}>
+                      {jabasRestantes === 0 ? '✓ TODAS PESADAS' : `${jabasRestantes} jabas restantes`}
+                    </span>
+                  )}
+                  {pesadas.length > 0 && (
+                    <span className="text-xs font-bold font-mono px-3 py-1 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+                      Acumulado: {pesoBrutoTotal.toFixed(2)} kg
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Weight display */}
@@ -544,33 +602,64 @@ export function PesajeOperador() {
                 )}
               </div>
 
+              {/* Jabas en esta pesada — solo Vivo */}
+              {esVivo && totalJabasPedido > 0 && jabasRestantes > 0 && (
+                <div className="px-6 pb-2">
+                  <div className="max-w-xs mx-auto flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    <Box className="w-5 h-5 text-amber-400/60 flex-shrink-0" />
+                    <div className="flex-1">
+                      <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Jabas en esta pesada</label>
+                      <input type="number" min="1" max={jabasRestantes}
+                        value={jabasEnEstaPesada}
+                        onChange={(e) => setJabasEnEstaPesada(e.target.value)}
+                        placeholder={`1-${jabasRestantes}`}
+                        className="w-full mt-1 px-3 py-2 rounded-lg text-white text-xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.3)' }} />
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-[10px] text-gray-500">quedan</div>
+                      <div className="text-lg font-black text-amber-400 tabular-nums">{jabasRestantes}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Pesadas chips */}
               {pesadas.length > 0 && (
                 <div className="flex items-center justify-center gap-1.5 flex-wrap px-6 pb-3">
                   {pesadas.map(p => (
                     <span key={p.numero} className="text-[11px] font-mono px-2.5 py-1 rounded-full"
                       style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
-                      #{p.numero}: {p.peso.toFixed(2)}kg
+                      #{p.numero}: {p.peso.toFixed(2)}kg{p.jabas ? ` (${p.jabas}j)` : ''}
                     </span>
                   ))}
                 </div>
               )}
 
               {/* Action buttons */}
-              <div className="grid grid-cols-2 gap-3 px-6 pb-6">
-                <button onClick={sumarPesada} disabled={pesoActual <= 0}
-                  className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: pesoActual > 0 ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.03)', boxShadow: pesoActual > 0 ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
-                  <Plus className="w-5 h-5" /> SUMAR
-                  {pesoActual > 0 && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}</span>}
-                </button>
-                <button onClick={terminarPesaje} disabled={pesadas.length === 0}
-                  className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: pesadas.length > 0 ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : 'rgba(255,255,255,0.03)', boxShadow: pesadas.length > 0 ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
-                  <CheckCircle className="w-5 h-5" /> TERMINAR
-                  {pesadas.length > 0 && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
-                </button>
-              </div>
+              {(() => {
+                const sumarDisabled = pesoActual <= 0 || (esVivo && totalJabasPedido > 0 && (jabasInput <= 0 || jabasInput > jabasRestantes));
+                const sumarActive = !sumarDisabled;
+                const terminarDisabled = pesadas.length === 0 || (esVivo && totalJabasPedido > 0 && jabasRestantes > 0);
+                const terminarActive = !terminarDisabled;
+                return (
+                  <div className="grid grid-cols-2 gap-3 px-6 pb-6">
+                    <button onClick={sumarPesada} disabled={sumarDisabled}
+                      className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.03)', boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
+                      <Plus className="w-5 h-5" /> SUMAR
+                      {sumarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}{jabasInput > 0 ? ` · ${jabasInput}j` : ''}</span>}
+                    </button>
+                    <button onClick={terminarPesaje} disabled={terminarDisabled}
+                      className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : 'rgba(255,255,255,0.03)', boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
+                      <CheckCircle className="w-5 h-5" /> TERMINAR
+                      {terminarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
+                    </button>
+                  </div>
+                );
+              })()}
 
               {pesadas.length > 0 && (
                 <div className="text-center pb-4">
@@ -600,7 +689,7 @@ export function PesajeOperador() {
                   {pesadas.map(p => (
                     <span key={p.numero} className="text-[10px] font-mono px-2 py-0.5 rounded-full"
                       style={{ background: 'rgba(34,197,94,0.06)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.1)' }}>
-                      #{p.numero}: {p.peso.toFixed(2)}
+                      #{p.numero}: {p.peso.toFixed(2)}{p.jabas ? ` (${p.jabas}j)` : ''}
                     </span>
                   ))}
                 </div>
@@ -634,12 +723,26 @@ export function PesajeOperador() {
                         {esVivo && <Lock className="w-3 h-3 opacity-50" />}
                         <div>
                           <div className="text-sm">{cont.tipo}</div>
-                          <div className="text-[10px] opacity-50 font-mono">{cont.peso} kg/u</div>
+                          <div className="text-[10px] opacity-50 font-mono">{esVivo ? `${pesoJabaEditable} kg/u` : `${cont.peso} kg/u`}</div>
                         </div>
                       </div>
                     </button>
                   ))}
                 </div>
+
+                {/* Peso unitario de jaba editable — solo Vivo */}
+                {esVivo && (
+                  <div className="max-w-xs mx-auto">
+                    <p className="text-center text-[10px] font-bold text-amber-400/70 uppercase tracking-wider mb-2">Peso unitario de jaba (kg)</p>
+                    <div className="relative">
+                      <input type="number" step="0.1" min="0"
+                        value={pesoJabaEditable}
+                        onChange={(e) => setPesoJabaEditable(parseFloat(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-xl text-white text-lg font-bold font-mono text-center focus:ring-2 focus:ring-amber-500/30 transition-all"
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.25)' }} />
+                    </div>
+                  </div>
+                )}
 
                 {/* Cantidad */}
                 <div>
@@ -681,7 +784,7 @@ export function PesajeOperador() {
                       <div className="text-white font-bold font-mono tabular-nums">{pesoBrutoTotal.toFixed(2)} kg</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">Tara ({cantidadPreview}×{contSeleccionadoPreview?.peso})</div>
+                      <div className="text-[10px] text-gray-500 mb-0.5">Tara ({cantidadPreview}×{esVivo ? pesoJabaEditable : contSeleccionadoPreview?.peso})</div>
                       <div className="text-amber-400 font-bold font-mono tabular-nums">{taraPreview.toFixed(2)} kg</div>
                     </div>
                     <div>
