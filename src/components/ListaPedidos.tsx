@@ -22,6 +22,7 @@ interface PedidoConfirmado {
   esSubPedido?: boolean;
   estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
   conductor?: string;
+  grupoDespacho?: string;
 }
 
 interface PedidoLista {
