@@ -730,16 +730,15 @@ export function PesajeOperador() {
                   ))}
                 </div>
 
-                {/* Peso unitario de jaba editable — solo Vivo */}
+                {/* Peso unitario de jaba — solo lectura */}
                 {esVivo && (
                   <div className="max-w-xs mx-auto">
                     <p className="text-center text-[10px] font-bold text-amber-400/70 uppercase tracking-wider mb-2">Peso unitario de jaba (kg)</p>
                     <div className="relative">
-                      <input type="number" step="0.1" min="0"
-                        value={pesoJabaEditable}
-                        onChange={(e) => setPesoJabaEditable(parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-2.5 rounded-xl text-white text-lg font-bold font-mono text-center focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.25)' }} />
+                      <div className="w-full px-4 py-2.5 rounded-xl text-white text-lg font-bold font-mono text-center"
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                        {pesoJabaEditable.toFixed(1)}
+                      </div>
                     </div>
                   </div>
                 )}

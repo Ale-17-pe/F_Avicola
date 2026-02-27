@@ -20,6 +20,13 @@ interface FilaCartera {
   pesoNeto: number; precio: number; total: number;
   confirmado: boolean; editando: boolean; fecha: string;
   zona: string; conductor: string;
+  cantidadContenedores: number; contenedorPesoUnit: number;
+}
+
+interface RecalcLine {
+  tipoContenedor: string;
+  pesoUnit: number;
+  cantidad: number;
 }
 interface PedidoPesajeData {
   id: string; numeroPedido: string; cliente: string; producto: string;
@@ -128,7 +135,7 @@ const SkeletonView = () => (
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export function DashboardSecretaria() {
   const context = useApp();
-  const { costosClientes, presentaciones, clientes, tiposAve } = context;
+  const { costosClientes, presentaciones, clientes, tiposAve, contenedores } = context;
   const pedidosConfirmados = context.pedidosConfirmados || [];
 
   const [filasCartera, setFilasCartera]           = useState<FilaCartera[]>([]);
@@ -145,6 +152,9 @@ export function DashboardSecretaria() {
   const [statsCollapsed, setStatsCollapsed]       = useState(true);
   const [refreshKey, setRefreshKey]               = useState(0);
   const calRef                                    = useRef<HTMLDivElement>(null);
+
+  // Estado del modal de recálculo de contenedores
+  const [recalcModal, setRecalcModal] = useState<{open:boolean; filaId:string|null; lines: RecalcLine[]}>({open:false, filaId:null, lines:[]});
 
   // cerrar calendario si click fuera
   useEffect(() => {
@@ -313,6 +323,10 @@ export function DashboardSecretaria() {
           fecha: fechaSeleccionada,
           zona: p.zonaEntrega || '—',
           conductor: p.conductor || '—',
+          cantidadContenedores: p.cantidadTotalContenedores || 0,
+          contenedorPesoUnit: (p.cantidadTotalContenedores && p.cantidadTotalContenedores > 0)
+            ? pesoContenedor / p.cantidadTotalContenedores
+            : 0,
         };
       });
 
@@ -360,6 +374,61 @@ export function DashboardSecretaria() {
   const editarTodas    = () => { setFilasCartera(prev=>prev.map(f=>({...f,editando:true,confirmado:false}))); setEditandoAll(true); };
   const refrescar      = () => { localStorage.removeItem(storageKey(fechaSeleccionada)); setRefreshKey(k => k + 1); toast.success('Actualizado'); };
   const irDia          = (n:number) => setFechaSeleccionada(prev=>addDays(prev,n));
+
+  // ─── Recálculo de contenedores ──────────────────────────────────────────────
+  const JABA_ESTANDAR_PESO = 6.9;
+  const opcionesContenedor = [
+    { tipo: 'Jaba Estándar', peso: JABA_ESTANDAR_PESO },
+    ...contenedores.filter(c => c.tipo !== 'Jaba Estándar').map(c => ({ tipo: c.tipo, peso: c.peso })),
+  ];
+
+  const abrirRecalcModal = (filaId: string) => {
+    const fila = filasCartera.find(f => f.id === filaId);
+    if (!fila) return;
+    const lines: RecalcLine[] = fila.cantidadContenedores > 0
+      ? [{ tipoContenedor: fila.contenedorTipo || 'Jaba Estándar', pesoUnit: fila.contenedorPesoUnit || JABA_ESTANDAR_PESO, cantidad: fila.cantidadContenedores }]
+      : [{ tipoContenedor: 'Jaba Estándar', pesoUnit: JABA_ESTANDAR_PESO, cantidad: 0 }];
+    setRecalcModal({ open: true, filaId, lines });
+  };
+
+  const recalcAddLine = () => {
+    setRecalcModal(prev => ({
+      ...prev,
+      lines: [...prev.lines, { tipoContenedor: opcionesContenedor[0]?.tipo || 'Jaba Estándar', pesoUnit: opcionesContenedor[0]?.peso || JABA_ESTANDAR_PESO, cantidad: 0 }],
+    }));
+  };
+
+  const recalcRemoveLine = (idx: number) => {
+    setRecalcModal(prev => ({ ...prev, lines: prev.lines.filter((_, i) => i !== idx) }));
+  };
+
+  const recalcUpdateLine = (idx: number, field: keyof RecalcLine, value: any) => {
+    setRecalcModal(prev => {
+      const lines = [...prev.lines];
+      lines[idx] = { ...lines[idx], [field]: value };
+      if (field === 'tipoContenedor') {
+        const found = opcionesContenedor.find(o => o.tipo === value);
+        if (found) lines[idx].pesoUnit = found.peso;
+      }
+      return { ...prev, lines };
+    });
+  };
+
+  const recalcNuevoPesoTotal = recalcModal.lines.reduce((s, l) => s + l.pesoUnit * l.cantidad, 0);
+  const recalcNuevaCantTotal = recalcModal.lines.reduce((s, l) => s + l.cantidad, 0);
+
+  const aplicarRecalc = () => {
+    if (!recalcModal.filaId) return;
+    const nuevoPeso = recalcNuevoPesoTotal;
+    const resumen = recalcModal.lines.filter(l => l.cantidad > 0).map(l => `${l.cantidad}×${l.tipoContenedor}`).join(', ');
+    setFilasCartera(prev => prev.map(f => {
+      if (f.id !== recalcModal.filaId) return f;
+      const updated = { ...f, pesoContenedor: nuevoPeso, cantidadContenedores: recalcNuevaCantTotal, contenedorTipo: resumen || f.contenedorTipo };
+      return recalcularFila(updated);
+    }));
+    toast.success(`Contenedores recalculados: ${nuevoPeso.toFixed(2)} kg`);
+    setRecalcModal({ open: false, filaId: null, lines: [] });
+  };
 
   const exportarCSV = () => {
     const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','P.Cont','P.Bruto','Repesada','Merma','Devol','Adicion','P.Neto','Precio','Total','Zona','Conductor'];
@@ -803,8 +872,19 @@ export function DashboardSecretaria() {
 
                         {/* P. CONTENEDOR */}
                         <td className="px-2 py-2 text-right whitespace-nowrap">
-                          <span className="text-xs tabular-nums" style={{color:COL.contenedor}}>{fila.pesoContenedor.toFixed(2)}</span>
-                          <div className="text-[9px] text-gray-700">{fila.contenedorTipo}</div>
+                          <div className="flex items-center justify-end gap-1">
+                            <div>
+                              <span className="text-xs tabular-nums" style={{color:COL.contenedor}}>{fila.pesoContenedor.toFixed(2)}</span>
+                              <div className="text-[9px] text-gray-700">{fila.contenedorTipo}</div>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); abrirRecalcModal(fila.id); }}
+                              className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
+                              style={{background:'rgba(252,165,165,0.08)', border:'1px solid rgba(252,165,165,0.20)'}}
+                              title="Recalcular contenedores">
+                              <RefreshCw className="w-3 h-3" style={{color:COL.contenedor}} />
+                            </button>
+                          </div>
                         </td>
 
                         {/* P. BRUTO */}
@@ -972,6 +1052,140 @@ export function DashboardSecretaria() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* MODAL — Recálculo de Contenedores */}
+      <AnimatePresence>
+        {recalcModal.open && (() => {
+          const filaActual = filasCartera.find(f => f.id === recalcModal.filaId);
+          const pesoOriginal = filaActual?.pesoContenedor ?? 0;
+          const diff = recalcNuevoPesoTotal - pesoOriginal;
+          return (
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{background:'rgba(0,0,0,0.88)', backdropFilter:'blur(10px)'}}
+              onClick={() => setRecalcModal({open:false, filaId:null, lines:[]})}>
+              <motion.div initial={{scale:0.92,y:12}} animate={{scale:1,y:0}} exit={{scale:0.92,y:12}}
+                className="rounded-2xl w-full max-w-lg"
+                style={{background:'rgba(10,9,5,0.98)', border:`1px solid ${G30}`, boxShadow:`0 20px 50px -12px ${G10}`}}
+                onClick={e => e.stopPropagation()}>
+                <div className="p-5">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{background:'rgba(252,165,165,0.10)', border:'1px solid rgba(252,165,165,0.30)'}}>
+                      <Package className="w-5 h-5" style={{color:COL.contenedor}} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">Recalcular Contenedores</h3>
+                      <p className="text-[10px] text-gray-500">{filaActual?.cliente} — {filaActual?.tipo}</p>
+                    </div>
+                  </div>
+
+                  {/* Info original */}
+                  <div className="mb-4 p-3 rounded-xl flex items-center justify-between"
+                    style={{background:G04, border:`1px solid ${G10}`}}>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Peso original</p>
+                      <p className="text-sm font-bold text-white tabular-nums">{pesoOriginal.toFixed(2)} kg</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Contenedores</p>
+                      <p className="text-sm font-bold text-white tabular-nums">{filaActual?.cantidadContenedores ?? 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Lines */}
+                  <div className="space-y-2 mb-4 max-h-[240px] overflow-y-auto pr-1">
+                    {recalcModal.lines.map((line, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl"
+                        style={{background:G04, border:`1px solid ${G10}`}}>
+                        {/* Tipo selector */}
+                        <select
+                          value={line.tipoContenedor}
+                          onChange={e => recalcUpdateLine(idx, 'tipoContenedor', e.target.value)}
+                          className="flex-1 text-xs font-semibold rounded-lg px-2 py-1.5"
+                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:'white', outline:'none'}}>
+                          {opcionesContenedor.map(o => (
+                            <option key={o.tipo} value={o.tipo}>{o.tipo} ({o.peso} kg)</option>
+                          ))}
+                        </select>
+                        {/* Peso unit */}
+                        <input type="number" step="0.1" min="0"
+                          value={line.pesoUnit}
+                          onChange={e => recalcUpdateLine(idx, 'pesoUnit', parseFloat(e.target.value) || 0)}
+                          className="w-16 text-xs font-mono text-center rounded-lg px-1 py-1.5"
+                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:COL.contenedor, outline:'none'}}
+                          title="Peso unitario (kg)" />
+                        {/* Cantidad */}
+                        <input type="number" min="0"
+                          value={line.cantidad}
+                          onChange={e => recalcUpdateLine(idx, 'cantidad', parseInt(e.target.value) || 0)}
+                          className="w-14 text-xs font-mono text-center rounded-lg px-1 py-1.5"
+                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:'white', outline:'none'}}
+                          title="Cantidad" />
+                        {/* Subtotal */}
+                        <span className="text-[10px] font-mono w-16 text-right tabular-nums" style={{color:COL.contenedor}}>
+                          {(line.pesoUnit * line.cantidad).toFixed(2)}
+                        </span>
+                        {/* Remove */}
+                        {recalcModal.lines.length > 1 && (
+                          <button onClick={() => recalcRemoveLine(idx)}
+                            className="p-1 rounded-md hover:bg-red-500/10 transition-colors"
+                            style={{color:'#f87171'}}>
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add line */}
+                  <button onClick={recalcAddLine}
+                    className="w-full py-2 rounded-xl text-xs font-semibold mb-4 transition-all hover:brightness-125"
+                    style={{background:G06, border:`1px dashed ${G20}`, color:GOLD}}>
+                    + Agregar tipo de contenedor
+                  </button>
+
+                  {/* Preview */}
+                  <div className="p-3 rounded-xl mb-4"
+                    style={{background:'rgba(252,165,165,0.06)', border:'1px solid rgba(252,165,165,0.20)'}}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:COL.contenedor}}>Nuevo peso total</p>
+                        <p className="text-lg font-black tabular-nums text-white">{recalcNuevoPesoTotal.toFixed(2)} <span className="text-xs font-normal text-gray-500">kg</span></p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Diferencia</p>
+                        <p className={`text-sm font-bold tabular-nums ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-green-400' : 'text-gray-400'}`}>
+                          {diff > 0 ? '+' : ''}{diff.toFixed(2)} kg
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total cont.</p>
+                        <p className="text-sm font-bold tabular-nums text-white">{recalcNuevaCantTotal}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button onClick={() => setRecalcModal({open:false, filaId:null, lines:[]})}
+                      className="py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/5 transition-all"
+                      style={{border:'1px solid rgba(255,255,255,0.10)'}}>
+                      Cancelar
+                    </button>
+                    <button onClick={aplicarRecalc}
+                      className="py-2.5 rounded-xl text-sm font-bold text-black hover:brightness-110 transition-all"
+                      style={{background:`linear-gradient(135deg, ${COL.contenedor}, #e87171)`, boxShadow:'0 4px 16px rgba(252,165,165,0.30)'}}>
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </motion.div>
   );
