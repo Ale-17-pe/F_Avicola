@@ -196,8 +196,8 @@ export function DashboardSecretaria() {
 
       const nuevasFilas: FilaCartera[] = delDia.map(p => {
         const esVivo = p.presentacion?.toLowerCase().includes('vivo');
-        const cantidadDisplay = p.cantidad;
-        const cantidadLabel = esVivo ? `${p.cantidadJabas || 0} jabas` : 'unids';
+        const cantidadDisplay = esVivo && p.cantidadJabas ? p.cantidadJabas : p.cantidad;
+        const cantidadLabel = esVivo ? 'jabas' : 'unids';
 
         // Extraer nombre base del tipo (sin variedad ni sexo)
         const tipoAveSinSexo = p.tipoAve?.replace(/\s*\(M:\d+,\s*H:\d+\)/, '') || '';

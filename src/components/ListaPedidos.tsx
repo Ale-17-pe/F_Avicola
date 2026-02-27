@@ -196,6 +196,7 @@ export function ListaPedidos() {
     cantidad: number;
     cantidadMachos?: number;
     cantidadHembras?: number;
+    unidadesPorJaba?: number;
   }>({ cantidad: 0 });
 
   const iniciarEdicionInline = (pedido: PedidoLista) => {
@@ -204,6 +205,7 @@ export function ListaPedidos() {
       cantidad: pedido.cantidad,
       cantidadMachos: pedido.cantidadMachos,
       cantidadHembras: pedido.cantidadHembras,
+      unidadesPorJaba: pedido.unidadesPorJaba,
     });
   };
 
@@ -214,10 +216,24 @@ export function ListaPedidos() {
     const cambios: Partial<PedidoConfirmado> = {};
     const cambiosTexto: string[] = [];
     const pedidoLista = pedidosLista.find(p => p.id === pedidoId);
+
+    const esVivoEdit = pedidoLista?.presentacion?.toLowerCase().includes('vivo');
     
     if (inlineEditData.cantidad !== pedidoLista?.cantidad) {
       cambios.cantidad = inlineEditData.cantidad;
       cambiosTexto.push(`Cantidad: ${pedidoLista?.cantidad} → ${inlineEditData.cantidad}`);
+    }
+
+    // Actualizar cantidadJabas y unidadesPorJaba para Vivo
+    if (esVivoEdit) {
+      const jabas = inlineEditData.cantidad;
+      const upj = inlineEditData.unidadesPorJaba || pedidoLista?.unidadesPorJaba || 0;
+      cambios.cantidadJabas = jabas;
+      cambios.unidadesPorJaba = upj;
+      cambios.cantidad = jabas * upj || jabas;
+      if (upj !== pedidoLista?.unidadesPorJaba) {
+        cambiosTexto.push(`Uds/Jaba: ${pedidoLista?.unidadesPorJaba || '—'} → ${upj}`);
+      }
     }
 
     // Actualizar sexo en el string tipoAve si corresponde
@@ -1701,8 +1717,8 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
                     </tr>
@@ -1779,42 +1795,95 @@ export function ListaPedidos() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && !pedido.cantidadMachos && pedido.cantidadMachos === undefined ? (
-                            <input 
-                              type="number" 
-                              value={inlineEditData.cantidad} 
-                              onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))} 
-                              className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
-                              autoFocus
-                            />
-                          ) : inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadMachos !== undefined ? (
-                            <div>
-                              <div className="text-white font-bold text-lg drop-shadow">{inlineEditData.cantidad}</div>
-                              <div className="text-[9px] text-gray-500 italic mt-0.5">auto (M+H)</div>
-                            </div>
-                          ) : editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id) ? (
-                            <input 
-                              type="number" 
-                              value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad} 
-                              onChange={(e) => setFormEdicion(prev => prev ? { ...prev, cantidad: parseInt(e.target.value) || 0 } : null)} 
-                              className="w-24 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-center focus:ring-2 focus:ring-blue-500" 
-                            />
-                          ) : (
-                            <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                              <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{pedido.cantidad}</div>
-                              {pedido.cantidadJabas && pedido.unidadesPorJaba && (
-                                <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ 
-                                  background: 'rgba(245,158,11,0.2)', 
-                                  color: '#fbbf24', 
-                                  border: '1px solid rgba(245,158,11,0.3)',
-                                  boxShadow: '0 0 10px rgba(245,158,11,0.2)'
-                                }}>
-                                  {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u
+                          {(() => {
+                            const esVivoRow = pedido.presentacion?.toLowerCase().includes('vivo');
+                            if (inlineEditId === pedido.id && pedido.estado === 'Pendiente') {
+                              if (esVivoRow && pedido.cantidadMachos !== undefined) {
+                                // Vivo con sexo: cantidad = jabas M+H, auto-calculada
+                                const jabas = inlineEditData.cantidad;
+                                const upj = inlineEditData.unidadesPorJaba || 0;
+                                return (
+                                  <div>
+                                    <div className="text-white font-bold text-lg drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="text-[10px] text-gray-500">×</span>
+                                      <input type="number" min="1" value={upj || ''} placeholder="u/j"
+                                        onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
+                                        className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
+                                      <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{jabas * upj || '—'}</span> aves</span>
+                                    </div>
+                                    <div className="text-[9px] text-gray-500 italic mt-0.5">auto (♂+♀)</div>
+                                  </div>
+                                );
+                              } else if (esVivoRow) {
+                                // Vivo sin sexo (Gallinas): editable jabas + upj
+                                const upj = inlineEditData.unidadesPorJaba || 0;
+                                return (
+                                  <div>
+                                    <input type="number" min="1" value={inlineEditData.cantidad || ''}
+                                      onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
+                                      className="w-20 px-2 py-1.5 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center text-base font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
+                                    <div className="text-[9px] text-amber-400 mt-0.5">jabas</div>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="text-[10px] text-gray-500">×</span>
+                                      <input type="number" min="1" value={upj || ''} placeholder="u/j"
+                                        onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
+                                        className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
+                                      <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{(inlineEditData.cantidad || 0) * upj || '—'}</span> aves</span>
+                                    </div>
+                                  </div>
+                                );
+                              } else if (!pedido.cantidadMachos && pedido.cantidadMachos === undefined) {
+                                // No-vivo sin sexo
+                                return (
+                                  <input type="number" value={inlineEditData.cantidad}
+                                    onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
+                                    className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
+                                );
+                              } else {
+                                // No-vivo con sexo: auto M+H
+                                return (
+                                  <div>
+                                    <div className="text-white font-bold text-lg drop-shadow">{inlineEditData.cantidad}</div>
+                                    <div className="text-[9px] text-gray-500 italic mt-0.5">auto (M+H)</div>
+                                  </div>
+                                );
+                              }
+                            }
+                            if (editandoMultiple && pedidosAEditar.some(p => p.id === pedido.id)) {
+                              return (
+                                <input type="number" value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad}
+                                  onChange={(e) => setFormEdicion(prev => prev ? { ...prev, cantidad: parseInt(e.target.value) || 0 } : null)}
+                                  className="w-24 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-center focus:ring-2 focus:ring-blue-500" />
+                              );
+                            }
+                            // Vista normal
+                            if (esVivoRow && pedido.cantidadJabas) {
+                              const jabas = pedido.cantidadMachos !== undefined ? (pedido.cantidadMachos + (pedido.cantidadHembras || 0)) : pedido.cantidadJabas;
+                              const upj = pedido.unidadesPorJaba || 0;
+                              const totalAves = jabas * upj;
+                              return (
+                                <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
+                                  <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                  {upj > 0 && (
+                                    <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
+                                      background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
+                                      border: '1px solid rgba(245,158,11,0.3)', boxShadow: '0 0 10px rgba(245,158,11,0.2)'
+                                    }}>
+                                      × {upj} = {totalAves} aves
+                                    </div>
+                                  )}
+                                  {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
                                 </div>
-                              )}
-                              {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
-                            </div>
-                          )}
+                              );
+                            }
+                            return (
+                              <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
+                                <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{pedido.cantidad}</div>
+                                {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadMachos !== undefined ? (
@@ -2015,10 +2084,10 @@ export function ListaPedidos() {
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Presentación</div>
                   </th>
                   <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div>
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div>
                   </th>
                    <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div>
+                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div>
@@ -2059,8 +2128,25 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="text-white font-bold drop-shadow">{pedido.cantidad}</div>
-                        <div className="text-xs text-green-400">aves</div>
+                        {(() => {
+                          const esVivoRow = pedido.presentacion?.toLowerCase().includes('vivo');
+                          if (esVivoRow && pedido.cantidadJabas) {
+                            const jabas = pedido.cantidadMachos !== undefined ? (pedido.cantidadMachos + (pedido.cantidadHembras || 0)) : pedido.cantidadJabas;
+                            const upj = pedido.unidadesPorJaba || 0;
+                            return (
+                              <>
+                                <div className="text-white font-bold drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                {upj > 0 && <div className="text-xs text-green-400">× {upj} = {jabas * upj} aves</div>}
+                              </>
+                            );
+                          }
+                          return (
+                            <>
+                              <div className="text-white font-bold drop-shadow">{pedido.cantidad}</div>
+                              <div className="text-xs text-green-400">aves</div>
+                            </>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-6 py-4">
@@ -2193,8 +2279,8 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Machos</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembras</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Conductor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
@@ -2230,17 +2316,29 @@ export function ListaPedidos() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-white font-bold text-lg drop-shadow">{pedido.cantidad}</div>
-                          {pedido.cantidadJabas && pedido.unidadesPorJaba && (
-                            <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ 
-                              background: 'rgba(245,158,11,0.2)', 
-                              color: '#fbbf24', 
-                              border: '1px solid rgba(245,158,11,0.3)',
-                              boxShadow: '0 0 10px rgba(245,158,11,0.2)'
-                            }}>
-                              {pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u
-                            </div>
-                          )}
+                          {(() => {
+                            const esVivoRow = pedido.presentacion?.toLowerCase().includes('vivo');
+                            if (esVivoRow && pedido.cantidadJabas) {
+                              const jabas = pedido.cantidadMachos !== undefined ? (pedido.cantidadMachos + (pedido.cantidadHembras || 0)) : pedido.cantidadJabas;
+                              const upj = pedido.unidadesPorJaba || 0;
+                              return (
+                                <>
+                                  <div className="text-white font-bold text-lg drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                  {upj > 0 && (
+                                    <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
+                                      background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
+                                      border: '1px solid rgba(245,158,11,0.3)', boxShadow: '0 0 10px rgba(245,158,11,0.2)'
+                                    }}>
+                                      × {upj} = {jabas * upj} aves
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            }
+                            return (
+                              <div className="text-white font-bold text-lg drop-shadow">{pedido.cantidad}</div>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {pedido.cantidadMachos !== undefined ? (
