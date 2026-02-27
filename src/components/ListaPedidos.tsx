@@ -1717,8 +1717,8 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
                     </tr>
@@ -2084,10 +2084,10 @@ export function ListaPedidos() {
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Presentación</div>
                   </th>
                   <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div>
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div>
                   </th>
                    <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div>
+                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div>
@@ -2279,8 +2279,8 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Jabas ♂</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Jabas ♀</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Conductor</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>

@@ -448,7 +448,7 @@ export function GestionConductor() {
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">
                           <MapPin className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                          <span className="truncate">{pedido.zona || '—'}</span>
+                          <span className="truncate">{pedido.zonaEntrega || '—'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">
                           <History className="w-3.5 h-3.5 text-gray-600 shrink-0" />
