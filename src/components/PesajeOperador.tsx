@@ -730,18 +730,7 @@ export function PesajeOperador() {
                   ))}
                 </div>
 
-                {/* Peso unitario de jaba — solo lectura */}
-                {esVivo && (
-                  <div className="max-w-xs mx-auto">
-                    <p className="text-center text-[10px] font-bold text-amber-400/70 uppercase tracking-wider mb-2">Peso unitario de jaba (kg)</p>
-                    <div className="relative">
-                      <div className="w-full px-4 py-2.5 rounded-xl text-white text-lg font-bold font-mono text-center"
-                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                        {pesoJabaEditable.toFixed(1)}
-                      </div>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Cantidad */}
                 <div>

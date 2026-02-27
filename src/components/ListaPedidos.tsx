@@ -201,8 +201,15 @@ export function ListaPedidos() {
 
   const iniciarEdicionInline = (pedido: PedidoLista) => {
     setInlineEditId(pedido.id);
+    const esVivoInit = pedido.presentacion?.toLowerCase().includes('vivo');
+    // Para Vivo, la cantidad editable es jabas (cantidadJabas o M+H), no total aves
+    const cantEdit = esVivoInit && pedido.cantidadJabas
+      ? pedido.cantidadJabas
+      : (esVivoInit && pedido.cantidadMachos !== undefined
+        ? (pedido.cantidadMachos + (pedido.cantidadHembras || 0))
+        : pedido.cantidad);
     setInlineEditData({
-      cantidad: pedido.cantidad,
+      cantidad: cantEdit,
       cantidadMachos: pedido.cantidadMachos,
       cantidadHembras: pedido.cantidadHembras,
       unidadesPorJaba: pedido.unidadesPorJaba,
@@ -1809,6 +1816,7 @@ export function ListaPedidos() {
                                       <span className="text-[10px] text-gray-500">×</span>
                                       <input type="number" min="1" value={upj || ''} placeholder="u/j"
                                         onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
+                                        onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                         className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
                                       <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{jabas * upj || '—'}</span> aves</span>
                                     </div>
@@ -1822,12 +1830,14 @@ export function ListaPedidos() {
                                   <div>
                                     <input type="number" min="1" value={inlineEditData.cantidad || ''}
                                       onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
+                                      onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                       className="w-20 px-2 py-1.5 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center text-base font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
                                     <div className="text-[9px] text-amber-400 mt-0.5">jabas</div>
                                     <div className="flex items-center gap-1 mt-1">
                                       <span className="text-[10px] text-gray-500">×</span>
                                       <input type="number" min="1" value={upj || ''} placeholder="u/j"
                                         onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
+                                        onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                         className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
                                       <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{(inlineEditData.cantidad || 0) * upj || '—'}</span> aves</span>
                                     </div>
@@ -1838,6 +1848,7 @@ export function ListaPedidos() {
                                 return (
                                   <input type="number" value={inlineEditData.cantidad}
                                     onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
+                                    onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                     className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
                                 );
                               } else {
@@ -1893,7 +1904,8 @@ export function ListaPedidos() {
                               onChange={(e) => {
                                 const m = parseInt(e.target.value) || 0;
                                 setInlineEditData(prev => ({ ...prev, cantidadMachos: m, cantidad: m + (prev.cantidadHembras || 0) }));
-                              }} 
+                              }}
+                              onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                               className="w-20 px-2 py-2 bg-blue-900/30 border border-blue-500/40 rounded-lg text-blue-300 text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" 
                               autoFocus
                             />
@@ -1914,7 +1926,8 @@ export function ListaPedidos() {
                               onChange={(e) => {
                                 const h = parseInt(e.target.value) || 0;
                                 setInlineEditData(prev => ({ ...prev, cantidadHembras: h, cantidad: (prev.cantidadMachos || 0) + h }));
-                              }} 
+                              }}
+                              onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                               className="w-20 px-2 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-amber-300 text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
                             />
                           ) : pedido.cantidadHembras !== undefined ? (
