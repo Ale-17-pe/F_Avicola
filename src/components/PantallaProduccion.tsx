@@ -292,14 +292,33 @@ export function PantallaProduccion() {
                         
                         {/* Cantidad Total */}
                         <td className="px-4 md:px-6 py-3 md:py-4">
-                          <div className="flex flex-col">
-                            <div className="text-white font-black text-2xl md:text-3xl tabular-nums">
-                              {pedido.cantidad.toLocaleString()}
-                            </div>
-                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-                              unidades
-                            </div>
-                          </div>
+                          {(() => {
+                            const esVivoProd = pedido.presentacion?.toLowerCase().includes('vivo');
+                            if (esVivoProd) {
+                              // Vivo: mostrar jabas (cantidadJabas o M+H)
+                              const jabas = pedido.cantidadJabas || (infoGenero ? infoGenero.machos + infoGenero.hembras : pedido.cantidad);
+                              return (
+                                <div className="flex flex-col">
+                                  <div className="text-white font-black text-2xl md:text-3xl tabular-nums">
+                                    {jabas.toLocaleString()}
+                                  </div>
+                                  <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mt-1">
+                                    jabas
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="flex flex-col">
+                                <div className="text-white font-black text-2xl md:text-3xl tabular-nums">
+                                  {pedido.cantidad.toLocaleString()}
+                                </div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                                  unidades
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         
                         {/* Machos */}
@@ -313,7 +332,9 @@ export function PantallaProduccion() {
                               <span className="text-blue-300 font-black text-lg md:text-xl tabular-nums">
                                 {infoGenero.machos.toLocaleString()}
                               </span>
-                              <div className="text-[10px] text-blue-400/80 uppercase tracking-wider">M</div>
+                              <div className="text-[10px] text-blue-400/80 uppercase tracking-wider">
+                                {pedido.presentacion?.toLowerCase().includes('vivo') ? 'jabas' : 'M'}
+                              </div>
                             </div>
                           ) : (
                             <span className="text-gray-500">—</span>
@@ -331,7 +352,9 @@ export function PantallaProduccion() {
                               <span className="text-amber-300 font-black text-lg md:text-xl tabular-nums">
                                 {infoGenero.hembras.toLocaleString()}
                               </span>
-                              <div className="text-[10px] text-amber-400/80 uppercase tracking-wider">H</div>
+                              <div className="text-[10px] text-amber-400/80 uppercase tracking-wider">
+                                {pedido.presentacion?.toLowerCase().includes('vivo') ? 'jabas' : 'H'}
+                              </div>
                             </div>
                           ) : (
                             <span className="text-gray-500">—</span>

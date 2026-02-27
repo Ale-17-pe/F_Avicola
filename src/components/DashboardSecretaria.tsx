@@ -21,6 +21,8 @@ interface FilaCartera {
   confirmado: boolean; editando: boolean; fecha: string;
   zona: string; conductor: string;
   cantidadContenedores: number; contenedorPesoUnit: number;
+  contenedorRecalculado?: boolean;
+  recalcLines?: RecalcLine[];
 }
 
 interface RecalcLine {
@@ -296,7 +298,12 @@ export function DashboardSecretaria() {
 
         const total = pesoNeto * precio;
 
-        return {
+        // Contenedor real: usar el tipo del pesaje (bloquesPesaje) si existe, sino el del pedido
+        const contenedorRealTipo = (p.bloquesPesaje && p.bloquesPesaje.length > 0)
+          ? p.bloquesPesaje[0].tipoContenedor
+          : p.contenedor;
+
+        const fila: FilaCartera = {
           id: p.id,
           pedidoId: p.numeroPedido || p.id,
           cliente: p.cliente,
@@ -306,7 +313,7 @@ export function DashboardSecretaria() {
           cantidadLabel,
           merma: mermaTotal,
           tara: pesoContenedor,
-          contenedorTipo: p.contenedor,
+          contenedorTipo: contenedorRealTipo,
           devolucionPeso: devolucionFromConductor,
           devolucionCantidad: 0,
           repesada: repesadaFromConductor,
@@ -317,7 +324,6 @@ export function DashboardSecretaria() {
           pesoNeto: Math.max(0, pesoNeto),
           precio,
           total: Math.max(0, total),
-          // Preservar estado de confirmación/edición de la secretaria
           confirmado: filaPrev?.confirmado ?? false,
           editando: filaPrev?.editando ?? false,
           fecha: fechaSeleccionada,
@@ -328,6 +334,20 @@ export function DashboardSecretaria() {
             ? pesoContenedor / p.cantidadTotalContenedores
             : 0,
         };
+
+        // Preservar recálculo de contenedores de la secretaria
+        if (filaPrev?.contenedorRecalculado && filaPrev.recalcLines) {
+          fila.pesoContenedor = filaPrev.pesoContenedor;
+          fila.contenedorTipo = filaPrev.contenedorTipo;
+          fila.contenedorRecalculado = true;
+          fila.recalcLines = filaPrev.recalcLines;
+          fila.pesoPedido = Math.max(0, fila.pesoBruto - fila.pesoContenedor);
+          const baseR = fila.repesada > 0 ? fila.repesada : fila.pesoBruto;
+          fila.pesoNeto = Math.max(0, (baseR + fila.merma) - fila.pesoContenedor - fila.devolucionPeso + fila.adicionPeso);
+          fila.total = Math.max(0, fila.pesoNeto) * fila.precio;
+        }
+
+        return fila;
       });
 
       setFilasCartera(nuevasFilas);
@@ -352,7 +372,8 @@ export function DashboardSecretaria() {
   const recalcularFila = (f: FilaCartera): FilaCartera => {
     const base    = f.repesada > 0 ? f.repesada : f.pesoBruto;
     const pesoNeto= (base + f.merma) - f.pesoContenedor - f.devolucionPeso + f.adicionPeso;
-    return { ...f, pesoNeto: Math.max(0,pesoNeto), total: Math.max(0,pesoNeto)*f.precio };
+    const pesoPedido = f.pesoBruto - f.pesoContenedor;
+    return { ...f, pesoNeto: Math.max(0,pesoNeto), pesoPedido: Math.max(0,pesoPedido), total: Math.max(0,pesoNeto)*f.precio };
   };
 
   const actualizarCampo = (id:string, campo:keyof FilaCartera, valor:any) =>
@@ -385,9 +406,14 @@ export function DashboardSecretaria() {
   const abrirRecalcModal = (filaId: string) => {
     const fila = filasCartera.find(f => f.id === filaId);
     if (!fila) return;
-    const lines: RecalcLine[] = fila.cantidadContenedores > 0
-      ? [{ tipoContenedor: fila.contenedorTipo || 'Jaba Estándar', pesoUnit: fila.contenedorPesoUnit || JABA_ESTANDAR_PESO, cantidad: fila.cantidadContenedores }]
-      : [{ tipoContenedor: 'Jaba Estándar', pesoUnit: JABA_ESTANDAR_PESO, cantidad: 0 }];
+    let lines: RecalcLine[];
+    if (fila.contenedorRecalculado && fila.recalcLines && fila.recalcLines.length > 0) {
+      lines = fila.recalcLines.map(l => ({ ...l }));
+    } else {
+      lines = fila.cantidadContenedores > 0
+        ? [{ tipoContenedor: fila.contenedorTipo || 'Jaba Estándar', pesoUnit: fila.contenedorPesoUnit || JABA_ESTANDAR_PESO, cantidad: fila.cantidadContenedores }]
+        : [{ tipoContenedor: 'Jaba Estándar', pesoUnit: JABA_ESTANDAR_PESO, cantidad: 0 }];
+    }
     setRecalcModal({ open: true, filaId, lines });
   };
 
@@ -399,16 +425,47 @@ export function DashboardSecretaria() {
   };
 
   const recalcRemoveLine = (idx: number) => {
-    setRecalcModal(prev => ({ ...prev, lines: prev.lines.filter((_, i) => i !== idx) }));
+    setRecalcModal(prev => {
+      const fila = filasCartera.find(f => f.id === prev.filaId);
+      const totalOriginal = fila?.cantidadContenedores || 0;
+      const newLines = prev.lines.filter((_, i) => i !== idx);
+      // Redistribuir: line[0] absorbe los contenedores de la línea eliminada
+      if (newLines.length > 0) {
+        const sumNonFirst = newLines.reduce((s, l, i) => i === 0 ? s : s + l.cantidad, 0);
+        newLines[0] = { ...newLines[0], cantidad: Math.max(0, totalOriginal - sumNonFirst) };
+      }
+      return { ...prev, lines: newLines };
+    });
   };
 
   const recalcUpdateLine = (idx: number, field: keyof RecalcLine, value: any) => {
     setRecalcModal(prev => {
+      const fila = filasCartera.find(f => f.id === prev.filaId);
+      const totalOriginal = fila?.cantidadContenedores || 0;
       const lines = [...prev.lines];
       lines[idx] = { ...lines[idx], [field]: value };
       if (field === 'tipoContenedor') {
         const found = opcionesContenedor.find(o => o.tipo === value);
         if (found) lines[idx].pesoUnit = found.peso;
+      }
+      // Forzar que el total de contenedores SIEMPRE sea igual al original
+      if (field === 'cantidad') {
+        if (lines.length === 1) {
+          // Una sola línea: cantidad fija = totalOriginal
+          lines[0] = { ...lines[0], cantidad: totalOriginal };
+        } else if (idx > 0) {
+          // Línea secundaria: cap para que no exceda lo disponible
+          const sumOtherNonFirst = lines.reduce((s, l, i) => (i === 0 || i === idx) ? s : s + l.cantidad, 0);
+          const maxDisponible = totalOriginal - sumOtherNonFirst;
+          lines[idx] = { ...lines[idx], cantidad: Math.min(Math.max(0, lines[idx].cantidad), maxDisponible) };
+          // Auto-ajustar línea 0
+          const sumNonFirst = lines.reduce((s, l, i) => i === 0 ? s : s + l.cantidad, 0);
+          lines[0] = { ...lines[0], cantidad: Math.max(0, totalOriginal - sumNonFirst) };
+        } else {
+          // idx === 0: auto-ajustar basado en otras líneas
+          const sumNonFirst = lines.reduce((s, l, i) => i === 0 ? s : s + l.cantidad, 0);
+          lines[0] = { ...lines[0], cantidad: Math.max(0, totalOriginal - sumNonFirst) };
+        }
       }
       return { ...prev, lines };
     });
@@ -420,10 +477,18 @@ export function DashboardSecretaria() {
   const aplicarRecalc = () => {
     if (!recalcModal.filaId) return;
     const nuevoPeso = recalcNuevoPesoTotal;
-    const resumen = recalcModal.lines.filter(l => l.cantidad > 0).map(l => `${l.cantidad}×${l.tipoContenedor}`).join(', ');
+    const lineasActivas = recalcModal.lines.filter(l => l.cantidad > 0);
+    const resumen = lineasActivas.map(l => `${l.cantidad}×${l.tipoContenedor}`).join(', ');
     setFilasCartera(prev => prev.map(f => {
       if (f.id !== recalcModal.filaId) return f;
-      const updated = { ...f, pesoContenedor: nuevoPeso, cantidadContenedores: recalcNuevaCantTotal, contenedorTipo: resumen || f.contenedorTipo };
+      const updated = {
+        ...f,
+        pesoContenedor: nuevoPeso,
+        contenedorTipo: resumen || f.contenedorTipo,
+        contenedorRecalculado: true,
+        recalcLines: recalcModal.lines.map(l => ({ ...l })),
+        // cantidadContenedores NO cambia — es el total original del pesaje
+      };
       return recalcularFila(updated);
     }));
     toast.success(`Contenedores recalculados: ${nuevoPeso.toFixed(2)} kg`);
@@ -875,7 +940,6 @@ export function DashboardSecretaria() {
                           <div className="flex items-center justify-end gap-1">
                             <div>
                               <span className="text-xs tabular-nums" style={{color:COL.contenedor}}>{fila.pesoContenedor.toFixed(2)}</span>
-                              <div className="text-[9px] text-gray-700">{fila.contenedorTipo}</div>
                             </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); abrirRecalcModal(fila.id); }}
@@ -1121,9 +1185,10 @@ export function DashboardSecretaria() {
                         <input type="number" min="0"
                           value={line.cantidad}
                           onChange={e => recalcUpdateLine(idx, 'cantidad', parseInt(e.target.value) || 0)}
+                          disabled={idx === 0}
                           className="w-14 text-xs font-mono text-center rounded-lg px-1 py-1.5"
-                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:'white', outline:'none'}}
-                          title="Cantidad" />
+                          style={{background: idx === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color: idx === 0 ? '#9ca3af' : 'white', outline:'none', cursor: idx === 0 ? 'not-allowed' : 'text'}}
+                          title={idx === 0 ? 'Auto-calculado (restante)' : 'Cantidad'} />
                         {/* Subtotal */}
                         <span className="text-[10px] font-mono w-16 text-right tabular-nums" style={{color:COL.contenedor}}>
                           {(line.pesoUnit * line.cantidad).toFixed(2)}
@@ -1163,7 +1228,9 @@ export function DashboardSecretaria() {
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total cont.</p>
-                        <p className="text-sm font-bold tabular-nums text-white">{recalcNuevaCantTotal}</p>
+                        <p className={`text-sm font-bold tabular-nums ${recalcNuevaCantTotal === (filaActual?.cantidadContenedores ?? 0) ? 'text-green-400' : 'text-red-400'}`}>
+                          {recalcNuevaCantTotal} / {filaActual?.cantidadContenedores ?? 0}
+                        </p>
                       </div>
                     </div>
                   </div>
