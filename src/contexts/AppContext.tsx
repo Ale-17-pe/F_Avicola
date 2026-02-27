@@ -115,6 +115,7 @@ export interface PedidoConfirmado {
   // Merma calculada del pedido
   mermaTotal?: number;
   sexo?: 'Macho' | 'Hembra' | 'Mixto';
+  grupoDespacho?: string;
 }
 
 export interface Presentacion {

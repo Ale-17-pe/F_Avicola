@@ -1,23 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
-  Scale,
-  MapPin,
-  User,
-  Printer,
-  CheckCircle,
-  Package,
-  X,
-  FileText,
-  Usb,
-  Wifi,
-  RotateCcw,
-  Monitor,
-  Box,
-  Info,
-  Plus,
-  Lock,
+  Scale, MapPin, User, Printer, CheckCircle, Package, X, FileText, Usb, Wifi,
+  RotateCcw, Monitor, Box, Plus, Lock, ChevronRight, ChevronDown, Clock,
+  ArrowLeft, Layers, Users,
 } from 'lucide-react';
-
 import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
 import { toast } from 'sonner';
 
@@ -48,7 +34,7 @@ const JABA_ESTANDAR = { id: 'jaba-std', tipo: 'Jaba Estándar', peso: 6.9 };
 interface PesadaParcial {
   numero: number;
   peso: number;
-  jabas?: number; // cantidad de jabas en esta pesada (solo Vivo)
+  jabas?: number;
 }
 
 interface ContenedorOpcion {
@@ -57,21 +43,46 @@ interface ContenedorOpcion {
   peso: number;
 }
 
-interface TicketData {
+interface ResultadoPesajeOrden {
+  pedidoId: string;
   pedido: PedidoConfirmado;
   pesadas: PesadaParcial[];
   pesoBrutoTotal: number;
-  pesoContenedoresTotal: number;
-  pesoNetoTotal: number;
+  contenedorId: string;
   tipoContenedor: string;
   cantidadContenedores: number;
   pesoUnitarioContenedor: number;
+  pesoContenedoresTotal: number;
+  pesoNetoTotal: number;
+}
+
+interface ConsolidatedTicketData {
+  grupoId: string;
+  cliente: string;
+  pedidos: ResultadoPesajeOrden[];
+  totales: {
+    pesoBrutoTotal: number;
+    pesoContenedoresTotal: number;
+    pesoNetoTotal: number;
+  };
   conductor: string;
   conductorPlaca: string;
   zona: string;
   fechaEmision: string;
   horaEmision: string;
   numeroTicket: string;
+}
+
+interface GrupoPesaje {
+  grupoId: string;
+  pedidos: PedidoConfirmado[];
+}
+
+interface ClienteEnPesaje {
+  cliente: string;
+  totalPedidos: number;
+  grupos: GrupoPesaje[];
+  primeraLlegada: number;
 }
 
 // ===================== HOOK: useSerialScale =====================
@@ -159,26 +170,37 @@ export function PesajeOperador() {
   const { pedidosConfirmados, updatePedidoConfirmado, contenedores, clientes } = useApp();
   const scale = useSerialScale();
 
-  const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
+  // ── Vista principal ──
+  const [vista, setVista] = useState<'clientes' | 'pesaje' | 'entrega'>('clientes');
+  const [clienteExpandido, setClienteExpandido] = useState<string | null>(null);
+
+  // ── Pesaje de grupo ──
+  const [grupoActual, setGrupoActual] = useState<GrupoPesaje | null>(null);
+  const [ordenActualIdx, setOrdenActualIdx] = useState(0);
+  const [resultadosCompletos, setResultadosCompletos] = useState<ResultadoPesajeOrden[]>([]);
+
+  // ── Estado de pesaje de la orden actual ──
   const [modoManual, setModoManual] = useState(true);
   const [pesoManualInput, setPesoManualInput] = useState('');
-
   const [pesadas, setPesadas] = useState<PesadaParcial[]>([]);
-  const [fase, setFase] = useState<'pesando' | 'confirmando-contenedor' | 'asignando-entrega'>('pesando');
+  const [faseOrden, setFaseOrden] = useState<'pesando' | 'confirmando-contenedor'>('pesando');
 
+  // Contenedor
   const [contenedorFinalId, setContenedorFinalId] = useState('');
   const [cantidadContenedoresInput, setCantidadContenedoresInput] = useState('');
   const [cantidadBloqueada, setCantidadBloqueada] = useState(false);
 
+  // Jabas (Vivo)
+  const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
+  const [pesoJabaEditable, setPesoJabaEditable] = useState(JABA_ESTANDAR.peso);
+
+  // Entrega (compartido para todo el grupo)
   const [conductorId, setConductorId] = useState('');
   const [zonaId, setZonaId] = useState('');
   const [zonaBloqueada, setZonaBloqueada] = useState(false);
 
-  // Estados para pesaje Vivo por jabas
-  const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
-  const [pesoJabaEditable, setPesoJabaEditable] = useState(JABA_ESTANDAR.peso);
-
-  const [ticketVisible, setTicketVisible] = useState<TicketData | null>(null);
+  // Ticket
+  const [ticketVisible, setTicketVisible] = useState<ConsolidatedTicketData | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
@@ -187,50 +209,83 @@ export function PesajeOperador() {
     return () => broadcastRef.current?.close();
   }, []);
 
+  // ── Datos derivados ──
   const pedidosEnPesaje = pedidosConfirmados
-    .filter((p) => p.estado === 'En Pesaje')
+    .filter(p => p.estado === 'En Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
-  // Vivo → siempre Jaba Estándar; cualquier otra presentación → Jaba Estándar + contenedores del sistema
-  const esVivo = !!selectedPedido?.presentacion?.toLowerCase().includes('vivo');
+  const clientesEnPesaje: ClienteEnPesaje[] = useMemo(() => {
+    const map = new Map<string, PedidoConfirmado[]>();
+    pedidosEnPesaje.forEach(p => {
+      if (!map.has(p.cliente)) map.set(p.cliente, []);
+      map.get(p.cliente)!.push(p);
+    });
+    return Array.from(map.entries())
+      .map(([cliente, pedidos]) => {
+        const gruposMap = new Map<string, PedidoConfirmado[]>();
+        pedidos.forEach(p => {
+          const key = p.grupoDespacho || `individual-${p.id}`;
+          if (!gruposMap.has(key)) gruposMap.set(key, []);
+          gruposMap.get(key)!.push(p);
+        });
+        return {
+          cliente,
+          totalPedidos: pedidos.length,
+          primeraLlegada: Math.min(...pedidos.map(p => p.prioridad)),
+          grupos: Array.from(gruposMap.entries()).map(([grupoId, grupoPedidos]) => ({
+            grupoId,
+            pedidos: grupoPedidos.sort((a, b) => {
+              const aNum = parseInt((a.numeroPedido || '').split('.')[1] || '0');
+              const bNum = parseInt((b.numeroPedido || '').split('.')[1] || '0');
+              return aNum - bNum;
+            }),
+          })),
+        };
+      })
+      .sort((a, b) => a.primeraLlegada - b.primeraLlegada);
+  }, [pedidosEnPesaje]);
+
+  // Orden actual
+  const ordenActual = grupoActual?.pedidos[ordenActualIdx] || null;
+  const esVivo = !!ordenActual?.presentacion?.toLowerCase().includes('vivo');
 
   const opcionesContenedor: ContenedorOpcion[] = esVivo
     ? [JABA_ESTANDAR]
     : [JABA_ESTANDAR, ...contenedores.filter(c => c.tipo !== 'Jaba Estándar').map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }))];
 
-  const resetearTodo = () => {
+  const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
+  const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);
+
+  // Jabas tracking
+  const totalJabasPedido = ordenActual?.cantidadJabas || 0;
+  const unidadesPorJaba = ordenActual?.unidadesPorJaba || 0;
+  const totalAvesPedido = totalJabasPedido * unidadesPorJaba;
+  const jabasPesadas = pesadas.reduce((sum, p) => sum + (p.jabas || 0), 0);
+  const jabasRestantes = totalJabasPedido - jabasPesadas;
+  const jabasInput = parseInt(jabasEnEstaPesada) || 0;
+
+  // Container preview
+  const contSeleccionadoPreview = opcionesContenedor.find(c => c.id === contenedorFinalId);
+  const cantidadPreview = parseInt(cantidadContenedoresInput) || 0;
+  const taraPreview = esVivo ? pesoJabaEditable * cantidadPreview : (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
+  const netoPreview = pesoBrutoTotal - taraPreview;
+
+  const zonaSeleccionada = ZONAS.find(z => z.id === zonaId);
+
+  // ── Handlers ──
+
+  const resetearOrdenActual = () => {
     setPesadas([]);
-    setFase('pesando');
+    setFaseOrden('pesando');
     setPesoManualInput('');
     setContenedorFinalId('');
     setCantidadContenedoresInput('');
     setCantidadBloqueada(false);
-    setConductorId('');
-    setZonaId('');
-    setZonaBloqueada(false);
     setJabasEnEstaPesada('');
     setPesoJabaEditable(JABA_ESTANDAR.peso);
   };
 
-  const handleSelectPedido = (pedido: PedidoConfirmado) => {
-    setSelectedPedido(pedido);
-    resetearTodo();
-    setTicketVisible(null);
-
-    // ── Zona: buscar del cliente y bloquear si existe ─────────────
-    const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
-    if (clienteObj?.zona) {
-      const zonaMatch = ZONAS.find(z =>
-        z.id === clienteObj.zona ||
-        z.nombre.toLowerCase().includes(clienteObj.zona.toLowerCase())
-      );
-      if (zonaMatch) {
-        setZonaId(zonaMatch.id);
-        setZonaBloqueada(true); // ← bloquear
-      }
-    }
-
-    // ── Contenedor: Vivo → Jaba Estándar, otros → contenedores del sistema ──
+  const prepararOrden = (pedido: PedidoConfirmado) => {
     const esVivoP = !!pedido.presentacion?.toLowerCase().includes('vivo');
     if (esVivoP) {
       setContenedorFinalId(JABA_ESTANDAR.id);
@@ -242,31 +297,45 @@ export function PesajeOperador() {
       const contDef = contenedores.find(c => c.tipo === pedido.contenedor);
       if (contDef) setContenedorFinalId(contDef.id);
     }
-
     broadcastRef.current?.postMessage({
       type: 'pedido-selected',
       pedido: { cliente: pedido.cliente, tipoAve: pedido.tipoAve, cantidad: pedido.cantidad, presentacion: pedido.presentacion },
     });
   };
 
-  const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
-  const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);
+  const iniciarPesajeGrupo = (grupo: GrupoPesaje) => {
+    setGrupoActual(grupo);
+    setOrdenActualIdx(0);
+    setResultadosCompletos([]);
+    setVista('pesaje');
+    resetearOrdenActual();
+    setConductorId('');
+    setZonaId('');
+    setZonaBloqueada(false);
 
-  // Vivo jaba tracking
-  const totalJabasPedido = selectedPedido?.cantidadJabas || 0;
-  const unidadesPorJaba = selectedPedido?.unidadesPorJaba || 0;
-  const totalAvesPedido = totalJabasPedido * unidadesPorJaba;
-  const jabasPesadas = pesadas.reduce((sum, p) => sum + (p.jabas || 0), 0);
-  const jabasRestantes = totalJabasPedido - jabasPesadas;
-  const jabasInput = parseInt(jabasEnEstaPesada) || 0;
+    // Zona del cliente
+    const pedido = grupo.pedidos[0];
+    const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
+    if (clienteObj?.zona) {
+      const zonaMatch = ZONAS.find(z =>
+        z.id === clienteObj.zona ||
+        z.nombre.toLowerCase().includes(clienteObj.zona.toLowerCase())
+      );
+      if (zonaMatch) { setZonaId(zonaMatch.id); setZonaBloqueada(true); }
+    }
+    prepararOrden(pedido);
+  };
 
-  const contSeleccionadoPreview = opcionesContenedor.find(c => c.id === contenedorFinalId);
-  const cantidadPreview = parseInt(cantidadContenedoresInput) || 0;
-  const taraVivoPreview = esVivo ? pesoJabaEditable * cantidadPreview : 0;
-  const taraPreview = esVivo ? taraVivoPreview : (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
-  const netoPreview = pesoBrutoTotal - taraPreview;
-
-  const zonaSeleccionada = ZONAS.find(z => z.id === zonaId);
+  const handleVolver = () => {
+    if (resultadosCompletos.length > 0 || pesadas.length > 0) {
+      if (!window.confirm('¿Salir del pesaje? Se perderán los datos no guardados.')) return;
+    }
+    setVista('clientes');
+    setGrupoActual(null);
+    setOrdenActualIdx(0);
+    setResultadosCompletos([]);
+    resetearOrdenActual();
+  };
 
   const sumarPesada = () => {
     if (pesoActual <= 0) { toast.error('El peso debe ser mayor a 0'); return; }
@@ -297,74 +366,106 @@ export function PesajeOperador() {
 
   const terminarPesaje = () => {
     if (pesadas.length === 0) { toast.error('Debe registrar al menos una pesada'); return; }
-    setFase('confirmando-contenedor');
+    setFaseOrden('confirmando-contenedor');
   };
 
-  const confirmarContenedor = () => {
+  const confirmarContenedorYAvanzar = () => {
+    if (!ordenActual || !grupoActual) return;
     if (!contenedorFinalId) { toast.error('Seleccione el tipo de contenedor'); return; }
     if (!cantidadPreview || cantidadPreview <= 0) { toast.error('Ingrese la cantidad de contenedores'); return; }
-    setFase('asignando-entrega');
+
+    const contFinal = opcionesContenedor.find(c => c.id === contenedorFinalId);
+    if (!contFinal) return;
+
+    const pesoUnitCont = esVivo ? pesoJabaEditable : contFinal.peso;
+    const pesoTotalCont = pesoUnitCont * cantidadPreview;
+    const pesoNeto = pesoBrutoTotal - pesoTotalCont;
+
+    const resultado: ResultadoPesajeOrden = {
+      pedidoId: ordenActual.id,
+      pedido: ordenActual,
+      pesadas: [...pesadas],
+      pesoBrutoTotal,
+      contenedorId: contenedorFinalId,
+      tipoContenedor: contFinal.tipo,
+      cantidadContenedores: cantidadPreview,
+      pesoUnitarioContenedor: pesoUnitCont,
+      pesoContenedoresTotal: pesoTotalCont,
+      pesoNetoTotal: pesoNeto,
+    };
+
+    const nuevosResultados = [...resultadosCompletos, resultado];
+    setResultadosCompletos(nuevosResultados);
+
+    const nextIdx = ordenActualIdx + 1;
+    if (nextIdx < grupoActual.pedidos.length) {
+      setOrdenActualIdx(nextIdx);
+      resetearOrdenActual();
+      prepararOrden(grupoActual.pedidos[nextIdx]);
+      toast.success(`Pedido ${ordenActualIdx + 1}/${grupoActual.pedidos.length} completado. Siguiente pedido...`);
+    } else {
+      setVista('entrega');
+      toast.success('¡Todos los pedidos del grupo han sido pesados!');
+    }
   };
 
-  const handleConfirmar = () => {
-    if (!selectedPedido) return;
+  const handleConfirmarDespacho = () => {
+    if (!grupoActual) return;
     if (!conductorId) { toast.error('Seleccione un conductor'); return; }
     if (!zonaId) { toast.error('Seleccione una zona de entrega'); return; }
 
     const conductor = CONDUCTORES.find(c => c.id === conductorId);
     const zona = ZONAS.find(z => z.id === zonaId);
-    const contFinal = opcionesContenedor.find(c => c.id === contenedorFinalId);
-    if (!conductor || !zona || !contFinal) return;
-
-    // Para Vivo usar pesoJabaEditable, para otros usar peso del contenedor seleccionado
-    const pesoUnitContFinal = esVivo ? pesoJabaEditable : contFinal.peso;
-    const pesoTotalContenedores = pesoUnitContFinal * cantidadPreview;
-    const pesoNeto = pesoBrutoTotal - pesoTotalContenedores;
+    if (!conductor || !zona) return;
 
     const ahora = new Date();
-    const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
-    const bloquesPesaje: BloquePesaje[] = pesadas.map((p, i) => ({
-      numero: i + 1,
-      tamano: 0,
-      pesoBruto: p.peso,
-      tipoContenedor: contFinal.tipo,
-      pesoContenedor: 0,
-      cantidadContenedores: 0,
-    }));
-
-    // Fecha de Lima (America/Lima) para alinear con Cartera y reportes
     const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const fechaPeru = `${peru.getFullYear()}-${String(peru.getMonth() + 1).padStart(2, '0')}-${String(peru.getDate()).padStart(2, '0')}`;
+    const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    const pedidoActualizado: PedidoConfirmado = {
-      ...selectedPedido,
-      pesoBrutoTotal,
-      pesoNetoTotal: pesoNeto,
-      pesoKg: pesoNeto,
-      pesoTotalContenedores,
-      cantidadTotalContenedores: cantidadPreview,
-      bloquesPesaje,
-      conductor: conductor.nombre,
-      zonaEntrega: zona.nombre,
-      estado: 'En Despacho',
-      ticketEmitido: true,
-      fechaPesaje: fechaPeru,
-      horaPesaje: ahora.toTimeString().slice(0, 5),
-      numeroTicket,
+    // Actualizar cada pedido del grupo
+    resultadosCompletos.forEach(resultado => {
+      const bloquesPesaje: BloquePesaje[] = resultado.pesadas.map((p, i) => ({
+        numero: i + 1,
+        tamano: 0,
+        pesoBruto: p.peso,
+        tipoContenedor: resultado.tipoContenedor,
+        pesoContenedor: 0,
+        cantidadContenedores: 0,
+      }));
+
+      const pedidoActualizado: PedidoConfirmado = {
+        ...resultado.pedido,
+        pesoBrutoTotal: resultado.pesoBrutoTotal,
+        pesoNetoTotal: resultado.pesoNetoTotal,
+        pesoKg: resultado.pesoNetoTotal,
+        pesoTotalContenedores: resultado.pesoContenedoresTotal,
+        cantidadTotalContenedores: resultado.cantidadContenedores,
+        bloquesPesaje,
+        conductor: conductor.nombre,
+        zonaEntrega: zona.nombre,
+        estado: 'En Despacho',
+        ticketEmitido: true,
+        fechaPesaje: fechaPeru,
+        horaPesaje: ahora.toTimeString().slice(0, 5),
+        numeroTicket,
+      };
+
+      updatePedidoConfirmado(resultado.pedidoId, pedidoActualizado);
+    });
+
+    // Generar datos del ticket consolidado
+    const totales = {
+      pesoBrutoTotal: resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0),
+      pesoContenedoresTotal: resultadosCompletos.reduce((s, r) => s + r.pesoContenedoresTotal, 0),
+      pesoNetoTotal: resultadosCompletos.reduce((s, r) => s + r.pesoNetoTotal, 0),
     };
 
-    updatePedidoConfirmado(selectedPedido.id, pedidoActualizado);
-
     setTicketVisible({
-      pedido: pedidoActualizado,
-      pesadas: [...pesadas],
-      pesoBrutoTotal,
-      pesoContenedoresTotal: pesoTotalContenedores,
-      pesoNetoTotal: pesoNeto,
-      tipoContenedor: contFinal.tipo,
-      cantidadContenedores: cantidadPreview,
-      pesoUnitarioContenedor: pesoUnitContFinal,
+      grupoId: grupoActual.grupoId,
+      cliente: grupoActual.pedidos[0].cliente,
+      pedidos: resultadosCompletos,
+      totales,
       conductor: conductor.nombre,
       conductorPlaca: conductor.placa,
       zona: zona.nombre,
@@ -373,10 +474,17 @@ export function PesajeOperador() {
       numeroTicket,
     });
 
-    setSelectedPedido(null);
-    resetearTodo();
-    broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: pesoBrutoTotal });
-    toast.success(`Ticket ${numeroTicket} emitido correctamente`);
+    // Reset
+    setVista('clientes');
+    setGrupoActual(null);
+    setOrdenActualIdx(0);
+    setResultadosCompletos([]);
+    resetearOrdenActual();
+    setConductorId('');
+    setZonaId('');
+    setZonaBloqueada(false);
+    broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
+    toast.success(`Ticket ${numeroTicket} emitido — ${resultadosCompletos.length} pedido(s)`);
   };
 
   const abrirPantallaDisplay = () => {
@@ -409,14 +517,27 @@ export function PesajeOperador() {
   return (
     <div className="space-y-4">
 
-      {/* HEADER */}
+      {/* ══════════ HEADER ══════════ */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          {vista !== 'clientes' && (
+            <button onClick={handleVolver} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <ArrowLeft className="w-3.5 h-3.5" /> Volver
+            </button>
+          )}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <Package className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-bold text-amber-400">{pedidosEnPesaje.length}</span>
             <span className="text-xs text-gray-500">en cola</span>
           </div>
+          {vista !== 'clientes' && grupoActual && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
+              <Users className="w-4 h-4 text-green-500" />
+              <span className="text-sm font-semibold text-green-400">{grupoActual.pedidos[0].cliente}</span>
+              <span className="text-[10px] text-gray-500">·</span>
+              <span className="text-xs text-gray-400">{vista === 'entrega' ? 'Asignando entrega' : `Pedido ${ordenActualIdx + 1} de ${grupoActual.pedidos.length}`}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }}>
@@ -433,64 +554,146 @@ export function PesajeOperador() {
         </div>
       </div>
 
-      {/* Cola horizontal de pedidos */}
-      <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-        {pedidosEnPesaje.length === 0 ? (
-          <div className="flex-1 rounded-xl p-6 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}>
-            <Scale className="w-8 h-8 mx-auto mb-2 text-gray-800" />
-            <p className="text-gray-600 text-xs">Sin pedidos en cola de pesaje</p>
-          </div>
-        ) : (
-          pedidosEnPesaje.map((pedido, idx) => (
-            <button
-              key={pedido.id}
-              onClick={() => handleSelectPedido(pedido)}
-              className="flex-shrink-0 text-left rounded-xl px-4 py-3 transition-all duration-200 group min-w-[200px]"
-              style={{
-                background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
-                border: selectedPedido?.id === pedido.id ? '2px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black flex-shrink-0"
-                  style={{ background: selectedPedido?.id === pedido.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: selectedPedido?.id === pedido.id ? '#22c55e' : '#555' }}>
-                  {idx + 1}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{pedido.cliente}</div>
-                  <div className="text-[10px] text-gray-600 truncate">{pedido.cantidad} · {pedido.presentacion}</div>
-                </div>
-                {pedido.cantidadJabas && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                    <Lock className="w-2.5 h-2.5 inline mr-0.5" />{pedido.cantidadJabas}j
-                  </span>
+      {/* ══════════ VISTA: LISTA DE CLIENTES ══════════ */}
+      {vista === 'clientes' && (
+        <div className="space-y-2">
+          {clientesEnPesaje.length === 0 ? (
+            <div className="flex-1 rounded-xl p-10 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}>
+              <Scale className="w-10 h-10 mx-auto mb-3 text-gray-800" />
+              <p className="text-gray-600 text-sm">Sin pedidos en cola de pesaje</p>
+              <p className="text-gray-700 text-xs mt-1">Los pedidos llegarán aquí desde Seguimiento de Pedidos</p>
+            </div>
+          ) : (
+            clientesEnPesaje.map((clienteData, cIdx) => (
+              <div key={clienteData.cliente} className="rounded-xl overflow-hidden transition-all duration-200" style={{ background: 'rgba(255,255,255,0.02)', border: clienteExpandido === clienteData.cliente ? '2px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Cabecera del cliente */}
+                <button
+                  onClick={() => setClienteExpandido(clienteExpandido === clienteData.cliente ? null : clienteData.cliente)}
+                  className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                    style={{ background: clienteExpandido === clienteData.cliente ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: clienteExpandido === clienteData.cliente ? '#22c55e' : '#555' }}>
+                    {cIdx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-bold text-white truncate">{clienteData.cliente}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-gray-500">{clienteData.totalPedidos} pedido{clienteData.totalPedidos > 1 ? 's' : ''}</span>
+                      <span className="text-[10px] text-gray-700">·</span>
+                      <span className="text-[10px] text-gray-500">{clienteData.grupos.length} lote{clienteData.grupos.length > 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                      {clienteData.totalPedidos}
+                    </span>
+                    {clienteExpandido === clienteData.cliente ? <ChevronDown className="w-4 h-4 text-green-400" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
+                  </div>
+                </button>
+
+                {/* Contenido expandido: grupos/lotes */}
+                {clienteExpandido === clienteData.cliente && (
+                  <div className="px-5 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    {clienteData.grupos.map((grupo, gIdx) => (
+                      <div key={grupo.grupoId} className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        {/* Header del lote */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-blue-400/60" />
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lote {gIdx + 1}</span>
+                            <span className="text-[10px] text-gray-600">· {grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
+                          </div>
+                          <button
+                            onClick={() => iniciarPesajeGrupo(grupo)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white transition-all hover:scale-[1.03]"
+                            style={{ background: 'linear-gradient(135deg, #0d4a24, #22c55e)', boxShadow: '0 4px 12px rgba(34,197,94,0.3)' }}
+                          >
+                            <Scale className="w-3.5 h-3.5" /> PESAR
+                          </button>
+                        </div>
+
+                        {/* Lista de pedidos del lote */}
+                        <div className="space-y-1.5">
+                          {grupo.pedidos.map((pedido, pIdx) => (
+                            <div key={pedido.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                              <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                                {pIdx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-mono text-gray-400">{pedido.numeroPedido || 'S/N'}</span>
+                                  <span className="text-xs font-semibold text-white truncate">{pedido.tipoAve}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.08)', color: '#3b82f6' }}>{pedido.presentacion}</span>
+                                  <span className="text-[10px] text-gray-600">{pedido.cantidad} unids.</span>
+                                  {pedido.cantidadJabas && (
+                                    <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#f59e0b' }}>
+                                      <Lock className="w-2.5 h-2.5" />{pedido.cantidadJabas}j
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </button>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
 
-      {/* PANEL PRINCIPAL */}
-      {selectedPedido ? (
+      {/* ══════════ VISTA: PESAJE SECUENCIAL ══════════ */}
+      {vista === 'pesaje' && grupoActual && ordenActual && (
         <div className="space-y-4">
 
-          {/* Cabecera del pedido */}
+          {/* Barra de progreso del grupo */}
+          <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.12)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Progreso del Lote</span>
+              <span className="text-xs font-bold text-green-400">{resultadosCompletos.length}/{grupoActual.pedidos.length}</span>
+            </div>
+            <div className="flex gap-1">
+              {grupoActual.pedidos.map((p, i) => (
+                <div key={p.id} className="flex-1 h-2 rounded-full transition-all duration-300" style={{
+                  background: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.06)',
+                }} />
+              ))}
+            </div>
+            {/* Mini lista de pedidos con estado */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {grupoActual.pedidos.map((p, i) => (
+                <span key={p.id} className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{
+                  background: i < resultadosCompletos.length ? 'rgba(34,197,94,0.1)' : i === ordenActualIdx ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
+                  color: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? '#f59e0b' : '#555',
+                  border: `1px solid ${i < resultadosCompletos.length ? 'rgba(34,197,94,0.2)' : i === ordenActualIdx ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                }}>
+                  {i < resultadosCompletos.length ? '✓' : i === ordenActualIdx ? '●' : '○'} {p.numeroPedido || `#${i + 1}`}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Cabecera del pedido actual */}
           <div className="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
             <div className="flex items-center gap-4">
               <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                 <User className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">{selectedPedido.cliente}</h2>
+                <h2 className="text-lg font-bold text-white">{ordenActual.cliente}</h2>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{selectedPedido.numeroPedido || 'S/N'}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{selectedPedido.tipoAve}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{selectedPedido.presentacion}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{selectedPedido.cantidad} unids.</span>
-                  {selectedPedido.cantidadJabas && (
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{ordenActual.numeroPedido || 'S/N'}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{ordenActual.tipoAve}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{ordenActual.presentacion}</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{ordenActual.cantidad} unids.</span>
+                  {ordenActual.cantidadJabas && (
                     <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
-                      <Lock className="w-3 h-3" /> {selectedPedido.cantidadJabas} jabas
+                      <Lock className="w-3 h-3" /> {ordenActual.cantidadJabas} jabas
                     </span>
                   )}
                   {zonaBloqueada && zonaSeleccionada && (
@@ -501,7 +704,7 @@ export function PesajeOperador() {
                 </div>
               </div>
             </div>
-            {fase === 'pesando' && (
+            {faseOrden === 'pesando' && (
               <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold self-start sm:self-auto"
                 style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
                 {modoManual ? '⌨ Manual' : '⚖ Balanza'}
@@ -509,7 +712,7 @@ export function PesajeOperador() {
             )}
           </div>
 
-          {/* Info panel para pedidos Vivo */}
+          {/* Info jabas Vivo */}
           {esVivo && totalJabasPedido > 0 && (
             <div className="grid grid-cols-3 gap-2 rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.1)' }}>
@@ -527,8 +730,8 @@ export function PesajeOperador() {
             </div>
           )}
 
-          {/* ─────────────── FASE 1: PESANDO ─────────────── */}
-          {fase === 'pesando' && (
+          {/* ─────────── FASE: PESANDO ─────────── */}
+          {faseOrden === 'pesando' && (
             <div className="rounded-2xl relative overflow-hidden"
               style={{
                 background: 'linear-gradient(160deg, #080808, #111)',
@@ -602,7 +805,7 @@ export function PesajeOperador() {
                 )}
               </div>
 
-              {/* Jabas en esta pesada — solo Vivo */}
+              {/* Jabas input — solo Vivo */}
               {esVivo && totalJabasPedido > 0 && jabasRestantes > 0 && (
                 <div className="px-6 pb-2">
                   <div className="max-w-xs mx-auto flex items-center gap-3 p-3 rounded-xl"
@@ -671,12 +874,11 @@ export function PesajeOperador() {
             </div>
           )}
 
-          {/* ─────────── FASE 2: CONFIRMAR CONTENEDOR ──────────── */}
-          {fase === 'confirmando-contenedor' && (
+          {/* ─────────── FASE: CONFIRMAR CONTENEDOR ─────────── */}
+          {faseOrden === 'confirmando-contenedor' && (
             <div className="rounded-2xl overflow-hidden"
               style={{ background: 'linear-gradient(160deg, #080808, #111)', border: '2px solid rgba(245,158,11,0.35)' }}>
 
-              {/* Summary bar */}
               <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -700,15 +902,14 @@ export function PesajeOperador() {
                   <p className="text-amber-300 text-lg font-black uppercase tracking-wide">
                     {esVivo ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
                   </p>
-                  {esVivo && cantidadBloqueada && selectedPedido?.cantidadJabas && (
+                  {esVivo && cantidadBloqueada && ordenActual?.cantidadJabas && (
                     <div className="flex items-center justify-center gap-2 mt-1 text-xs text-amber-500">
                       <Lock className="w-3.5 h-3.5" />
-                      <span>Cantidad bloqueada: <strong>{selectedPedido.cantidadJabas} jabas</strong></span>
+                      <span>Cantidad bloqueada: <strong>{ordenActual.cantidadJabas} jabas</strong></span>
                     </div>
                   )}
                 </div>
 
-                {/* Selector de contenedor */}
                 <div className="flex flex-wrap gap-2 justify-center">
                   {opcionesContenedor.map(cont => (
                     <button key={cont.id}
@@ -730,9 +931,6 @@ export function PesajeOperador() {
                   ))}
                 </div>
 
-
-
-                {/* Cantidad */}
                 <div>
                   <p className="text-center text-sm font-medium text-gray-400 mb-3">
                     {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
@@ -753,7 +951,7 @@ export function PesajeOperador() {
                       <input type="number" min="1"
                         value={cantidadContenedoresInput}
                         onChange={(e) => setCantidadContenedoresInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedor(); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedorYAvanzar(); }}
                         placeholder="Ej: 5"
                         className="w-full pl-12 pr-6 py-4 rounded-xl text-white text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
                         style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.3)' }}
@@ -763,7 +961,6 @@ export function PesajeOperador() {
                   )}
                 </div>
 
-                {/* Preview tara/neto */}
                 {contenedorFinalId && cantidadPreview > 0 && (
                   <div className="grid grid-cols-3 gap-2 p-3 rounded-xl text-center"
                     style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -783,130 +980,170 @@ export function PesajeOperador() {
                 )}
 
                 <div className="flex gap-3">
-                  <button onClick={() => setFase('pesando')}
+                  <button onClick={() => setFaseOrden('pesando')}
                     className="flex-1 py-3 rounded-xl text-gray-400 font-semibold flex items-center justify-center gap-2 hover:bg-white/5 transition-all"
                     style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                     <RotateCcw className="w-4 h-4" /> Volver
                   </button>
-                  <button onClick={confirmarContenedor} disabled={!contenedorFinalId || cantidadPreview <= 0}
+                  <button onClick={confirmarContenedorYAvanzar} disabled={!contenedorFinalId || cantidadPreview <= 0}
                     className="flex-[2] py-3 rounded-xl text-white font-black text-base transition-all hover:scale-[1.01] disabled:opacity-20 flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #78350f, #d97706)', boxShadow: '0 4px 15px rgba(245,158,11,0.25)' }}>
-                    <CheckCircle className="w-5 h-5" /> Confirmar
+                    <CheckCircle className="w-5 h-5" />
+                    {ordenActualIdx < (grupoActual?.pedidos.length || 1) - 1 ? 'CONFIRMAR Y SIGUIENTE' : 'CONFIRMAR Y FINALIZAR'}
                   </button>
                 </div>
               </div>
             </div>
           )}
+        </div>
+      )}
 
-          {/* ─────────── FASE 3: ASIGNAR ENTREGA ───────────── */}
-          {fase === 'asignando-entrega' && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'linear-gradient(160deg, rgba(34,197,94,0.03), #080808)', border: '2px solid rgba(34,197,94,0.3)' }}>
+      {/* ══════════ VISTA: ASIGNAR ENTREGA ══════════ */}
+      {vista === 'entrega' && grupoActual && (
+        <div className="space-y-4">
+          {/* Resumen de todos los pedidos pesados */}
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(160deg, rgba(34,197,94,0.03), #080808)', border: '2px solid rgba(34,197,94,0.3)' }}>
 
-              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-xs font-bold text-green-400">LISTO PARA DESPACHO</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="text-[10px] text-gray-500 mb-0.5">Pesadas</div>
-                    <div className="text-2xl font-black text-white">{pesadas.length}</div>
-                    <div className="text-[10px] text-gray-600 mt-0.5 font-mono">{pesadas.map(p => p.peso.toFixed(1)).join(' + ')}</div>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="text-[10px] text-gray-500 mb-0.5">{esVivo ? 'Jabas' : 'Contenedores'}</div>
-                    <div className="text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
-                      {cantidadBloqueada && <Lock className="w-4 h-4" />}{cantidadPreview}
-                    </div>
-                    <div className="text-[10px] text-gray-600 mt-0.5">{contSeleccionadoPreview?.tipo}</div>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="text-[10px] text-gray-500 mb-0.5">Tara total</div>
-                    <div className="text-2xl font-black text-orange-400 tabular-nums">{taraPreview.toFixed(2)}</div>
-                    <div className="text-[10px] text-gray-600 mt-0.5">kg</div>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                    <div className="text-[10px] text-green-600 mb-0.5">Peso Neto</div>
-                    <div className="text-2xl font-black text-green-400 tabular-nums">{netoPreview.toFixed(2)}</div>
-                    <div className="text-[10px] text-green-700 mt-0.5">kg neto</div>
-                  </div>
-                </div>
+            <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span className="text-xs font-bold text-green-400">TODOS LOS PEDIDOS PESADOS</span>
               </div>
 
-              <div className="p-6 space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Conductor */}
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                    <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
-                      style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(59,130,246,0.2)' }}>
-                      <option value="">Seleccionar conductor...</option>
-                      {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Zona */}
-                  {zonaBloqueada ? (
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                      style={{ background: 'rgba(168,85,247,0.06)', border: '2px solid rgba(168,85,247,0.3)' }}>
-                      <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
-                        <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
+              {/* Resumen por pedido */}
+              <div className="space-y-2 mb-4">
+                {resultadosCompletos.map((r, i) => (
+                  <div key={r.pedidoId} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+                        {i + 1}
+                      </span>
+                      <div className="text-left">
+                        <div className="text-xs font-semibold text-white">{r.pedido.tipoAve}</div>
+                        <div className="text-[10px] text-gray-500">{r.pedido.presentacion} · {r.pesadas.length} pesada{r.pesadas.length > 1 ? 's' : ''}</div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
-                      <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
-                        style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                        <option value="">Seleccionar zona...</option>
-                        {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
-                      </select>
+                    <div className="text-right">
+                      <div className="text-sm font-black text-green-400 tabular-nums">{r.pesoNetoTotal.toFixed(2)} kg</div>
+                      <div className="text-[10px] text-gray-600">neto</div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
+              </div>
 
-                <div className="flex gap-3">
-                  <button onClick={() => setFase('confirmando-contenedor')}
-                    className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <RotateCcw className="w-4 h-4" /> Volver
-                  </button>
-                  <button onClick={handleConfirmar}
-                    className="flex-1 py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}>
-                    <Printer className="w-5 h-5" /> CONFIRMAR Y EMITIR TICKET
-                  </button>
+              {/* Totales generales */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="text-[10px] text-gray-500 mb-0.5">Bruto Total</div>
+                  <div className="text-xl font-black text-white tabular-nums">
+                    {resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-gray-600">kg</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="text-[10px] text-gray-500 mb-0.5">Tara Total</div>
+                  <div className="text-xl font-black text-amber-400 tabular-nums">
+                    {resultadosCompletos.reduce((s, r) => s + r.pesoContenedoresTotal, 0).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-gray-600">kg</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                  <div className="text-[10px] text-green-600 mb-0.5">Neto Total</div>
+                  <div className="text-xl font-black text-green-400 tabular-nums">
+                    {resultadosCompletos.reduce((s, r) => s + r.pesoNetoTotal, 0).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-green-700">kg</div>
                 </div>
               </div>
             </div>
-          )}
 
-        </div>
-      ) : (
-        <div className="flex items-center justify-center rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.05)', minHeight: '50vh' }}>
-          <div className="text-center">
-            <Scale className="w-16 h-16 mx-auto mb-3" style={{ color: 'rgba(34,197,94,0.08)' }} />
-            <p className="text-gray-500 text-sm font-medium">Seleccione un pedido de la cola</p>
-            <p className="text-gray-700 text-xs mt-1">Suma pesadas → confirma contenedores → emite ticket</p>
+            <div className="p-6 space-y-4">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega (para todo el lote)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Conductor */}
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                  <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
+                    className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
+                    style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <option value="">Seleccionar conductor...</option>
+                    {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
+                  </select>
+                </div>
+
+                {/* Zona */}
+                {zonaBloqueada ? (
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                    style={{ background: 'rgba(168,85,247,0.06)', border: '2px solid rgba(168,85,247,0.3)' }}>
+                    <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
+                      <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+                    <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
+                      style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                      <option value="">Seleccionar zona...</option>
+                      {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => {
+                  // Volver al pesaje del último pedido (deshacer último resultado)
+                  if (resultadosCompletos.length > 0) {
+                    const lastResult = resultadosCompletos[resultadosCompletos.length - 1];
+                    setResultadosCompletos(resultadosCompletos.slice(0, -1));
+                    setOrdenActualIdx(grupoActual.pedidos.findIndex(p => p.id === lastResult.pedidoId));
+                    setPesadas(lastResult.pesadas);
+                    setFaseOrden('confirmando-contenedor');
+                    setContenedorFinalId(lastResult.contenedorId);
+                    setCantidadContenedoresInput(String(lastResult.cantidadContenedores));
+                    setVista('pesaje');
+                  }
+                }}
+                  className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <RotateCcw className="w-4 h-4" /> Volver
+                </button>
+                <button onClick={handleConfirmarDespacho}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}>
+                  <Printer className="w-5 h-5" /> CONFIRMAR Y EMITIR TICKET
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ===== MODAL TICKET ===== */}
+      {/* Placeholder cuando no hay selección */}
+      {vista === 'clientes' && clientesEnPesaje.length > 0 && !clienteExpandido && (
+        <div className="flex items-center justify-center rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.05)', minHeight: '30vh' }}>
+          <div className="text-center">
+            <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(34,197,94,0.08)' }} />
+            <p className="text-gray-500 text-sm font-medium">Seleccione un cliente de la lista</p>
+            <p className="text-gray-700 text-xs mt-1">Expanda el cliente → seleccione un lote → inicie el pesaje</p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ MODAL TICKET CONSOLIDADO ═══════ */}
       {ticketVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
           <div className="bg-gray-950 rounded-3xl border border-gray-800 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8)' }}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-green-400" /> Tickets Emitidos  
+                <FileText className="w-5 h-5 text-green-400" /> Tickets de Despacho
               </h2>
               <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10">
                 <X className="w-5 h-5 text-gray-400" />
@@ -920,14 +1157,12 @@ export function PesajeOperador() {
                   <div className="absolute top-0 left-0 right-0 h-1"
                     style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
 
-                  
-
                   {/* Encabezado */}
                   <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #333' }}>
                     <h3 className="text-lg font-extrabold tracking-widest">
                       <span style={{ color: '#22c55e' }}>AVÍCOLA </span><span style={{ color: '#ccaa00' }}>JOSSY</span>
                     </h3>
-                    <p className="text-[9px] text-gray-500 tracking-[0.2em] mt-0.5 uppercase">Ticket de Pedido</p>
+                    <p className="text-[9px] text-gray-500 tracking-[0.2em] mt-0.5 uppercase">Ticket de Despacho</p>
                   </div>
 
                   {/* N° ticket */}
@@ -936,49 +1171,93 @@ export function PesajeOperador() {
                     {ticketVisible.numeroTicket}
                   </div>
 
-                  {/* Datos pedido */}
-                  <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
-                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos del Pedido</p>
-                    {[
-                      ['Cliente', ticketVisible.pedido.cliente],
-                      ['Producto', ticketVisible.pedido.tipoAve],
-                      ['Presentación', ticketVisible.pedido.presentacion],
-                    ].map(([label, value]) => (
-                      <div key={label} className="flex justify-between text-[11px]">
-                        <span className="text-gray-500">{label}</span>
-                        <span className="text-white font-bold">{value}</span>
+                  {/* Cliente */}
+                  <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
+                    <div className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1">Cliente</div>
+                    <div className="text-sm font-bold text-white">{ticketVisible.cliente}</div>
+                  </div>
+
+                  {/* Bloques de pedidos */}
+                  {ticketVisible.pedidos.map((resultado, idx) => (
+                    <div key={resultado.pedidoId} className="mb-3 pb-3" style={{ borderBottom: '1px dashed #222' }}>
+                      {/* Encabezado del pedido */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold">
+                          {idx === 0 ? 'Pedido Principal' : `Sub-Pedido ${idx}`}
+                        </span>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Detalle pesadas */}
-                  <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
-                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Detalle de Pesaje</p>
-                    <table className="w-full text-[10px]">
-                      <thead>
-                        <tr>
-                          <th className="text-left text-gray-500 pb-1 font-semibold">Pesada</th>
-                          <th className="text-right text-gray-500 pb-1 font-semibold">Peso (kg)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ticketVisible.pesadas.map(p => (
-                          <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td className="py-0.5 text-gray-400">Pesada {p.numero}</td>
-                            <td className="py-0.5 text-right font-mono font-bold text-white">{p.peso.toFixed(2)}</td>
-                          </tr>
+                      {/* Datos del pedido */}
+                      <div className="mb-2 pb-1.5" style={{ borderBottom: '1px dotted rgba(255,255,255,0.06)' }}>
+                        <p className="text-[8px] text-gray-600 uppercase tracking-[0.15em] mb-1">Detalle del Pedido</p>
+                        {[
+                          ['Producto', resultado.pedido.tipoAve],
+                          ['Presentación', resultado.pedido.presentacion],
+                          ['Cantidad', `${resultado.pedido.cantidad} unids.`],
+                        ].map(([label, value]) => (
+                          <div key={label} className="flex justify-between text-[11px]">
+                            <span className="text-gray-500">{label}</span>
+                            <span className="text-white font-bold">{value}</span>
+                          </div>
                         ))}
-                        <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)' }}>
-                          <td className="py-1 text-gray-300 font-bold text-xs">TOTAL BRUTO</td>
-                          <td className="py-1 text-right font-mono font-black text-white text-sm">{ticketVisible.pesoBrutoTotal.toFixed(2)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      </div>
 
-               
+                      {/* Detalle de pesaje */}
+                      <div>
+                        <p className="text-[8px] text-gray-600 uppercase tracking-[0.15em] mb-1">Detalle del Pesaje</p>
+                        <table className="w-full text-[10px]">
+                          <thead>
+                            <tr>
+                              <th className="text-left text-gray-500 pb-1 font-semibold">Pesada</th>
+                              <th className="text-right text-gray-500 pb-1 font-semibold">Peso (kg)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {resultado.pesadas.map(p => (
+                              <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                                <td className="py-0.5 text-gray-400">Pesada {p.numero}</td>
+                                <td className="py-0.5 text-right font-mono font-bold text-white">{p.peso.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                            <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)' }}>
+                              <td className="py-0.5 text-gray-300 font-bold text-[10px]">BRUTO</td>
+                              <td className="py-0.5 text-right font-mono font-black text-white">{resultado.pesoBrutoTotal.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                              <td className="py-0.5 text-gray-500 text-[10px]">Tara ({resultado.cantidadContenedores}×{resultado.pesoUnitarioContenedor})</td>
+                              <td className="py-0.5 text-right font-mono text-amber-400">{resultado.pesoContenedoresTotal.toFixed(2)}</td>
+                            </tr>
+                            <tr style={{ borderTop: '1px solid rgba(34,197,94,0.2)' }}>
+                              <td className="py-0.5 text-green-500 font-bold text-[10px]">NETO</td>
+                              <td className="py-0.5 text-right font-mono font-black text-green-400">{resultado.pesoNetoTotal.toFixed(2)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
 
-                  {/* Datos de entrega */}
+                  {/* Totales generales (si hay más de 1 pedido) */}
+                  {ticketVisible.pedidos.length > 1 && (
+                    <div className="mb-3 pb-2 rounded-lg p-2" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.1)' }}>
+                      <p className="text-[8px] text-green-500 uppercase tracking-[0.15em] mb-1 font-bold">Totales Generales</p>
+                      {[
+                        ['Peso Bruto Total', `${ticketVisible.totales.pesoBrutoTotal.toFixed(2)} kg`],
+                        ['Tara Total', `${ticketVisible.totales.pesoContenedoresTotal.toFixed(2)} kg`],
+                        ['Peso Neto Total', `${ticketVisible.totales.pesoNetoTotal.toFixed(2)} kg`],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">{label}</span>
+                          <span className="text-white font-black">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Datos de Entrega (uno solo para todo) */}
                   <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos de Entrega</p>
                     {[

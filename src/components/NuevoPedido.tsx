@@ -379,8 +379,10 @@ export function NuevoPedido() {
       a.prioridadBase !== b.prioridadBase ? a.prioridadBase - b.prioridadBase : a.subNumero - b.subNumero
     );
 
-    const confirmar = ordenados.flatMap(pedido =>
-      pedido.subPedidos.map((sub, idx) => {
+    const baseTimestamp = Date.now();
+    const confirmar = ordenados.flatMap((pedido, pedidoIdx) => {
+      const grupoDespacho = `despacho-${baseTimestamp}-${pedidoIdx}-${Math.random().toString(36).substr(2, 6)}`;
+      return pedido.subPedidos.map((sub, idx) => {
         const varInfo = sub.variedad ? ` - ${sub.variedad}` : '';
         let cantidadFinal = 0, detalleSexo = '', jabas: number | undefined, uPorJaba: number | undefined;
         const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
@@ -411,10 +413,11 @@ export function NuevoPedido() {
           variedad: sub.variedad, presentacion: sub.presentacion,
           cantidad: cantidadFinal, cantidadJabas: jabas, unidadesPorJaba: uPorJaba,
           contenedor: 'Jaba Estándar', fecha, hora,
-          prioridad: pedido.prioridadBase, esSubPedido: pedido.subPedidos.length > 1
+          prioridad: pedido.prioridadBase, esSubPedido: pedido.subPedidos.length > 1,
+          grupoDespacho,
         };
-      })
-    );
+      });
+    });
 
     addMultiplePedidosConfirmados(confirmar);
     localStorage.removeItem('nuevoPedidoDraft');
