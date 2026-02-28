@@ -59,6 +59,7 @@ export function GestionConductor() {
   const [newClientId, setNewClientId] = useState("");
   const [sessionBlocks, setSessionBlocks] = useState<{ peso: number; foto: string }[]>([]);
   const [showReasonStep, setShowReasonStep] = useState(false);
+  const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
 
   // ── Registros ──
   const [registros, setRegistros] = useState<RegistroConductor[]>(() => {
@@ -163,7 +164,7 @@ export function GestionConductor() {
     });
 
     toast.success(`Repesada finalizada: ${pesoTotalRepesada.toFixed(1)} kg totales`);
-    setModo('DETALLE'); setSessionBlocks([]); resetForm();
+    setModo('GRUPO'); setSessionBlocks([]); resetForm();
   };
 
   const handleFinishDevolucion = () => {
@@ -185,7 +186,7 @@ export function GestionConductor() {
     });
 
     toast.warning(`Devolución finalizada: ${pesoTotalDevolucion.toFixed(1)} kg totales`);
-    setModo('DETALLE'); setSessionBlocks([]); resetForm();
+    setModo('GRUPO'); setSessionBlocks([]); resetForm();
   };
 
   const handleFinishAsignacion = () => {
@@ -208,7 +209,7 @@ export function GestionConductor() {
     });
 
     toast.success(`Adición finalizada: ${pesoTotalAsignacion.toFixed(1)} kg para ${clienteObj?.nombre}`);
-    setModo('DETALLE'); setSessionBlocks([]); resetForm();
+    setModo('GRUPO'); setSessionBlocks([]); resetForm();
   };
 
   const handleConfirmarEntregaPedido = (pedido: PedidoConfirmado) => {
@@ -309,8 +310,8 @@ export function GestionConductor() {
           <button
             onClick={() => {
               if (modo === 'DETALLE') { setModo('GRUPO'); setSelectedPedido(null); }
-              else if (modo === 'GRUPO') { setModo('LISTA'); setGrupoSeleccionado(null); }
-              else { setModo('DETALLE'); setShowReasonStep(false); setSessionBlocks([]); resetForm(); }
+              else if (modo === 'GRUPO') { setModo('LISTA'); setGrupoSeleccionado(null); setExpandedPedidos(new Set()); }
+              else { setModo('GRUPO'); setShowReasonStep(false); setSessionBlocks([]); resetForm(); }
             }}
             className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
@@ -401,7 +402,7 @@ export function GestionConductor() {
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">
                           <Weight className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                          <span className="font-semibold text-gray-300">{grupo.pesoNetoTotal.toFixed(1)} kg neto</span>
+                          <span className="font-semibold text-gray-300">{grupo.pesoBrutoTotal.toFixed(1)} kg bruto</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">
                           <MapPin className="w-3.5 h-3.5 text-gray-600 shrink-0" />
@@ -453,18 +454,10 @@ export function GestionConductor() {
                     <span className="text-xs text-gray-500">{grupoSeleccionado.zonaEntrega}</span>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="bg-black/40 border border-gray-700/50 rounded-xl px-4 py-3 text-center">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Neto Total</p>
-                    <div className="text-2xl font-black text-green-400 tabular-nums">
-                      {grupoSeleccionado.pesoNetoTotal.toFixed(1)}<span className="text-xs text-gray-500 font-normal ml-0.5">kg</span>
-                    </div>
-                  </div>
-                  <div className="bg-black/40 border border-gray-700/50 rounded-xl px-4 py-3 text-center">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Bruto Total</p>
-                    <div className="text-2xl font-black text-white tabular-nums">
-                      {grupoSeleccionado.pesoBrutoTotal.toFixed(1)}<span className="text-xs text-gray-500 font-normal ml-0.5">kg</span>
-                    </div>
+                <div className="bg-black/40 border border-gray-700/50 rounded-xl px-5 py-3 text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Bruto Total</p>
+                  <div className="text-2xl font-black text-white tabular-nums">
+                    {grupoSeleccionado.pesoBrutoTotal.toFixed(1)}<span className="text-xs text-gray-500 font-normal ml-0.5">kg</span>
                   </div>
                 </div>
               </div>
@@ -482,7 +475,7 @@ export function GestionConductor() {
             </div>
           </div>
 
-          {/* Lista de pedidos del grupo */}
+          {/* Lista de pedidos del grupo - ACCORDION */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">
               Pedidos del Despacho ({grupoSeleccionado.pedidos.length})
@@ -490,108 +483,160 @@ export function GestionConductor() {
             {grupoSeleccionado.pedidos.map((pedido, idx) => {
               const regs = getRegistrosPedido(pedido.id);
               const freshP = pedidosConfirmados.find(p => p.id === pedido.id) || pedido;
+              const isExpanded = expandedPedidos.has(pedido.id);
+              const pedidoCompletado = regs.length > 0;
+
+              const toggleExpand = () => {
+                const next = new Set(expandedPedidos);
+                if (next.has(pedido.id)) next.delete(pedido.id);
+                else next.add(pedido.id);
+                setExpandedPedidos(next);
+              };
+
               return (
-                <div key={pedido.id} className="bg-gray-900/80 border border-gray-800/80 rounded-xl overflow-hidden">
-                  <div className="p-4">
-                    {/* Header del pedido */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
-                          {idx + 1}
+                <div key={pedido.id}
+                  className="backdrop-blur-xl rounded-xl overflow-hidden transition-all"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: pedidoCompletado
+                      ? '1px solid rgba(34, 197, 94, 0.3)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  {/* Header clickeable (accordion) */}
+                  <div className="p-4 cursor-pointer" onClick={toggleExpand}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
+                          style={{ background: pedidoCompletado ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.1)', color: pedidoCompletado ? '#22c55e' : '#3b82f6' }}>
+                          {pedidoCompletado ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                         </span>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-white">{freshP.tipoAve}</span>
                             <span className="font-mono text-[10px] text-gray-500">{freshP.numeroPedido}</span>
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoBadge(freshP.estado || 'En Despacho')}`}>
+                              {freshP.estado}
+                            </span>
+                            {pedidoCompletado && (
+                              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 ring-1 ring-green-500/25">
+                                COMPLETADO
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-gray-500">{freshP.presentacion}</span>
                             <span className="text-[10px] text-gray-600">·</span>
                             <span className="text-[10px] text-gray-500">{freshP.cantidad} unids.</span>
+                            <span className="text-[10px] text-gray-600">·</span>
+                            <span className="text-[10px] font-bold text-white">{(freshP.pesoBrutoTotal || 0).toFixed(1)} kg</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoBadge(freshP.estado || 'En Despacho')}`}>
-                          {freshP.estado}
-                        </span>
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleExpand(); }}
+                        className="p-2 rounded-lg transition-all hover:scale-105 shrink-0"
+                        style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                      >
+                        {isExpanded
+                          ? <ChevronDown className="w-4 h-4 text-gray-400 rotate-180 transition-transform" />
+                          : <ChevronDown className="w-4 h-4 text-gray-400 transition-transform" />}
+                      </button>
                     </div>
-
-                    {/* Metrics del pedido */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div className="text-[9px] text-gray-500 uppercase">Bruto</div>
-                        <div className="text-sm font-black text-white tabular-nums">{(freshP.pesoBrutoTotal || 0).toFixed(1)} kg</div>
-                      </div>
-                      <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div className="text-[9px] text-gray-500 uppercase">Neto</div>
-                        <div className="text-sm font-black text-green-400 tabular-nums">{(freshP.pesoNetoTotal || freshP.pesoKg || 0).toFixed(1)} kg</div>
-                      </div>
-                      <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div className="text-[9px] text-gray-500 uppercase">Movs.</div>
-                        <div className="text-sm font-black text-gray-300 tabular-nums">{regs.length}</div>
-                      </div>
-                    </div>
-
-                    {/* Botones de acción individuales */}
-                    {freshP.estado !== 'Entregado' && (
-                      <div className="grid grid-cols-4 gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('REPESADA'); }}
-                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg transition-all text-[9px] font-bold bg-blue-900/10 ring-1 ring-blue-500/20 text-blue-300 hover:bg-blue-900/25"
-                        >
-                          <Scale className="w-4 h-4" />REPESADA
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setShowReasonStep(false); setModo('DEVOLUCION'); }}
-                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg transition-all text-[9px] font-bold bg-orange-900/10 ring-1 ring-orange-500/20 text-red-300 hover:bg-orange-900/25"
-                        >
-                          <RotateCcw className="w-4 h-4" />DEVOLUCIÓN
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('ASIGNACION'); }}
-                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg transition-all text-[9px] font-bold bg-emerald-900/10 ring-1 ring-emerald-500/20 text-emerald-300 hover:bg-emerald-900/25"
-                        >
-                          <UserPlus className="w-4 h-4" />ADICIÓN
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleConfirmarEntregaPedido(freshP); }}
-                          className="flex flex-col items-center gap-1 p-2.5 rounded-lg transition-all text-[9px] font-bold bg-green-900/10 ring-1 ring-green-500/20 text-green-300 hover:bg-green-900/25"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />ENTREGA
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Historial del pedido */}
-                    {regs.length > 0 && (
-                      <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Historial</p>
-                        {regs.slice(0, 3).map(reg => (
-                          <div key={reg.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <div className="flex items-center gap-2">
-                              {getTipoIcon(reg.tipo)}
-                              <span className="text-xs font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                              {reg.peso && <span className="font-mono font-bold text-white">{reg.peso.toFixed(1)} kg</span>}
-                              <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {regs.length > 3 && (
-                          <button
-                            onClick={() => { setSelectedPedido(freshP); setModo('DETALLE'); }}
-                            className="text-[10px] text-emerald-400 font-bold hover:underline"
-                          >
-                            Ver {regs.length - 3} más →
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
+
+                  {/* Contenido expandible */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      {/* Peso bruto */}
+                      <div className="flex justify-center mb-4">
+                        <div className="bg-black/40 border border-gray-700/50 rounded-xl px-6 py-3 text-center">
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Peso Bruto</p>
+                          <div className="text-2xl font-black text-white tabular-nums">
+                            {(freshP.pesoBrutoTotal || 0).toFixed(1)}<span className="text-xs text-gray-500 font-normal ml-0.5">kg</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Acciones o COMPLETADO */}
+                      {pedidoCompletado ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-center gap-2 py-3 rounded-xl"
+                            style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                            <CheckCircle2 className="w-5 h-5 text-green-400" />
+                            <span className="text-green-400 font-black text-sm uppercase tracking-wider">Acción Completada</span>
+                          </div>
+                          {/* Resumen del último registro */}
+                          {regs.length > 0 && (
+                            <div className="space-y-2">
+                              {regs.slice(0, 2).map(reg => (
+                                <div key={reg.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
+                                  style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                  <div className="flex items-center gap-2">
+                                    {getTipoIcon(reg.tipo)}
+                                    <span className="text-xs font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                    {reg.peso && <span className="font-mono font-bold text-white">{reg.peso.toFixed(1)} kg</span>}
+                                    <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                </div>
+                              ))}
+                              {regs.length > 2 && (
+                                <button
+                                  onClick={() => { setSelectedPedido(freshP); setModo('DETALLE'); }}
+                                  className="text-[10px] text-emerald-400 font-bold hover:underline"
+                                >
+                                  Ver {regs.length - 2} más →
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* Botones de acción */}
+                          {freshP.estado !== 'Entregado' && (
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('REPESADA'); }}
+                                className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                                style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)' }}
+                              >
+                                <Scale className="w-5 h-5 text-blue-400" />
+                                <span className="text-[10px] font-bold text-blue-300 uppercase">Repesada</span>
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setShowReasonStep(false); setModo('DEVOLUCION'); }}
+                                className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                                style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.18)' }}
+                              >
+                                <RotateCcw className="w-5 h-5 text-orange-400" />
+                                <span className="text-[10px] font-bold text-orange-300 uppercase">Devolución</span>
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('ASIGNACION'); }}
+                                className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                                style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)' }}
+                              >
+                                <UserPlus className="w-5 h-5 text-emerald-400" />
+                                <span className="text-[10px] font-bold text-emerald-300 uppercase">Adición</span>
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleConfirmarEntregaPedido(freshP); }}
+                                className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                                style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}
+                              >
+                                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                <span className="text-[10px] font-bold text-green-300 uppercase">Entrega</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -643,22 +688,30 @@ export function GestionConductor() {
               </div>
 
               {selectedPedido.estado !== 'Entregado' && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button onClick={() => { setSessionBlocks([]); resetForm(); setModo('REPESADA'); }}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-[10px] font-bold bg-blue-900/10 ring-1 ring-blue-500/25 text-blue-300 hover:bg-blue-900/25">
-                    <Scale className="w-5 h-5" />REPESADA
+                    className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)' }}>
+                    <Scale className="w-5 h-5 text-blue-400" />
+                    <span className="text-[10px] font-bold text-blue-300 uppercase">Repesada</span>
                   </button>
                   <button onClick={() => { setSessionBlocks([]); resetForm(); setShowReasonStep(false); setModo('DEVOLUCION'); }}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-[10px] font-bold bg-orange-900/10 ring-1 ring-orange-500/25 text-red-300 hover:bg-orange-900/25">
-                    <RotateCcw className="w-5 h-5" />DEVOLUCIÓN
+                    className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.18)' }}>
+                    <RotateCcw className="w-5 h-5 text-orange-400" />
+                    <span className="text-[10px] font-bold text-orange-300 uppercase">Devolución</span>
                   </button>
                   <button onClick={() => { setSessionBlocks([]); resetForm(); setModo('ASIGNACION'); }}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-[10px] font-bold bg-emerald-900/10 ring-1 ring-emerald-500/25 text-emerald-300 hover:bg-emerald-900/25">
-                    <UserPlus className="w-5 h-5" />ADICIÓN
+                    className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)' }}>
+                    <UserPlus className="w-5 h-5 text-emerald-400" />
+                    <span className="text-[10px] font-bold text-emerald-300 uppercase">Adición</span>
                   </button>
                   <button onClick={() => handleConfirmarEntregaPedido(selectedPedido)}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-[10px] font-bold bg-green-900/10 ring-1 ring-green-500/25 text-green-300 hover:bg-green-900/25">
-                    <CheckCircle2 className="w-5 h-5" />ENTREGA
+                    className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    <span className="text-[10px] font-bold text-green-300 uppercase">Entrega</span>
                   </button>
                 </div>
               )}
@@ -739,7 +792,7 @@ export function GestionConductor() {
           <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
             <div className={`h-1 w-full ${modo === 'REPESADA' ? 'bg-blue-500' : modo === 'DEVOLUCION' ? 'bg-orange-500' : 'bg-emerald-500'}`} />
             <div className="p-6 space-y-6 relative">
-              <button onClick={() => { setModo('GRUPO'); setShowReasonStep(false); }} className="absolute top-4 right-4 p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
+              <button onClick={() => { setModo('GRUPO'); setSelectedPedido(null); setShowReasonStep(false); setSessionBlocks([]); resetForm(); }} className="absolute top-4 right-4 p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
                 <X className="w-5 h-5" />
               </button>
 
@@ -762,7 +815,7 @@ export function GestionConductor() {
               </div>
 
               {/* Info del pedido */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-black/30 border border-gray-800/80 rounded-xl p-3 text-center">
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Cliente</p>
                   <p className="text-sm font-bold text-white truncate mt-0.5">{selectedPedido.cliente}</p>
@@ -774,10 +827,6 @@ export function GestionConductor() {
                 <div className="bg-emerald-900/15 border border-emerald-500/25 rounded-xl p-3 text-center">
                   <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Peso Bruto</p>
                   <p className="text-lg font-black text-emerald-400 mt-0.5">{(selectedPedido.pesoBrutoTotal || 0).toFixed(1)} kg</p>
-                </div>
-                <div className="bg-blue-900/15 border border-blue-500/25 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">Peso Neto</p>
-                  <p className="text-lg font-black text-blue-400 mt-0.5">{(selectedPedido.pesoNetoTotal || selectedPedido.pesoKg || 0).toFixed(1)} kg</p>
                 </div>
               </div>
 

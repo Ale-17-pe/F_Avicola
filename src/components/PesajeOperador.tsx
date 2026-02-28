@@ -1025,35 +1025,21 @@ export function PesajeOperador() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-black text-green-400 tabular-nums">{r.pesoNetoTotal.toFixed(2)} kg</div>
-                      <div className="text-[10px] text-gray-600">neto</div>
+                      <div className="text-sm font-black text-white tabular-nums">{r.pesoBrutoTotal.toFixed(2)} kg</div>
+                      <div className="text-[10px] text-gray-600">bruto</div>
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Totales generales */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="text-[10px] text-gray-500 mb-0.5">Bruto Total</div>
-                  <div className="text-xl font-black text-white tabular-nums">
+              <div className="flex justify-center">
+                <div className="rounded-xl p-4 min-w-[160px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="text-[10px] text-gray-500 mb-0.5 text-center">Bruto Total</div>
+                  <div className="text-2xl font-black text-white tabular-nums text-center">
                     {resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0).toFixed(2)}
                   </div>
-                  <div className="text-[10px] text-gray-600">kg</div>
-                </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="text-[10px] text-gray-500 mb-0.5">Tara Total</div>
-                  <div className="text-xl font-black text-amber-400 tabular-nums">
-                    {resultadosCompletos.reduce((s, r) => s + r.pesoContenedoresTotal, 0).toFixed(2)}
-                  </div>
-                  <div className="text-[10px] text-gray-600">kg</div>
-                </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                  <div className="text-[10px] text-green-600 mb-0.5">Neto Total</div>
-                  <div className="text-xl font-black text-green-400 tabular-nums">
-                    {resultadosCompletos.reduce((s, r) => s + r.pesoNetoTotal, 0).toFixed(2)}
-                  </div>
-                  <div className="text-[10px] text-green-700">kg</div>
+                  <div className="text-[10px] text-gray-600 text-center">kg</div>
                 </div>
               </div>
             </div>
@@ -1226,14 +1212,7 @@ export function PesajeOperador() {
                               <td className="py-0.5 text-gray-300 font-bold text-[10px]">BRUTO</td>
                               <td className="py-0.5 text-right font-mono font-black text-white">{resultado.pesoBrutoTotal.toFixed(2)}</td>
                             </tr>
-                            <tr>
-                              <td className="py-0.5 text-gray-500 text-[10px]">Tara ({resultado.cantidadContenedores}×{resultado.pesoUnitarioContenedor})</td>
-                              <td className="py-0.5 text-right font-mono text-amber-400">{resultado.pesoContenedoresTotal.toFixed(2)}</td>
-                            </tr>
-                            <tr style={{ borderTop: '1px solid rgba(34,197,94,0.2)' }}>
-                              <td className="py-0.5 text-green-500 font-bold text-[10px]">NETO</td>
-                              <td className="py-0.5 text-right font-mono font-black text-green-400">{resultado.pesoNetoTotal.toFixed(2)}</td>
-                            </tr>
+
                           </tbody>
                         </table>
                       </div>
@@ -1246,8 +1225,6 @@ export function PesajeOperador() {
                       <p className="text-[8px] text-green-500 uppercase tracking-[0.15em] mb-1 font-bold">Totales Generales</p>
                       {[
                         ['Peso Bruto Total', `${ticketVisible.totales.pesoBrutoTotal.toFixed(2)} kg`],
-                        ['Tara Total', `${ticketVisible.totales.pesoContenedoresTotal.toFixed(2)} kg`],
-                        ['Peso Neto Total', `${ticketVisible.totales.pesoNetoTotal.toFixed(2)} kg`],
                       ].map(([label, value]) => (
                         <div key={label} className="flex justify-between text-[11px]">
                           <span className="text-gray-400">{label}</span>
