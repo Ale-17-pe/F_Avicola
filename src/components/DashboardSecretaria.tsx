@@ -246,8 +246,7 @@ export function DashboardSecretaria() {
         const repesadaFromConductor   = p.pesoRepesada   || 0;
         const adicionFromConductor    = p.pesoAdicional  || 0;
 
-        const base = repesadaFromConductor > 0 ? repesadaFromConductor : pesoBruto;
-        const pesoNeto = (base + mermaTotal) - pesoContenedor - devolucionFromConductor + adicionFromConductor;
+        const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor - devolucionFromConductor + adicionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
 
         // Preservar precio editado manualmente por la secretaria, sino auto-rellenar
@@ -342,8 +341,7 @@ export function DashboardSecretaria() {
           fila.contenedorRecalculado = true;
           fila.recalcLines = filaPrev.recalcLines;
           fila.pesoPedido = Math.max(0, fila.pesoBruto - fila.pesoContenedor);
-          const baseR = fila.repesada > 0 ? fila.repesada : fila.pesoBruto;
-          fila.pesoNeto = Math.max(0, (baseR + fila.merma) - fila.pesoContenedor - fila.devolucionPeso + fila.adicionPeso);
+          fila.pesoNeto = Math.max(0, (fila.pesoBruto + fila.merma) - fila.pesoContenedor - fila.devolucionPeso + fila.adicionPeso);
           fila.total = Math.max(0, fila.pesoNeto) * fila.precio;
         }
 
@@ -367,11 +365,9 @@ export function DashboardSecretaria() {
   }, [filasCartera, fechaSeleccionada]);
 
   // Recalcular: Peso Neto = (Peso Bruto + Merma) - Peso Contenedor - Devoluciones
-  // Si hay repesada, usarla en lugar de pesoBruto
   // Total = Peso Neto × Precio
   const recalcularFila = (f: FilaCartera): FilaCartera => {
-    const base    = f.repesada > 0 ? f.repesada : f.pesoBruto;
-    const pesoNeto= (base + f.merma) - f.pesoContenedor - f.devolucionPeso + f.adicionPeso;
+    const pesoNeto= (f.pesoBruto + f.merma) - f.pesoContenedor - f.devolucionPeso + f.adicionPeso;
     const pesoPedido = f.pesoBruto - f.pesoContenedor;
     return { ...f, pesoNeto: Math.max(0,pesoNeto), pesoPedido: Math.max(0,pesoPedido), total: Math.max(0,pesoNeto)*f.precio };
   };
