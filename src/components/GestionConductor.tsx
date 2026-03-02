@@ -368,7 +368,7 @@ export function GestionConductor() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex flex-wrap items-center gap-2">
                           {grupo.numeroTicket && (
-                            <span className="font-mono text-[11px] text-emerald-400/80 bg-emerald-400/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                            <span className="font-mono text-[11px] text-white bg-emerald-400/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
                               {grupo.numeroTicket}
                             </span>
                           )}
@@ -441,11 +441,11 @@ export function GestionConductor() {
             <div className="p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-5 mb-5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] text-emerald-400/70 font-mono uppercase tracking-[0.15em] mb-1">Despacho Consolidado</p>
+                  <p className="text-[11px] text-white font-mono uppercase tracking-[0.15em] mb-1">Despacho Consolidado</p>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight truncate">{grupoSeleccionado.cliente}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {grupoSeleccionado.numeroTicket && (
-                      <span className="font-mono text-xs text-emerald-400/80 bg-emerald-400/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                      <span className="font-mono text-xs text-white bg-emerald-500/10 border border-emerald-500/40 px-2 py-0.5 rounded-md">
                         {grupoSeleccionado.numeroTicket}
                       </span>
                     )}
@@ -612,8 +612,8 @@ export function GestionConductor() {
                                 className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
                                 style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.18)' }}
                               >
-                                <RotateCcw className="w-5 h-5 text-orange-400" />
-                                <span className="text-[10px] font-bold text-orange-300 uppercase">Devolución</span>
+                                <RotateCcw className="w-5 h-5 text-emerald-400" />
+                                <span className="text-[10px] font-bold text-emerald-300 uppercase">Devolución</span>
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('ASIGNACION'); }}
@@ -648,10 +648,9 @@ export function GestionConductor() {
       {modo === 'DETALLE' && selectedPedido && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className={`h-1 w-full ${
-              selectedPedido.estado === 'Devolución' ? 'bg-red-500' :
+            <div className={`h-1 w-full ${selectedPedido.estado === 'Devolución' ? 'bg-red-500' :
               selectedPedido.estado === 'Con Incidencia' ? 'bg-amber-500' : 'bg-emerald-500'
-            }`} />
+              }`} />
             <div className="p-6">
               <div className="flex justify-between items-start gap-4 mb-4">
                 <div>
@@ -670,20 +669,18 @@ export function GestionConductor() {
               </div>
 
               <div className={`mb-4 flex items-center gap-3 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3`}>
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  selectedPedido.estado === 'Devolución' ? 'bg-red-500/15' :
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${selectedPedido.estado === 'Devolución' ? 'bg-red-500/15' :
                   selectedPedido.estado === 'Con Incidencia' ? 'bg-amber-500/15' : 'bg-emerald-500/15'
-                }`}>
+                  }`}>
                   {selectedPedido.estado === 'Devolución' ? <RotateCcw className="w-4 h-4 text-red-400" /> :
-                   selectedPedido.estado === 'Con Incidencia' ? <AlertCircle className="w-4 h-4 text-amber-400" /> :
-                   <Truck className="w-4 h-4 text-emerald-400" />}
+                    selectedPedido.estado === 'Con Incidencia' ? <AlertCircle className="w-4 h-4 text-amber-400" /> :
+                      <Truck className="w-4 h-4 text-emerald-400" />}
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider">Estado</p>
-                  <p className={`text-sm font-bold ${
-                    selectedPedido.estado === 'Devolución' ? 'text-red-400' :
+                  <p className={`text-sm font-bold ${selectedPedido.estado === 'Devolución' ? 'text-red-400' :
                     selectedPedido.estado === 'Con Incidencia' ? 'text-amber-400' : 'text-emerald-400'
-                  }`}>{selectedPedido.estado}</p>
+                    }`}>{selectedPedido.estado}</p>
                 </div>
               </div>
 
@@ -734,12 +731,11 @@ export function GestionConductor() {
                 <div className="space-y-4">
                   {getRegistrosPedido(selectedPedido.id).map(reg => (
                     <div key={reg.id} className="relative">
-                      <div className={`absolute -left-6 top-5 w-[9px] h-[9px] rounded-full ring-2 ring-gray-900 z-10 ${
-                        reg.tipo === 'repesada' ? 'bg-blue-400' :
+                      <div className={`absolute -left-6 top-5 w-[9px] h-[9px] rounded-full ring-2 ring-gray-900 z-10 ${reg.tipo === 'repesada' ? 'bg-blue-400' :
                         reg.tipo === 'devolucion' ? 'bg-orange-400' :
-                        reg.tipo === 'asignacion' ? 'bg-emerald-400' :
-                        reg.tipo === 'entrega' ? 'bg-green-400' : 'bg-gray-500'
-                      }`} />
+                          reg.tipo === 'asignacion' ? 'bg-emerald-400' :
+                            reg.tipo === 'entrega' ? 'bg-green-400' : 'bg-gray-500'
+                        }`} />
                       <div className="bg-gray-900/50 border border-gray-800/70 rounded-xl p-4 hover:border-gray-700 transition-colors">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           {getTipoIcon(reg.tipo)}
@@ -798,10 +794,9 @@ export function GestionConductor() {
 
               {/* Title */}
               <div className="flex items-center gap-3 pr-8">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                  modo === 'REPESADA' ? 'bg-blue-500/15 text-blue-400' :
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${modo === 'REPESADA' ? 'bg-blue-500/15 text-blue-400' :
                   modo === 'DEVOLUCION' ? 'bg-orange-500/15 text-orange-400' : 'bg-emerald-500/15 text-emerald-400'
-                }`}>
+                  }`}>
                   {modo === 'REPESADA' && <Scale className="w-5 h-5" />}
                   {modo === 'DEVOLUCION' && <RotateCcw className="w-5 h-5" />}
                   {modo === 'ASIGNACION' && <UserPlus className="w-5 h-5" />}
@@ -865,9 +860,8 @@ export function GestionConductor() {
                     <div>
                       <label className="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">Evidencia <span className="text-red-400">*</span></label>
                       <button onClick={handleCapturePhoto}
-                        className={`w-full h-[68px] border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-lg group shadow-lg active:scale-95 ${
-                          capturedPhotos.length > 0 ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400' : 'bg-gray-800 border-amber-500/50 text-white hover:bg-gray-700'
-                        }`}>
+                        className={`w-full h-[68px] border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-lg group shadow-lg active:scale-95 ${capturedPhotos.length > 0 ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400' : 'bg-gray-800 border-amber-500/50 text-white hover:bg-gray-700'
+                          }`}>
                         <Camera className={`w-6 h-6 group-hover:scale-110 transition-transform ${capturedPhotos.length > 0 ? 'text-emerald-400' : 'text-amber-400'}`} />
                         {capturedPhotos.length > 0 ? 'FOTO CAPTURADA' : 'TOMAR FOTO'}
                       </button>
@@ -894,11 +888,10 @@ export function GestionConductor() {
               <div className="space-y-4">
                 {!showReasonStep && (
                   <button onClick={handleAddBlock} disabled={!formWeight || capturedPhotos.length === 0}
-                    className={`w-full py-5 border-2 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98] disabled:opacity-30 disabled:grayscale ${
-                      modo === 'REPESADA' ? 'bg-blue-600/90 border-blue-400/60 text-white hover:bg-blue-500/90' :
+                    className={`w-full py-5 border-2 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98] disabled:opacity-30 disabled:grayscale ${modo === 'REPESADA' ? 'bg-blue-600/90 border-blue-400/60 text-white hover:bg-blue-500/90' :
                       modo === 'DEVOLUCION' ? 'bg-orange-600/90 border-orange-400/60 text-white hover:bg-orange-500/90' :
-                      'bg-emerald-600/90 border-emerald-400/60 text-white hover:bg-emerald-500/90'
-                    }`}>
+                        'bg-emerald-600/90 border-emerald-400/60 text-white hover:bg-emerald-500/90'
+                      }`}>
                     <Plus className="w-7 h-7" /> SUMAR {modo === 'REPESADA' ? 'PESADA' : 'BLOQUE'}
                   </button>
                 )}
@@ -915,16 +908,14 @@ export function GestionConductor() {
                             </div>
                             <span className="text-white font-bold">{i + 1}° Bloque</span>
                           </div>
-                          <span className={`text-xl font-black tabular-nums ${
-                            modo === 'REPESADA' ? 'text-blue-400' : modo === 'DEVOLUCION' ? 'text-orange-400' : 'text-emerald-400'
-                          }`}>{b.peso.toFixed(1)} kg</span>
+                          <span className={`text-xl font-black tabular-nums ${modo === 'REPESADA' ? 'text-blue-400' : modo === 'DEVOLUCION' ? 'text-orange-400' : 'text-emerald-400'
+                            }`}>{b.peso.toFixed(1)} kg</span>
                         </div>
                       ))}
                     </div>
-                    <div className={`p-4 border rounded-xl flex justify-between items-center ${
-                      modo === 'REPESADA' ? 'bg-blue-900/25 border-blue-500/30' :
+                    <div className={`p-4 border rounded-xl flex justify-between items-center ${modo === 'REPESADA' ? 'bg-blue-900/25 border-blue-500/30' :
                       modo === 'DEVOLUCION' ? 'bg-orange-900/25 border-orange-500/30' : 'bg-emerald-900/25 border-emerald-500/30'
-                    }`}>
+                      }`}>
                       <span className="text-white font-extrabold text-sm uppercase tracking-wider">Total</span>
                       <span className="text-2xl font-black text-white tabular-nums">{sessionBlocks.reduce((a, b) => a + b.peso, 0).toFixed(1)} kg</span>
                     </div>
@@ -950,9 +941,8 @@ export function GestionConductor() {
                 {/* Finish buttons */}
                 {(modo === 'REPESADA' || (modo === 'ASIGNACION' && !showReasonStep)) && (
                   <button onClick={modo === 'REPESADA' ? handleFinishRepesada : handleFinishAsignacion}
-                    className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${
-                      sessionBlocks.length > 0 && (modo !== 'ASIGNACION' || newClientId) ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                    }`} disabled={sessionBlocks.length === 0 || (modo === 'ASIGNACION' && !newClientId)}>
+                    className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${sessionBlocks.length > 0 && (modo !== 'ASIGNACION' || newClientId) ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+                      }`} disabled={sessionBlocks.length === 0 || (modo === 'ASIGNACION' && !newClientId)}>
                     <CheckCircle2 className="w-5 h-5" /> FINALIZAR {modo === 'REPESADA' ? 'REPESADA' : 'ADICIÓN'}
                   </button>
                 )}
@@ -960,16 +950,14 @@ export function GestionConductor() {
                 {modo === 'DEVOLUCION' && (
                   showReasonStep ? (
                     <button onClick={handleFinishDevolucion}
-                      className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${
-                        formReason.length >= 3 ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                      }`} disabled={formReason.length < 3}>
+                      className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${formReason.length >= 3 ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+                        }`} disabled={formReason.length < 3}>
                       <CheckCircle2 className="w-6 h-6" /> CONFIRMAR DEVOLUCIÓN
                     </button>
                   ) : (
                     <button onClick={() => { if (sessionBlocks.length > 0) setShowReasonStep(true); else toast.error("Debe agregar al menos una pesada"); }}
-                      className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${
-                        sessionBlocks.length > 0 ? 'bg-orange-600 hover:bg-orange-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                      }`} disabled={sessionBlocks.length === 0}>
+                      className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${sessionBlocks.length > 0 ? 'bg-orange-600 hover:bg-orange-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+                        }`} disabled={sessionBlocks.length === 0}>
                       <ArrowRight className="w-5 h-5" /> CONTINUAR A MOTIVO
                     </button>
                   )
