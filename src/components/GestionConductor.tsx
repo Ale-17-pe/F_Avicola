@@ -60,6 +60,8 @@ export function GestionConductor() {
   const [sessionBlocks, setSessionBlocks] = useState<{ peso: number; foto: string }[]>([]);
   const [showReasonStep, setShowReasonStep] = useState(false);
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
+  const [showConfirmEntregaTotal, setShowConfirmEntregaTotal] = useState(false);
+  const [confirmEntregaPedidoId, setConfirmEntregaPedidoId] = useState<string | null>(null);
 
   // ── Registros ──
   const [registros, setRegistros] = useState<RegistroConductor[]>(() => {
@@ -344,7 +346,6 @@ export function GestionConductor() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {gruposDespacho.map(grupo => {
-                const totalRegistros = grupo.pedidos.reduce((s, p) => s + getRegistrosPedido(p.id).length, 0);
                 return (
                   <div
                     key={grupo.grupoId}
@@ -408,10 +409,7 @@ export function GestionConductor() {
                           <MapPin className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                           <span className="truncate">{grupo.zonaEntrega || '—'}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-gray-400">
-                          <History className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                          <span>{totalRegistros} mov.</span>
-                        </div>
+
                       </div>
 
                       {/* Pedidos preview */}
@@ -463,15 +461,13 @@ export function GestionConductor() {
               </div>
 
               {/* Confirmar entrega total */}
-              {!grupoSeleccionado.todosEntregados && (
-                <button
-                  onClick={handleConfirmarEntregaTotal}
-                  className="w-full py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mb-3"
-                  style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}
-                >
-                  <CheckCircle2 className="w-5 h-5" /> CONFIRMAR ENTREGA TOTAL
-                </button>
-              )}
+              <button
+                onClick={() => setShowConfirmEntregaTotal(true)}
+                className="w-full py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mb-3"
+                style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}
+              >
+                <CheckCircle2 className="w-5 h-5" /> CONFIRMAR ENTREGA TOTAL
+              </button>
             </div>
           </div>
 
@@ -484,7 +480,7 @@ export function GestionConductor() {
               const regs = getRegistrosPedido(pedido.id);
               const freshP = pedidosConfirmados.find(p => p.id === pedido.id) || pedido;
               const isExpanded = expandedPedidos.has(pedido.id);
-              const pedidoCompletado = regs.length > 0;
+              const pedidoCompletado = freshP.estado === 'Entregado';
 
               const toggleExpand = () => {
                 const next = new Set(expandedPedidos);
@@ -558,47 +554,45 @@ export function GestionConductor() {
                         </div>
                       </div>
 
-                      {/* Acciones o COMPLETADO */}
-                      {pedidoCompletado ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-center gap-2 py-3 rounded-xl"
-                            style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                            <CheckCircle2 className="w-5 h-5 text-green-400" />
-                            <span className="text-green-400 font-black text-sm uppercase tracking-wider">Acción Completada</span>
-                          </div>
-                          {/* Resumen del último registro */}
-                          {regs.length > 0 && (
-                            <div className="space-y-2">
-                              {regs.slice(0, 2).map(reg => (
-                                <div key={reg.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
-                                  style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                  <div className="flex items-center gap-2">
-                                    {getTipoIcon(reg.tipo)}
-                                    <span className="text-xs font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                                    {reg.peso && <span className="font-mono font-bold text-white">{reg.peso.toFixed(1)} kg</span>}
-                                    <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                  </div>
-                                </div>
-                              ))}
-                              {regs.length > 2 && (
-                                <button
-                                  onClick={() => { setSelectedPedido(freshP); setModo('DETALLE'); }}
-                                  className="text-[10px] text-emerald-400 font-bold hover:underline"
-                                >
-                                  Ver {regs.length - 2} más →
-                                </button>
-                              )}
+                      {/* Registros existentes */}
+                      {regs.length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {regs.slice(0, 3).map(reg => (
+                            <div key={reg.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
+                              style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                              <div className="flex items-center gap-2">
+                                {getTipoIcon(reg.tipo)}
+                                <span className="text-xs font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                {reg.peso && <span className="font-mono font-bold text-white">{reg.peso.toFixed(1)} kg</span>}
+                                <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
                             </div>
+                          ))}
+                          {regs.length > 3 && (
+                            <button
+                              onClick={() => { setSelectedPedido(freshP); setModo('DETALLE'); }}
+                              className="text-[10px] text-emerald-400 font-bold hover:underline"
+                            >
+                              Ver {regs.length - 3} más →
+                            </button>
                           )}
+                        </div>
+                      )}
+
+                      {/* Acciones o ENTREGADO */}
+                      {pedidoCompletado ? (
+                        <div className="flex items-center justify-center gap-2 py-3 rounded-xl"
+                          style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                          <span className="text-green-400 font-black text-sm uppercase tracking-wider">Entregado</span>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {/* Botones de acción */}
-                          {freshP.estado !== 'Entregado' && (
-                            <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); setSessionBlocks([]); resetForm(); setModo('REPESADA'); }}
                                 className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
@@ -624,15 +618,14 @@ export function GestionConductor() {
                                 <span className="text-[10px] font-bold text-emerald-300 uppercase">Adición</span>
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleConfirmarEntregaPedido(freshP); }}
+                                onClick={(e) => { e.stopPropagation(); setConfirmEntregaPedidoId(freshP.id); }}
                                 className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
                                 style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}
                               >
                                 <CheckCircle2 className="w-5 h-5 text-green-400" />
                                 <span className="text-[10px] font-bold text-green-300 uppercase">Entrega</span>
                               </button>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -704,7 +697,7 @@ export function GestionConductor() {
                     <UserPlus className="w-5 h-5 text-emerald-400" />
                     <span className="text-[10px] font-bold text-emerald-300 uppercase">Adición</span>
                   </button>
-                  <button onClick={() => handleConfirmarEntregaPedido(selectedPedido)}
+                  <button onClick={() => setConfirmEntregaPedidoId(selectedPedido.id)}
                     className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
                     style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
                     <CheckCircle2 className="w-5 h-5 text-green-400" />
@@ -967,6 +960,113 @@ export function GestionConductor() {
           </div>
         </div>
       )}
+
+      {/* ═══════ MODAL: CONFIRMAR ENTREGA TOTAL ═══════ */}
+      {showConfirmEntregaTotal && grupoSeleccionado && (() => {
+        const freshGrupo = getFreshGrupo() || grupoSeleccionado;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-white">Confirmar Entrega Total</h3>
+                    <p className="text-xs text-gray-500">{freshGrupo.cliente} · {freshGrupo.pedidos.length} pedido{freshGrupo.pedidos.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {freshGrupo.pedidos.map(p => {
+                    const freshP = pedidosConfirmados.find(fp => fp.id === p.id) || p;
+                    const regs = getRegistrosPedido(p.id);
+                    const tieneRepesaje = regs.some(r => r.tipo === 'repesada');
+                    const tieneDevolucion = regs.some(r => r.tipo === 'devolucion');
+                    const tieneAdicion = regs.some(r => r.tipo === 'asignacion');
+                    const tieneEntrega = freshP.estado === 'Entregado';
+                    return (
+                      <div key={p.id} className="bg-black/30 border border-gray-800 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{freshP.tipoAve}</span>
+                            <span className="font-mono text-[10px] text-gray-500">{freshP.numeroPedido}</span>
+                          </div>
+                          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoBadge(freshP.estado || 'En Despacho')}`}>
+                            {freshP.estado}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneRepesaje ? 'bg-blue-500/15 text-blue-400' : 'bg-gray-800 text-gray-600'}`}>
+                            {tieneRepesaje ? '✓' : '✗'} Repesaje
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneDevolucion ? 'bg-orange-500/15 text-orange-400' : 'bg-gray-800 text-gray-600'}`}>
+                            {tieneDevolucion ? '✓' : '✗'} Devolución
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneAdicion ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-800 text-gray-600'}`}>
+                            {tieneAdicion ? '✓' : '✗'} Adición
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneEntrega ? 'bg-green-500/15 text-green-400' : 'bg-gray-800 text-gray-600'}`}>
+                            {tieneEntrega ? '✓' : '✗'} Entrega
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={() => setShowConfirmEntregaTotal(false)}
+                    className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={() => { setShowConfirmEntregaTotal(false); handleConfirmarEntregaTotal(); }}
+                    className="flex-1 py-3 rounded-xl font-black text-white transition-all hover:scale-[1.01]"
+                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 4px 15px -3px rgba(34,197,94,0.3)' }}>
+                    Confirmar Entrega
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══════ MODAL: CONFIRMAR ENTREGA INDIVIDUAL ═══════ */}
+      {confirmEntregaPedidoId && (() => {
+        const pedidoToConfirm = pedidosConfirmados.find(p => p.id === confirmEntregaPedidoId);
+        if (!pedidoToConfirm) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Confirmar Entrega</h3>
+                    <p className="text-xs text-gray-500">{pedidoToConfirm.numeroPedido} · {pedidoToConfirm.tipoAve}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400">¿Confirmar la entrega de este pedido?</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setConfirmEntregaPedidoId(null)}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors text-sm">
+                    Cancelar
+                  </button>
+                  <button onClick={() => { handleConfirmarEntregaPedido(pedidoToConfirm); setConfirmEntregaPedidoId(null); }}
+                    className="flex-1 py-2.5 rounded-xl font-black text-white text-sm transition-all hover:scale-[1.01]"
+                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)' }}>
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
