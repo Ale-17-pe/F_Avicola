@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  FileSpreadsheet, DollarSign, Scale, Package, Save, Edit3,
+  FileSpreadsheet, DollarSign, Scale, Package, Save,
   CheckCircle, Calendar, Download, RefreshCw, Search,
   ChevronDown, ChevronUp, TrendingUp, AlertTriangle,
-  ChevronLeft, ChevronRight, Camera, X
+  ChevronLeft, ChevronRight, Camera, X, Lock
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -167,7 +167,6 @@ export function DashboardSecretaria() {
   const [initialLoad, setInitialLoad]             = useState(true);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyStr());
   const [busqueda, setBusqueda]                   = useState('');
-  const [editandoAll, setEditandoAll]             = useState(false);
   const [sortColumn, setSortColumn]               = useState('');
   const [sortDir, setSortDir]                     = useState<'asc'|'desc'>('asc');
   const [confirmModal, setConfirmModal]           = useState<{open:boolean;filaId:string|null;cliente:string}>({open:false,filaId:null,cliente:''});
@@ -445,14 +444,12 @@ export function DashboardSecretaria() {
   const ejecutarConfirm = () => {
     if (!confirmModal.filaId) return;
     setFilasCartera(prev=>prev.map(f=>f.id===confirmModal.filaId?{...f,confirmado:true,editando:false}:f));
-    toast.success(`Boleta emitida — ${confirmModal.cliente}`);
+    toast.success(`Liquidado — ${confirmModal.cliente}`);
     setConfirmModal({open:false,filaId:null,cliente:''});
   };
-  const editarFila     = (id:string) =>
-    setFilasCartera(prev=>prev.map(f=>f.id===id?{...f,editando:true,confirmado:false}:f));
-  const confirmarTodas = () => { setFilasCartera(prev=>prev.map(f=>({...f,confirmado:true,editando:false}))); setEditandoAll(false); toast.success('Todas confirmadas'); };
-  const editarTodas    = () => { setFilasCartera(prev=>prev.map(f=>({...f,editando:true,confirmado:false}))); setEditandoAll(true); };
-  const refrescar      = () => { localStorage.removeItem(storageKey(fechaSeleccionada)); setRefreshKey(k => k + 1); toast.success('Actualizado'); };
+  const editarFila     = (_id:string) => {}; // no-op, editing is per-cell now
+  const confirmarTodas = () => { setFilasCartera(prev=>prev.map(f=>({...f,confirmado:true,editando:false}))); toast.success('Todas liquidadas'); };
+  const refrescar      = () => { setRefreshKey(k => k + 1); toast.success('Actualizado'); };
   const irDia          = (n:number) => setFechaSeleccionada(prev=>addDays(prev,n));
 
   // ─── Recálculo de contenedores ──────────────────────────────────────────────
@@ -555,7 +552,7 @@ export function DashboardSecretaria() {
   };
 
   const exportarCSV = () => {
-    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','P.Cont','P.Bruto','Repesada','Merma','Devol','Adicion','P.Neto','Precio','Total','Zona','Conductor'];
+    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','Tara','P.Bruto','Repesada','Merma','Devol','Adicion','P.Neto','Precio','Total','Zona','Conductor'];
     const rows=filasFiltradas.map(f=>[f.cliente,f.tipo,f.presentacion,`${f.cantidad} ${f.cantidadLabel}`,f.pesoPedido.toFixed(2),f.pesoContenedor.toFixed(2),f.pesoBruto.toFixed(2),f.repesada.toFixed(2),f.merma.toFixed(2),f.devolucionPeso.toFixed(2),f.adicionPeso.toFixed(2),f.pesoNeto.toFixed(2),f.precio.toFixed(2),f.total.toFixed(2),f.zona,f.conductor]);
     const blob=new Blob([[headers.join(','),...rows.map(r=>r.join(','))].join('\n')],{type:'text/csv'});
     Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`cartera_${fechaSeleccionada}.csv`}).click();
@@ -573,28 +570,37 @@ export function DashboardSecretaria() {
   const totalPesoBruto      = tot('pesoBruto');
   const totalPesoNeto       = tot('pesoNeto');
 
-  // ─── EditInput — tipo texto, sin flechas, directo ─────────────────────────
-  const EditInput = ({ value, onChange, disabled=false, color=COL.merma }: {
-    value:number; onChange:(v:number)=>void; disabled?:boolean; color?:string;
+  // ─── ClickEditCell — click-to-edit inline, Enter confirma, Escape cancela ─
+  const ClickEditCell = ({ value, onChange, locked=false, color=COL.merma, prefix='' }: {
+    value:number; onChange:(v:number)=>void; locked?:boolean; color?:string; prefix?:string;
   }) => {
+    const [editing, setEditing] = useState(false);
     const [local, setLocal] = useState(value.toFixed(2));
-    useEffect(()=>{ setLocal(value.toFixed(2)); },[value]);
-    return (
-      <input
-        type="text"
-        inputMode="decimal"
-        value={local}
+    const inputRef = useRef<HTMLInputElement>(null);
+    useEffect(()=>{ if(!editing) setLocal(value.toFixed(2)); },[value, editing]);
+    useEffect(()=>{ if(editing && inputRef.current) inputRef.current.select(); },[editing]);
+    const commit = () => { const n=parseFloat(local); if(!isNaN(n)) onChange(n); else setLocal(value.toFixed(2)); setEditing(false); };
+    const cancel = () => { setLocal(value.toFixed(2)); setEditing(false); };
+
+    if (locked) return (
+      <span className="text-xs tabular-nums" style={{color:'#4b5563',fontFamily:'ui-monospace,monospace'}}>
+        {prefix}{value.toFixed(2)}
+      </span>
+    );
+    if (editing) return (
+      <input ref={inputRef} type="text" inputMode="decimal" value={local}
         onChange={e=>setLocal(e.target.value)}
-        onBlur={e=>{ const n=parseFloat(e.target.value); if(!isNaN(n)) onChange(n); else setLocal(value.toFixed(2)); }}
-        onKeyDown={e=>{ if(e.key==='Enter'){ const n=parseFloat(local); if(!isNaN(n)) onChange(n); (e.target as HTMLInputElement).blur(); } }}
-        disabled={disabled}
-        style={disabled
-          ? { background:'transparent', border:'1px solid transparent', color:'#4b5563', cursor:'default', width:'100%', padding:'3px 6px', borderRadius:6, textAlign:'right', fontSize:12, fontFamily:'ui-monospace,monospace' }
-          : { background:'rgba(20,17,5,0.9)', border:`1px solid ${G30}`, color, width:'100%', padding:'3px 6px', borderRadius:6, textAlign:'right', fontSize:12, fontFamily:'ui-monospace,monospace', outline:'none' }
-        }
-        onFocus={e=>{ if(!disabled) e.target.style.borderColor=GOLD; }}
-        onBlurCapture={e=>{ if(!disabled) e.target.style.borderColor=G30; }}
+        onKeyDown={e=>{ if(e.key==='Enter') commit(); if(e.key==='Escape') cancel(); }}
+        onBlur={commit} autoFocus
+        style={{ background:'rgba(20,17,5,0.9)', border:`1px solid ${GOLD}`, color, width:'100%', padding:'3px 6px', borderRadius:6, textAlign:'right', fontSize:12, fontFamily:'ui-monospace,monospace', outline:'none' }}
       />
+    );
+    return (
+      <span onClick={()=>setEditing(true)}
+        className="cursor-pointer hover:bg-white/5 px-1.5 py-0.5 rounded transition-colors text-xs font-bold tabular-nums block text-right"
+        style={{color, fontFamily:'ui-monospace,monospace'}} title="Clic para editar">
+        {prefix}{value.toFixed(2)}
+      </span>
     );
   };
 
@@ -786,11 +792,6 @@ export function DashboardSecretaria() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={editarTodas}
-            className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-105"
-            style={{background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#f59e0b'}}>
-            <Edit3 className="w-3.5 h-3.5" /> Editar Todo
-          </button>
           <button onClick={confirmarTodas}
             className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-105"
             style={{background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'#22c55e'}}>
@@ -903,7 +904,7 @@ export function DashboardSecretaria() {
                     {key:'presentacion',   label:'PRES.'},
                     {key:'cantidad',       label:'CANT.'},
                     {key:'pesoPedido',     label:'P.PEDIDO kg'},
-                    {key:'pesoContenedor', label:'P.CONT. kg'},
+                    {key:'pesoContenedor', label:'TARA kg'},
                     {key:'pesoBruto',      label:'P.BRUTO kg'},
                     {key:'repesada',       label:'REPESADA kg'},
                     {key:'merma',          label:'MERMA kg'},
@@ -940,7 +941,7 @@ export function DashboardSecretaria() {
               <tbody>
                 <AnimatePresence>
                   {filasOrdenadas.map((fila,idx)=>{
-                    const puedeEditar = fila.editando||editandoAll;
+                    const bloqueado = fila.confirmado;
                     const isHov       = hoveredRow===fila.id;
                     const rowBg       = fila.confirmado
                       ? 'rgba(34,197,94,0.04)'
@@ -1015,10 +1016,10 @@ export function DashboardSecretaria() {
                           <span className="font-bold text-xs tabular-nums" style={{color:COL.bruto}}>{fila.pesoBruto.toFixed(2)}</span>
                         </td>
 
-                        {/* REPESADA — editable, sky-400 + foto evidencia */}
+                        {/* REPESADA — click-to-edit, sky-400 + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
                           <div className="flex items-center gap-1">
-                            <EditInput value={fila.repesada} onChange={v=>actualizarCampo(fila.id,'repesada',v)} disabled={!puedeEditar} color={COL.repesada} />
+                            <ClickEditCell value={fila.repesada} onChange={v=>actualizarCampo(fila.id,'repesada',v)} locked={bloqueado} color={COL.repesada} />
                             {(() => {
                               const fotos = getFotosConductor(fila.id, 'repesada');
                               if (fotos.length === 0) return null;
@@ -1035,15 +1036,15 @@ export function DashboardSecretaria() {
                           </div>
                         </td>
 
-                        {/* MERMA — editable */}
+                        {/* MERMA — click-to-edit */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <EditInput value={fila.merma} onChange={v=>actualizarCampo(fila.id,'merma',v)} disabled={!puedeEditar} color={COL.merma} />
+                          <ClickEditCell value={fila.merma} onChange={v=>actualizarCampo(fila.id,'merma',v)} locked={bloqueado} color={COL.merma} />
                         </td>
 
-                        {/* DEVOLUCIÓN — editable + foto evidencia */}
+                        {/* DEVOLUCIÓN — click-to-edit + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
                           <div className="flex items-center gap-1">
-                            <EditInput value={fila.devolucionPeso} onChange={v=>actualizarCampo(fila.id,'devolucionPeso',v)} disabled={!puedeEditar} color={COL.devolucion} />
+                            <ClickEditCell value={fila.devolucionPeso} onChange={v=>actualizarCampo(fila.id,'devolucionPeso',v)} locked={bloqueado} color={COL.devolucion} />
                             {(() => {
                               const fotos = getFotosConductor(fila.id, 'devolucion');
                               if (fotos.length === 0) return null;
@@ -1060,10 +1061,10 @@ export function DashboardSecretaria() {
                           </div>
                         </td>
 
-                        {/* ADICIÓN — editable, lime-400 + foto evidencia */}
+                        {/* ADICIÓN — click-to-edit, lime-400 + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
                           <div className="flex items-center gap-1">
-                            <EditInput value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} disabled={!puedeEditar} color={COL.adicion} />
+                            <ClickEditCell value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} locked={bloqueado} color={COL.adicion} />
                             {(() => {
                               const fotos = getFotosAdicion(fila.id);
                               if (fotos.length === 0) return null;
@@ -1088,9 +1089,9 @@ export function DashboardSecretaria() {
                           </span>
                         </td>
 
-                        {/* PRECIO — editable */}
+                        {/* PRECIO — click-to-edit */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <EditInput value={fila.precio} onChange={v=>actualizarCampo(fila.id,'precio',v)} disabled={!puedeEditar} color={COL.total} />
+                          <ClickEditCell value={fila.precio} onChange={v=>actualizarCampo(fila.id,'precio',v)} locked={bloqueado} color={COL.total} />
                         </td>
 
                         {/* TOTAL — pill amber */}
@@ -1113,14 +1114,13 @@ export function DashboardSecretaria() {
 
                         {/* ACCIONES */}
                         <td className="px-2 py-2 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             {fila.confirmado && !fila.editando ? (
-                              <motion.button whileHover={{scale:1.15}} whileTap={{scale:0.9}}
-                                onClick={()=>editarFila(fila.id)}
-                                className="p-1.5 rounded-lg"
-                                style={{background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.30)'}}>
-                                <Edit3 className="w-3 h-3 text-amber-400" />
-                              </motion.button>
+                              <div className="flex items-center gap-1 px-2 py-1 rounded-lg select-none"
+                                style={{background:'rgba(34,197,94,0.10)', border:'1px solid rgba(34,197,94,0.25)'}}>
+                                <Lock className="w-3 h-3 text-green-400" />
+                                <span className="text-[9px] font-bold text-green-400 uppercase tracking-wider">Liquidado</span>
+                              </div>
                             ) : (
                               <motion.button whileHover={{scale:1.15}} whileTap={{scale:0.9}}
                                 onClick={()=>confirmarFila(fila.id)}
@@ -1128,10 +1128,6 @@ export function DashboardSecretaria() {
                                 style={{background:'rgba(34,197,94,0.10)', border:'1px solid rgba(34,197,94,0.30)'}}>
                                 <CheckCircle className="w-3 h-3 text-green-400" />
                               </motion.button>
-                            )}
-                            {fila.confirmado && (
-                              <span className="w-1.5 h-1.5 rounded-full"
-                                style={{background:'#22c55e', boxShadow:'0 0 4px #22c55e'}} />
                             )}
                           </div>
                         </td>
