@@ -3,7 +3,7 @@ import {
   FileSpreadsheet, DollarSign, Scale, Package, Save, Edit3,
   CheckCircle, Calendar, Download, RefreshCw, Search,
   ChevronDown, ChevronUp, TrendingUp, AlertTriangle,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Camera, X
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -23,6 +23,28 @@ interface FilaCartera {
   cantidadContenedores: number; contenedorPesoUnit: number;
   contenedorRecalculado?: boolean;
   recalcLines?: RecalcLine[];
+}
+
+interface FotoRegistroConductor {
+  tipo: 'repesada' | 'devolucion' | 'entrega' | 'adicion';
+  url: string;
+  fecha: string;
+}
+
+interface RegistroConductor {
+  id: string;
+  pedidoId: string;
+  tipo: 'repesada' | 'devolucion' | 'adicion' | 'entrega' | 'asignacion';
+  peso?: number;
+  cantidadUnidades?: number;
+  motivo?: string;
+  clienteDestinoId?: string;
+  clienteDestinoNombre?: string;
+  clienteOrigenNombre?: string;
+  pedidoOrigenNumero?: string;
+  fotos: FotoRegistroConductor[];
+  fecha: string;
+  estado: string;
 }
 
 interface RecalcLine {
@@ -157,6 +179,47 @@ export function DashboardSecretaria() {
 
   // Estado del modal de recálculo de contenedores
   const [recalcModal, setRecalcModal] = useState<{open:boolean; filaId:string|null; lines: RecalcLine[]}>({open:false, filaId:null, lines:[]});
+
+  // Estado del modal de fotos de evidencias del conductor
+  const [fotosModal, setFotosModal] = useState<{open:boolean; titulo:string; fotos: FotoRegistroConductor[]; extra?: string}>({open:false, titulo:'', fotos:[]});
+
+  // Registros del conductor (desde localStorage)
+  const [registrosConductor, setRegistrosConductor] = useState<RegistroConductor[]>([]);
+  useEffect(() => {
+    const load = () => {
+      try {
+        const saved = localStorage.getItem('registrosConductor');
+        setRegistrosConductor(saved ? JSON.parse(saved) : []);
+      } catch { setRegistrosConductor([]); }
+    };
+    load();
+    // Escuchar cambios de storage (si el conductor está en otra pestaña)
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
+  }, []);
+  // También recargar cuando cambia refreshKey
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('registrosConductor');
+      setRegistrosConductor(saved ? JSON.parse(saved) : []);
+    } catch { setRegistrosConductor([]); }
+  }, [refreshKey]);
+
+  // Helper: obtener fotos de un pedido por tipo de registro
+  const getFotosConductor = (pedidoId: string, tipo: 'repesada' | 'devolucion' | 'adicion') => {
+    const regs = registrosConductor.filter(r => r.pedidoId === pedidoId && r.tipo === tipo && r.fotos && r.fotos.length > 0);
+    return regs.flatMap(r => r.fotos.filter(f => f.tipo === tipo));
+  };
+
+  // Helper: obtener fotos de adiciones para un pedido (por grupoDespacho del pedido)
+  const getFotosAdicion = (pedidoId: string) => {
+    // Buscar el pedido para obtener su grupoDespacho
+    const pedido = pedidosConfirmados.find(p => p.id === pedidoId);
+    if (!pedido?.grupoDespacho) return [];
+    // Buscar registros de adición cuyo destino sea este grupo
+    const regs = registrosConductor.filter(r => r.tipo === 'adicion' && r.clienteDestinoId === pedido.grupoDespacho && r.fotos && r.fotos.length > 0);
+    return regs.flatMap(r => r.fotos.filter(f => f.tipo === 'adicion'));
+  };
 
   // cerrar calendario si click fuera
   useEffect(() => {
@@ -952,9 +1015,24 @@ export function DashboardSecretaria() {
                           <span className="font-bold text-xs tabular-nums" style={{color:COL.bruto}}>{fila.pesoBruto.toFixed(2)}</span>
                         </td>
 
-                        {/* REPESADA — editable, sky-400 */}
+                        {/* REPESADA — editable, sky-400 + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <EditInput value={fila.repesada} onChange={v=>actualizarCampo(fila.id,'repesada',v)} disabled={!puedeEditar} color={COL.repesada} />
+                          <div className="flex items-center gap-1">
+                            <EditInput value={fila.repesada} onChange={v=>actualizarCampo(fila.id,'repesada',v)} disabled={!puedeEditar} color={COL.repesada} />
+                            {(() => {
+                              const fotos = getFotosConductor(fila.id, 'repesada');
+                              if (fotos.length === 0) return null;
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Repesaje — ${fila.cliente}`, fotos}); }}
+                                  className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
+                                  style={{background:'rgba(56,189,248,0.08)', border:'1px solid rgba(56,189,248,0.20)'}}
+                                  title={`Ver ${fotos.length} foto${fotos.length>1?'s':''} de repesaje`}>
+                                  <Camera className="w-3 h-3" style={{color:COL.repesada}} />
+                                </button>
+                              );
+                            })()}
+                          </div>
                         </td>
 
                         {/* MERMA — editable */}
@@ -962,14 +1040,44 @@ export function DashboardSecretaria() {
                           <EditInput value={fila.merma} onChange={v=>actualizarCampo(fila.id,'merma',v)} disabled={!puedeEditar} color={COL.merma} />
                         </td>
 
-                        {/* DEVOLUCIÓN — editable */}
+                        {/* DEVOLUCIÓN — editable + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <EditInput value={fila.devolucionPeso} onChange={v=>actualizarCampo(fila.id,'devolucionPeso',v)} disabled={!puedeEditar} color={COL.devolucion} />
+                          <div className="flex items-center gap-1">
+                            <EditInput value={fila.devolucionPeso} onChange={v=>actualizarCampo(fila.id,'devolucionPeso',v)} disabled={!puedeEditar} color={COL.devolucion} />
+                            {(() => {
+                              const fotos = getFotosConductor(fila.id, 'devolucion');
+                              if (fotos.length === 0) return null;
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Devolución — ${fila.cliente}`, fotos}); }}
+                                  className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
+                                  style={{background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.20)'}}
+                                  title={`Ver ${fotos.length} foto${fotos.length>1?'s':''} de devolución`}>
+                                  <Camera className="w-3 h-3" style={{color:COL.devolucion}} />
+                                </button>
+                              );
+                            })()}
+                          </div>
                         </td>
 
-                        {/* ADICIÓN — editable, lime-400 */}
+                        {/* ADICIÓN — editable, lime-400 + foto evidencia */}
                         <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <EditInput value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} disabled={!puedeEditar} color={COL.adicion} />
+                          <div className="flex items-center gap-1">
+                            <EditInput value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} disabled={!puedeEditar} color={COL.adicion} />
+                            {(() => {
+                              const fotos = getFotosAdicion(fila.id);
+                              if (fotos.length === 0) return null;
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Adición — ${fila.cliente}`, fotos}); }}
+                                  className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
+                                  style={{background:'rgba(163,230,53,0.08)', border:'1px solid rgba(163,230,53,0.20)'}}
+                                  title={`Ver ${fotos.length} foto${fotos.length>1?'s':''} de adición`}>
+                                  <Camera className="w-3 h-3" style={{color:COL.adicion}} />
+                                </button>
+                              );
+                            })()}
+                          </div>
                         </td>
 
                         {/* P. NETO — pill cyan */}
@@ -1249,6 +1357,66 @@ export function DashboardSecretaria() {
             </motion.div>
           );
         })()}
+      </AnimatePresence>
+      {/* MODAL — Evidencias fotográficas del Conductor */}
+      <AnimatePresence>
+        {fotosModal.open && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{background:'rgba(0,0,0,0.88)', backdropFilter:'blur(10px)'}}
+            onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}>
+            <motion.div initial={{scale:0.92,y:12}} animate={{scale:1,y:0}} exit={{scale:0.92,y:12}}
+              className="rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+              style={{background:'rgba(10,9,5,0.98)', border:`1px solid ${G30}`, boxShadow:`0 20px 50px -12px ${G10}`}}
+              onClick={e => e.stopPropagation()}>
+              <div className="p-5 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{background:G10, border:`1px solid ${G20}`}}>
+                      <Camera className="w-4 h-4" style={{color:GOLD}} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">{fotosModal.titulo}</h3>
+                      <p className="text-[10px] text-gray-500">{fotosModal.fotos.length} foto{fotosModal.fotos.length !== 1 ? 's' : ''} de evidencia</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Grid de fotos */}
+                <div className={`grid gap-3 ${fotosModal.fotos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {fotosModal.fotos.map((foto, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden border border-gray-700/50 group cursor-pointer"
+                      onClick={() => window.open(foto.url, '_blank')}>
+                      <div className="aspect-square bg-gray-900 relative">
+                        <img src={foto.url} alt={`Evidencia ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x400?text=Sin+imagen'; }} />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                          <p className="text-[10px] text-gray-300 font-mono">
+                            {new Date(foto.fecha).toLocaleString('es-PE', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Cerrar */}
+                <button onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/5 transition-all"
+                  style={{border:'1px solid rgba(255,255,255,0.10)'}}>
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </motion.div>
   );
