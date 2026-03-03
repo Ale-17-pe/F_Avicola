@@ -77,12 +77,13 @@ interface DevolucionDisponible {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function GestionConductor() {
-  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addPedidoConfirmado } = useApp();
+  const { pedidosConfirmados, clientes, updatePedidoConfirmado } = useApp();
 
   // ── Vista ──
   const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'ADICION'>('LISTA');
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<GrupoDespacho | null>(null);
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
+  const [showDevolucionesInfo, setShowDevolucionesInfo] = useState(false);
 
   // ── Repesaje ──
   const [tandasRepesaje, setTandasRepesaje] = useState<TandaRepesaje[]>([]);
@@ -99,10 +100,10 @@ export function GestionConductor() {
   // ── Adición ──
   const [adicionStep, setAdicionStep] = useState<'lista' | 'formulario'>('lista');
   const [adicionSeleccionada, setAdicionSeleccionada] = useState<DevolucionDisponible | null>(null);
-  const [adicionGrupoDestinoId, setAdicionGrupoDestinoId] = useState("");
   const [adicionCantidad, setAdicionCantidad] = useState("");
   const [adicionPeso, setAdicionPeso] = useState("");
   const [adicionFoto, setAdicionFoto] = useState("");
+  const [adicionFromGrupo, setAdicionFromGrupo] = useState(false);
 
   // ── UI ──
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
@@ -218,7 +219,7 @@ export function GestionConductor() {
 
   const resetRepesaje = () => { setTandasRepesaje([]); setFormWeight(""); setCapturedPhoto(""); };
   const resetDevolucion = () => { setDevCantidad(""); setDevPeso(""); setDevFoto(""); setDevMotivo(""); setDevStep('datos'); };
-  const resetAdicion = () => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionGrupoDestinoId(""); setAdicionCantidad(""); setAdicionPeso(""); setAdicionFoto(""); };
+  const resetAdicion = () => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(""); setAdicionPeso(""); setAdicionFoto(""); setAdicionFromGrupo(false); };
 
   // ── UI Helpers ──
   const getEstadoBadge = (estado: string) => {
@@ -349,8 +350,19 @@ export function GestionConductor() {
   };
 
   // ── Adición ──
+  const getAdicionesParaGrupo = (grupoId: string) => {
+    const grupo = gruposDespacho.find(g => g.grupoId === grupoId);
+    if (!grupo) return [];
+    return devolucionesDisponibles.filter(d => d.clienteOrigen !== grupo.cliente);
+  };
+
+  // Obtener registros de adiciones ya confirmadas para un grupo destino
+  const getAdicionesRegistradasParaGrupo = (grupoId: string) => {
+    return registros.filter(r => r.tipo === 'adicion' && r.clienteDestinoId === grupoId);
+  };
+
   const handleFinishAdicion = () => {
-    if (!adicionSeleccionada) return;
+    if (!adicionSeleccionada || !grupoSeleccionado) return;
     const cantidad = parseInt(adicionCantidad);
     const peso = parseFloat(adicionPeso);
     if (!cantidad || cantidad <= 0 || cantidad > adicionSeleccionada.cantidadDisponible) {
@@ -358,12 +370,11 @@ export function GestionConductor() {
     }
     if (!peso || peso <= 0) { toast.error("Ingrese peso válido"); return; }
     if (!adicionFoto) { toast.error("Debe tomar foto de evidencia"); return; }
-    if (!adicionGrupoDestinoId) { toast.error("Seleccione el cliente destino"); return; }
 
-    const grupoDestino = gruposDespacho.find(g => g.grupoId === adicionGrupoDestinoId);
-    if (!grupoDestino) { toast.error("Grupo destino no encontrado"); return; }
+    const grupoDestino = grupoSeleccionado;
 
-    // Crear registro de adición
+    // Solo crear registro local — NO se crea pedido nuevo
+    // La adición se integrará al pedido del cliente al confirmar entrega total
     setRegistros(prev => [...prev, {
       id: generarId(),
       pedidoId: adicionSeleccionada.pedidoId,
@@ -379,35 +390,8 @@ export function GestionConductor() {
       fecha: new Date().toISOString(), estado: 'Completado',
     }]);
 
-    // Crear nuevo pedido para el cliente destino
-    const nuevoPedidoId = `ADICION-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
-    const numeroPedido = `AD-${grupoDestino.pedidos.length + 1}`;
-    const nuevoPedido: PedidoConfirmado = {
-      id: nuevoPedidoId,
-      cliente: grupoDestino.cliente,
-      tipoAve: adicionSeleccionada.tipoAve,
-      variedad: adicionSeleccionada.variedad,
-      presentacion: adicionSeleccionada.presentacion,
-      cantidad: cantidad,
-      contenedor: '',
-      fecha: new Date().toISOString().split('T')[0],
-      hora: new Date().toTimeString().slice(0, 5),
-      prioridad: 999,
-      numeroPedido,
-      estado: 'Confirmado con Adición',
-      pesoBrutoTotal: peso,
-      pesoNetoTotal: peso,
-      pesoKg: peso,
-      grupoDespacho: grupoDestino.grupoId,
-      conductor: grupoDestino.conductor,
-      zonaEntrega: grupoDestino.zonaEntrega,
-      numeroTicket: grupoDestino.numeroTicket,
-      ultimaIncidencia: `Adición desde ${adicionSeleccionada.clienteOrigen} (${adicionSeleccionada.pedidoNumero})`,
-    };
-
-    addPedidoConfirmado(nuevoPedido);
-    toast.success(`Adición creada: ${cantidad} unids. de ${adicionSeleccionada.tipoAve} → ${grupoDestino.cliente}`);
-    setModo('LISTA'); resetAdicion();
+    toast.success(`Adición registrada: ${cantidad} unids. (${peso.toFixed(1)} kg) → ${grupoDestino.cliente}. Se enviará a Cartera al confirmar entrega.`);
+    setModo('GRUPO'); resetAdicion();
   };
 
   // ── Entrega ──
@@ -424,6 +408,8 @@ export function GestionConductor() {
   const handleConfirmarEntregaTotal = () => {
     const freshGrupo = getFreshGrupo();
     if (!freshGrupo) return;
+
+    // Marcar todos los pedidos como Entregado
     freshGrupo.pedidos.forEach(p => {
       if (p.estado !== 'Entregado') {
         const fresh = pedidosConfirmados.find(fp => fp.id === p.id) || p;
@@ -434,6 +420,21 @@ export function GestionConductor() {
         updatePedidoConfirmado(p.id, { ...fresh, estado: 'Entregado' });
       }
     });
+
+    // Integrar adiciones al primer pedido del grupo → Cartera de Cobro
+    const adicionesDelGrupo = getAdicionesRegistradasParaGrupo(freshGrupo.grupoId);
+    if (adicionesDelGrupo.length > 0) {
+      const pesoTotalAdiciones = adicionesDelGrupo.reduce((sum, r) => sum + (r.peso || 0), 0);
+      // Escribir pesoAdicional en el primer pedido del grupo
+      const primerPedido = pedidosConfirmados.find(fp => fp.id === freshGrupo.pedidos[0].id) || freshGrupo.pedidos[0];
+      const pesoAdicionPrevio = primerPedido.pesoAdicional || 0;
+      updatePedidoConfirmado(primerPedido.id, {
+        ...primerPedido,
+        estado: 'Entregado',
+        pesoAdicional: pesoAdicionPrevio + pesoTotalAdiciones,
+      });
+    }
+
     toast.success('¡Entrega total confirmada!');
     setModo('LISTA'); setGrupoSeleccionado(null);
   };
@@ -505,7 +506,10 @@ export function GestionConductor() {
             onClick={() => {
               if (modo === 'DETALLE') { setModo('GRUPO'); setSelectedPedido(null); }
               else if (modo === 'GRUPO') { setModo('LISTA'); setGrupoSeleccionado(null); setExpandedPedidos(new Set()); }
-              else if (modo === 'ADICION') { setModo('LISTA'); resetAdicion(); }
+              else if (modo === 'ADICION') {
+                if (adicionFromGrupo) { setModo('GRUPO'); } else { setModo('LISTA'); }
+                resetAdicion();
+              }
               else { setModo('GRUPO'); setSelectedPedido(null); resetRepesaje(); resetDevolucion(); }
             }}
             className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
@@ -518,17 +522,49 @@ export function GestionConductor() {
       {/* ═══════ LISTA DE DESPACHOS ═══════ */}
       {modo === 'LISTA' && (
         <div className="space-y-5">
-          {/* Botón global de Adición */}
+          {/* Panel informativo de devoluciones disponibles para adición */}
           {devolucionesDisponibles.length > 0 && (
-            <button
-              onClick={() => { resetAdicion(); setModo('ADICION'); }}
-              className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:scale-[1.01] flex items-center justify-center gap-3 relative overflow-hidden group"
-              style={{ background: 'linear-gradient(135deg, #0d3d4a, #164e63, #06b6d4)', boxShadow: '0 6px 20px -5px rgba(6,182,212,0.35)' }}
-            >
-              <ArrowLeftRight className="w-5 h-5" />
-              ADICIONES DISPONIBLES
-              <span className="ml-1 bg-white/20 text-white text-xs font-black px-2 py-0.5 rounded-full">{devolucionesDisponibles.length}</span>
-            </button>
+            <div className="bg-gray-900/80 border border-cyan-500/20 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowDevolucionesInfo(!showDevolucionesInfo)}
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-cyan-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                    <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">Productos devueltos disponibles</p>
+                    <p className="text-[11px] text-gray-500">{devolucionesDisponibles.length} producto{devolucionesDisponibles.length > 1 ? 's' : ''} · Puede adicionarlos desde cada despacho</p>
+                  </div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showDevolucionesInfo ? 'rotate-180' : ''}`} />
+              </button>
+              {showDevolucionesInfo && (
+                <div className="px-5 pb-4 space-y-2" style={{ borderTop: '1px solid rgba(6,182,212,0.1)' }}>
+                  {devolucionesDisponibles.map(dev => (
+                    <div key={dev.registroId} className="bg-black/30 border border-gray-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full">Dev. de {dev.clienteOrigen}</span>
+                        <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">{dev.tipoAve}</span>
+                          {dev.variedad && <span className="text-[10px] text-gray-500">({dev.variedad})</span>}
+                          <span className="text-[10px] text-gray-500">·</span>
+                          <span className="text-[10px] text-blue-400">{dev.presentacion}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-cyan-400">{dev.cantidadDisponible} unids.</span>
+                          <span className="text-[10px] text-gray-500 ml-1.5">{dev.pesoDisponible.toFixed(1)} kg</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {gruposDespacho.length > 0 && (
@@ -651,13 +687,30 @@ export function GestionConductor() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowConfirmEntregaTotal(true)}
-                className="w-full py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mb-3"
-                style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}
-              >
-                <CheckCircle2 className="w-5 h-5" /> CONFIRMAR ENTREGA TOTAL
-              </button>
+              {/* Botones de acción del grupo */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmEntregaTotal(true)}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white text-sm transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}
+                >
+                  <CheckCircle2 className="w-5 h-5" /> ENTREGA TOTAL
+                </button>
+                {(() => {
+                  const adicionesParaEsteGrupo = getAdicionesParaGrupo(grupoSeleccionado.grupoId);
+                  if (adicionesParaEsteGrupo.length === 0) return null;
+                  return (
+                    <button
+                      onClick={() => { resetAdicion(); setAdicionFromGrupo(true); setModo('ADICION'); }}
+                      className="py-3.5 px-5 rounded-xl font-bold text-white text-sm transition-all hover:scale-[1.01] flex items-center gap-2 relative"
+                      style={{ background: 'linear-gradient(135deg, #0d3d4a, #164e63, #06b6d4)', boxShadow: '0 4px 15px -3px rgba(6,182,212,0.3)' }}
+                    >
+                      <ArrowLeftRight className="w-5 h-5" /> ADICIÓN
+                      <span className="bg-white/20 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{adicionesParaEsteGrupo.length}</span>
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
           </div>
 
@@ -802,6 +855,68 @@ export function GestionConductor() {
               );
             })}
           </div>
+
+          {/* Adiciones registradas para este grupo (sub-items visuales) */}
+          {(() => {
+            const adicionesGrupo = getAdicionesRegistradasParaGrupo(grupoSeleccionado.grupoId);
+            if (adicionesGrupo.length === 0) return null;
+            const pesoTotalAdiciones = adicionesGrupo.reduce((sum, r) => sum + (r.peso || 0), 0);
+            return (
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <ArrowLeftRight className="w-4 h-4" /> Adiciones ({adicionesGrupo.length})
+                  <span className="text-[10px] text-gray-500 font-normal normal-case ml-auto">
+                    Total: {pesoTotalAdiciones.toFixed(1)} kg · Se integran al confirmar entrega
+                  </span>
+                </h3>
+                {adicionesGrupo.map(reg => (
+                  <div key={reg.id}
+                    className="backdrop-blur-xl rounded-xl overflow-hidden"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                    }}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
+                            style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4' }}>
+                            <ArrowLeftRight className="w-4 h-4" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-white">Adición</span>
+                              <span className="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-bold">
+                                desde {reg.clienteOrigenNombre}
+                              </span>
+                              <span className="font-mono text-[10px] text-gray-500">{reg.pedidoOrigenNumero}</span>
+                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-green-500/25 bg-green-500/15 text-green-400">
+                                Entregado
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-cyan-400">{reg.cantidadUnidades} unids.</span>
+                              <span className="text-[10px] text-gray-600">·</span>
+                              <span className="text-[10px] font-bold text-white">{(reg.peso || 0).toFixed(1)} kg</span>
+                              <span className="text-[10px] text-gray-600">·</span>
+                              <span className="text-[10px] text-gray-500">{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Sin botones de acción — auto-entregado */}
+                      <div className="flex items-center justify-center gap-2 py-2 rounded-xl mt-3"
+                        style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)' }}>
+                        <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                        <span className="text-cyan-400 font-bold text-[11px] uppercase tracking-wider">Adición · Se integra con Entrega Total</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1243,12 +1358,12 @@ export function GestionConductor() {
         );
       })()}
 
-      {/* ═══════ MÓDULO DE ADICIÓN (INDEPENDIENTE) ═══════ */}
-      {modo === 'ADICION' && (
+      {/* ═══════ MÓDULO DE ADICIÓN (DESDE GRUPO) ═══════ */}
+      {modo === 'ADICION' && grupoSeleccionado && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
           {adicionStep === 'lista' ? (
-            /* ── Lista de devoluciones disponibles ── */
+            /* ── Lista de devoluciones disponibles para este cliente ── */
             <div className="space-y-4">
               <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                 <div className="h-1 w-full bg-cyan-500" />
@@ -1258,65 +1373,64 @@ export function GestionConductor() {
                       <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Adiciones Disponibles</h2>
-                      <p className="text-[11px] text-gray-500">Productos devueltos que pueden ofrecerse a otros clientes</p>
+                      <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Adición para {grupoSeleccionado.cliente}</h2>
+                      <p className="text-[11px] text-gray-500">Seleccione un producto devuelto para adicionar a este despacho</p>
                     </div>
                   </div>
 
-                  {devolucionesDisponibles.length === 0 ? (
-                    <div className="bg-gray-900/30 border border-dashed border-gray-800 rounded-xl p-12 text-center">
-                      <ArrowLeftRight className="w-10 h-10 mx-auto mb-3 text-gray-700" />
-                      <p className="text-gray-500 text-sm">No hay productos disponibles para adición</p>
-                      <p className="text-[11px] text-gray-600 mt-1">Las adiciones aparecerán cuando se registren devoluciones</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {devolucionesDisponibles.map(dev => (
-                        <div key={dev.registroId}
-                          className="bg-black/30 border border-gray-800 rounded-xl p-4 hover:border-cyan-500/30 transition-all cursor-pointer active:scale-[0.99]"
-                          onClick={() => { setAdicionSeleccionada(dev); setAdicionStep('formulario'); }}
-                        >
-                          {/* Origen */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-bold text-white uppercase bg-cyan-500/15 px-2 py-0.5 rounded-full border border-cyan-500/30">
-  Dev. de {dev.clienteOrigen}
-</span>
-                            <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
-                          </div>
-
-                          {/* Info producto */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-bold text-white">{dev.tipoAve}</h4>
-                              {dev.variedad && <p className="text-[10px] text-gray-500">{dev.variedad}</p>}
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                  {dev.presentacion}
-                                </span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${dev.esVivo
-                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                  : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                  }`}>
-                                  {dev.esVivo ? 'Jabas' : 'Unidades'}
-                                </span>
+                  {(() => {
+                    const disponibles = getAdicionesParaGrupo(grupoSeleccionado.grupoId);
+                    return disponibles.length === 0 ? (
+                      <div className="bg-gray-900/30 border border-dashed border-gray-800 rounded-xl p-12 text-center">
+                        <ArrowLeftRight className="w-10 h-10 mx-auto mb-3 text-gray-700" />
+                        <p className="text-gray-500 text-sm">No hay productos disponibles para adición</p>
+                        <p className="text-[11px] text-gray-600 mt-1">Las adiciones aparecerán cuando otros clientes registren devoluciones</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {disponibles.map(dev => (
+                          <div key={dev.registroId}
+                            className="bg-black/30 border border-gray-800 rounded-xl p-4 hover:border-cyan-500/30 transition-all cursor-pointer active:scale-[0.99]"
+                            onClick={() => { setAdicionSeleccionada(dev); setAdicionStep('formulario'); }}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                                Dev. de {dev.clienteOrigen}
+                              </span>
+                              <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
+                            </div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-bold text-white">{dev.tipoAve}</h4>
+                                {dev.variedad && <p className="text-[10px] text-gray-500">{dev.variedad}</p>}
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    {dev.presentacion}
+                                  </span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${dev.esVivo
+                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                    }`}>
+                                    {dev.esVivo ? 'Jabas' : 'Unidades'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-xs text-gray-500 uppercase font-bold">Disponible</p>
+                                <p className="text-lg font-black text-cyan-400">{dev.cantidadDisponible} <span className="text-xs text-gray-500">unids.</span></p>
+                                <p className="text-sm font-bold text-white">{dev.pesoDisponible.toFixed(1)} kg</p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-xs text-gray-500 uppercase font-bold">Disponible</p>
-                              <p className="text-lg font-black text-cyan-400">{dev.cantidadDisponible} <span className="text-xs text-gray-500">unids.</span></p>
-                              <p className="text-sm font-bold text-white">{dev.pesoDisponible.toFixed(1)} kg</p>
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1">
+                                Seleccionar <ChevronRight className="w-3 h-3" />
+                              </span>
                             </div>
                           </div>
-
-                          <div className="flex items-center justify-end mt-2">
-                            <span className="text-[10px] text-white font-bold flex items-center gap-1">
-                              Seleccionar <ChevronRight className="w-3 h-3" />
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1333,16 +1447,16 @@ export function GestionConductor() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Confirmar Adición</h2>
-                    <p className="text-[11px] text-gray-500">Asignar producto devuelto a otro cliente</p>
+                    <p className="text-[11px] text-gray-500">Para <span className="text-cyan-400 font-bold">{grupoSeleccionado.cliente}</span></p>
                   </div>
-                  <button onClick={() => setAdicionStep('lista')} className="p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
+                  <button onClick={() => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(''); setAdicionPeso(''); setAdicionFoto(''); }} className="p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
                     <ArrowRight className="w-4 h-4 rotate-180" />
                   </button>
                 </div>
 
                 {/* Origen del producto */}
                 <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-4">
-                  <p className="text-[10px] font-bold text-white uppercase tracking-widest mb-2">Producto de Devolución</p>
+                  <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Producto de Devolución</p>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h4 className="text-base font-black text-white">{adicionSeleccionada.tipoAve}</h4>
@@ -1370,50 +1484,61 @@ export function GestionConductor() {
                   </div>
                 </div>
 
-                {/* Selector de cliente destino */}
+                {/* Destino (auto-seleccionado) */}
+                <div className="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
+                  <User className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-emerald-400 uppercase font-bold">Cliente Destino</p>
+                    <p className="text-sm font-bold text-white">{grupoSeleccionado.cliente}</p>
+                  </div>
+                </div>
+
+                {/* Cantidad */}
                 <div>
                   <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                    Cliente Destino <span className="text-red-400">*</span>
+                    Cantidad (unids.) <span className="text-red-400">*</span>
+                    <span className="text-cyan-400 ml-2">Máx. {adicionSeleccionada.cantidadDisponible}</span>
                   </label>
-                  <select value={adicionGrupoDestinoId} onChange={(e) => setAdicionGrupoDestinoId(e.target.value)}
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-all">
-                    <option value="">-- Seleccionar cliente --</option>
-                    {gruposDespacho
-                      .filter(g => g.cliente !== adicionSeleccionada.clienteOrigen && !g.todosEntregados)
-                      .map(g => (
-                        <option key={g.grupoId} value={g.grupoId}>{g.cliente} ({g.zonaEntrega || 'S/Z'})</option>
-                      ))
-                    }
-                  </select>
+                  <input type="number" inputMode="numeric" min="1" max={adicionSeleccionada.cantidadDisponible}
+                    value={adicionCantidad}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const num = parseInt(val);
+                      if (val === '' || (num >= 0 && num <= adicionSeleccionada.cantidadDisponible)) {
+                        setAdicionCantidad(val);
+                      }
+                    }}
+                    placeholder={`1 - ${adicionSeleccionada.cantidadDisponible}`}
+                    className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center" />
+                  {adicionCantidad && parseInt(adicionCantidad) > 0 && parseInt(adicionCantidad) < adicionSeleccionada.cantidadDisponible && (
+                    <p className="text-[10px] text-gray-500 mt-1 text-center">
+                      Quedarán {adicionSeleccionada.cantidadDisponible - parseInt(adicionCantidad)} unids. disponibles para otros clientes
+                    </p>
+                  )}
+                  {adicionCantidad && parseInt(adicionCantidad) === adicionSeleccionada.cantidadDisponible && (
+                    <p className="text-[10px] text-cyan-400 mt-1 text-center font-bold">
+                      Se adicionará todo el producto disponible
+                    </p>
+                  )}
                 </div>
 
-                {/* Cantidad + Peso */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                      Cantidad (unids.) <span className="text-red-400">*</span>
-                    </label>
-                    <input type="number" inputMode="numeric" min="1" max={adicionSeleccionada.cantidadDisponible}
-                      value={adicionCantidad} onChange={(e) => setAdicionCantidad(e.target.value)}
-                      placeholder={`Máx. ${adicionSeleccionada.cantidadDisponible}`}
-                      className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                      Peso (kg) <span className="text-red-400">*</span>
-                    </label>
-                    <div className="relative">
-                      <input type="number" inputMode="decimal" step="0.1" min="0"
-                        value={adicionPeso} onChange={(e) => setAdicionPeso(e.target.value)} placeholder="0.0"
-                        className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center pr-10" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">kg</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Foto */}
+                {/* Peso - siempre obligatorio (pesaje real) */}
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Foto de Evidencia <span className="text-red-400">*</span></label>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                    Peso real pesado (kg) <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input type="number" inputMode="decimal" step="0.1" min="0"
+                      value={adicionPeso} onChange={(e) => setAdicionPeso(e.target.value)} placeholder="0.0"
+                      className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center pr-12" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">kg</span>
+                  </div>
+                  <p className="text-[10px] text-gray-600 mt-1 text-center">Pese el producto y registre el peso real de la balanza</p>
+                </div>
+
+                {/* Foto - obligatoria */}
+                <div>
+                  <label className="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-1.5">Foto de Pesaje <span className="text-red-400">*</span></label>
                   <button onClick={() => handleCapturePhoto(setAdicionFoto)}
                     className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${adicionFoto
                       ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
@@ -1429,15 +1554,36 @@ export function GestionConductor() {
                     <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
                       <img src={adicionFoto} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <p className="text-xs text-gray-500 flex-1">Foto de evidencia</p>
+                    <p className="text-xs text-gray-500 flex-1">Foto de evidencia del pesaje</p>
                     <button onClick={() => setAdicionFoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
+                  </div>
+                )}
+
+                {/* Resumen antes de confirmar */}
+                {adicionCantidad && adicionPeso && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0 && (
+                  <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3">
+                    <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Resumen de Adición</p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-[10px] text-gray-500">Cantidad</p>
+                        <p className="text-lg font-black text-white">{adicionCantidad}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-500">Peso</p>
+                        <p className="text-lg font-black text-white">{parseFloat(adicionPeso).toFixed(1)} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-500">Destino</p>
+                        <p className="text-sm font-bold text-cyan-400 truncate">{grupoSeleccionado.cliente}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Confirmar */}
                 <button onClick={handleFinishAdicion}
-                  disabled={!adicionGrupoDestinoId || !adicionCantidad || !adicionPeso || !adicionFoto}
-                  className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${adicionGrupoDestinoId && adicionCantidad && adicionPeso && adicionFoto
+                  disabled={!adicionCantidad || !adicionPeso || !adicionFoto || parseInt(adicionCantidad) <= 0 || parseFloat(adicionPeso) <= 0}
+                  className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${adicionCantidad && adicionPeso && adicionFoto && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
                     }`}>
@@ -1507,6 +1653,30 @@ export function GestionConductor() {
                     );
                   })}
                 </div>
+
+                {/* Adiciones que se integrarán */}
+                {(() => {
+                  const adicionesModal = getAdicionesRegistradasParaGrupo(freshGrupo.grupoId);
+                  if (adicionesModal.length === 0) return null;
+                  const pesoTotalAd = adicionesModal.reduce((s, r) => s + (r.peso || 0), 0);
+                  return (
+                    <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <ArrowLeftRight className="w-3.5 h-3.5" /> Adiciones a integrar
+                        </p>
+                        <span className="text-sm font-black text-cyan-400">{pesoTotalAd.toFixed(1)} kg</span>
+                      </div>
+                      {adicionesModal.map(ad => (
+                        <div key={ad.id} className="flex items-center justify-between text-[11px] bg-black/20 rounded-lg px-2.5 py-1.5">
+                          <span className="text-gray-400">Desde <span className="text-cyan-300 font-bold">{ad.clienteOrigenNombre}</span> · {ad.cantidadUnidades} unids.</span>
+                          <span className="text-white font-bold">{(ad.peso || 0).toFixed(1)} kg</span>
+                        </div>
+                      ))}
+                      <p className="text-[10px] text-gray-500 italic">Se sumarán como Adición Kg en Cartera de Cobro</p>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex gap-3">
                   <button onClick={() => setShowConfirmEntregaTotal(false)}
