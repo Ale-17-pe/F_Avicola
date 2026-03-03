@@ -251,7 +251,7 @@ export function PesajeOperador() {
 
   const opcionesContenedor: ContenedorOpcion[] = esVivo
     ? [JABA_ESTANDAR]
-    : [JABA_ESTANDAR, ...contenedores.filter(c => c.tipo !== 'Jaba Estándar').map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }))];
+    : contenedores.map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }));
 
   const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
   const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);

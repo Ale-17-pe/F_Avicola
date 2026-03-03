@@ -246,7 +246,7 @@ export function DashboardSecretaria() {
         const repesadaFromConductor   = p.pesoRepesada   || 0;
         const adicionFromConductor    = p.pesoAdicional  || 0;
 
-        const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor - devolucionFromConductor + adicionFromConductor;
+        const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor - devolucionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
 
         // Preservar precio editado manualmente por la secretaria, sino auto-rellenar
@@ -341,7 +341,7 @@ export function DashboardSecretaria() {
           fila.contenedorRecalculado = true;
           fila.recalcLines = filaPrev.recalcLines;
           fila.pesoPedido = Math.max(0, fila.pesoBruto - fila.pesoContenedor);
-          fila.pesoNeto = Math.max(0, (fila.pesoBruto + fila.merma) - fila.pesoContenedor - fila.devolucionPeso + fila.adicionPeso);
+          fila.pesoNeto = Math.max(0, (fila.pesoBruto + fila.merma) - fila.pesoContenedor - fila.devolucionPeso);
           fila.total = Math.max(0, fila.pesoNeto) * fila.precio;
         }
 
@@ -367,7 +367,7 @@ export function DashboardSecretaria() {
   // Recalcular: Peso Neto = (Peso Bruto + Merma) - Peso Contenedor - Devoluciones
   // Total = Peso Neto × Precio
   const recalcularFila = (f: FilaCartera): FilaCartera => {
-    const pesoNeto= (f.pesoBruto + f.merma) - f.pesoContenedor - f.devolucionPeso + f.adicionPeso;
+    const pesoNeto= (f.pesoBruto + f.merma) - f.pesoContenedor - f.devolucionPeso;
     const pesoPedido = f.pesoBruto - f.pesoContenedor;
     return { ...f, pesoNeto: Math.max(0,pesoNeto), pesoPedido: Math.max(0,pesoPedido), total: Math.max(0,pesoNeto)*f.precio };
   };
