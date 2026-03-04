@@ -39,7 +39,14 @@ export function Control() {
   const [pedidosPesaje, setPedidosPesaje] = useState<PedidoConfirmado[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('all');
-  const [filterFecha, setFilterFecha] = useState('');
+  const [filterFecha, setFilterFecha] = useState(() => {
+    const now = new Date();
+    const peru = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const y = peru.getFullYear();
+    const m = String(peru.getMonth() + 1).padStart(2, '0');
+    const d = String(peru.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
   const [sortColumn, setSortColumn] = useState<string>('fechaPesaje');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
@@ -229,7 +236,7 @@ export function Control() {
               {clientesUnicos.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div className="relative">
+          <div className="relative flex items-center gap-1">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="date"
@@ -238,6 +245,16 @@ export function Control() {
               className="pl-10 pr-4 py-2.5 rounded-lg text-sm text-white outline-none"
               style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
             />
+            {filterFecha && (
+              <button
+                onClick={() => setFilterFecha('')}
+                className="px-2 py-2.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
+                style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+                title="Ver todos los días"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
