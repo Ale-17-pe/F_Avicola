@@ -371,9 +371,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (fresh) {
           const parsed = JSON.parse(fresh);
           setPedidosConfirmados(prev => {
-            // Solo actualizar si los datos realmente cambiaron
             const prevStr = JSON.stringify(prev);
             if (prevStr !== fresh) return parsed;
+            return prev;
+          });
+        }
+        // Sync pagos en tiempo real
+        const freshPagos = localStorage.getItem('avicola_pagos');
+        if (freshPagos) {
+          const parsedPagos = JSON.parse(freshPagos);
+          setPagos(prev => {
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== freshPagos) return parsedPagos;
             return prev;
           });
         }
