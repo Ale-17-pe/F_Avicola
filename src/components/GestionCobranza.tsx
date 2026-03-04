@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Wallet, MapPin, Search, User, ChevronLeft,
   Calendar, DollarSign, ArrowLeft, CreditCard,
-  ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle
+  ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle, X
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -107,6 +107,8 @@ export function GestionCobranza() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
 
   // ─── MODAL PAGO STATE ───────────────────────────────────────────
   const [modalPagoOpen, setModalPagoOpen] = useState(false);
@@ -168,7 +170,11 @@ export function GestionCobranza() {
     const porDia = getFilasLiquidadasPorCliente(selectedCliente);
 
     // Sort dates ascending for saldo calculation
-    const fechasAsc = Array.from(porDia.keys()).sort();
+    let fechasAsc = Array.from(porDia.keys()).sort();
+
+    // Apply date range filter
+    if (fechaDesde) fechasAsc = fechasAsc.filter(f => f >= fechaDesde);
+    if (fechaHasta) fechasAsc = fechasAsc.filter(f => f <= fechaHasta);
 
     // Calculate per-day totals and accumulated saldo
     let saldoAcumulado = 0;
@@ -195,7 +201,7 @@ export function GestionCobranza() {
       .reduce((s, d) => s + d.totalDia, 0);
 
     return { fechas: diasDataDesc, totalPendiente, saldoAcumulado };
-  }, [selectedCliente, refreshKey, pagos]);
+  }, [selectedCliente, refreshKey, pagos, fechaDesde, fechaHasta]);
 
   const clienteObj = clientes.find(c => c.nombre === selectedCliente);
 
@@ -340,6 +346,40 @@ export function GestionCobranza() {
         </div>
       </div>
 
+      {/* Date range filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Desde</span>
+          <input
+            type="date"
+            value={fechaDesde}
+            onChange={e => setFechaDesde(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
+            style={{ background: G08, border: `1px solid ${G15}` }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hasta</span>
+          <input
+            type="date"
+            value={fechaHasta}
+            onChange={e => setFechaHasta(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
+            style={{ background: G08, border: `1px solid ${G15}` }}
+          />
+        </div>
+        {(fechaDesde || fechaHasta) && (
+          <button
+            onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-colors"
+            style={{ background: G08, border: `1px solid ${G15}` }}
+          >
+            <X className="w-3 h-3 inline mr-1" />Limpiar
+          </button>
+        )}
+      </div>
+
       {/* No data */}
       {!clienteData || clienteData.fechas.length === 0 ? (
         <div className="text-center py-20">
@@ -461,7 +501,7 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, onPagar }
   estadoPago: 'pagado' | 'pendiente' | 'no';
   onPagar: () => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const totalConSaldo = totalDia + saldoAnterior;
 
   const esPagado = estadoPago === 'pagado';

@@ -714,18 +714,18 @@ export function PesajeOperador() {
 
           {/* Info jabas Vivo */}
           {esVivo && totalJabasPedido > 0 && (
-            <div className="grid grid-cols-3 gap-2 rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.15)' }}>
-              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.1)' }}>
-                <div className="text-[10px] text-amber-500/70 font-bold uppercase tracking-wider">Total Jabas</div>
-                <div className="text-2xl font-black text-amber-400 tabular-nums">{totalJabasPedido}</div>
+            <div className="flex gap-2">
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <div className="text-[9px] text-amber-500/70 font-bold uppercase">Jabas</div>
+                <div className="text-lg font-black text-amber-400 tabular-nums">{totalJabasPedido}</div>
               </div>
-              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                <div className="text-[10px] text-green-500/70 font-bold uppercase tracking-wider">Aves/Jaba</div>
-                <div className="text-2xl font-black text-green-400 tabular-nums">{unidadesPorJaba || '—'}</div>
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <div className="text-[9px] text-green-500/70 font-bold uppercase">Aves/Jaba</div>
+                <div className="text-lg font-black text-green-400 tabular-nums">{unidadesPorJaba || '—'}</div>
               </div>
-              <div className="text-center rounded-lg py-2 px-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.1)' }}>
-                <div className="text-[10px] text-blue-500/70 font-bold uppercase tracking-wider">Total Aves</div>
-                <div className="text-2xl font-black text-blue-400 tabular-nums">{totalAvesPedido || '—'}</div>
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                <div className="text-[9px] text-blue-500/70 font-bold uppercase">Total Aves</div>
+                <div className="text-lg font-black text-blue-400 tabular-nums">{totalAvesPedido || '—'}</div>
               </div>
             </div>
           )}
