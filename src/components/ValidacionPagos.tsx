@@ -41,6 +41,14 @@ export function ValidacionPagos() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ pago: Pago; accion: 'confirmar' | 'rechazar' } | null>(null);
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
+  const [filterFecha, setFilterFecha] = useState(() => {
+    const now = new Date();
+    const peru = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const y = peru.getFullYear();
+    const m = String(peru.getMonth() + 1).padStart(2, '0');
+    const d = String(peru.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
 
   const pagosFiltrados = useMemo(() => {
     let lista = [...pagos].sort((a, b) => {
@@ -49,6 +57,9 @@ export function ValidacionPagos() {
       if (a.estado !== 'Pendiente' && b.estado === 'Pendiente') return 1;
       return (b.fecha + b.hora).localeCompare(a.fecha + a.hora);
     });
+
+    // Date filter
+    if (filterFecha) lista = lista.filter(p => p.fecha === filterFecha);
 
     if (filtro === 'pendientes') lista = lista.filter(p => p.estado === 'Pendiente');
     else if (filtro === 'confirmados') lista = lista.filter(p => p.estado === 'Confirmado');
@@ -62,7 +73,7 @@ export function ValidacionPagos() {
     }
 
     return lista;
-  }, [pagos, filtro, searchTerm]);
+  }, [pagos, filtro, searchTerm, filterFecha]);
 
   // Group payments by day (chronological, most recent first)
   const pagosPorDia = useMemo(() => {
@@ -164,6 +175,28 @@ export function ValidacionPagos() {
         </div>
       </div>
 
+      {/* Date filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Calendar className="w-3.5 h-3.5 text-gray-500" />
+        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Fecha</span>
+        <input
+          type="date"
+          value={filterFecha}
+          onChange={e => setFilterFecha(e.target.value)}
+          className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
+          style={{ background: G08, border: `1px solid ${G15}` }}
+        />
+        {filterFecha && (
+          <button
+            onClick={() => setFilterFecha('')}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-colors"
+            style={{ background: G08, border: `1px solid ${G15}` }}
+          >
+            Ver todos
+          </button>
+        )}
+      </div>
+
       {/* Payments grouped by day */}
       <div className="space-y-5">
         {pagosPorDia.map(({ fecha, pagos: pagosDia, totalMonto, pendientesDia, confirmadosDia }) => (
@@ -175,15 +208,13 @@ export function ValidacionPagos() {
                 <span className="text-xs font-bold text-white">{formatFecha(fecha)}</span>
                 <span className="text-[10px] text-gray-600">{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
                 {pendientesDia > 0 && (
-                  <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                    {pendientesDia} pendiente{pendientesDia > 1 ? 's' : ''}
+                  <span className="text-[9px] font-semibold text-amber-400/80 tabular-nums">
+                    {pendientesDia} pend.
                   </span>
                 )}
                 {confirmadosDia > 0 && pendientesDia === 0 && (
-                  <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                    <CheckCircle className="w-2.5 h-2.5 inline mr-0.5" />Validados
+                  <span className="text-[9px] font-semibold text-emerald-400/80 flex items-center gap-0.5">
+                    <CheckCircle className="w-2.5 h-2.5" />OK
                   </span>
                 )}
               </div>
@@ -227,20 +258,17 @@ export function ValidacionPagos() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-white">{pago.clienteNombre}</span>
                               {pago.estado === 'Pendiente' && (
-                                <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                                  style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                                <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-0.5">
                                   <Clock className="w-2.5 h-2.5" /> Pendiente
                                 </span>
                               )}
                               {pago.estado === 'Confirmado' && (
-                                <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                                  style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                                <span className="text-[9px] font-semibold text-emerald-500 flex items-center gap-0.5">
                                   <CheckCircle className="w-2.5 h-2.5" /> Confirmado
                                 </span>
                               )}
                               {pago.estado === 'Rechazado' && (
-                                <span className="text-[8px] font-bold text-red-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                <span className="text-[9px] font-semibold text-red-500 flex items-center gap-0.5">
                                   <XCircle className="w-2.5 h-2.5" /> Rechazado
                                 </span>
                               )}
