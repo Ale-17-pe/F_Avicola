@@ -109,6 +109,7 @@ export function GestionCobranza() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [filtroPago, setFiltroPago] = useState<'todos' | 'pagado' | 'parcial' | 'no'>('todos');
 
   // ─── MODAL PAGO STATE ───────────────────────────────────────────
   const [modalPagoOpen, setModalPagoOpen] = useState(false);
@@ -393,6 +394,29 @@ export function GestionCobranza() {
         )}
       </div>
 
+      {/* Payment status filter */}
+      <div className="flex gap-1.5 flex-wrap">
+        {([
+          { key: 'todos', label: 'Todos', color: '#9ca3af' },
+          { key: 'no', label: 'Sin Pagar', color: '#ef4444' },
+          { key: 'parcial', label: 'Parcial', color: '#f97316' },
+          { key: 'pagado', label: 'Pagado', color: '#10b981' },
+        ] as const).map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFiltroPago(f.key)}
+            className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+            style={{
+              background: filtroPago === f.key ? f.color + '20' : G06,
+              border: `1px solid ${filtroPago === f.key ? f.color + '50' : G15}`,
+              color: filtroPago === f.key ? f.color : '#666',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* No data */}
       {!clienteData || clienteData.fechas.length === 0 ? (
         <div className="text-center py-20">
@@ -403,7 +427,10 @@ export function GestionCobranza() {
       ) : (
         <>
           {/* Day-by-day tables */}
-          {clienteData.fechas.map(({ fecha, filas, totalDia, estadoPago, saldoAnterior, montoPagado, restante }) => (
+          {clienteData.fechas
+            .filter(d => filtroPago === 'todos' || d.estadoPago === filtroPago ||
+              (filtroPago === 'pagado' && d.estadoPago === 'pendiente'))
+            .map(({ fecha, filas, totalDia, estadoPago, saldoAnterior, montoPagado, restante }) => (
             <DiaTable
               key={fecha}
               fecha={fecha}
@@ -422,28 +449,8 @@ export function GestionCobranza() {
             style={{ background: G04, border: `1px solid ${G20}` }}>
             <div className="p-5 space-y-3">
 
-              {/* Subtotal (sum of all days' totals that are NOT paid) */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Subtotal Pendiente</span>
-                <span className="text-lg font-black text-white tabular-nums">
-                  S/ {clienteData.totalPendiente.toFixed(2)}
-                </span>
-              </div>
-
-              {/* Saldo (accumulated from unpaid previous days) */}
-              <div className="flex items-center justify-between py-2"
-                style={{ borderTop: `1px solid ${G10}`, borderBottom: `1px solid ${G10}` }}>
-                <div>
-                  <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Saldo Acumulado</span>
-                  <p className="text-[10px] text-gray-600 mt-0.5">Días impagos anteriores</p>
-                </div>
-                <span className={`text-lg font-black tabular-nums ${clienteData.saldoAcumulado > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                  S/ {clienteData.saldoAcumulado.toFixed(2)}
-                </span>
-              </div>
-
               {/* TOTAL A PAGAR */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between">
                 <span className="text-sm font-black uppercase tracking-wider" style={{ color: GOLD }}>Total a Pagar</span>
                 <span className="text-2xl font-black tabular-nums" style={{ color: GOLD }}>
                   S/ {clienteData.totalPendiente.toFixed(2)}
@@ -574,7 +581,7 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm font-black tabular-nums" style={{ color: esPagado ? '#10b981' : esPendiente ? '#f59e0b' : esParcial ? '#f97316' : COL.total }}>
-            S/ {totalDia.toFixed(2)}
+            S/ {restante.toFixed(2)}
           </span>
           {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronUp className="w-3.5 h-3.5 text-gray-500" />}
         </div>
@@ -653,6 +660,17 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                       </span>
                     </td>
                   </tr>
+                  {/* Saldo anterior */}
+                  <tr style={{ background: G06 }}>
+                    <td colSpan={6} className="px-3 py-2 text-right">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Saldo anterior</span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <span className={`text-xs font-bold tabular-nums ${saldoAnterior > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                        S/ {saldoAnterior.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
                   {/* Pagado (if partial or full) */}
                   {montoPagado > 0.01 && (
                     <tr style={{ background: G06 }}>
@@ -666,17 +684,6 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                       </td>
                     </tr>
                   )}
-                  {/* Saldo anterior */}
-                  <tr style={{ background: G06 }}>
-                    <td colSpan={6} className="px-3 py-2 text-right">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Saldo anterior</span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <span className={`text-xs font-bold tabular-nums ${saldoAnterior > 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                        S/ {saldoAnterior.toFixed(2)}
-                      </span>
-                    </td>
-                  </tr>
                   {/* Total a pagar este día (restante + saldo) */}
                   <tr style={{ background: G08, borderTop: `1px solid ${G15}` }}>
                     <td colSpan={6} className="px-3 py-2.5 text-right">
