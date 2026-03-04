@@ -535,20 +535,27 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 )}
               </div>
 
-              {/* Photo preview */}
+              {/* Photo preview (compact) */}
               {fotoBase64 && (
-                <div className="relative rounded-xl overflow-hidden" style={{ border: `1px solid ${G15}` }}>
-                  <img src={fotoBase64} alt="Comprobante" className="w-full max-h-40 object-cover" />
-                  <div className="absolute top-2 right-2 flex gap-1.5">
+                <div className="flex items-center gap-3 rounded-xl p-2.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                  <img src={fotoBase64} alt="Comprobante" className="w-14 h-14 rounded-lg object-cover shrink-0" style={{ border: `1px solid ${G20}` }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[10px] font-bold uppercase">Comprobante adjuntado</span>
+                    </div>
+                    <p className="text-[9px] text-gray-500 mt-0.5">Toque para cambiar o ver</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => {
                       const win = window.open();
                       if (win) { win.document.write(`<img src="${fotoBase64}" style="max-width:100%"/>`); }
                     }}
-                      className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 transition-all">
-                      <Eye className="w-3.5 h-3.5 text-white" />
+                      className="p-1.5 rounded-lg transition-all hover:bg-white/10" style={{ background: G08 }}>
+                      <Eye className="w-3.5 h-3.5 text-gray-400" />
                     </button>
                     <button onClick={() => setFotoBase64(null)}
-                      className="p-1.5 rounded-lg bg-black/60 hover:bg-red-900/80 transition-all">
+                      className="p-1.5 rounded-lg transition-all hover:bg-red-900/30" style={{ background: G08 }}>
                       <Trash2 className="w-3.5 h-3.5 text-red-400" />
                     </button>
                   </div>
