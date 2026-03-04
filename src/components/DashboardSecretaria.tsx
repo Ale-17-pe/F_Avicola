@@ -894,30 +894,30 @@ export function DashboardSecretaria() {
               <thead>
                 <tr style={{background:G04, borderBottom:`2px solid ${G15}`}}>
                   {[
-                    {key:'cliente',        label:'CLIENTE'},
-                    {key:'tipo',           label:'TIPO'},
-                    {key:'presentacion',   label:'PRES.'},
-                    {key:'cantidad',       label:'CANT.'},
-                    {key:'pesoPedido',     label:'P.PEDIDO kg'},
-                    {key:'pesoContenedor', label:'TARA kg'},
-                    {key:'pesoBruto',      label:'P.BRUTO kg'},
-                    {key:'repesada',       label:'REPESADA kg'},
-                    {key:'merma',          label:'MERMA kg'},
-                    {key:'devolucionPeso', label:'DEVOL. kg'},
-                    {key:'adicionPeso',    label:'ADICIÓN kg'},
-                    {key:'pesoNeto',       label:'P.NETO kg'},
-                    {key:'precio',         label:'PRECIO S/'},
-                    {key:'total',          label:'TOTAL S/'},
-                    {key:'zona',           label:'ZONA'},
-                    {key:'conductor',      label:'CONDUCTOR'},
-                    {key:'acciones',       label:''},
+                    {key:'cliente',        label:'CLIENTE',      align:'left'  as const},
+                    {key:'tipo',           label:'TIPO',         align:'left'  as const},
+                    {key:'presentacion',   label:'PRES.',        align:'left'  as const},
+                    {key:'cantidad',       label:'CANT.',        align:'right' as const},
+                    {key:'pesoPedido',     label:'P.PEDIDO kg',  align:'right' as const},
+                    {key:'pesoContenedor', label:'TARA kg',      align:'right' as const},
+                    {key:'pesoBruto',      label:'P.BRUTO kg',   align:'right' as const},
+                    {key:'repesada',       label:'REPESADA kg',  align:'right' as const},
+                    {key:'merma',          label:'MERMA kg',     align:'right' as const},
+                    {key:'devolucionPeso', label:'DEVOL. kg',    align:'right' as const},
+                    {key:'adicionPeso',    label:'ADICIÓN kg',   align:'right' as const},
+                    {key:'pesoNeto',       label:'P.NETO kg',    align:'right' as const},
+                    {key:'precio',         label:'PRECIO S/',    align:'right' as const},
+                    {key:'total',          label:'TOTAL S/',     align:'right' as const},
+                    {key:'zona',           label:'ZONA',         align:'left'  as const},
+                    {key:'conductor',      label:'CONDUCTOR',    align:'left'  as const},
+                    {key:'acciones',       label:'',             align:'left'  as const},
                   ].map(col=>(
                     <th key={col.key}
-                      className="px-2 py-2 text-left cursor-pointer select-none transition-colors"
+                      className={`px-2 py-2 ${col.align==='right'?'text-right':'text-left'} cursor-pointer select-none transition-colors`}
                       onMouseEnter={e=>(e.currentTarget.style.background=G06)}
                       onMouseLeave={e=>(e.currentTarget.style.background='transparent')}
                       onClick={()=>col.key!=='acciones'&&handleSort(col.key)}>
-                      <div className="flex items-center gap-0.5">
+                      <div className={`flex items-center gap-0.5 ${col.align==='right'?'justify-end':''}`}>
                         <span className="text-[9px] font-bold uppercase tracking-widest" style={{color:GOLD}}>
                           {col.label}
                         </span>
@@ -1012,8 +1012,8 @@ export function DashboardSecretaria() {
                         </td>
 
                         {/* REPESADA — click-to-edit, sky-400 + foto evidencia */}
-                        <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <div className="flex items-center gap-1">
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
+                          <div className="flex items-center justify-end gap-1">
                             <ClickEditCell value={fila.repesada} onChange={v=>actualizarCampo(fila.id,'repesada',v)} locked={bloqueado} color={COL.repesada} />
                             {(() => {
                               const fotos = getFotosConductor(fila.id, 'repesada');
@@ -1032,13 +1032,13 @@ export function DashboardSecretaria() {
                         </td>
 
                         {/* MERMA — click-to-edit */}
-                        <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
                           <ClickEditCell value={fila.merma} onChange={v=>actualizarCampo(fila.id,'merma',v)} locked={bloqueado} color={COL.merma} />
                         </td>
 
                         {/* DEVOLUCIÓN — click-to-edit + foto evidencia */}
-                        <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <div className="flex items-center gap-1">
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
+                          <div className="flex items-center justify-end gap-1">
                             <ClickEditCell value={fila.devolucionPeso} onChange={v=>actualizarCampo(fila.id,'devolucionPeso',v)} locked={bloqueado} color={COL.devolucion} />
                             {(() => {
                               const fotos = getFotosConductor(fila.id, 'devolucion');
@@ -1057,8 +1057,8 @@ export function DashboardSecretaria() {
                         </td>
 
                         {/* ADICIÓN — click-to-edit, lime-400 + foto evidencia */}
-                        <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
-                          <div className="flex items-center gap-1">
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
+                          <div className="flex items-center justify-end gap-1">
                             <ClickEditCell value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} locked={bloqueado} color={COL.adicion} />
                             {(() => {
                               const fotos = getFotosAdicion(fila.id);
@@ -1085,7 +1085,7 @@ export function DashboardSecretaria() {
                         </td>
 
                         {/* PRECIO — click-to-edit */}
-                        <td className="px-2 py-2 whitespace-nowrap" style={{minWidth:80}}>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
                           <ClickEditCell value={fila.precio} onChange={v=>actualizarCampo(fila.id,'precio',v)} locked={bloqueado} color={COL.total} />
                         </td>
 
