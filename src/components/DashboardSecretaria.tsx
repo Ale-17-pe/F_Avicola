@@ -841,6 +841,19 @@ export function DashboardSecretaria() {
           </span>
         </div>
 
+        {/* date input — salto directo a fecha */}
+        <div className="flex items-center border-l px-2" style={{borderColor:G15}}>
+          <input
+            type="date"
+            value={fechaSeleccionada}
+            max={hoyStr()}
+            onChange={e=>{ if(e.target.value) setFechaSeleccionada(e.target.value); }}
+            className="px-2 py-1.5 rounded-lg text-[11px] text-white outline-none cursor-pointer"
+            style={{background:'rgba(0,0,0,0.4)', border:`1px solid ${G15}`}}
+            title="Ir a fecha específica"
+          />
+        </div>
+
         {/* dropdown calendario */}
         <AnimatePresence>
           {showCal && <MiniCal />}

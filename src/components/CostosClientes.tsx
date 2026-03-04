@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useRef, useCallback } from "react";
 import {
   Search,
   DollarSign,
@@ -1285,262 +1285,291 @@ export function CostosClientes() {
 
       {/* ========== MODAL: AJUSTE MASIVO ========== */}
       {isAjusteMasivoOpen && (
+        <DraggableAjusteMasivo
+          onClose={() => setIsAjusteMasivoOpen(false)}
+          selectedClientes={selectedClientes}
+          avesActivas={avesActivas}
+          ajusteFilterTipoAve={ajusteFilterTipoAve}
+          setAjusteFilterTipoAve={setAjusteFilterTipoAve}
+          ajusteFilterVariedad={ajusteFilterVariedad}
+          setAjusteFilterVariedad={setAjusteFilterVariedad}
+          ajusteVariedadesDisponibles={ajusteVariedadesDisponibles}
+          ajusteFilterPresentacion={ajusteFilterPresentacion}
+          setAjusteFilterPresentacion={setAjusteFilterPresentacion}
+          ajusteTipo={ajusteTipo}
+          setAjusteTipo={setAjusteTipo}
+          ajusteMetodo={ajusteMetodo}
+          setAjusteMetodo={setAjusteMetodo}
+          ajustePorcentaje={ajustePorcentaje}
+          setAjustePorcentaje={setAjustePorcentaje}
+          ajusteMonto={ajusteMonto}
+          setAjusteMonto={setAjusteMonto}
+          handleAjusteMasivo={handleAjusteMasivo}
+        />
+      )}
+    </div>
+  );
+}
+
+// ========== DRAGGABLE AJUSTE MASIVO ==========
+function DraggableAjusteMasivo({
+  onClose, selectedClientes, avesActivas,
+  ajusteFilterTipoAve, setAjusteFilterTipoAve,
+  ajusteFilterVariedad, setAjusteFilterVariedad,
+  ajusteVariedadesDisponibles,
+  ajusteFilterPresentacion, setAjusteFilterPresentacion,
+  ajusteTipo, setAjusteTipo,
+  ajusteMetodo, setAjusteMetodo,
+  ajustePorcentaje, setAjustePorcentaje,
+  ajusteMonto, setAjusteMonto,
+  handleAjusteMasivo,
+}: {
+  onClose: () => void;
+  selectedClientes: Set<string>;
+  avesActivas: { id: string; nombre: string }[];
+  ajusteFilterTipoAve: string; setAjusteFilterTipoAve: (v: string) => void;
+  ajusteFilterVariedad: string; setAjusteFilterVariedad: (v: string) => void;
+  ajusteVariedadesDisponibles: string[];
+  ajusteFilterPresentacion: string; setAjusteFilterPresentacion: (v: string) => void;
+  ajusteTipo: "subir" | "bajar"; setAjusteTipo: (v: "subir" | "bajar") => void;
+  ajusteMetodo: "porcentaje" | "monto"; setAjusteMetodo: (v: "porcentaje" | "monto") => void;
+  ajustePorcentaje: string; setAjustePorcentaje: (v: string) => void;
+  ajusteMonto: string; setAjusteMonto: (v: string) => void;
+  handleAjusteMasivo: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const [initialized, setInitialized] = useState(false);
+
+  // Center on first render
+  const initRef = useCallback((node: HTMLDivElement | null) => {
+    if (node && !initialized) {
+      const rect = node.getBoundingClientRect();
+      setPos({
+        x: Math.max(0, (window.innerWidth - rect.width) / 2),
+        y: Math.max(0, (window.innerHeight - rect.height) / 2),
+      });
+      setInitialized(true);
+    }
+    (panelRef as any).current = node;
+  }, [initialized]);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('input, select, button')) return;
+    setDragging(true);
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    e.preventDefault();
+  };
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragging) return;
+    setPos({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y });
+  }, [dragging]);
+
+  const onMouseUp = useCallback(() => setDragging(false), []);
+
+  // Attach/detach global listeners
+  useState(() => {
+    const move = (e: MouseEvent) => onMouseMove(e);
+    const up = () => onMouseUp();
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  });
+
+  // Keep listeners updated
+  const moveRef = useRef(onMouseMove);
+  const upRef = useRef(onMouseUp);
+  moveRef.current = onMouseMove;
+  upRef.current = onMouseUp;
+
+  // Global mouse events via effect
+  // We use a simple approach: attach in a div-level handler
+  return (
+    <>
+      {/* Transparent overlay to capture drag events across the whole screen */}
+      {dragging && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6"
-          style={{ background: "rgba(0, 0, 0, 0.85)" }}
-          onClick={() => setIsAjusteMasivoOpen(false)}
+          className="fixed inset-0 z-[59]"
+          style={{ cursor: 'grabbing' }}
+          onMouseMove={e => setPos({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y })}
+          onMouseUp={() => setDragging(false)}
+        />
+      )}
+      <div
+        ref={initRef}
+        className="fixed z-[60] backdrop-blur-2xl rounded-2xl w-[380px] max-h-[90vh] overflow-y-auto p-5"
+        style={{
+          left: pos.x,
+          top: pos.y,
+          background: "linear-gradient(135deg, rgba(10,10,10,0.95) 0%, rgba(168,85,247,0.15) 50%, rgba(10,10,10,0.95) 100%)",
+          border: "2px solid rgba(168, 85, 247, 0.3)",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(168,85,247,0.1)",
+          cursor: dragging ? 'grabbing' : 'auto',
+        }}
+      >
+        {/* Header — draggable handle */}
+        <div
+          className="flex items-center justify-between mb-5 pb-4 border-b select-none"
+          style={{ borderColor: "rgba(168, 85, 247, 0.2)", cursor: 'grab' }}
+          onMouseDown={onMouseDown}
         >
-          <div
-            className="backdrop-blur-2xl rounded-2xl w-full max-w-md p-5 sm:p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(0, 0, 0, 0.7) 100%)",
-              border: "2px solid rgba(168, 85, 247, 0.3)",
-              boxShadow: "0 30px 60px rgba(0, 0, 0, 0.8)",
-            }}
-            onClick={(e) => e.stopPropagation()}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)" }}>
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Ajuste Masivo</h2>
+              <p className="text-[10px] text-gray-500">Arrastra para mover</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:scale-110 transition-all"
+            style={{ background: "rgba(239, 68, 68, 0.2)" }}
           >
-            {/* Header */}
-            <div
-              className="flex items-center justify-between mb-5 pb-4 border-b"
-              style={{ borderColor: "rgba(168, 85, 247, 0.2)" }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)" }}
-                >
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Ajuste Masivo</h2>
-                  <p className="text-sm text-gray-400">
-                    Modificar precios de clientes seleccionados
-                  </p>
-                </div>
+            <X className="w-4 h-4 text-red-400" />
+          </button>
+        </div>
+
+        {selectedClientes.size === 0 ? (
+          <div className="text-center py-6">
+            <Users className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <p className="text-gray-400 text-sm">Primero seleccione clientes en la lista</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-purple-300">
+              Ajustar precios de <span className="font-bold text-white">{selectedClientes.size}</span> cliente(s)
+            </p>
+
+            {/* Filtros */}
+            <div className="space-y-2 p-2.5 rounded-xl" style={{ background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.15)" }}>
+              <p className="text-[9px] font-bold text-purple-300 uppercase tracking-wider">Aplicar a:</p>
+              <div>
+                <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Tipo de Ave</label>
+                <select value={ajusteFilterTipoAve}
+                  onChange={e => { setAjusteFilterTipoAve(e.target.value); setAjusteFilterVariedad("all"); }}
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                  <option value="all">Todos los tipos</option>
+                  {avesActivas.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                </select>
               </div>
-              <button
-                onClick={() => setIsAjusteMasivoOpen(false)}
-                className="p-2 rounded-xl hover:scale-110 transition-all"
-                style={{ background: "rgba(239, 68, 68, 0.2)" }}
-              >
-                <X className="w-5 h-5 text-red-400" />
+              {ajusteFilterTipoAve !== "all" && ajusteVariedadesDisponibles.length > 1 && (
+                <div>
+                  <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Variedad</label>
+                  <select value={ajusteFilterVariedad}
+                    onChange={e => setAjusteFilterVariedad(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
+                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                    <option value="all">Todas las variedades</option>
+                    {ajusteVariedadesDisponibles.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Presentación</label>
+                <select value={ajusteFilterPresentacion}
+                  onChange={e => setAjusteFilterPresentacion(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                  <option value="all">Todas</option>
+                  <option value="Vivo">Vivo</option>
+                  <option value="Pelado">Pelado</option>
+                  <option value="Destripado">Destripado</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tipo de ajuste */}
+            <div className="flex gap-2">
+              <button onClick={() => setAjusteTipo("subir")}
+                className={`flex-1 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 ${ajusteTipo === "subir" ? "ring-1 ring-green-500" : ""}`}
+                style={{
+                  background: ajusteTipo === "subir" ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.05)",
+                  border: ajusteTipo === "subir" ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                  color: ajusteTipo === "subir" ? "#22c55e" : "#888",
+                }}>
+                <TrendingUp className="w-3.5 h-3.5" /> Subir
+              </button>
+              <button onClick={() => setAjusteTipo("bajar")}
+                className={`flex-1 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 ${ajusteTipo === "bajar" ? "ring-1 ring-red-500" : ""}`}
+                style={{
+                  background: ajusteTipo === "bajar" ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)",
+                  border: ajusteTipo === "bajar" ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                  color: ajusteTipo === "bajar" ? "#ef4444" : "#888",
+                }}>
+                <TrendingDown className="w-3.5 h-3.5" /> Bajar
               </button>
             </div>
 
-            {selectedClientes.size === 0 ? (
-              <div className="text-center py-6">
-                <Users className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                <p className="text-gray-400 text-sm">Primero seleccione clientes en la lista</p>
+            {/* Método */}
+            <div className="flex gap-2">
+              <button onClick={() => setAjusteMetodo("porcentaje")}
+                className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
+                style={{
+                  background: ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.2)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  color: ajusteMetodo === "porcentaje" ? "#c084fc" : "#888",
+                }}>
+                Porcentaje %
+              </button>
+              <button onClick={() => setAjusteMetodo("monto")}
+                className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
+                style={{
+                  background: ajusteMetodo === "monto" ? "rgba(168,85,247,0.2)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  color: ajusteMetodo === "monto" ? "#c084fc" : "#888",
+                }}>
+                Monto fijo S/
+              </button>
+            </div>
+
+            {/* Input */}
+            {ajusteMetodo === "porcentaje" ? (
+              <div>
+                <label className="block text-[10px] font-bold mb-1 text-gray-400">Porcentaje (%)</label>
+                <input type="number" step="0.1" min="0" value={ajustePorcentaje}
+                  onChange={e => setAjustePorcentaje(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm font-bold text-center"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}
+                  placeholder="Ej: 5" />
               </div>
             ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-purple-300">
-                  Se ajustaran los precios de{" "}
-                  <span className="font-bold text-white">{selectedClientes.size}</span> cliente(s)
-                </p>
-
-                {/* Filtros granulares: Tipo de Ave, Variedad, Presentacion */}
-                <div className="space-y-3 p-3 rounded-xl" style={{ background: "rgba(168, 85, 247, 0.05)", border: "1px solid rgba(168, 85, 247, 0.15)" }}>
-                  <p className="text-xs font-bold text-purple-300 uppercase tracking-wider">Aplicar a:</p>
-                  
-                  <div>
-                    <label className="block text-xs font-bold mb-1 text-gray-400">Tipo de Ave</label>
-                    <select
-                      value={ajusteFilterTipoAve}
-                      onChange={(e) => { setAjusteFilterTipoAve(e.target.value); setAjusteFilterVariedad("all"); }}
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                      style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
-                    >
-                      <option value="all">Todos los tipos</option>
-                      {avesActivas.map((t) => (
-                        <option key={t.id} value={t.id}>{t.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {ajusteFilterTipoAve !== "all" && ajusteVariedadesDisponibles.length > 1 && (
-                    <div>
-                      <label className="block text-xs font-bold mb-1 text-gray-400">Variedad</label>
-                      <select
-                        value={ajusteFilterVariedad}
-                        onChange={(e) => setAjusteFilterVariedad(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                        style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
-                      >
-                        <option value="all">Todas las variedades</option>
-                        {ajusteVariedadesDisponibles.map((v) => (
-                          <option key={v} value={v}>{v}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-bold mb-1 text-gray-400">Presentacion</label>
-                    <select
-                      value={ajusteFilterPresentacion}
-                      onChange={(e) => setAjusteFilterPresentacion(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white"
-                      style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(168, 85, 247, 0.3)" }}
-                    >
-                      <option value="all">Todas las presentaciones</option>
-                      <option value="Vivo">Vivo</option>
-                      <option value="Pelado">Pelado</option>
-                      <option value="Destripado">Destripado</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Tipo de ajuste: Subir / Bajar */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAjusteTipo("subir")}
-                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm ${ajusteTipo === "subir" ? "ring-2 ring-green-500" : ""}`}
-                    style={{
-                      background:
-                        ajusteTipo === "subir"
-                          ? "rgba(34, 197, 94, 0.2)"
-                          : "rgba(255, 255, 255, 0.05)",
-                      border:
-                        ajusteTipo === "subir"
-                          ? "1px solid rgba(34, 197, 94, 0.4)"
-                          : "1px solid rgba(255, 255, 255, 0.1)",
-                      color: ajusteTipo === "subir" ? "#22c55e" : "#888",
-                    }}
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Subir Precios
-                  </button>
-                  <button
-                    onClick={() => setAjusteTipo("bajar")}
-                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm ${ajusteTipo === "bajar" ? "ring-2 ring-red-500" : ""}`}
-                    style={{
-                      background:
-                        ajusteTipo === "bajar"
-                          ? "rgba(239, 68, 68, 0.2)"
-                          : "rgba(255, 255, 255, 0.05)",
-                      border:
-                        ajusteTipo === "bajar"
-                          ? "1px solid rgba(239, 68, 68, 0.4)"
-                          : "1px solid rgba(255, 255, 255, 0.1)",
-                      color: ajusteTipo === "bajar" ? "#ef4444" : "#888",
-                    }}
-                  >
-                    <TrendingDown className="w-4 h-4" />
-                    Bajar Precios
-                  </button>
-                </div>
-
-                {/* Metodo: Porcentaje / Monto fijo */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAjusteMetodo("porcentaje")}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
-                    style={{
-                      background:
-                        ajusteMetodo === "porcentaje"
-                          ? "rgba(168, 85, 247, 0.2)"
-                          : "rgba(255, 255, 255, 0.05)",
-                      border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168, 85, 247, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
-                      color: ajusteMetodo === "porcentaje" ? "#c084fc" : "#888",
-                    }}
-                  >
-                    Porcentaje %
-                  </button>
-                  <button
-                    onClick={() => setAjusteMetodo("monto")}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
-                    style={{
-                      background:
-                        ajusteMetodo === "monto"
-                          ? "rgba(168, 85, 247, 0.2)"
-                          : "rgba(255, 255, 255, 0.05)",
-                      border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168, 85, 247, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
-                      color: ajusteMetodo === "monto" ? "#c084fc" : "#888",
-                    }}
-                  >
-                    Monto fijo S/
-                  </button>
-                </div>
-
-                {/* Input */}
-                {ajusteMetodo === "porcentaje" ? (
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                      Porcentaje de ajuste (%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={ajustePorcentaje}
-                      onChange={(e) => setAjustePorcentaje(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl text-white text-lg font-bold text-center"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.08)",
-                        border: "1px solid rgba(168, 85, 247, 0.3)",
-                      }}
-                      placeholder="Ej: 5"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-gray-400">
-                      Monto de ajuste (S/)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={ajusteMonto}
-                      onChange={(e) => setAjusteMonto(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl text-white text-lg font-bold text-center"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.08)",
-                        border: "1px solid rgba(168, 85, 247, 0.3)",
-                      }}
-                      placeholder="Ej: 0.50"
-                    />
-                  </div>
-                )}
-
-                {/* Botones */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setIsAjusteMasivoOpen(false)}
-                    className="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                    style={{
-                      background: "rgba(255, 255, 255, 0.1)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      color: "#fff",
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleAjusteMasivo}
-                    className="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                    style={{
-                      background:
-                        ajusteTipo === "subir"
-                          ? "linear-gradient(to right, #0d4a24, #166534, #22c55e)"
-                          : "linear-gradient(to right, #7f1d1d, #991b1b, #ef4444)",
-                      color: "white",
-                      boxShadow:
-                        ajusteTipo === "subir"
-                          ? "0 4px 15px rgba(34, 197, 94, 0.3)"
-                          : "0 4px 15px rgba(239, 68, 68, 0.3)",
-                    }}
-                  >
-                    {ajusteTipo === "subir" ? "Subir" : "Bajar"} Precios
-                  </button>
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold mb-1 text-gray-400">Monto (S/)</label>
+                <input type="number" step="0.01" min="0" value={ajusteMonto}
+                  onChange={e => setAjusteMonto(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm font-bold text-center"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}
+                  placeholder="Ej: 0.50" />
               </div>
             )}
+
+            {/* Botones */}
+            <div className="flex gap-2 pt-1">
+              <button onClick={onClose}
+                className="flex-1 px-3 py-2 rounded-xl font-bold text-xs"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}>
+                Cancelar
+              </button>
+              <button onClick={handleAjusteMasivo}
+                className="flex-1 px-3 py-2 rounded-xl font-bold text-xs"
+                style={{
+                  background: ajusteTipo === "subir" ? "linear-gradient(to right, #0d4a24, #166534, #22c55e)" : "linear-gradient(to right, #7f1d1d, #991b1b, #ef4444)",
+                  color: "white",
+                  boxShadow: ajusteTipo === "subir" ? "0 4px 15px rgba(34,197,94,0.3)" : "0 4px 15px rgba(239,68,68,0.3)",
+                }}>
+                {ajusteTipo === "subir" ? "Subir" : "Bajar"} Precios
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
