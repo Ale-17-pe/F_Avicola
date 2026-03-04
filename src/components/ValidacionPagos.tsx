@@ -64,6 +64,25 @@ export function ValidacionPagos() {
     return lista;
   }, [pagos, filtro, searchTerm]);
 
+  // Group payments by day (chronological, most recent first)
+  const pagosPorDia = useMemo(() => {
+    const grouped = new Map<string, Pago[]>();
+    pagosFiltrados.forEach(pago => {
+      const f = pago.fecha;
+      if (!grouped.has(f)) grouped.set(f, []);
+      grouped.get(f)!.push(pago);
+    });
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([fecha, pagos]) => ({
+        fecha,
+        pagos: pagos.sort((a, b) => b.hora.localeCompare(a.hora)),
+        totalMonto: pagos.reduce((s, p) => s + p.monto, 0),
+        pendientesDia: pagos.filter(p => p.estado === 'Pendiente').length,
+        confirmadosDia: pagos.filter(p => p.estado === 'Confirmado').length,
+      }));
+  }, [pagosFiltrados]);
+
   const pendientes = pagos.filter(p => p.estado === 'Pendiente').length;
 
   const handleValidar = (pago: Pago, accion: 'confirmar' | 'rechazar') => {
@@ -145,172 +164,203 @@ export function ValidacionPagos() {
         </div>
       </div>
 
-      {/* Payments list */}
-      <div className="space-y-3">
-        <AnimatePresence>
-          {pagosFiltrados.map((pago, idx) => {
-            const metodo = METODO_CONFIG[pago.metodo] || METODO_CONFIG.Efectivo;
-            const MetodoIcon = metodo.icon;
-            const isExpanded = expandedId === pago.id;
+      {/* Payments grouped by day */}
+      <div className="space-y-5">
+        {pagosPorDia.map(({ fecha, pagos: pagosDia, totalMonto, pendientesDia, confirmadosDia }) => (
+          <div key={fecha} className="space-y-2">
+            {/* Day header */}
+            <div className="flex items-center justify-between px-1 py-1">
+              <div className="flex items-center gap-2.5">
+                <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-xs font-bold text-white">{formatFecha(fecha)}</span>
+                <span className="text-[10px] text-gray-600">{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
+                {pendientesDia > 0 && (
+                  <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                    {pendientesDia} pendiente{pendientesDia > 1 ? 's' : ''}
+                  </span>
+                )}
+                {confirmadosDia > 0 && pendientesDia === 0 && (
+                  <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                    <CheckCircle className="w-2.5 h-2.5 inline mr-0.5" />Validados
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-black text-gray-400 tabular-nums font-mono">
+                S/ {totalMonto.toFixed(2)}
+              </span>
+            </div>
 
-            return (
-              <motion.div
-                key={pago.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ delay: idx * 0.02 }}
-                className="rounded-2xl overflow-hidden"
-                style={{
-                  background: G04,
-                  border: `1px solid ${pago.estado === 'Pendiente' ? 'rgba(245,158,11,0.25)' : pago.estado === 'Confirmado' ? 'rgba(16,185,129,0.20)' : 'rgba(239,68,68,0.20)'}`,
-                }}
-              >
-                {/* Card header */}
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : pago.id)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 transition-all hover:bg-white/[0.02]"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Status icon */}
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: metodo.color + '15', border: `1px solid ${metodo.color}30` }}>
-                      <MetodoIcon className="w-4.5 h-4.5" style={{ color: metodo.color }} />
-                    </div>
+            {/* Payment cards for this day */}
+            <div className="space-y-2">
+              <AnimatePresence>
+                {pagosDia.map((pago, idx) => {
+                  const metodo = METODO_CONFIG[pago.metodo] || METODO_CONFIG.Efectivo;
+                  const MetodoIcon = metodo.icon;
+                  const isExpanded = expandedId === pago.id;
 
-                    <div className="text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">{pago.clienteNombre}</span>
-                        {/* Status badge */}
-                        {pago.estado === 'Pendiente' && (
-                          <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                            <Clock className="w-2.5 h-2.5" /> Pendiente
-                          </span>
-                        )}
-                        {pago.estado === 'Confirmado' && (
-                          <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                            <CheckCircle className="w-2.5 h-2.5" /> Confirmado
-                          </span>
-                        )}
-                        {pago.estado === 'Rechazado' && (
-                          <span className="text-[8px] font-bold text-red-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                            <XCircle className="w-2.5 h-2.5" /> Rechazado
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
-                        <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
-                        <span>{formatFecha(pago.fecha)} · {pago.hora.slice(0, 5)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-black text-white tabular-nums font-mono">
-                      S/ {pago.monto.toFixed(2)}
-                    </span>
-                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-500" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-500" />}
-                  </div>
-                </button>
-
-                {/* Expanded details */}
-                <AnimatePresence>
-                  {isExpanded && (
+                  return (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      key={pago.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ delay: idx * 0.02 }}
+                      className="rounded-2xl overflow-hidden"
+                      style={{
+                        background: G04,
+                        border: `1px solid ${pago.estado === 'Pendiente' ? 'rgba(245,158,11,0.25)' : pago.estado === 'Confirmado' ? 'rgba(16,185,129,0.20)' : 'rgba(239,68,68,0.20)'}`,
+                      }}
                     >
-                      <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${G10}` }}>
-                        <div className="pt-3 grid grid-cols-2 gap-3">
-                          {/* Summary card */}
-                          <div className="rounded-xl p-3 space-y-2" style={{ background: G06, border: `1px solid ${G10}` }}>
-                            <div className="flex justify-between text-[10px]">
-                              <span className="text-gray-500">Método</span>
-                              <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
-                            </div>
-                            <div className="flex justify-between text-[10px]">
-                              <span className="text-gray-500">Monto</span>
-                              <span className="text-white font-black font-mono">S/ {pago.monto.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between text-[10px]">
-                              <span className="text-gray-500">Fecha</span>
-                              <span className="text-gray-300">{pago.fecha} · {pago.hora.slice(0, 5)}</span>
-                            </div>
-                            {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
-                              <div className="flex justify-between text-[10px]">
-                                <span className="text-gray-500">Días</span>
-                                <span className="text-gray-300">{pago.fechasCubiertas.length} día{pago.fechasCubiertas.length > 1 ? 's' : ''}</span>
-                              </div>
-                            )}
+                      {/* Card header */}
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : pago.id)}
+                        className="w-full flex items-center justify-between px-4 py-3.5 transition-all hover:bg-white/[0.02]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: metodo.color + '15', border: `1px solid ${metodo.color}30` }}>
+                            <MetodoIcon className="w-4.5 h-4.5" style={{ color: metodo.color }} />
                           </div>
-
-                          {/* Observaciones */}
-                          <div className="rounded-xl p-3" style={{ background: G06, border: `1px solid ${G10}` }}>
-                            <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">Observaciones</p>
-                            <p className="text-xs text-gray-300 leading-relaxed">
-                              {pago.observaciones || <span className="text-gray-600 italic">Sin observaciones</span>}
-                            </p>
+                          <div className="text-left">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-white">{pago.clienteNombre}</span>
+                              {pago.estado === 'Pendiente' && (
+                                <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                                  style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                                  <Clock className="w-2.5 h-2.5" /> Pendiente
+                                </span>
+                              )}
+                              {pago.estado === 'Confirmado' && (
+                                <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                                  style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                                  <CheckCircle className="w-2.5 h-2.5" /> Confirmado
+                                </span>
+                              )}
+                              {pago.estado === 'Rechazado' && (
+                                <span className="text-[8px] font-bold text-red-400 uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                  <XCircle className="w-2.5 h-2.5" /> Rechazado
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
+                              <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
+                              <span>{pago.hora.slice(0, 5)}</span>
+                              {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
+                                <span className="text-gray-600">{pago.fechasCubiertas.length} día{pago.fechasCubiertas.length > 1 ? 's' : ''}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-black text-white tabular-nums font-mono">
+                            S/ {pago.monto.toFixed(2)}
+                          </span>
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-500" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-500" />}
+                        </div>
+                      </button>
 
-                        {/* Photo evidence */}
-                        {pago.foto && (
-                          <div className="rounded-xl overflow-hidden cursor-pointer group relative"
-                            style={{ border: `1px solid ${G15}` }}
-                            onClick={() => setPreviewFoto(pago.foto || null)}
+                      {/* Expanded details */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <img src={pago.foto} alt="Comprobante" className="w-full max-h-48 object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Eye className="w-6 h-6 text-white" />
-                            </div>
-                          </div>
-                        )}
+                            <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${G10}` }}>
+                              <div className="pt-3 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl p-3 space-y-2" style={{ background: G06, border: `1px solid ${G10}` }}>
+                                  <div className="flex justify-between text-[10px]">
+                                    <span className="text-gray-500">Método</span>
+                                    <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[10px]">
+                                    <span className="text-gray-500">Monto</span>
+                                    <span className="text-white font-black font-mono">S/ {pago.monto.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[10px]">
+                                    <span className="text-gray-500">Hora</span>
+                                    <span className="text-gray-300">{pago.hora.slice(0, 5)}</span>
+                                  </div>
+                                  {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
+                                    <div className="text-[10px]">
+                                      <span className="text-gray-500">Días cubiertos:</span>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {pago.fechasCubiertas.map(fc => (
+                                          <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 font-mono">
+                                            {formatFecha(fc)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="rounded-xl p-3" style={{ background: G06, border: `1px solid ${G10}` }}>
+                                  <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">Observaciones</p>
+                                  <p className="text-xs text-gray-300 leading-relaxed">
+                                    {pago.observaciones || <span className="text-gray-600 italic">Sin observaciones</span>}
+                                  </p>
+                                </div>
+                              </div>
 
-                        {/* Action buttons for pending */}
-                        {pago.estado === 'Pendiente' && (
-                          <div className="grid grid-cols-2 gap-2.5 pt-1">
-                            <motion.button
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.97 }}
-                              onClick={() => handleValidar(pago, 'rechazar')}
-                              className="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-                              style={{
-                                background: 'rgba(239,68,68,0.10)',
-                                border: '1px solid rgba(239,68,68,0.30)',
-                                color: '#ef4444',
-                              }}
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              Rechazar
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.97 }}
-                              onClick={() => handleValidar(pago, 'confirmar')}
-                              className="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 text-black transition-all"
-                              style={{
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                boxShadow: '0 4px 16px rgba(16,185,129,0.30)',
-                              }}
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Validar Pago
-                            </motion.button>
-                          </div>
+                              {pago.foto && (
+                                <div className="rounded-xl overflow-hidden cursor-pointer group relative"
+                                  style={{ border: `1px solid ${G15}` }}
+                                  onClick={() => setPreviewFoto(pago.foto || null)}
+                                >
+                                  <img src={pago.foto} alt="Comprobante" className="w-full max-h-48 object-cover" />
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Eye className="w-6 h-6 text-white" />
+                                  </div>
+                                </div>
+                              )}
+
+                              {pago.estado === 'Pendiente' && (
+                                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                  <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => handleValidar(pago, 'rechazar')}
+                                    className="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                                    style={{
+                                      background: 'rgba(239,68,68,0.10)',
+                                      border: '1px solid rgba(239,68,68,0.30)',
+                                      color: '#ef4444',
+                                    }}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    Rechazar
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => handleValidar(pago, 'confirmar')}
+                                    className="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 text-black transition-all"
+                                    style={{
+                                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                                      boxShadow: '0 4px 16px rgba(16,185,129,0.30)',
+                                    }}
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Validar Pago
+                                  </motion.button>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </div>
+        ))}
 
         {pagosFiltrados.length === 0 && (
           <div className="text-center py-16">

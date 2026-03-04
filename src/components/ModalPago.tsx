@@ -58,6 +58,11 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   const [pagoRegistradoId, setPagoRegistradoId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ─── EDITABLE MONTO ──────────────────────────────────────────
+  const [montoAPagar, setMontoAPagar] = useState(monto);
+  const [montoManual, setMontoManual] = useState(false);
+  const [montoInput, setMontoInput] = useState('');
+
   // ─── REAL-TIME: Watch for confirmation from Secretaría ─────────
   useEffect(() => {
     if (paso !== 'esperando' || !pagoRegistradoId) return;
@@ -67,6 +72,13 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
     }
   }, [pagos, paso, pagoRegistradoId]);
 
+  // Sync montoAPagar when monto prop changes
+  useEffect(() => {
+    setMontoAPagar(monto);
+    setMontoManual(false);
+    setMontoInput('');
+  }, [monto]);
+
   // Reset state when opening
   const resetState = useCallback(() => {
     setPaso('metodo');
@@ -74,7 +86,21 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
     setObservaciones('');
     setFotoBase64(null);
     setPagoRegistradoId(null);
-  }, []);
+    setMontoManual(false);
+    setMontoInput('');
+    setMontoAPagar(monto);
+  }, [monto]);
+
+  // ─── MONTO INPUT HANDLER ──────────────────────────────────────
+  const handleMontoInputChange = (value: string) => {
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      const num = parseFloat(value) || 0;
+      if (num <= monto) {
+        setMontoInput(value);
+        setMontoAPagar(num);
+      }
+    }
+  };
 
   const handleClose = () => {
     if (paso === 'esperando') return; // Can't close while waiting for digital
@@ -139,7 +165,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
       id: pagoId,
       clienteId,
       clienteNombre,
-      monto,
+      monto: montoAPagar,
       metodo: metodoSeleccionado,
       fecha: now.toISOString().split('T')[0],
       hora: now.toTimeString().slice(0, 8),
@@ -169,7 +195,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   const metodoDigitalInfo = DIGITAL_METHODS.find(m => m.id === metodoSeleccionado);
   const esBanco = metodoDigitalInfo?.tipo === 'banco';
   const requiereFoto = metodoSeleccionado !== 'Efectivo' && metodoSeleccionado !== null;
-  const puedeConfirmar = metodoSeleccionado === 'Efectivo' || (requiereFoto && !!fotoBase64);
+  const puedeConfirmar = montoAPagar > 0 && (metodoSeleccionado === 'Efectivo' || (requiereFoto && !!fotoBase64));
 
   if (!isOpen) return null;
 
@@ -237,11 +263,58 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
 
         {/* ─── MONTO DISPLAY ──────────────────────────────────────── */}
         {paso !== 'esperando' && paso !== 'completado' && (
-          <div className="px-5 py-4 text-center" style={{ borderBottom: `1px solid ${G06}` }}>
-            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Monto a pagar</p>
-            <p className="text-3xl font-black text-white tabular-nums font-mono">
-              S/ {monto.toFixed(2)}
-            </p>
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${G06}` }}>
+            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2 text-center">Monto a pagar</p>
+            {montoManual && paso === 'metodo' ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-xl font-black text-gray-400">S/</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={montoInput}
+                    onChange={e => handleMontoInputChange(e.target.value)}
+                    placeholder="0.00"
+                    autoFocus
+                    className="text-2xl font-black text-white bg-transparent outline-none w-32 text-center tabular-nums font-mono"
+                    style={{ borderBottom: '2px solid #10b981' }}
+                  />
+                  <button
+                    onClick={() => { setMontoManual(false); setMontoAPagar(monto); setMontoInput(''); }}
+                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all hover:bg-white/10 flex items-center gap-1"
+                    style={{ background: G08, border: `1px solid ${G15}`, color: '#999' }}
+                  >
+                    Restaurar
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-600 text-center">
+                  Máximo: S/ {monto.toFixed(2)}
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-3">
+                <p className="text-3xl font-black text-white tabular-nums font-mono">
+                  S/ {montoAPagar.toFixed(2)}
+                </p>
+                {paso === 'metodo' && (
+                  <button
+                    onClick={() => { setMontoManual(true); setMontoInput(''); setMontoAPagar(0); }}
+                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all hover:bg-white/10"
+                    style={{ background: G08, border: `1px solid ${G20}`, color: '#999' }}
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            )}
+            {montoAPagar > 0 && montoAPagar < monto && (
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <AlertTriangle className="w-3 h-3 text-amber-400" />
+                <p className="text-[10px] text-amber-400 font-bold">
+                  Pago parcial — Saldo restante: S/ {(monto - montoAPagar).toFixed(2)}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -340,7 +413,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 }}
               >
                 <CheckCircle className="w-4 h-4" />
-                Confirmar Pago — S/ {monto.toFixed(2)}
+                Confirmar Pago — S/ {montoAPagar.toFixed(2)}
               </motion.button>
             </motion.div>
           )}
@@ -526,7 +599,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 }}
               >
                 <CheckCircle className="w-4 h-4" />
-                Confirmar Pago — S/ {monto.toFixed(2)}
+                Confirmar Pago — S/ {montoAPagar.toFixed(2)}
               </motion.button>
             </motion.div>
           )}
@@ -547,7 +620,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 </div>
                 <h4 className="text-white font-bold text-base mb-2">¿Confirmar el pago?</h4>
                 <p className="text-gray-400 text-xs">
-                  Se registrará un pago de <strong className="text-white">S/ {monto.toFixed(2)}</strong> para{' '}
+                  Se registrará un pago de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> para{' '}
                   <strong className="text-white">{clienteNombre}</strong> mediante{' '}
                   <strong style={{ color: metodoSeleccionado === 'Efectivo' ? '#10b981' : metodoDigitalInfo?.color }}>
                     {metodoSeleccionado === 'Efectivo' ? 'Efectivo' : metodoDigitalInfo?.label}
@@ -569,8 +642,14 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">Monto</span>
-                  <span className="text-white font-black font-mono tabular-nums">S/ {monto.toFixed(2)}</span>
+                  <span className="text-white font-black font-mono tabular-nums">S/ {montoAPagar.toFixed(2)}</span>
                 </div>
+                {montoAPagar < monto && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Saldo restante</span>
+                    <span className="text-amber-400 font-bold font-mono tabular-nums">S/ {(monto - montoAPagar).toFixed(2)}</span>
+                  </div>
+                )}
                 {observaciones.trim() && (
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Observaciones</span>
@@ -636,7 +715,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               <div>
                 <h4 className="text-white font-bold text-lg mb-2">Pago en Espera</h4>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  Su pago de <strong className="text-white">S/ {monto.toFixed(2)}</strong> ha sido registrado
+                  Su pago de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> ha sido registrado
                   exitosamente. La secretaria validará la recepción del pago para completar el proceso.
                 </p>
               </div>
@@ -677,8 +756,8 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 </h4>
                 <p className="text-gray-400 text-xs leading-relaxed">
                   {metodoSeleccionado === 'Efectivo'
-                    ? <>El pago en efectivo de <strong className="text-white">S/ {monto.toFixed(2)}</strong> ha sido registrado. El dinero será validado por secretaría al recibirlo en el local.</>
-                    : <>El pago de <strong className="text-white">S/ {monto.toFixed(2)}</strong> ha sido <strong className="text-emerald-400">confirmado por secretaría</strong>. La transacción está completa.</>}
+                    ? <>El pago en efectivo de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> ha sido registrado. El dinero será validado por secretaría al recibirlo en el local.</>
+                    : <>El pago de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> ha sido <strong className="text-emerald-400">confirmado por secretaría</strong>. La transacción está completa.</>}
                 </p>
               </div>
 
