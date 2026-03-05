@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Eye, Plus, CheckCircle, X, Users, Bird, Package, Layers, ChevronRight, Tag, Trash2, RotateCcw, Grid3x3, Edit2, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 interface SubPedido {
@@ -54,6 +55,7 @@ const emptySubForm = (): Partial<SubPedido> => ({
 
 export function NuevoPedido() {
   const { addMultiplePedidosConfirmados, tiposAve, clientes, presentaciones, contenedores, costosClientes } = useApp();
+  const { isDark } = useTheme(); const c = t(isDark);
 
   // Filtrar solo clientes y productos activos
   const clientesActivos = clientes.filter(c => c.estado !== 'Inactivo');
@@ -560,23 +562,25 @@ export function NuevoPedido() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">Producto</label>
+            <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Producto</label>
             <select value={data.tipoAve || ''}
               onChange={e => actualizarSubForm(data, setData, 'tipoAve', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm">
-              <option value="" className="bg-black">Seleccionar...</option>
-              {productosDisponibles.map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
+              className="w-full px-4 py-3 border rounded-lg text-sm"
+              style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+              <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+              {productosDisponibles.map(t => <option key={t.id} value={t.nombre} style={{ background: c.bgPage, color: c.text }}>{t.nombre}</option>)}
             </select>
           </div>
 
           {necesitaVariedad && (
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Variedad</label>
+              <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Variedad</label>
               <select value={data.variedad || ''}
                 onChange={e => actualizarSubForm(data, setData, 'variedad', e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm">
-                <option value="" className="bg-black">Seleccionar...</option>
-                {getVariedadesParaCliente(clienteDelPedido || '', data.tipoAve || '').map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
+                className="w-full px-4 py-3 border rounded-lg text-sm"
+                style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+                <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+                {getVariedadesParaCliente(clienteDelPedido || '', data.tipoAve || '').map((v: string) => <option key={v} value={v} style={{ background: c.bgPage, color: c.text }}>{v}</option>)}
               </select>
             </div>
           )}
@@ -585,13 +589,14 @@ export function NuevoPedido() {
         {/* Presentación ANTES de cantidades para que esVivo se evalúe correctamente */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">Presentación</label>
+            <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Presentación</label>
             <select value={data.presentacion || ''}
               onChange={e => actualizarSubForm(data, setData, 'presentacion', e.target.value)}
               disabled={!data.tipoAve}
-              className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm disabled:opacity-50">
-              <option value="" className="bg-black">Seleccionar...</option>
-              {presDisponibles.map(p => <option key={p.id} value={p.nombre} className="bg-black">{p.nombre}</option>)}
+              className="w-full px-4 py-3 border rounded-lg text-sm disabled:opacity-50"
+              style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+              <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+              {presDisponibles.map(p => <option key={p.id} value={p.nombre} style={{ background: c.bgPage, color: c.text }}>{p.nombre}</option>)}
             </select>
           </div>
           <div className="bg-blue-900/10 border border-blue-800/30 rounded-lg p-3 flex items-center justify-center text-xs text-blue-400">
@@ -604,20 +609,22 @@ export function NuevoPedido() {
           <>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
+                <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
                 <input type="number" min="0" placeholder="0" value={data.cantidadMachos || ''}
                   onChange={e => actualizarSubForm(data, setData, 'cantidadMachos', e.target.value)}
-                  className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm" />
+                  className="w-full px-4 py-3 border rounded-lg text-sm"
+                  style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
+                <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
                 <input type="number" min="0" placeholder="0" value={data.cantidadHembras || ''}
                   onChange={e => actualizarSubForm(data, setData, 'cantidadHembras', e.target.value)}
-                  className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm" />
+                  className="w-full px-4 py-3 border rounded-lg text-sm"
+                  style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Total</label>
+              <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Total</label>
               <input type="text" readOnly value={data.cantidadTotal || '0'}
                 className="w-full px-4 py-3 bg-green-900/20 border border-green-800/30 rounded-lg text-green-400 text-sm font-bold text-center" />
             </div>
@@ -627,14 +634,15 @@ export function NuevoPedido() {
         {/* Cantidad sin sexo */}
         {!necesitaSexo && data.tipoAve && (
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2">
+            <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>
               {esVivo || esCatOtro ? 'Cantidad de Jabas' : 'Cantidad Total'}
             </label>
             <input type="number" min="1"
               placeholder={esVivo || esCatOtro ? 'Nº de jabas' : '0'}
               value={data.cantidadTotal || ''}
               onChange={e => actualizarSubForm(data, setData, 'cantidadTotal', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-gray-800 rounded-lg text-white text-sm" />
+              className="w-full px-4 py-3 border rounded-lg text-sm"
+              style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} />
             {(esVivo || esCatOtro) && data.cantidadTotal && (
               <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
                 {esCatOtro ? '🥚' : '🐔'} {data.cantidadTotal} jaba(s){!esCatOtro ? ' se pesarán por bloque en Pesaje' : ''}
@@ -646,17 +654,18 @@ export function NuevoPedido() {
         {/* Unidades por Jaba — SOLO cuando es vivo Y hay jabas ingresadas */}
         {esVivo && data.cantidadTotal && parseInt(data.cantidadTotal) > 0 && (
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-1">
+            <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}>
               <Grid3x3 className="w-3 h-3" /> Unidades por Jaba
             </label>
             <input type="number" min="1" placeholder="Ej: 8, 10, 12..."
               value={data.unidadesPorJaba || ''}
               onChange={e => actualizarSubForm(data, setData, 'unidadesPorJaba', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-amber-800/30 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all" />
+              className="w-full px-4 py-3 border border-amber-800/30 rounded-lg text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+              style={{ background: c.bgCardAlt, color: c.text }} />
             {data.totalAves && parseInt(data.totalAves) > 0 && (
               <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
                 style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <span className="text-gray-400">Total aves estimadas</span>
+                <span style={{ color: c.textSecondary }}>Total aves estimadas</span>
                 <span className="text-green-400 font-bold font-mono">🐔 {data.totalAves} unidades</span>
               </div>
             )}
@@ -664,7 +673,8 @@ export function NuevoPedido() {
         )}
 
         <button onClick={onSubmit}
-          className={`w-full px-4 py-3 ${submitClassName} rounded-xl text-white font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2`}>
+          className={`w-full px-4 py-3 ${submitClassName} rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2`}
+          style={{ color: c.text }}>
           {submitContent}
         </button>
       </div>
@@ -672,13 +682,13 @@ export function NuevoPedido() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ color: c.text }}>
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <div className="p-3 bg-black/50 border rounded-xl backdrop-blur-sm">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3" style={{ color: c.text }}>
+              <div className="p-3 border rounded-xl backdrop-blur-sm" style={{ background: c.bgCardAlt, borderColor: c.border }}>
                 <ShoppingCart className="w-6 h-6 text-amber-400" />
               </div>
               <div>
@@ -688,22 +698,22 @@ export function NuevoPedido() {
             <div className="flex flex-wrap items-center gap-3">
               {[['C001.1', '#166534', 'text-green-400', 'Primer pedido cliente'], ['C001.2', '#b8941e', 'text-amber-400', 'Segundo pedido'], ['C002.1', '#1e3a8a', 'text-blue-400', 'Nuevo cliente']].map(([code, bg, col, label]) => (
                 <div key={code} className="flex items-center gap-2 text-sm">
-                  <div className={`px-2 py-1 bg-black/50 border rounded text-xs font-mono ${col}`} style={{ borderColor: `${bg}50` }}>{code}</div>
-                  <span className="text-gray-400">{label}</span>
+                  <div className={`px-2 py-1 border rounded text-xs font-mono ${col}`} style={{ background: c.bgCardAlt, borderColor: `${bg}50` }}>{code}</div>
+                  <span style={{ color: c.textSecondary }}>{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="bg-black/50 border border-gray-800 rounded-xl px-4 py-2 flex items-center gap-3">
+            <div className="border rounded-xl px-4 py-2 flex items-center gap-3" style={{ background: c.bgCardAlt, borderColor: c.border }}>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Clientes únicos</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Clientes únicos</div>
                 <div className="text-2xl font-bold text-amber-400">{[...new Set(pedidosEnCola.map(p => p.numeroCliente))].length}</div>
               </div>
-              <div className="h-8 w-px bg-gray-800" />
+              <div className="h-8 w-px" style={{ background: c.border }} />
               <div className="text-center">
-                <div className="text-sm text-gray-400">Total pedidos</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Total pedidos</div>
                 <div className="text-2xl font-bold text-green-400">{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</div>
               </div>
             </div>
@@ -715,7 +725,8 @@ export function NuevoPedido() {
           <div className="relative flex-1">
             <input type="text" placeholder="Buscar pedido por cliente o número..."
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20" />
+              className="w-full pl-10 pr-4 py-3 border rounded-xl placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20"
+              style={{ background: c.bgInput, borderColor: c.border, color: c.text }} />
             <ShoppingCart className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-amber-400" />
           </div>
         </div>
@@ -733,8 +744,8 @@ export function NuevoPedido() {
           const esCatOtro = info?.categoria === 'Otro';
 
           return (
-            <div key={form.id} className="bg-black/50 border rounded-2xl p-5 relative overflow-hidden transition-all duration-300"
-              style={{ borderColor: form.completado ? `${formColor}80` : '#374151', boxShadow: form.completado ? `0 10px 40px -10px ${formColor}40` : '0 4px 20px -5px rgba(0,0,0,0.5)' }}>
+            <div key={form.id} className="border rounded-2xl p-5 relative overflow-hidden transition-all duration-300"
+              style={{ background: c.bgCardAlt, borderColor: form.completado ? `${formColor}80` : c.border, boxShadow: form.completado ? `0 10px 40px -10px ${formColor}40` : c.shadowMd }}>
 
               <div className="absolute top-4 right-4 z-10">
                 {form.completado
@@ -749,8 +760,8 @@ export function NuevoPedido() {
                     {index + 1}
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-lg">Pedido {index + 1}</h3>
-                    <p className="text-xs text-gray-400">Complete los campos</p>
+                    <h3 className="font-bold text-lg" style={{ color: c.text }}>Pedido {index + 1}</h3>
+                    <p className="text-xs" style={{ color: c.textSecondary }}>Complete los campos</p>
                   </div>
                 </div>
               </div>
@@ -758,44 +769,48 @@ export function NuevoPedido() {
               <div className="space-y-3">
                 {/* Cliente */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2"><Users className="w-4 h-4 text-blue-400" /> Cliente</label>
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><Users className="w-4 h-4 text-blue-400" /> Cliente</label>
                   <select value={form.cliente} onChange={e => actualizarFormulario(form.id, 'cliente', e.target.value)}
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all">
-                    <option value="" className="bg-black">Seleccionar cliente...</option>
-                    {clientesActivos.map(c => <option key={c.id} value={c.nombre} className="bg-black">{c.nombre}</option>)}
+                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all"
+                    style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar cliente...</option>
+                    {clientesActivos.map(cl => <option key={cl.id} value={cl.nombre} style={{ background: c.bgPage, color: c.text }}>{cl.nombre}</option>)}
                   </select>
                 </div>
 
                 {/* Producto */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2"><Package className="w-4 h-4 text-green-400" /> Producto</label>
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><Package className="w-4 h-4 text-green-400" /> Producto</label>
                   <select value={form.tipoAve} onChange={e => actualizarFormulario(form.id, 'tipoAve', e.target.value)}
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 transition-all">
-                    <option value="" className="bg-black">Seleccionar producto...</option>
-                    {getProductosParaCliente(form.cliente).map(t => <option key={t.id} value={t.nombre} className="bg-black">{t.nombre}</option>)}
+                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-green-500 transition-all"
+                    style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar producto...</option>
+                    {getProductosParaCliente(form.cliente).map(t => <option key={t.id} value={t.nombre} style={{ background: c.bgPage, color: c.text }}>{t.nombre}</option>)}
                   </select>
                 </div>
 
                 {/* Variedad - filtrada por costos del cliente */}
                 {necesitaVariedad && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">Variedad</label>
+                    <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Variedad</label>
                     <select value={form.variedad || ''} onChange={e => actualizarFormulario(form.id, 'variedad', e.target.value)}
-                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition-all">
-                      <option value="" className="bg-black">Seleccionar variedad...</option>
-                      {getVariedadesParaCliente(form.cliente, form.tipoAve).map((v: string) => <option key={v} value={v} className="bg-black">{v}</option>)}
+                      className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-all"
+                      style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
+                      <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar variedad...</option>
+                      {getVariedadesParaCliente(form.cliente, form.tipoAve).map((v: string) => <option key={v} value={v} style={{ background: c.bgPage, color: c.text }}>{v}</option>)}
                     </select>
                   </div>
                 )}
 
                 {/* Presentación */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2"><Package className="w-4 h-4 text-amber-400" /> Presentación</label>
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><Package className="w-4 h-4 text-amber-400" /> Presentación</label>
                   <select value={form.presentacion} onChange={e => actualizarFormulario(form.id, 'presentacion', e.target.value)}
                     disabled={!form.tipoAve}
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="" className="bg-black">Seleccionar presentación...</option>
-                    {presentacionesTipo.map(p => <option key={p.id} value={p.nombre} className="bg-black">{p.nombre}</option>)}
+                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar presentación...</option>
+                    {presentacionesTipo.map(p => <option key={p.id} value={p.nombre} style={{ background: c.bgPage, color: c.text }}>{p.nombre}</option>)}
                   </select>
                 </div>
 
@@ -804,18 +819,20 @@ export function NuevoPedido() {
                   <>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
+                        <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>{esVivo ? 'Jabas de Machos' : 'Machos'}</label>
                         <input type="number" value={form.cantidadMachos || ''} onChange={e => actualizarFormulario(form.id, 'cantidadMachos', e.target.value)}
-                          placeholder="0" min="0" className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all" />
+                          placeholder="0" min="0" className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all"
+                          style={{ background: c.bgCard, borderColor: c.border, color: c.text }} />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2">{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
+                        <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>{esVivo ? 'Jabas de Hembras' : 'Hembras'}</label>
                         <input type="number" value={form.cantidadHembras || ''} onChange={e => actualizarFormulario(form.id, 'cantidadHembras', e.target.value)}
-                          placeholder="0" min="0" className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-pink-500 transition-all" />
+                          placeholder="0" min="0" className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-pink-500 transition-all"
+                          style={{ background: c.bgCard, borderColor: c.border, color: c.text }} />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-2">Total {esVivo ? '(Jabas)' : ''}</label>
+                      <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Total {esVivo ? '(Jabas)' : ''}</label>
                       <input type="text" value={form.cantidadTotal} readOnly
                         className="w-full px-4 py-3 bg-green-900/20 border border-green-800/30 rounded-lg text-green-400 text-sm font-bold text-center" />
                     </div>
@@ -825,12 +842,13 @@ export function NuevoPedido() {
                 {/* Cantidad sin sexo */}
                 {!necesitaSexo && form.tipoAve && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                    <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>
                       {esVivo || esCatOtro ? 'Cantidad de Jabas' : 'Cantidad Total'}
                     </label>
                     <input type="number" value={form.cantidadTotal} onChange={e => actualizarFormulario(form.id, 'cantidadTotal', e.target.value)}
                       placeholder={esVivo || esCatOtro ? 'Nº de jabas' : '0'} min="1"
-                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 transition-all" />
+                      className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-green-500 transition-all"
+                      style={{ background: c.bgCard, borderColor: c.border, color: c.text }} />
                     {esVivo && form.cantidadTotal && (
                       <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1"> {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje</p>
                     )}
@@ -840,14 +858,15 @@ export function NuevoPedido() {
                 {/* Unidades por Jaba — SOLO vivo con jabas */}
                 {esVivo && form.cantidadTotal && parseInt(form.cantidadTotal) > 0 && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-1"><Grid3x3 className="w-3 h-3" /> Unidades por Jaba</label>
+                    <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}><Grid3x3 className="w-3 h-3" /> Unidades por Jaba</label>
                     <input type="number" value={form.unidadesPorJaba || ''} onChange={e => actualizarFormulario(form.id, 'unidadesPorJaba', e.target.value)}
                       placeholder="Ej: 8, 10, 12..." min="1"
-                      className="w-full px-4 py-3 bg-black/30 border border-amber-800/30 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all" />
+                      className="w-full px-4 py-3 border border-amber-800/30 rounded-lg text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                      style={{ background: c.bgCard, color: c.text }} />
                     {form.totalAves && parseInt(form.totalAves) > 0 && (
                       <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
                         style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                        <span className="text-gray-400">Total aves</span>
+                        <span style={{ color: c.textSecondary }}>Total aves</span>
                         <span className="text-green-400 font-bold font-mono">{form.totalAves} unidades</span>
                       </div>
                     )}
@@ -855,8 +874,8 @@ export function NuevoPedido() {
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-gray-800">
-                <div className="text-xs text-gray-500">Cambios guardados automáticamente</div>
+              <div className="mt-4 pt-3 border-t" style={{ borderColor: c.border }}>
+                <div className="text-xs" style={{ color: c.textMuted }}>Cambios guardados automáticamente</div>
               </div>
             </div>
           );
@@ -866,16 +885,20 @@ export function NuevoPedido() {
       {/* ── Botones de acción ───────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-8">
         <button onClick={mandarACola}
-          className="px-6 py-4 bg-black/50 border border-blue-700/30 rounded-xl font-semibold transition-all hover:bg-black/70 hover:border-blue-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 text-white group">
+          className="px-6 py-4 border border-blue-700/30 rounded-xl font-semibold transition-all hover:border-blue-600/50 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group"
+          style={{ background: c.bgCardAlt, color: c.text }}>
           <div className="p-2 bg-blue-900/30 rounded-lg group-hover:bg-blue-900/40 transition-colors"><ShoppingCart className="w-5 h-5 text-blue-400" /></div>
           <span>Enviar a Cola de Pedidos</span>
           <ChevronRight className="w-5 h-5 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
 
         <button onClick={confirmarPedidos} disabled={pedidosEnCola.length === 0}
-          className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group ${pedidosEnCola.length > 0
-            ? 'bg-black/50 border border-amber-700/30 hover:bg-black/70 hover:border-amber-600/50 text-white'
-            : 'bg-black/30 border border-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group border ${pedidosEnCola.length > 0
+            ? 'border-amber-700/30 hover:border-amber-600/50'
+            : 'cursor-not-allowed'}`}
+          style={pedidosEnCola.length > 0
+            ? { background: c.bgCardAlt, color: c.text }
+            : { background: c.bgCard, borderColor: c.border, color: c.textMuted }}>
           <div className={`p-2 rounded-lg ${pedidosEnCola.length > 0 ? 'bg-amber-900/30' : 'bg-gray-800/30'}`}>
             <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
           </div>
@@ -889,15 +912,15 @@ export function NuevoPedido() {
 
       {/* ── Cola de Pedidos ─────────────────────────────────────── */}
       {pedidosEnCola.length > 0 && (
-        <div className="bg-black/50 border border-gray-800 rounded-2xl p-5 mb-8">
+        <div className="border rounded-2xl p-5 mb-8" style={{ background: c.bgCardAlt, borderColor: c.border }}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-black/50 border border-amber-700/30 rounded-xl"><Layers className="w-6 h-6 text-amber-400" /></div>
+              <div className="p-2 border border-amber-700/30 rounded-xl" style={{ background: c.bgCardAlt }}><Layers className="w-6 h-6 text-amber-400" /></div>
               <div>
-                <h2 className="text-xl font-bold text-white">Pedidos en Cola</h2>
+                <h2 className="text-xl font-bold" style={{ color: c.text }}>Pedidos en Cola</h2>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-gray-400">{pedidosEnCola.length} cliente(s) - {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)} pedidos</span>
-                  <div className="w-1 h-1 rounded-full bg-gray-700" />
+                  <span className="text-sm" style={{ color: c.textSecondary }}>{pedidosEnCola.length} cliente(s) - {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)} pedidos</span>
+                  <div className="w-1 h-1 rounded-full" style={{ background: c.border }} />
                   <span className="text-sm text-amber-400 font-medium">Listos para confirmar</span>
                 </div>
               </div>
@@ -911,24 +934,25 @@ export function NuevoPedido() {
             {pedidosEnCola
               .filter(p => !searchTerm || p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) || p.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()))
               .map(pedido => (
-                <div key={pedido.id} className="bg-black/30 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-all group relative overflow-hidden">
+                <div key={pedido.id} className="border rounded-xl p-4 transition-all group relative overflow-hidden"
+                  style={{ background: c.bgCard, borderColor: c.border }}>
                   <button onClick={() => eliminarDeCola(pedido.id)}
                     className="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-900/20 border border-red-700/30 flex items-center justify-center transition-all hover:bg-red-900/30 hover:scale-110 z-10">
                     <X className="w-4 h-4 text-red-400" />
                   </button>
 
                   <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-400" /><span className="text-xs text-gray-400">Cliente</span></div>
-                    <p className="text-white font-medium truncate">{pedido.cliente}</p>
+                    <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-400" /><span className="text-xs" style={{ color: c.textSecondary }}>Cliente</span></div>
+                    <p className="font-medium truncate" style={{ color: c.text }}>{pedido.cliente}</p>
                     <p className="text-xs text-blue-400 font-mono mt-1">{pedido.numeroPedido}</p>
                   </div>
 
                   <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-green-400" /><span className="text-xs text-gray-400">Sub-pedidos</span></div>
+                    <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-green-400" /><span className="text-xs" style={{ color: c.textSecondary }}>Sub-pedidos</span></div>
                     <div className="flex items-center gap-3">
                       <div className="text-2xl font-bold text-green-400">{pedido.subPedidos.length}</div>
                       <div className="flex-1">
-                        <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: c.bgCardAlt }}>
                           <div className="h-full bg-gradient-to-r from-green-600 to-amber-500 rounded-full" style={{ width: `${Math.min(100, (pedido.subPedidos.length / 10) * 100)}%` }} />
                         </div>
                       </div>
@@ -940,7 +964,8 @@ export function NuevoPedido() {
                     {pedido.subPedidos.slice(0, 2).map(sub => {
                       const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
                       return (
-                        <div key={sub.id} className="text-[10px] text-gray-400 bg-black/30 px-2 py-1 rounded truncate">
+                        <div key={sub.id} className="text-[10px] px-2 py-1 rounded truncate"
+                          style={{ color: c.textSecondary, background: c.bgCard }}>
                           {sub.tipoAve} · {sub.presentacion}
                           {esVivo && sub.totalAves ? ` · 🐔 ${sub.totalAves} aves`
                             : esVivo && sub.cantidadTotal ? ` · 🧺 ${sub.cantidadTotal} jabas`
@@ -948,25 +973,27 @@ export function NuevoPedido() {
                         </div>
                       );
                     })}
-                    {pedido.subPedidos.length > 2 && <p className="text-[10px] text-gray-600 text-center">+{pedido.subPedidos.length - 2} más...</p>}
+                    {pedido.subPedidos.length > 2 && <p className="text-[10px] text-center" style={{ color: c.textMuted }}>+{pedido.subPedidos.length - 2} más...</p>}
                   </div>
 
                   <Dialog>
                     <DialogTrigger asChild>
                       <button onClick={() => abrirDetalle(pedido)}
-                        className="w-full px-4 py-2.5 bg-black/50 border border-gray-800 rounded-lg text-white font-medium transition-all hover:bg-black/70 hover:border-gray-700 hover:scale-[1.02] flex items-center justify-center gap-2 group">
+                        className="w-full px-4 py-2.5 border rounded-lg font-medium transition-all hover:scale-[1.02] flex items-center justify-center gap-2 group"
+                        style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
                         <Eye className="w-4 h-4" /> Ver / Editar
                         <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     </DialogTrigger>
 
-                    <DialogContent className="sm:max-w-[600px] max-h-[88vh] overflow-y-auto bg-black border border-gray-800 rounded-2xl overflow-hidden">
-                      <DialogHeader className="p-6 border-b border-gray-800">
-                        <DialogTitle className="text-white text-xl flex items-center gap-3">
-                          <div className="p-2 bg-black/50 border border-amber-700/30 rounded-lg"><Users className="w-5 h-5 text-amber-400" /></div>
+                    <DialogContent className="sm:max-w-[600px] max-h-[88vh] overflow-y-auto border rounded-2xl overflow-hidden"
+                      style={{ background: c.bgModal, borderColor: c.border }}>
+                      <DialogHeader className="p-6 border-b" style={{ borderColor: c.border }}>
+                        <DialogTitle className="text-xl flex items-center gap-3" style={{ color: c.text }}>
+                          <div className="p-2 border border-amber-700/30 rounded-lg" style={{ background: c.bgCardAlt }}><Users className="w-5 h-5 text-amber-400" /></div>
                           <div>
                             <div>Detalle del Pedido</div>
-                            <div className="text-sm font-normal text-gray-400">
+                            <div className="text-sm font-normal" style={{ color: c.textSecondary }}>
                               {pedidoSeleccionado?.cliente} · {pedidoSeleccionado?.numeroPedido}
                             </div>
                           </div>
@@ -977,7 +1004,7 @@ export function NuevoPedido() {
                         <div className="p-6 space-y-6">
                           {/* Sub-pedidos existentes */}
                           <div>
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                            <h3 className="text-lg font-bold flex items-center gap-2 mb-4" style={{ color: c.text }}>
                               <Layers className="w-5 h-5 text-amber-400" /> Sub-pedidos ({pedidoSeleccionado.subPedidos.length})
                             </h3>
                             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
@@ -985,14 +1012,15 @@ export function NuevoPedido() {
                                 const esEditandoEste = editandoSubId === sub.id;
                                 const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
                                 return (
-                                  <div key={sub.id} className={`border rounded-xl transition-all ${esEditandoEste ? 'border-amber-700/40 bg-amber-900/10' : 'border-gray-800 bg-black/30 hover:border-gray-700'}`}>
+                                  <div key={sub.id} className={`border rounded-xl transition-all ${esEditandoEste ? 'border-amber-700/40 bg-amber-900/10' : ''}`}
+                                    style={!esEditandoEste ? { borderColor: c.border, background: c.bgCard } : {}}>
                                     {esEditandoEste ? (
                                       <div className="p-4">
                                         <div className="flex items-center justify-between mb-3">
                                           <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                                             <Edit2 className="w-3 h-3" /> Editando sub-pedido #{idx + 1}
                                           </span>
-                                          <button onClick={() => setEditandoSubId(null)} className="p-1 text-gray-500 hover:text-gray-300">
+                                          <button onClick={() => setEditandoSubId(null)} className="p-1 hover:text-gray-300" style={{ color: c.textMuted }}>
                                             <X className="w-3.5 h-3.5" />
                                           </button>
                                         </div>
@@ -1008,14 +1036,14 @@ export function NuevoPedido() {
                                     ) : (
                                       <div className="p-4 flex justify-between items-start">
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                                          <div className="w-8 h-8 rounded-lg bg-black/50 border border-blue-700/30 flex items-center justify-center shrink-0">
+                                          <div className="w-8 h-8 rounded-lg border border-blue-700/30 flex items-center justify-center shrink-0" style={{ background: c.bgCardAlt }}>
                                             <span className="text-sm font-bold text-blue-400">#{idx + 1}</span>
                                           </div>
                                           <div className="flex-1 min-w-0">
-                                            <div className="text-white font-medium truncate">
+                                            <div className="font-medium truncate" style={{ color: c.text }}>
                                               {sub.tipoAve}{sub.variedad ? ` - ${sub.variedad}` : ''}
                                             </div>
-                                            <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                                            <div className="text-xs flex items-center gap-2 mt-1" style={{ color: c.textSecondary }}>
                                               <Package className="w-3 h-3" /> {sub.presentacion}
                                             </div>
                                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1028,7 +1056,7 @@ export function NuevoPedido() {
                                               ) : esVivo ? (
                                                 <>
                                                   <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/20 border border-amber-700/20 text-amber-300">🧺 {sub.cantidadTotal} jabas</span>
-                                                  {sub.unidadesPorJaba && <span className="text-[10px] px-2 py-0.5 rounded bg-black/40 border border-gray-700 text-gray-400">×{sub.unidadesPorJaba}/jaba</span>}
+                                                  {sub.unidadesPorJaba && <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.textSecondary }}>×{sub.unidadesPorJaba}/jaba</span>}
                                                   {sub.totalAves && <span className="text-[10px] px-2 py-0.5 rounded bg-green-900/20 border border-green-700/20 text-green-300 font-bold">🐔 {sub.totalAves} aves</span>}
                                                 </>
                                               ) : (
@@ -1057,8 +1085,8 @@ export function NuevoPedido() {
 
                           {/* Agregar nuevo sub-pedido */}
                           {!editandoSubId && (
-                            <div className="bg-black/30 border border-gray-800 rounded-xl p-5">
-                              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <div className="border rounded-xl p-5" style={{ background: c.bgCard, borderColor: c.border }}>
+                              <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: c.text }}>
                                 <Plus className="w-5 h-5 text-green-400" /> Agregar Otro Pedido
                               </h3>
                               {renderSubForm(

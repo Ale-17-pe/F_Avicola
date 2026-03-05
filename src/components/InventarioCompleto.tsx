@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Package, Container } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { ProveedoresConPedidos } from './ProveedoresConPedidos';
 import { AvesSimplificado } from './AvesSimplificado';
 import { GestionContenedores } from './GestionContenedores';
@@ -7,16 +8,18 @@ import { GestionContenedores } from './GestionContenedores';
 type InventarioTab = 'proveedores' | 'productos' | 'contenedores';
 
 export function InventarioCompleto() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const [activeTab, setActiveTab] = useState<InventarioTab>('productos');
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
       {/* Header */}
       <div className="px-1 sm:px-0">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>
           Compras y Almacén
         </h1>
-        <p className="text-xs sm:text-sm md:text-base text-gray-400">
+        <p className="text-xs sm:text-sm md:text-base" style={{ color: c.textSecondary }}>
           Gestión de proveedores, productos y contenedores de la avícola
         </p>
       </div>
@@ -32,10 +35,10 @@ export function InventarioCompleto() {
               style={{
                 background: activeTab === 'productos'
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'productos' ? 'white' : '#9ca3af',
+                  : c.g10,
+                color: activeTab === 'productos' ? c.text : c.textSecondary,
                 boxShadow: activeTab === 'productos' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-                border: activeTab === 'productos' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+                border: activeTab === 'productos' ? 'none' : `1px solid ${c.border}`
               }}
             >
               <Package className="w-4 h-4 flex-shrink-0" />
@@ -47,10 +50,10 @@ export function InventarioCompleto() {
               style={{
                 background: activeTab === 'proveedores'
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'proveedores' ? 'white' : '#9ca3af',
+                  : c.g10,
+                color: activeTab === 'proveedores' ? c.text : c.textSecondary,
                 boxShadow: activeTab === 'proveedores' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-                border: activeTab === 'proveedores' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+                border: activeTab === 'proveedores' ? 'none' : `1px solid ${c.border}`
               }}
             >
               <Users className="w-4 h-4 flex-shrink-0" />
@@ -62,10 +65,10 @@ export function InventarioCompleto() {
               style={{
                 background: activeTab === 'contenedores'
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'contenedores' ? 'white' : '#9ca3af',
+                  : c.g10,
+                color: activeTab === 'contenedores' ? c.text : c.textSecondary,
                 boxShadow: activeTab === 'contenedores' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-                border: activeTab === 'contenedores' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+                border: activeTab === 'contenedores' ? 'none' : `1px solid ${c.border}`
               }}
             >
               <Container className="w-4 h-4 flex-shrink-0" />
@@ -82,10 +85,10 @@ export function InventarioCompleto() {
             style={{
               background: activeTab === 'productos'
                 ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                : 'rgba(255, 255, 255, 0.1)',
-              color: activeTab === 'productos' ? 'white' : '#9ca3af',
+                : c.g10,
+              color: activeTab === 'productos' ? c.text : c.textSecondary,
               boxShadow: activeTab === 'productos' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-              border: activeTab === 'productos' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+              border: activeTab === 'productos' ? 'none' : `1px solid ${c.border}`
             }}
           >
             <Package className="w-5 h-5 flex-shrink-0" />
@@ -97,10 +100,10 @@ export function InventarioCompleto() {
             style={{
               background: activeTab === 'proveedores'
                 ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                : 'rgba(255, 255, 255, 0.1)',
-              color: activeTab === 'proveedores' ? 'white' : '#9ca3af',
+                : c.g10,
+              color: activeTab === 'proveedores' ? c.text : c.textSecondary,
               boxShadow: activeTab === 'proveedores' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-              border: activeTab === 'proveedores' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+              border: activeTab === 'proveedores' ? 'none' : `1px solid ${c.border}`
             }}
           >
             <Users className="w-5 h-5 flex-shrink-0" />
@@ -112,10 +115,10 @@ export function InventarioCompleto() {
             style={{
               background: activeTab === 'contenedores'
                 ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                : 'rgba(255, 255, 255, 0.1)',
-              color: activeTab === 'contenedores' ? 'white' : '#9ca3af',
+                : c.g10,
+              color: activeTab === 'contenedores' ? c.text : c.textSecondary,
               boxShadow: activeTab === 'contenedores' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-              border: activeTab === 'contenedores' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+              border: activeTab === 'contenedores' ? 'none' : `1px solid ${c.border}`
             }}
           >
             <Container className="w-5 h-5 flex-shrink-0" />

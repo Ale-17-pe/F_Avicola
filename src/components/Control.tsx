@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ClipboardCheck, Scale, Download, Search, Filter, Weight, Package, User, Calendar, ChevronDown, ChevronUp, RefreshCw, Trash2, FileSpreadsheet, X, Eye } from 'lucide-react';
 import { useApp, PedidoConfirmado } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 // Interface para datos de pesaje que vienen de ListaPedidos/PesajeOperador
@@ -36,6 +37,8 @@ interface PedidoPesajeControl {
 
 export function Control() {
   const { pedidosConfirmados, removePedidoConfirmado, clientes } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const [pedidosPesaje, setPedidosPesaje] = useState<PedidoConfirmado[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('all');
@@ -110,7 +113,7 @@ export function Control() {
   };
 
   const SortIcon = ({ column }: { column: string }) => {
-    if (sortColumn !== column) return <ChevronDown className="w-3 h-3 text-gray-600 opacity-0 group-hover:opacity-50" />;
+    if (sortColumn !== column) return <ChevronDown className="w-3 h-3 opacity-0 group-hover:opacity-50" style={{ color: c.textMuted }} />;
     return sortDirection === 'asc'
       ? <ChevronUp className="w-3 h-3 text-yellow-400" />
       : <ChevronDown className="w-3 h-3 text-yellow-400" />;
@@ -148,13 +151,13 @@ export function Control() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2 flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 flex items-center gap-3" style={{ color: c.text }}>
             <div className="p-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 20px rgba(168,85,247,0.1)' }}>
               <FileSpreadsheet className="w-6 h-6 text-purple-400" />
             </div>
             Control de Pesaje
           </h1>
-          <p className="text-xs sm:text-sm text-gray-400">Registro detallado de todos los pedidos pesados · Datos tipo Excel</p>
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Registro detallado de todos los pedidos pesados · Datos tipo Excel</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -181,7 +184,7 @@ export function Control() {
         <button 
           onClick={() => setStatsCollapsed(!statsCollapsed)}
           className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-amber-400"
-          style={{ color: 'rgba(156,163,175,0.7)' }}
+          style={{ color: c.textMuted }}
         >
           {statsCollapsed ? <ChevronDown className="w-3.5 h-3.5 -rotate-90" /> : <ChevronDown className="w-3.5 h-3.5" />}
           Estadísticas {statsCollapsed ? '(expandir)' : ''}
@@ -196,11 +199,11 @@ export function Control() {
           { label: 'Peso Bruto', value: `${totalPesoBruto.toFixed(1)} kg`, icon: Scale, color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
         ].map((metric) => (
           <div key={metric.label} className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
-            background: 'rgba(0,0,0,0.3)',
+            background: c.bgCard,
             border: `1px solid ${metric.border}`
           }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider">{metric.label}</p>
+              <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider" style={{ color: c.textSecondary }}>{metric.label}</p>
               <metric.icon className="w-4 h-4" style={{ color: metric.color }} />
             </div>
             <p className="text-lg sm:text-xl md:text-2xl font-bold" style={{ color: metric.color }}>{metric.value}</p>
@@ -213,43 +216,43 @@ export function Control() {
       {/* Filtros y Búsqueda */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
           <input
             type="text"
             placeholder="Buscar por pedido, cliente, producto, conductor..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-500 outline-none transition-all focus:ring-1"
-            style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-500 outline-none transition-all focus:ring-1"
+            style={{ background: c.bgInput, border: '1px solid rgba(168,85,247,0.2)', color: c.text }}
           />
         </div>
         <div className="flex gap-2">
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
             <select
               value={filterCliente}
               onChange={(e) => setFilterCliente(e.target.value)}
-              className="pl-10 pr-8 py-2.5 rounded-lg text-sm text-white outline-none appearance-none cursor-pointer"
-              style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+              className="pl-10 pr-8 py-2.5 rounded-lg text-sm outline-none appearance-none cursor-pointer"
+              style={{ background: c.bgInput, border: '1px solid rgba(168,85,247,0.2)', color: c.text }}
             >
               <option value="all">Todos los clientes</option>
-              {clientesUnicos.map(c => <option key={c} value={c}>{c}</option>)}
+              {clientesUnicos.map(cl => <option key={cl} value={cl}>{cl}</option>)}
             </select>
           </div>
           <div className="relative flex items-center gap-1">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
             <input
               type="date"
               value={filterFecha}
               onChange={(e) => setFilterFecha(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-lg text-sm text-white outline-none"
-              style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+              className="pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: c.bgInput, border: '1px solid rgba(168,85,247,0.2)', color: c.text }}
             />
             {filterFecha && (
               <button
                 onClick={() => setFilterFecha('')}
-                className="px-2 py-2.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
-                style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(168,85,247,0.2)' }}
+                className="px-2 py-2.5 rounded-lg text-xs transition-colors"
+                style={{ background: c.bgInput, border: '1px solid rgba(168,85,247,0.2)', color: c.textSecondary }}
                 title="Ver todos los días"
               >
                 <X className="w-3.5 h-3.5" />
@@ -261,16 +264,16 @@ export function Control() {
 
       {/* Tabla Excel-like */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: 'rgba(0,0,0,0.3)',
+        background: c.bgCard,
         border: '1px solid rgba(168,85,247,0.25)',
         boxShadow: '0 0 30px rgba(168,85,247,0.06)'
       }}>
         {/* Header de la tabla */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-b flex items-center justify-between" style={{
-          background: 'linear-gradient(to right, rgba(168,85,247,0.08), rgba(0,0,0,0.4))',
+          background: `linear-gradient(to right, rgba(168,85,247,0.08), ${c.bgCardAlt})`,
           borderColor: 'rgba(168,85,247,0.2)'
         }}>
-          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2" style={{ color: c.text }}>
             <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#a855f7' }} />
             Registro de Pesajes Completados
           </h2>
@@ -282,9 +285,9 @@ export function Control() {
 
         {pedidosOrdenados.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-gray-700" />
-            <p className="text-gray-400 text-base mb-2">No hay registros de pesaje</p>
-            <p className="text-gray-600 text-sm">Los pedidos pesados aparecerán aquí automáticamente</p>
+            <FileSpreadsheet className="w-16 h-16 mx-auto mb-4" style={{ color: c.textMuted }} />
+            <p className="text-base mb-2" style={{ color: c.textSecondary }}>No hay registros de pesaje</p>
+            <p className="text-sm" style={{ color: c.textMuted }}>Los pedidos pesados aparecerán aquí automáticamente</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -336,20 +339,20 @@ export function Control() {
                     >
                       {/* N° Pedido */}
                       <td className="px-3 py-2.5">
-                        <span className="font-mono font-bold text-white text-sm">{pedido.numeroPedido || 'S/N'}</span>
+                        <span className="font-mono font-bold text-sm" style={{ color: c.text }}>{pedido.numeroPedido || 'S/N'}</span>
                       </td>
 
                       {/* Fecha */}
                       <td className="px-3 py-2.5">
-                        <span className="text-gray-300 text-xs">{pedido.fechaPesaje || '—'}</span>
+                        <span className="text-xs" style={{ color: c.textSecondary }}>{pedido.fechaPesaje || '—'}</span>
                         {pedido.horaPesaje && (
-                          <div className="text-[10px] text-gray-500">{pedido.horaPesaje}</div>
+                          <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.horaPesaje}</div>
                         )}
                       </td>
 
                       {/* Cliente */}
                       <td className="px-3 py-2.5">
-                        <span className="text-white font-medium text-sm truncate block max-w-[160px]">{pedido.cliente}</span>
+                        <span className="font-medium text-sm truncate block max-w-[160px]" style={{ color: c.text }}>{pedido.cliente}</span>
                       </td>
 
                       {/* Producto */}
@@ -359,16 +362,16 @@ export function Control() {
 
                       {/* Presentación */}
                       <td className="px-3 py-2.5">
-                        <span className={`text-sm ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-amber-300 font-semibold' : 'text-gray-300'}`}>
+                        <span className={`text-sm ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-amber-300 font-semibold' : ''}`} style={pedido.presentacion?.toLowerCase().includes('vivo') ? undefined : { color: c.textSecondary }}>
                           {pedido.presentacion}
                         </span>
                       </td>
 
                       {/* Cantidad */}
                       <td className="px-3 py-2.5 text-center">
-                        <span className="text-white font-bold text-sm tabular-nums">{pedido.cantidad}</span>
+                        <span className="font-bold text-sm tabular-nums" style={{ color: c.text }}>{pedido.cantidad}</span>
                         {pedido.cantidadJabas && (
-                          <div className="text-[10px] text-gray-500">{pedido.cantidadJabas} jabas</div>
+                          <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidadJabas} jabas</div>
                         )}
                       </td>
 
@@ -378,16 +381,16 @@ export function Control() {
                            {pedido.bloquesPesaje?.some(b => b.pesoBruto > 0) ? (
                              <span className="text-blue-300 font-bold text-xs">Pesado</span>
                            ) : (
-                             <span className="text-gray-600 text-xs">—</span>
+                             <span className="text-xs" style={{ color: c.textMuted }}>—</span>
                            )}
                          </div>
                       </td>
 
                       {/* Contenedor */}
                       <td className="px-3 py-2.5">
-                        <span className="text-gray-300 text-sm">{pedido.contenedor}</span>
+                        <span className="text-sm" style={{ color: c.textSecondary }}>{pedido.contenedor}</span>
                         {pedido.cantidadTotalContenedores && (
-                          <div className="text-[10px] text-gray-500">{pedido.cantidadTotalContenedores} tandas</div>
+                          <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidadTotalContenedores} tandas</div>
                         )}
                       </td>
 
@@ -415,9 +418,9 @@ export function Control() {
                       {/* Conductor */}
                       <td className="px-3 py-2.5">
                         {pedido.conductor ? (
-                          <span className="text-white text-sm truncate block max-w-[120px]">{pedido.conductor}</span>
+                          <span className="text-sm truncate block max-w-[120px]" style={{ color: c.text }}>{pedido.conductor}</span>
                         ) : (
-                          <span className="text-gray-600 text-sm">—</span>
+                          <span className="text-sm" style={{ color: c.textMuted }}>—</span>
                         )}
                       </td>
 
@@ -425,7 +428,7 @@ export function Control() {
                       <td className="px-3 py-2.5">
                         <span className="text-purple-300 text-xs font-semibold">
                           {(() => {
-                            const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
+                            const clienteObj = clientes.find(cl => cl.nombre === pedido.cliente);
                             return clienteObj?.zona ? `Zona ${clienteObj.zona}` : '—';
                           })()}
                         </span>
@@ -453,10 +456,10 @@ export function Control() {
                     <span className="text-purple-400 font-bold text-xs uppercase tracking-wider">TOTALES</span>
                   </td>
                   <td className="px-3 py-3 text-center">
-                    <span className="text-white font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + p.cantidad, 0)}</span>
+                    <span className="font-bold text-sm" style={{ color: c.text }}>{pedidosOrdenados.reduce((s, p) => s + p.cantidad, 0)}</span>
                   </td>
                    <td className="px-3 py-3">
-                    <span className="text-gray-400 text-xs">{pedidosOrdenados.reduce((s, p) => s + (p.cantidadTotalContenedores || 0), 0)} tandas</span>
+                    <span className="text-xs" style={{ color: c.textSecondary }}>{pedidosOrdenados.reduce((s, p) => s + (p.cantidadTotalContenedores || 0), 0)} tandas</span>
                   </td>
                   <td className="px-3 py-3 text-right">
                     <span className="text-green-400 font-bold text-sm">
@@ -480,7 +483,7 @@ export function Control() {
       {/* Mobile Cards (visible en pantallas muy pequeñas) */}
       <div className="md:hidden space-y-3">
         {pedidosOrdenados.length > 0 && (
-          <div className="text-xs text-gray-400 text-center py-2">
+          <div className="text-xs text-center py-2" style={{ color: c.textSecondary }}>
             Desplaza horizontalmente la tabla para ver todos los datos ↔
           </div>
         )}
@@ -488,21 +491,21 @@ export function Control() {
 
       {/* Modal de Detalle */}
       {selectedPedido && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
           <div
             className="backdrop-blur-xl rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
             style={{
-              background: 'rgba(0,0,0,0.7)',
+              background: c.bgModal,
               border: '1px solid rgba(168,85,247,0.3)',
               boxShadow: '0 20px 60px -12px rgba(168,85,247,0.15)'
             }}
           >
             {/* Header */}
             <div className="sticky top-0 px-6 py-4 border-b flex items-center justify-between" style={{
-              background: 'rgba(0,0,0,0.9)',
+              background: c.bgModal,
               borderColor: 'rgba(168,85,247,0.2)'
             }}>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: c.text }}>
                 <Scale className="w-5 h-5 text-purple-400" />
                 Detalle de Pesaje - {selectedPedido.numeroPedido}
               </h2>
@@ -510,7 +513,7 @@ export function Control() {
                 onClick={() => setSelectedPedido(null)}
                 className="p-2 rounded-lg hover:bg-white/5 transition-colors"
               >
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5" style={{ color: c.textSecondary }} />
               </button>
             </div>
 
@@ -519,13 +522,13 @@ export function Control() {
               {/* Info del pedido */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                  {[
-                  { label: 'Cliente', value: selectedPedido.cliente, color: '#fff' },
+                  { label: 'Cliente', value: selectedPedido.cliente, color: c.text },
                   { label: 'Producto', value: `${selectedPedido.tipoAve}${selectedPedido.variedad ? ` (${selectedPedido.variedad})` : ''}`, color: '#34d399' },
                   { label: 'Presentación', value: selectedPedido.presentacion, color: '#fbbf24' },
-                  { label: 'Cantidad', value: `${selectedPedido.cantidad} aves`, color: '#fff' },
+                  { label: 'Cantidad', value: `${selectedPedido.cantidad} aves`, color: c.text },
                 ].map(item => (
                   <div key={item.label}>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{item.label}</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>{item.label}</p>
                     <p className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</p>
                   </div>
                 ))}
@@ -545,7 +548,7 @@ export function Control() {
                     { label: 'Tandas', value: selectedPedido.cantidadTotalContenedores ? `${selectedPedido.cantidadTotalContenedores}` : '—', color: '#a855f7' },
                   ].map(item => (
                     <div key={item.label} className="p-3 rounded-lg" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{item.label}</p>
+                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>{item.label}</p>
                       <p className="text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
                     </div>
                   ))}
@@ -562,33 +565,33 @@ export function Control() {
                   {selectedPedido.conductor ? (
                     <>
                        <div>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Conductor</p>
-                        <p className="text-sm font-semibold text-white">{selectedPedido.conductor || '—'}</p>
+                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Conductor</p>
+                        <p className="text-sm font-semibold" style={{ color: c.text }}>{selectedPedido.conductor || '—'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Zona Entrega</p>
+                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Zona Entrega</p>
                         <p className="text-sm font-semibold text-purple-300">{selectedPedido.zonaEntrega || '—'}</p>
                       </div>
                     </>
                   ) : (
                     <div className="col-span-2">
-                      <p className="text-gray-500 text-sm">Sin conductor asignado</p>
+                      <p className="text-sm" style={{ color: c.textMuted }}>Sin conductor asignado</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Fecha de Pesaje</p>
-                    <p className="text-sm font-semibold text-white">{selectedPedido.fechaPesaje || '—'}</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Fecha de Pesaje</p>
+                    <p className="text-sm font-semibold" style={{ color: c.text }}>{selectedPedido.fechaPesaje || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Hora de Pesaje</p>
-                    <p className="text-sm font-semibold text-white">{selectedPedido.horaPesaje || '—'}</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Hora de Pesaje</p>
+                    <p className="text-sm font-semibold" style={{ color: c.text }}>{selectedPedido.horaPesaje || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Contenedor</p>
-                    <p className="text-sm font-semibold text-white">{selectedPedido.contenedor}</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Contenedor</p>
+                    <p className="text-sm font-semibold" style={{ color: c.text }}>{selectedPedido.contenedor}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: c.textMuted }}>Estado</p>
                      <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
                       {selectedPedido.estado}
                     </span>

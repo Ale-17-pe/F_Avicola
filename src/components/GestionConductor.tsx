@@ -6,6 +6,7 @@ import {
   ChevronDown, Layers, ArrowLeftRight, Hash, Minus, Eye,
 } from "lucide-react";
 import { useApp, PedidoConfirmado } from "../contexts/AppContext";
+import { useTheme, t } from "../contexts/ThemeContext";
 import { toast } from "sonner";
 
 // ===================== INTERFACES =====================
@@ -78,6 +79,8 @@ interface DevolucionDisponible {
 
 export function GestionConductor() {
   const { pedidosConfirmados, clientes, updatePedidoConfirmado } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // ── Vista ──
   const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'ADICION'>('LISTA');
@@ -446,17 +449,17 @@ export function GestionConductor() {
     const unidadesPorJaba = pedido.unidadesPorJaba || 0;
     const totalAves = jabas * unidadesPorJaba;
     return (
-      <div className={`bg-black/40 border border-gray-800/80 rounded-xl ${compact ? 'p-3' : 'p-4'}`}>
+      <div className={`bg-black/40 border border-gray-800/80 rounded-xl ${compact ? 'p-3' : 'p-4'}`} style={{ background: c.bgCardAlt, borderColor: c.border }}>
         <div className="flex items-start justify-between mb-2">
           <div className="min-w-0 flex-1">
-            <h3 className={`font-black text-white leading-tight ${compact ? 'text-sm' : 'text-base'}`}>
+            <h3 className={`font-black leading-tight ${compact ? 'text-sm' : 'text-base'}`} style={{ color: c.text }}>
               {pedido.tipoAve}
             </h3>
             {pedido.variedad && (
               <p className="text-[11px] text-gray-400 mt-0.5">{pedido.variedad}</p>
             )}
           </div>
-          <span className="font-mono text-[10px] text-gray-500 bg-gray-800/80 px-2 py-0.5 rounded shrink-0 ml-2">
+          <span className="font-mono text-[10px] bg-gray-800/80 px-2 py-0.5 rounded shrink-0 ml-2" style={{ color: c.textMuted }}>
             {pedido.numeroPedido || 'S/N'}
           </span>
         </div>
@@ -474,7 +477,7 @@ export function GestionConductor() {
         <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
           <span className="flex items-center gap-1">
             <Weight className="w-3 h-3" />
-            <span className="text-white font-bold">{(pedido.pesoBrutoTotal || 0).toFixed(1)} kg</span> bruto
+            <span className="font-bold" style={{ color: c.text }}>{(pedido.pesoBrutoTotal || 0).toFixed(1)} kg</span> bruto
           </span>
           {vivo && unidadesPorJaba > 0 && (
             <span>{unidadesPorJaba} aves/jaba · {totalAves} aves</span>
@@ -496,10 +499,10 @@ export function GestionConductor() {
       {/* ═══════ HEADER ═══════ */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: c.text }}>
             <Truck className="text-emerald-400" /> Gestión de Entregas
           </h1>
-          <p className="text-gray-400 text-sm">Control de ruta, repesajes y devoluciones</p>
+          <p className="text-sm" style={{ color: c.textSecondary }}>Control de ruta, repesajes y devoluciones</p>
         </div>
         {modo !== 'LISTA' && (
           <button
@@ -512,7 +515,8 @@ export function GestionConductor() {
               }
               else { setModo('GRUPO'); setSelectedPedido(null); resetRepesaje(); resetDevolucion(); }
             }}
-            className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            style={{ background: c.bgCardAlt, color: c.textSecondary }}
           >
             <ArrowRight className="w-4 h-4 rotate-180" /> Volver
           </button>
@@ -524,7 +528,7 @@ export function GestionConductor() {
         <div className="space-y-5">
           {/* Panel informativo de devoluciones disponibles para adición */}
           {devolucionesDisponibles.length > 0 && (
-            <div className="bg-gray-900/80 border border-cyan-500/20 rounded-xl overflow-hidden">
+            <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid rgba(6,182,212,0.2)` }}>
               <button
                 onClick={() => setShowDevolucionesInfo(!showDevolucionesInfo)}
                 className="w-full px-5 py-3 flex items-center justify-between hover:bg-cyan-500/5 transition-colors"
@@ -534,23 +538,23 @@ export function GestionConductor() {
                     <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-bold text-white">Productos devueltos disponibles</p>
-                    <p className="text-[11px] text-gray-500">{devolucionesDisponibles.length} producto{devolucionesDisponibles.length > 1 ? 's' : ''} · Puede adicionarlos desde cada despacho</p>
+                    <p className="text-sm font-bold" style={{ color: c.text }}>Productos devueltos disponibles</p>
+                    <p className="text-[11px]" style={{ color: c.textMuted }}>{devolucionesDisponibles.length} producto{devolucionesDisponibles.length > 1 ? 's' : ''} · Puede adicionarlos desde cada despacho</p>
                   </div>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showDevolucionesInfo ? 'rotate-180' : ''}`} />
               </button>
               {showDevolucionesInfo && (
-                <div className="px-5 pb-4 space-y-2" style={{ borderTop: '1px solid rgba(6,182,212,0.1)' }}>
+                <div className="px-5 pb-4 space-y-2" style={{ borderTop: `1px solid ${c.borderSubtle}` }}>
                   {devolucionesDisponibles.map(dev => (
-                    <div key={dev.registroId} className="bg-black/30 border border-gray-800 rounded-lg p-3">
+                    <div key={dev.registroId} className="rounded-lg p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full">Dev. de {dev.clienteOrigen}</span>
                         <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white">{dev.tipoAve}</span>
+                          <span className="text-xs font-bold" style={{ color: c.text }}>{dev.tipoAve}</span>
                           {dev.variedad && <span className="text-[10px] text-gray-500">({dev.variedad})</span>}
                           <span className="text-[10px] text-gray-500">·</span>
                           <span className="text-[10px] text-blue-400">{dev.presentacion}</span>
@@ -568,20 +572,20 @@ export function GestionConductor() {
           )}
 
           {gruposDespacho.length > 0 && (
-            <div className="flex items-center justify-between bg-gray-900/60 border border-gray-800 rounded-xl px-5 py-3">
-              <span className="text-sm text-gray-400 flex items-center gap-2">
+            <div className="flex items-center justify-between rounded-xl px-5 py-3" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+              <span className="text-sm flex items-center gap-2" style={{ color: c.textSecondary }}>
                 <Package className="w-4 h-4 text-emerald-400" />
-                <span className="text-white font-semibold">{gruposDespacho.length}</span> despacho{gruposDespacho.length !== 1 && 's'} en ruta
+                <span className="font-semibold" style={{ color: c.text }}>{gruposDespacho.length}</span> despacho{gruposDespacho.length !== 1 && 's'} en ruta
               </span>
-              <span className="text-xs text-gray-600 hidden sm:block">Toque un despacho para gestionar</span>
+              <span className="text-xs hidden sm:block" style={{ color: c.textMuted }}>Toque un despacho para gestionar</span>
             </div>
           )}
 
           {gruposDespacho.length === 0 ? (
-            <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-16 text-center text-gray-500">
-              <PackageCheck className="w-14 h-14 mx-auto mb-5 opacity-20" />
-              <p className="text-lg font-semibold text-gray-400">No tienes despachos asignados</p>
-              <p className="text-sm text-gray-600 mt-1">Los despachos aparecerán aquí cuando sean emitidos desde Pesaje</p>
+            <div className="rounded-2xl p-16 text-center" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+              <PackageCheck className="w-14 h-14 mx-auto mb-5 opacity-20" style={{ color: c.textMuted }} />
+              <p className="text-lg font-semibold" style={{ color: c.textSecondary }}>No tienes despachos asignados</p>
+              <p className="text-sm mt-1" style={{ color: c.textMuted }}>Los despachos aparecerán aquí cuando sean emitidos desde Pesaje</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -597,9 +601,10 @@ export function GestionConductor() {
                     });
                     setGrupoSeleccionado(grupo); setModo('GRUPO');
                   }}
-                  className={`group relative bg-gray-900/80 border border-gray-800/80 rounded-xl overflow-hidden cursor-pointer
-                    hover:border-gray-700 hover:shadow-lg hover:shadow-black/30 transition-all duration-200
+                  className={`group relative rounded-xl overflow-hidden cursor-pointer
+                    hover:shadow-lg hover:shadow-black/30 transition-all duration-200
                     border-l-[3px] ${getAccentColor(grupo)}`}
+                  style={{ background: c.bgCard, border: `1px solid ${c.border}` }}
                 >
                   <div className="p-5">
                     <div className="flex items-center justify-between mb-3">
@@ -625,20 +630,20 @@ export function GestionConductor() {
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-emerald-400 transition-colors shrink-0" />
                     </div>
-                    <h3 className="text-white font-bold text-base leading-tight mb-3 group-hover:text-emerald-50 transition-colors">
+                    <h3 className="font-bold text-base leading-tight mb-3 group-hover:text-emerald-50 transition-colors" style={{ color: c.text }}>
                       {grupo.cliente}
                     </h3>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
-                      <div className="flex items-center gap-1.5 text-gray-400">
-                        <Layers className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+                      <div className="flex items-center gap-1.5" style={{ color: c.textSecondary }}>
+                        <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: c.textMuted }} />
                         <span>{grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-gray-400">
-                        <Weight className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                        <span className="font-semibold text-gray-300">{grupo.pesoBrutoTotal.toFixed(1)} kg bruto</span>
+                      <div className="flex items-center gap-1.5" style={{ color: c.textSecondary }}>
+                        <Weight className="w-3.5 h-3.5 shrink-0" style={{ color: c.textMuted }} />
+                        <span className="font-semibold" style={{ color: c.textSecondary }}>{grupo.pesoBrutoTotal.toFixed(1)} kg bruto</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-gray-400">
-                        <MapPin className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+                      <div className="flex items-center gap-1.5" style={{ color: c.textSecondary }}>
+                        <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: c.textMuted }} />
                         <span className="truncate">{grupo.zonaEntrega || '—'}</span>
                       </div>
                     </div>
@@ -662,28 +667,28 @@ export function GestionConductor() {
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
           {/* Info del grupo */}
-          <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
             <div className="h-1 w-full bg-emerald-500" />
             <div className="p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-5 mb-5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] text-white font-mono uppercase tracking-[0.15em] mb-1">Despacho Consolidado</p>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight truncate">{grupoSeleccionado.cliente}</h2>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.15em] mb-1" style={{ color: c.text }}>Despacho Consolidado</p>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate" style={{ color: c.text }}>{grupoSeleccionado.cliente}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {grupoSeleccionado.numeroTicket && (
-                      <span className="font-mono text-xs text-white bg-emerald-500/10 border border-emerald-500/40 px-2 py-0.5 rounded-md">
+                      <span className="font-mono text-xs bg-emerald-500/10 border border-emerald-500/40 px-2 py-0.5 rounded-md" style={{ color: c.text }}>
                         {grupoSeleccionado.numeroTicket}
                       </span>
                     )}
-                    <span className="text-xs text-gray-500">{grupoSeleccionado.conductor}</span>
-                    <span className="text-xs text-gray-600">·</span>
-                    <span className="text-xs text-gray-500">{grupoSeleccionado.zonaEntrega}</span>
+                    <span className="text-xs" style={{ color: c.textMuted }}>{grupoSeleccionado.conductor}</span>
+                    <span className="text-xs" style={{ color: c.textMuted }}>·</span>
+                    <span className="text-xs" style={{ color: c.textMuted }}>{grupoSeleccionado.zonaEntrega}</span>
                   </div>
                 </div>
-                <div className="bg-black/40 border border-gray-700/50 rounded-xl px-5 py-3 text-center">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Bruto Total</p>
-                  <div className="text-2xl font-black text-white tabular-nums">
-                    {grupoSeleccionado.pesoBrutoTotal.toFixed(1)}<span className="text-xs text-gray-500 font-normal ml-0.5">kg</span>
+                <div className="rounded-xl px-5 py-3 text-center" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold mb-0.5" style={{ color: c.textMuted }}>Bruto Total</p>
+                  <div className="text-2xl font-black tabular-nums" style={{ color: c.text }}>
+                    {grupoSeleccionado.pesoBrutoTotal.toFixed(1)}<span className="text-xs font-normal ml-0.5" style={{ color: c.textMuted }}>kg</span>
                   </div>
                 </div>
               </div>
@@ -716,7 +721,7 @@ export function GestionConductor() {
 
           {/* Lista de pedidos del grupo */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">
+            <h3 className="text-sm font-bold uppercase tracking-widest px-1" style={{ color: c.textSecondary }}>
               Pedidos del Despacho ({grupoSeleccionado.pedidos.length})
             </h3>
             {grupoSeleccionado.pedidos.map((pedido, idx) => {
@@ -736,8 +741,8 @@ export function GestionConductor() {
                 <div key={pedido.id}
                   className="backdrop-blur-xl rounded-xl overflow-hidden transition-all"
                   style={{
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: pedidoCompletado ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: c.bgCard,
+                    border: pedidoCompletado ? '1px solid rgba(34, 197, 94, 0.3)' : `1px solid ${c.border}`,
                   }}
                 >
                   {/* Header clickeable */}
@@ -764,14 +769,14 @@ export function GestionConductor() {
                               {vivo ? `${freshP.cantidadJabas || 0} jabas` : `${freshP.cantidad} unids.`}
                             </span>
                             <span className="text-[10px] text-gray-600">·</span>
-                            <span className="text-[10px] font-bold text-white">{(freshP.pesoBrutoTotal || 0).toFixed(1)} kg</span>
+                            <span className="text-[10px] font-bold" style={{ color: c.text }}>{(freshP.pesoBrutoTotal || 0).toFixed(1)} kg</span>
                           </div>
                         </div>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleExpand(); }}
                         className="p-2 rounded-lg transition-all hover:scale-105 shrink-0"
-                        style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                        style={{ background: c.g06, border: `1px solid ${c.border}` }}
                       >
                         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
@@ -780,7 +785,7 @@ export function GestionConductor() {
 
                   {/* Contenido expandido */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div className="px-4 pb-4 pt-2" style={{ borderTop: `1px solid ${c.borderSubtle}` }}>
 
                       {/* Info de producto concisa */}
                       <ProductInfoCard pedido={freshP} compact />
@@ -790,15 +795,15 @@ export function GestionConductor() {
                         <div className="space-y-2 mt-3 mb-3">
                           {regs.slice(0, 3).map(reg => (
                             <div key={reg.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
-                              style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                              style={{ background: c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
                               <div className="flex items-center gap-2">
                                 {getTipoIcon(reg.tipo)}
-                                <span className="text-xs font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
+                                <span className="text-xs font-bold" style={{ color: c.text }}>{getTipoLabel(reg.tipo, reg.id)}</span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
                               </div>
                               <div className="flex items-center gap-2 text-[10px] text-gray-500">
                                 {reg.cantidadUnidades && <span className="text-orange-300">{reg.cantidadUnidades} unids.</span>}
-                                {reg.peso && <span className="font-mono font-bold text-white">{reg.peso.toFixed(1)} kg</span>}
+                                {reg.peso && <span className="font-mono font-bold" style={{ color: c.text }}>{reg.peso.toFixed(1)} kg</span>}
                                 <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                             </div>
@@ -873,7 +878,7 @@ export function GestionConductor() {
                   <div key={reg.id}
                     className="backdrop-blur-xl rounded-xl overflow-hidden"
                     style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
+                      background: c.bgCard,
                       border: '1px solid rgba(6, 182, 212, 0.25)',
                     }}
                   >
@@ -886,7 +891,7 @@ export function GestionConductor() {
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-white">Adición</span>
+                              <span className="text-sm font-bold" style={{ color: c.text }}>Adición</span>
                               <span className="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-bold">
                                 desde {reg.clienteOrigenNombre}
                               </span>
@@ -898,7 +903,7 @@ export function GestionConductor() {
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <span className="text-[10px] font-bold text-cyan-400">{reg.cantidadUnidades} unids.</span>
                               <span className="text-[10px] text-gray-600">·</span>
-                              <span className="text-[10px] font-bold text-white">{(reg.peso || 0).toFixed(1)} kg</span>
+                              <span className="text-[10px] font-bold" style={{ color: c.text }}>{(reg.peso || 0).toFixed(1)} kg</span>
                               <span className="text-[10px] text-gray-600">·</span>
                               <span className="text-[10px] text-gray-500">{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
@@ -925,7 +930,7 @@ export function GestionConductor() {
         const freshSP = pedidosConfirmados.find(p => p.id === selectedPedido.id) || selectedPedido;
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <div className={`h-1 w-full ${freshSP.estado === 'Devolución' ? 'bg-red-500' :
                 freshSP.estado === 'Con Incidencia' ? 'bg-amber-500' : 'bg-emerald-500'
                 }`} />
@@ -933,7 +938,7 @@ export function GestionConductor() {
                 <p className="text-[11px] text-emerald-400/70 font-mono uppercase tracking-[0.15em] mb-3">Detalle del Pedido</p>
                 <ProductInfoCard pedido={freshSP} />
 
-                <div className={`mt-4 flex items-center gap-3 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3`}>
+                <div className={`mt-4 flex items-center gap-3 rounded-xl px-4 py-3`} style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${freshSP.estado === 'Devolución' ? 'bg-red-500/15' :
                     freshSP.estado === 'Con Incidencia' ? 'bg-amber-500/15' : 'bg-emerald-500/15'
                     }`}>
@@ -980,9 +985,9 @@ export function GestionConductor() {
                 <History className="w-4 h-4 text-gray-500" /> Registro de Movimientos
               </h3>
               {getRegistrosPedido(selectedPedido.id).length === 0 ? (
-                <div className="bg-gray-900/30 border border-dashed border-gray-800 rounded-xl p-14 text-center">
-                  <History className="w-10 h-10 mx-auto mb-3 text-gray-700" />
-                  <p className="text-gray-500 text-sm">Sin movimientos registrados</p>
+                <div className="rounded-xl p-14 text-center" style={{ background: c.bgCard, border: `1px dashed ${c.border}` }}>
+                  <History className="w-10 h-10 mx-auto mb-3" style={{ color: c.textMuted }} />
+                  <p className="text-sm" style={{ color: c.textMuted }}>Sin movimientos registrados</p>
                 </div>
               ) : (
                 <div className="relative pl-6">
@@ -995,7 +1000,7 @@ export function GestionConductor() {
                             (reg.tipo === 'adicion' || reg.tipo === 'asignacion') ? 'bg-teal-400' :
                               reg.tipo === 'entrega' ? 'bg-green-400' : 'bg-gray-500'
                           }`} />
-                        <div className="bg-gray-900/50 border border-gray-800/70 rounded-xl p-4 hover:border-gray-700 transition-colors">
+                        <div className="rounded-xl p-4 transition-colors" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             {getTipoIcon(reg.tipo)}
                             <span className="text-sm font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
@@ -1062,7 +1067,7 @@ export function GestionConductor() {
 
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <div className="h-1 w-full bg-blue-500" />
               <div className="p-5 space-y-4">
 
@@ -1072,7 +1077,7 @@ export function GestionConductor() {
                     <Scale className="w-5 h-5 text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Repesaje</h2>
+                    <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Repesaje</h2>
                     <p className="text-[11px] text-gray-500">{freshP.cliente} · {freshP.numeroPedido}</p>
                   </div>
                 </div>
@@ -1096,16 +1101,16 @@ export function GestionConductor() {
 
                 {/* Peso original vs acumulado */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-3 text-center">
-                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Peso Original</p>
-                    <p className="text-xl font-black text-gray-300 tabular-nums">{pesoOriginal.toFixed(1)}<span className="text-xs text-gray-500 ml-0.5">kg</span></p>
+                  <div className="rounded-xl p-3 text-center" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                    <p className="text-[10px] uppercase font-bold tracking-wider mb-0.5" style={{ color: c.textMuted }}>Peso Original</p>
+                    <p className="text-xl font-black tabular-nums" style={{ color: c.textSecondary }}>{pesoOriginal.toFixed(1)}<span className="text-xs ml-0.5" style={{ color: c.textMuted }}>kg</span></p>
                   </div>
                   <div className={`border rounded-xl p-3 text-center ${pesoAcumulado > 0
                     ? (Math.abs(diferencia) <= 0.5 ? 'bg-green-900/15 border-green-500/25' : 'bg-amber-900/15 border-amber-500/25')
                     : 'bg-blue-900/15 border-blue-500/25'
                     }`}>
                     <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider mb-0.5">Repesaje Total</p>
-                    <p className="text-xl font-black text-white tabular-nums">{pesoAcumulado.toFixed(1)}<span className="text-xs text-gray-500 ml-0.5">kg</span></p>
+                    <p className="text-xl font-black tabular-nums" style={{ color: c.text }}>{pesoAcumulado.toFixed(1)}<span className="text-xs ml-0.5" style={{ color: c.textMuted }}>kg</span></p>
                   </div>
                 </div>
 
@@ -1217,7 +1222,7 @@ export function GestionConductor() {
 
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <div className="h-1 w-full bg-orange-500" />
               <div className="p-5 space-y-4">
 
@@ -1227,7 +1232,7 @@ export function GestionConductor() {
                     <RotateCcw className="w-5 h-5 text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">
+                    <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>
                       {devStep === 'datos' ? 'Registrar Devolución' : 'Motivo de Devolución'}
                     </h2>
                     <p className="text-[11px] text-gray-500">{freshP.cliente} · {freshP.numeroPedido}</p>
@@ -1365,7 +1370,7 @@ export function GestionConductor() {
           {adicionStep === 'lista' ? (
             /* ── Lista de devoluciones disponibles para este cliente ── */
             <div className="space-y-4">
-              <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
                 <div className="h-1 w-full bg-cyan-500" />
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-4">
@@ -1373,7 +1378,7 @@ export function GestionConductor() {
                       <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Adición para {grupoSeleccionado.cliente}</h2>
+                      <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Adición para {grupoSeleccionado.cliente}</h2>
                       <p className="text-[11px] text-gray-500">Seleccione un producto devuelto para adicionar a este despacho</p>
                     </div>
                   </div>
@@ -1381,16 +1386,17 @@ export function GestionConductor() {
                   {(() => {
                     const disponibles = getAdicionesParaGrupo(grupoSeleccionado.grupoId);
                     return disponibles.length === 0 ? (
-                      <div className="bg-gray-900/30 border border-dashed border-gray-800 rounded-xl p-12 text-center">
-                        <ArrowLeftRight className="w-10 h-10 mx-auto mb-3 text-gray-700" />
-                        <p className="text-gray-500 text-sm">No hay productos disponibles para adición</p>
-                        <p className="text-[11px] text-gray-600 mt-1">Las adiciones aparecerán cuando otros clientes registren devoluciones</p>
+                      <div className="rounded-xl p-12 text-center" style={{ background: c.bgCard, border: `1px dashed ${c.border}` }}>
+                        <ArrowLeftRight className="w-10 h-10 mx-auto mb-3" style={{ color: c.textMuted }} />
+                        <p className="text-sm" style={{ color: c.textMuted }}>No hay productos disponibles para adición</p>
+                        <p className="text-[11px] mt-1" style={{ color: c.textMuted }}>Las adiciones aparecerán cuando otros clientes registren devoluciones</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {disponibles.map(dev => (
                           <div key={dev.registroId}
-                            className="bg-black/30 border border-gray-800 rounded-xl p-4 hover:border-cyan-500/30 transition-all cursor-pointer active:scale-[0.99]"
+                            className="rounded-xl p-4 transition-all cursor-pointer active:scale-[0.99]"
+                            style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}
                             onClick={() => { setAdicionSeleccionada(dev); setAdicionStep('formulario'); }}
                           >
                             <div className="flex items-center gap-2 mb-2">
@@ -1436,7 +1442,7 @@ export function GestionConductor() {
             </div>
           ) : adicionSeleccionada && (
             /* ── Formulario de Adición ── */
-            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <div className="h-1 w-full bg-cyan-500" />
               <div className="p-5 space-y-4">
 
@@ -1446,7 +1452,7 @@ export function GestionConductor() {
                     <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">Confirmar Adición</h2>
+                    <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Confirmar Adición</h2>
                     <p className="text-[11px] text-gray-500">Para <span className="text-cyan-400 font-bold">{grupoSeleccionado.cliente}</span></p>
                   </div>
                   <button onClick={() => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(''); setAdicionPeso(''); setAdicionFoto(''); }} className="p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
@@ -1599,15 +1605,15 @@ export function GestionConductor() {
       {showConfirmEntregaTotal && grupoSeleccionado && (() => {
         const freshGrupo = getFreshGrupo() || grupoSeleccionado;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: c.bgModalOverlay }}>
+            <div className="rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
               <div className="p-6 space-y-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-white">Confirmar Entrega Total</h3>
+                    <h3 className="text-lg font-extrabold" style={{ color: c.text }}>Confirmar Entrega Total</h3>
                     <p className="text-xs text-gray-500">{freshGrupo.cliente} · {freshGrupo.pedidos.length} pedido{freshGrupo.pedidos.length > 1 ? 's' : ''}</p>
                   </div>
                 </div>
@@ -1621,7 +1627,7 @@ export function GestionConductor() {
                     const tieneEntrega = freshP.estado === 'Entregado';
                     const vivo = checkEsVivo(freshP);
                     return (
-                      <div key={p.id} className="bg-black/30 border border-gray-800 rounded-xl p-3">
+                      <div key={p.id} className="rounded-xl p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-white">{freshP.tipoAve}</span>
@@ -1700,20 +1706,20 @@ export function GestionConductor() {
         const pedidoToConfirm = pedidosConfirmados.find(p => p.id === confirmEntregaPedidoId);
         if (!pedidoToConfirm) return null;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: c.bgModalOverlay }}>
+            <div className="rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold text-white">Confirmar Entrega</h3>
+                    <h3 className="text-base font-extrabold" style={{ color: c.text }}>Confirmar Entrega</h3>
                     <p className="text-xs text-gray-500">{pedidoToConfirm.numeroPedido} · {pedidoToConfirm.tipoAve}</p>
                   </div>
                 </div>
                 <ProductInfoCard pedido={pedidoToConfirm} compact />
-                <p className="text-sm text-gray-400">¿Confirmar la entrega de este pedido?</p>
+                <p className="text-sm" style={{ color: c.textSecondary }}>¿Confirmar la entrega de este pedido?</p>
                 <div className="flex gap-3">
                   <button onClick={() => setConfirmEntregaPedidoId(null)}
                     className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors text-sm">

@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Search, X, Filter, Bird, PackageOpen } from 'lucid
 import { AvesMetrics } from './AvesMetrics';
 import { ModalPresentaciones } from './ModalPresentaciones';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface TipoAve {
   id: string;
@@ -43,6 +44,8 @@ const proveedoresEjemplo = [
 
 export function Aves() {
   const { tiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   
   const [aves, setAves] = useState<Ave[]>([
     {
@@ -214,8 +217,8 @@ export function Aves() {
       {/* Header con botón de registro */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Gestión de Aves</h1>
-          <p className="text-xs sm:text-sm text-gray-400">Tipos de aves y presentaciones de la avícola</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>Gestión de Aves</h1>
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Tipos de aves y presentaciones de la avícola</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
@@ -250,18 +253,18 @@ export function Aves() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4">
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(34, 197, 94, 0.3)'
         }}>
-          <p className="text-sm text-gray-400 mb-2">Total de Aves Registradas</p>
+          <p className="text-sm mb-2" style={{ color: c.textSecondary }}>Total de Aves Registradas</p>
           <p className="text-3xl sm:text-4xl font-bold" style={{ color: '#22c55e' }}>{getTotalCantidad()}</p>
         </div>
       </div>
 
       {/* Search & Filter */}
       <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -271,10 +274,11 @@ export function Aves() {
               placeholder="Buscar por proveedor o tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-3 py-2.5 sm:py-3 rounded-lg text-sm text-white placeholder-gray-400"
+              className="w-full pl-10 sm:pl-12 pr-3 py-2.5 sm:py-3 rounded-lg text-sm placeholder-gray-400"
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: c.bgInput,
+                border: `1px solid ${c.border}`,
+                color: c.text
               }}
             />
           </div>
@@ -283,15 +287,16 @@ export function Aves() {
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="pl-10 sm:pl-12 pr-8 py-2.5 sm:py-3 rounded-lg text-sm text-white appearance-none cursor-pointer w-full sm:w-auto min-w-[150px]"
+              className="pl-10 sm:pl-12 pr-8 py-2.5 sm:py-3 rounded-lg text-sm appearance-none cursor-pointer w-full sm:w-auto min-w-[150px]"
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: c.bgInput,
+                border: `1px solid ${c.border}`,
+                color: c.text
               }}
             >
-              <option value="all" style={{ background: '#1a1a1a', color: 'white' }}>Todos los tipos</option>
+              <option value="all" style={{ background: c.bgPage, color: c.text }}>Todos los tipos</option>
               {tiposUnicos.map(tipo => (
-                <option key={tipo} value={tipo} style={{ background: '#1a1a1a', color: 'white' }}>{tipo}</option>
+                <option key={tipo} value={tipo} style={{ background: c.bgPage, color: c.text }}>{tipo}</option>
               ))}
             </select>
           </div>
@@ -300,14 +305,14 @@ export function Aves() {
 
       {/* Table - Mobile Cards y Desktop Table */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
         {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
                 <th className="px-4 lg:px-6 py-3 text-left font-bold text-sm" style={{ color: '#ccaa00' }}>Proveedor</th>
                 <th className="px-4 lg:px-6 py-3 text-left font-bold text-sm" style={{ color: '#ccaa00' }}>Tipo de Ave</th>
                 <th className="px-4 lg:px-6 py-3 text-left font-bold text-sm" style={{ color: '#ccaa00' }}>Detalle</th>
@@ -323,9 +328,9 @@ export function Aves() {
                   <tr 
                     key={ave.id}
                     className="border-b transition-colors hover:bg-white/5"
-                    style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                    style={{ borderColor: c.borderSubtle }}
                   >
-                    <td className="px-4 lg:px-6 py-3 text-white text-sm">{ave.proveedorNombre}</td>
+                    <td className="px-4 lg:px-6 py-3 text-sm" style={{ color: c.text }}>{ave.proveedorNombre}</td>
                     <td className="px-4 lg:px-6 py-3">
                       <span 
                         className="px-2 py-1 rounded-full text-xs font-medium"
@@ -338,7 +343,7 @@ export function Aves() {
                         {ave.tipoAve}
                       </span>
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-300 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-sm" style={{ color: c.textSecondary }}>
                       {ave.variedad && <div className="mb-1">{ave.variedad}</div>}
                       <div className="text-xs space-x-2">
                         <span style={{ color: '#3b82f6' }}>Java {ave.cantidadJavas}</span>
@@ -346,8 +351,8 @@ export function Aves() {
                         <span style={{ color: '#ec4899' }}>Aves/Java {ave.avesPorJava}</span>
                       </div>
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-white font-bold text-sm">{ave.cantidad}</td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-300 text-sm">
+                    <td className="px-4 lg:px-6 py-3 font-bold text-sm" style={{ color: c.text }}>{ave.cantidad}</td>
+                    <td className="px-4 lg:px-6 py-3 text-sm" style={{ color: c.textSecondary }}>
                       <div>{ave.fechaIngreso}</div>
                       <div className="text-xs">{ave.horaIngreso}</div>
                     </td>
@@ -390,11 +395,11 @@ export function Aves() {
               <div 
                 key={ave.id}
                 className="p-4 border-b transition-colors hover:bg-white/5"
-                style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                style={{ borderColor: c.borderSubtle }}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="text-white font-medium text-sm">{ave.proveedorNombre}</p>
+                    <p className="font-medium text-sm" style={{ color: c.text }}>{ave.proveedorNombre}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span 
                         className="px-2 py-1 rounded-full text-xs font-medium"
@@ -406,7 +411,7 @@ export function Aves() {
                       >
                         {ave.tipoAve}
                       </span>
-                      <span className="text-gray-400 text-xs">{ave.variedad}</span>
+                      <span className="text-xs" style={{ color: c.textSecondary }}>{ave.variedad}</span>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -435,21 +440,21 @@ export function Aves() {
                 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-400 text-xs mb-1">Cantidad</p>
-                    <p className="text-white font-bold">{ave.cantidad} aves</p>
+                    <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Cantidad</p>
+                    <p className="font-bold" style={{ color: c.text }}>{ave.cantidad} aves</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-1">Detalle</p>
+                    <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Detalle</p>
                     <div className="text-xs space-y-1">
                       <div style={{ color: '#3b82f6' }}>Java {ave.cantidadJavas}</div>
                       <div style={{ color: '#ec4899' }}>Aves/Java {ave.avesPorJava}</div>
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-gray-400 text-xs mb-1">Fecha</p>
+                    <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Fecha</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-white text-sm">{ave.fechaIngreso}</span>
-                      <span className="text-gray-400 text-xs">{ave.horaIngreso}</span>
+                      <span className="text-sm" style={{ color: c.text }}>{ave.fechaIngreso}</span>
+                      <span className="text-xs" style={{ color: c.textSecondary }}>{ave.horaIngreso}</span>
                     </div>
                   </div>
                 </div>
@@ -460,24 +465,24 @@ export function Aves() {
 
         {filteredAves.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400">No se encontraron registros</p>
+            <p style={{ color: c.textSecondary }}>No se encontraron registros</p>
           </div>
         )}
       </div>
 
       {/* Modal - Mejorado para móvil */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-2xl rounded-xl sm:rounded-2xl w-full max-w-2xl mx-2 max-h-[90vh] overflow-y-auto"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-              border: '2px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 80px rgba(204, 170, 0, 0.15)'
+              background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
+              border: `2px solid ${c.borderGold}`,
+              boxShadow: c.shadowLg
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-black/30 backdrop-blur-xl z-10" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 backdrop-blur-xl z-10" style={{ borderColor: c.borderGold, background: c.bgCardAlt }}>
               <div className="flex items-center gap-3">
                 <div 
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -489,7 +494,7 @@ export function Aves() {
                   <Bird className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-white">
+                  <h2 className="text-lg sm:text-xl font-bold" style={{ color: c.text }}>
                     {editingAve ? 'Editar Ave' : 'Registrar Ave'}
                   </h2>
                 </div>
@@ -517,15 +522,16 @@ export function Aves() {
                     required
                     value={formData.proveedorId}
                     onChange={(e) => setFormData({ ...formData, proveedorId: e.target.value })}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white transition-all"
+                    className="w-full px-3 py-3 rounded-lg text-sm transition-all"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                      color: c.text
                     }}
                   >
                     <option value="">Seleccione proveedor</option>
                     {proveedoresEjemplo.map(p => (
-                      <option key={p.id} value={p.id} style={{ background: '#1a1a1a', color: 'white' }}>{p.nombre}</option>
+                      <option key={p.id} value={p.id} style={{ background: c.bgPage, color: c.text }}>{p.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -562,14 +568,15 @@ export function Aves() {
                         }
                       }
                     }}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white transition-all"
+                    className="w-full px-3 py-3 rounded-lg text-sm transition-all"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                      color: c.text
                     }}
                   >
                     {tiposAve.map(tipo => (
-                      <option key={tipo.id} value={tipo.nombre} style={{ background: '#1a1a1a', color: 'white' }}>
+                      <option key={tipo.id} value={tipo.nombre} style={{ background: c.bgPage, color: c.text }}>
                         {tipo.nombre}
                       </option>
                     ))}
@@ -590,14 +597,15 @@ export function Aves() {
                           required
                           value={formData.variedad}
                           onChange={(e) => setFormData({ ...formData, variedad: e.target.value })}
-                          className="w-full px-3 py-3 rounded-lg text-sm text-white transition-all"
+                          className="w-full px-3 py-3 rounded-lg text-sm transition-all"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                            background: c.bgInput,
+                            border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                            color: c.text
                           }}
                         >
                           {tipoActual.variedades.map(variedad => (
-                            <option key={variedad} value={variedad} style={{ background: '#1a1a1a', color: 'white' }}>
+                            <option key={variedad} value={variedad} style={{ background: c.bgPage, color: c.text }}>
                               {variedad}
                             </option>
                           ))}
@@ -619,10 +627,11 @@ export function Aves() {
                     min="1"
                     value={formData.cantidadJavas}
                     onChange={(e) => setFormData({ ...formData, cantidadJavas: e.target.value })}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white placeholder-gray-400"
+                    className="w-full px-3 py-3 rounded-lg text-sm placeholder-gray-400"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                      color: c.text
                     }}
                     placeholder="Número"
                   />
@@ -638,10 +647,11 @@ export function Aves() {
                     min="1"
                     value={formData.avesPorJava}
                     onChange={(e) => setFormData({ ...formData, avesPorJava: e.target.value })}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white placeholder-gray-400"
+                    className="w-full px-3 py-3 rounded-lg text-sm placeholder-gray-400"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(236, 72, 153, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(236, 72, 153, 0.3)',
+                      color: c.text
                     }}
                     placeholder="Número"
                   />
@@ -656,7 +666,7 @@ export function Aves() {
                       border: '1.5px solid rgba(34, 197, 94, 0.3)',
                     }}
                   >
-                    <p className="text-sm text-gray-300 mb-2 font-medium">Total de Aves</p>
+                    <p className="text-sm mb-2 font-medium" style={{ color: c.textSecondary }}>Total de Aves</p>
                     <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
                       {(parseInt(formData.cantidadJavas || '0') * parseInt(formData.avesPorJava || '0'))} aves
                     </p>
@@ -695,10 +705,11 @@ export function Aves() {
                                 cantidadHembras: hembrasCalculadas >= 0 ? hembrasCalculadas.toString() : '0'
                               });
                             }}
-                            className="w-full px-3 py-3 rounded-lg text-sm text-white placeholder-gray-400"
+                            className="w-full px-3 py-3 rounded-lg text-sm placeholder-gray-400"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                              background: c.bgInput,
+                              border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                              color: c.text
                             }}
                             placeholder="Número"
                           />
@@ -715,10 +726,11 @@ export function Aves() {
                             max={totalAves}
                             value={formData.cantidadHembras}
                             onChange={(e) => setFormData({ ...formData, cantidadHembras: e.target.value })}
-                            className="w-full px-3 py-3 rounded-lg text-sm text-white placeholder-gray-400"
+                            className="w-full px-3 py-3 rounded-lg text-sm placeholder-gray-400"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              border: '1.5px solid rgba(236, 72, 153, 0.3)'
+                              background: c.bgInput,
+                              border: '1.5px solid rgba(236, 72, 153, 0.3)',
+                              color: c.text
                             }}
                             placeholder="Auto"
                             readOnly
@@ -738,7 +750,7 @@ export function Aves() {
                                 : '1.5px solid rgba(239, 68, 68, 0.3)',
                             }}
                           >
-                            <p className="text-sm text-gray-300 mb-2">
+                            <p className="text-sm mb-2" style={{ color: c.textSecondary }}>
                               {diferencia === 0 && suma > 0 ? '✓ Distribución correcta' : '⚠️ Distribución'}
                             </p>
                             <p 
@@ -765,10 +777,11 @@ export function Aves() {
                     required
                     value={formData.fechaIngreso}
                     onChange={(e) => setFormData({ ...formData, fechaIngreso: e.target.value })}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white"
+                    className="w-full px-3 py-3 rounded-lg text-sm"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                      color: c.text
                     }}
                   />
                 </div>
@@ -782,25 +795,26 @@ export function Aves() {
                     required
                     value={formData.horaIngreso}
                     onChange={(e) => setFormData({ ...formData, horaIngreso: e.target.value })}
-                    className="w-full px-3 py-3 rounded-lg text-sm text-white"
+                    className="w-full px-3 py-3 rounded-lg text-sm"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                      background: c.bgInput,
+                      border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                      color: c.text
                     }}
                   />
                 </div>
               </div>
 
               {/* Botones */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-6 mt-4 border-t" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-6 mt-4 border-t" style={{ borderColor: c.borderGold }}>
                 <button
                   type="button"
                   onClick={handleCloseModal}
                   className="w-full sm:w-1/2 px-4 py-3 rounded-lg text-sm font-bold transition-all hover:scale-105"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff',
-                    border: '1.5px solid rgba(255, 255, 255, 0.2)'
+                    background: c.g10,
+                    color: c.text,
+                    border: `1.5px solid ${c.g20}`
                   }}
                 >
                   Cancelar
@@ -824,21 +838,21 @@ export function Aves() {
 
       {/* Modal Agregar Tipo de Ave - Responsive */}
       {isAddTipoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-2xl rounded-xl sm:rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden mx-2"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-              border: '2px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 80px rgba(204, 170, 0, 0.15)'
+              background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
+              border: `2px solid ${c.borderGold}`,
+              boxShadow: c.shadowLg
             }}
           >
             {/* Header */}
             <div 
               className="px-4 sm:px-6 py-4 border-b"
               style={{
-                background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))',
-                borderColor: 'rgba(204, 170, 0, 0.2)'
+                background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))' : 'rgba(204, 170, 0, 0.08)',
+                borderColor: c.borderGold
               }}
             >
               <div className="flex items-center justify-between">
@@ -853,8 +867,8 @@ export function Aves() {
                     <Bird className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-white">Gestión de Tipos de Ave</h2>
-                    <p className="text-xs sm:text-sm text-gray-300 hidden sm:block">Configure los tipos de aves</p>
+                    <h2 className="text-lg sm:text-xl font-bold" style={{ color: c.text }}>Gestión de Tipos de Ave</h2>
+                    <p className="text-xs sm:text-sm hidden sm:block" style={{ color: c.textSecondary }}>Configure los tipos de aves</p>
                   </div>
                 </div>
                 <button
@@ -881,8 +895,8 @@ export function Aves() {
                   <div 
                     className="backdrop-blur-xl rounded-xl p-4 sm:p-6"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))',
-                      border: '1px solid rgba(204, 170, 0, 0.25)'
+                      background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))' : 'rgba(204, 170, 0, 0.08)',
+                      border: `1px solid ${c.borderGold}`
                     }}
                   >
                     <div className="flex items-center gap-3 mb-4">
@@ -946,39 +960,41 @@ export function Aves() {
                       }
                     }} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-white">Nombre *</label>
+                        <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Nombre *</label>
                         <input
                           type="text"
                           required
                           value={nuevoTipoForm.nombre}
                           onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, nombre: e.target.value })}
-                          className="w-full px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
+                          className="w-full px-3 py-2.5 rounded-lg text-sm placeholder-gray-400"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                            background: c.bgInput,
+                            border: `1px solid ${c.border}`,
+                            color: c.text
                           }}
                           placeholder="Ej: Codorniz, Ganso"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-white">Color</label>
+                        <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Color</label>
                         <div className="flex gap-2">
                           <input
                             type="color"
                             value={nuevoTipoForm.color}
                             onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, color: e.target.value })}
                             className="w-12 h-10 rounded-lg cursor-pointer flex-shrink-0"
-                            style={{ border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                            style={{ border: `1px solid ${c.g20}` }}
                           />
                           <input
                             type="text"
                             value={nuevoTipoForm.color}
                             onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, color: e.target.value })}
-                            className="flex-1 px-3 py-2.5 rounded-lg text-sm text-white"
+                            className="flex-1 px-3 py-2.5 rounded-lg text-sm"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                              background: c.bgInput,
+                              border: `1px solid ${c.border}`,
+                              color: c.text
                             }}
                             placeholder="#22c55e"
                           />
@@ -986,7 +1002,7 @@ export function Aves() {
                       </div>
 
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: c.bgInput }}>
                           <input
                             type="checkbox"
                             id="tieneSexo"
@@ -994,12 +1010,12 @@ export function Aves() {
                             onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, tieneSexo: e.target.checked, tieneVariedad: e.target.checked ? false : nuevoTipoForm.tieneVariedad })}
                             className="w-5 h-5 cursor-pointer"
                           />
-                          <label htmlFor="tieneSexo" className="text-sm text-white cursor-pointer">
+                          <label htmlFor="tieneSexo" className="text-sm cursor-pointer" style={{ color: c.text }}>
                             Tiene sexo (Macho/Hembra)
                           </label>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: c.bgInput }}>
                           <input
                             type="checkbox"
                             id="tieneVariedad"
@@ -1007,7 +1023,7 @@ export function Aves() {
                             onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, tieneVariedad: e.target.checked, tieneSexo: e.target.checked ? false : nuevoTipoForm.tieneSexo })}
                             className="w-5 h-5 cursor-pointer"
                           />
-                          <label htmlFor="tieneVariedad" className="text-sm text-white cursor-pointer">
+                          <label htmlFor="tieneVariedad" className="text-sm cursor-pointer" style={{ color: c.text }}>
                             Tiene variedades
                           </label>
                         </div>
@@ -1015,15 +1031,16 @@ export function Aves() {
 
                       {nuevoTipoForm.tieneVariedad && (
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-white">Variedades (separadas por comas)</label>
+                          <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Variedades (separadas por comas)</label>
                           <input
                             type="text"
                             value={nuevoTipoForm.variedades}
                             onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, variedades: e.target.value })}
-                            className="w-full px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
+                            className="w-full px-3 py-2.5 rounded-lg text-sm placeholder-gray-400"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                              background: c.bgInput,
+                              border: `1px solid ${c.border}`,
+                              color: c.text
                             }}
                             placeholder="Blancas, Negras, Pintadas"
                           />
@@ -1060,9 +1077,9 @@ export function Aves() {
                           }}
                           className="w-full px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-105"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            color: '#ffffff',
-                            border: '1px solid rgba(255, 255, 255, 0.2)'
+                            background: c.g10,
+                            color: c.text,
+                            border: `1px solid ${c.g20}`
                           }}
                         >
                           Cancelar
@@ -1075,11 +1092,11 @@ export function Aves() {
                 {/* Lista de tipos */}
                 <div className="lg:w-3/5">
                   <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6 h-full" style={{
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    background: c.bgCard,
+                    border: `1px solid ${c.border}`
                   }}>
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-base font-bold text-white">Tipos Registrados</h3>
+                      <h3 className="text-base font-bold" style={{ color: c.text }}>Tipos Registrados</h3>
                       <span className="text-sm" style={{ color: '#ccaa00' }}>{tiposAve.length}</span>
                     </div>
                     
@@ -1099,8 +1116,8 @@ export function Aves() {
                               style={{ background: tipo.color }}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-white text-sm truncate">{tipo.nombre}</p>
-                              <p className="text-xs text-gray-400 truncate">
+                              <p className="font-bold text-sm truncate" style={{ color: c.text }}>{tipo.nombre}</p>
+                              <p className="text-xs truncate" style={{ color: c.textSecondary }}>
                                 {tipo.tieneSexo && 'Con sexo'}
                                 {tipo.tieneVariedad && `Variedades: ${tipo.variedades?.join(', ')}`}
                               </p>
@@ -1153,8 +1170,8 @@ export function Aves() {
             <div 
               className="px-4 sm:px-6 py-4 border-t"
               style={{ 
-                background: 'rgba(0, 0, 0, 0.4)',
-                borderColor: 'rgba(204, 170, 0, 0.2)'
+                background: c.bgCardAlt,
+                borderColor: c.borderGold
               }}
             >
               <button

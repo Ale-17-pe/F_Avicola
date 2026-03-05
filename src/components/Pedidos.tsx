@@ -4,6 +4,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface Pedido {
   id: string;
@@ -57,6 +58,8 @@ export function Pedidos() {
     updatePedidoConfirmado,
     removePedidoConfirmado
   } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // Estados
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -385,13 +388,13 @@ export function Pedidos() {
   };
 
   return (
-    <div className="min-h-screen bg-black p-4 sm:p-6">
+    <div className="min-h-screen p-4 sm:p-6" style={{ background: c.bgPage }}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <div className="p-3 bg-black/50 border border-amber-500/20 rounded-xl">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3" style={{ color: c.text }}>
+              <div className="p-3 border border-amber-500/20 rounded-xl" style={{ background: c.bgCardAlt }}>
                 <Package className="w-6 h-6 text-amber-400" />
               </div>
               <div>
@@ -403,15 +406,15 @@ export function Pedidos() {
               </div>
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <span>{pedidosAgrupados.length} Clientes</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                 <span>{totalPedidos} Pedidos activos</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                 <span>{cantidadTotalAves} Aves totales</span>
               </div>
@@ -419,19 +422,19 @@ export function Pedidos() {
           </div>
           
           <div className="flex flex-wrap gap-3">
-            <div className="bg-black/50 border border-gray-800 rounded-xl px-4 py-2 flex items-center gap-3">
+            <div className="border rounded-xl px-4 py-2 flex items-center gap-3" style={{ background: c.bgCardAlt, borderColor: c.border }}>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Pendientes</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Pendientes</div>
                 <div className="text-2xl font-bold text-amber-400">{pedidosPendientes}</div>
               </div>
-              <div className="h-8 w-px bg-gray-800"></div>
+              <div className="h-8 w-px" style={{ background: c.border }}></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Producción</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Producción</div>
                 <div className="text-2xl font-bold text-blue-400">{pedidosProduccion}</div>
               </div>
-              <div className="h-8 w-px bg-gray-800"></div>
+              <div className="h-8 w-px" style={{ background: c.border }}></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">En Pesaje</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>En Pesaje</div>
                 <div className="text-2xl font-bold text-purple-400">{pedidosPesaje}</div>
               </div>
             </div>
@@ -462,7 +465,7 @@ export function Pedidos() {
         </div>
 
         {/* Filtros */}
-        <div className="bg-black/50 border border-gray-800 rounded-2xl p-5 mb-8">
+        <div className="border rounded-2xl p-5 mb-8" style={{ background: c.bgCardAlt, borderColor: c.border }}>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -471,7 +474,8 @@ export function Pedidos() {
                 placeholder="Buscar cliente, número, ave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-black/30 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                className="w-full pl-10 pr-4 py-3 border rounded-xl placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               />
             </div>
 
@@ -480,11 +484,12 @@ export function Pedidos() {
               <select
                 value={filterCliente}
                 onChange={(e) => setFilterCliente(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/30 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-black">Todos los clientes</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los clientes</option>
                 {Array.from(new Set(pedidos.map(p => p.cliente))).map(cliente => (
-                  <option key={cliente} value={cliente} className="bg-black">
+                  <option key={cliente} value={cliente} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
                     {cliente}
                   </option>
                 ))}
@@ -496,16 +501,17 @@ export function Pedidos() {
               <select
                 value={filterEstado}
                 onChange={(e) => setFilterEstado(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/30 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-black">Todos</option>
-                <option value="Pendiente" className="bg-black">Pendiente</option>
-                <option value="En Producción" className="bg-black">En Producción</option>
-                <option value="En Pesaje" className="bg-black">En Pesaje</option>
-                <option value="En Despacho" className="bg-black">En Despacho</option>
-                <option value="Despachando" className="bg-black">Despachando</option>
-                <option value="Completado" className="bg-black">Completado</option>
-                <option value="Cancelado" className="bg-black">Cancelado</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos</option>
+                <option value="Pendiente" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Pendiente</option>
+                <option value="En Producción" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>En Producción</option>
+                <option value="En Pesaje" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>En Pesaje</option>
+                <option value="En Despacho" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>En Despacho</option>
+                <option value="Despachando" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Despachando</option>
+                <option value="Completado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Completado</option>
+                <option value="Cancelado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Cancelado</option>
               </select>
             </div>
 
@@ -514,11 +520,12 @@ export function Pedidos() {
               <select
                 value={filterTipoAve}
                 onChange={(e) => setFilterTipoAve(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/30 border border-gray-800 rounded-xl text-white appearance-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-black">Todos los tipos</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los tipos</option>
                 {Array.from(new Set(pedidos.map(p => p.tipoAve))).map(tipo => (
-                  <option key={tipo} value={tipo} className="bg-black">
+                  <option key={tipo} value={tipo} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
                     {tipo}
                   </option>
                 ))}
@@ -530,38 +537,38 @@ export function Pedidos() {
 
       {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-black/50 border border-amber-700/30 rounded-xl p-4">
+        <div className="border border-amber-700/30 rounded-xl p-4" style={{ background: c.bgCardAlt }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Total de Aves</p>
+            <p className="text-sm" style={{ color: c.textSecondary }}>Total de Aves</p>
             <TrendingUp className="w-5 h-5 text-amber-400" />
           </div>
           <p className="text-2xl font-bold text-amber-400">{cantidadTotalAves}</p>
-          <p className="text-xs text-gray-400">unidades totales</p>
+          <p className="text-xs" style={{ color: c.textSecondary }}>unidades totales</p>
         </div>
 
-        <div className="bg-black/50 border border-red-700/30 rounded-xl p-4">
+        <div className="border border-red-700/30 rounded-xl p-4" style={{ background: c.bgCardAlt }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Merma Total</p>
+            <p className="text-sm" style={{ color: c.textSecondary }}>Merma Total</p>
             <Scale className="w-5 h-5 text-red-400" />
           </div>
           <p className="text-2xl font-bold text-red-400">{mermaTotal.toFixed(2)} kg</p>
-          <p className="text-xs text-gray-400">kilogramos</p>
+          <p className="text-xs" style={{ color: c.textSecondary }}>kilogramos</p>
         </div>
 
-        <div className="bg-black/50 border border-green-700/30 rounded-xl p-4">
+        <div className="border border-green-700/30 rounded-xl p-4" style={{ background: c.bgCardAlt }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Peso Total</p>
+            <p className="text-sm" style={{ color: c.textSecondary }}>Peso Total</p>
             <Package className="w-5 h-5 text-green-400" />
           </div>
           <p className="text-2xl font-bold text-green-400">{pesoTotalGeneral.toFixed(2)} kg</p>
-          <p className="text-xs text-gray-400">kilogramos (estimado)</p>
+          <p className="text-xs" style={{ color: c.textSecondary }}>kilogramos (estimado)</p>
         </div>
       </div>
 
       {/* Grupos de Clientes */}
       {vistaGrupos && pedidosAgrupados.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: c.text }}>
             <User className="w-5 h-5 text-blue-400" />
             Agrupado por Cliente ({pedidosAgrupados.length} clientes)
           </h2>
@@ -569,11 +576,12 @@ export function Pedidos() {
             {pedidosAgrupados.map(grupo => (
               <div
                 key={grupo.numeroCliente}
-                className="bg-black/50 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition-all"
+                className="border rounded-2xl p-5 transition-all"
+                style={{ background: c.bgCardAlt, borderColor: c.border }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <div className="text-white font-bold text-lg">{grupo.cliente}</div>
+                    <div className="font-bold text-lg" style={{ color: c.text }}>{grupo.cliente}</div>
                     <div className="text-sm text-blue-400 font-mono">{grupo.numeroCliente}</div>
                   </div>
                   <div className="px-3 py-1 bg-amber-900/20 border border-amber-700/30 rounded-lg">
@@ -583,42 +591,43 @@ export function Pedidos() {
 
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total aves:</span>
-                    <span className="text-white font-bold">{grupo.totalAves}</span>
+                    <span style={{ color: c.textSecondary }}>Total aves:</span>
+                    <span className="font-bold" style={{ color: c.text }}>{grupo.totalAves}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Pendientes:</span>
+                    <span style={{ color: c.textSecondary }}>Pendientes:</span>
                     <span className="text-amber-400 font-bold">{grupo.pedidosPendientes}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">En producción:</span>
+                    <span style={{ color: c.textSecondary }}>En producción:</span>
                     <span className="text-blue-400 font-bold">{grupo.pedidosEnProduccion}</span>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-800">
+                <div className="pt-4 border-t" style={{ borderColor: c.border }}>
+                  <h4 className="text-xs font-semibold mb-2" style={{ color: c.textSecondary }}>Pedidos:</h4>
                   <div className="space-y-2">
-                    {grupo.pedidos.slice(0, 3).map(pedido => (
-                      <div key={pedido.id} className="flex items-center justify-between text-sm">
+                    {grupo.pedidos.slice(0, 3).map((pedido) => (
+                      <div key={pedido.subNumero} className="flex items-center justify-between p-2 rounded-lg" style={{ background: c.g04 }}>
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
                             getEstadoColor(pedido.estado).bg
                           } ${getEstadoColor(pedido.estado).text}`}>
                             {pedido.subNumero}
                           </div>
-                          <span className="text-white">{pedido.tipoAve}</span>
+                          <span style={{ color: c.text }}>{pedido.tipoAve}</span>
                           {pedido.variedad && (
                             <span className="text-[10px] text-amber-400">{pedido.variedad}</span>
                           )}
                         </div>
                         <div className="text-right">
-                          <div className="text-white font-medium">{pedido.cantidad} aves</div>
-                          <div className="text-xs text-gray-400">{pedido.estado}</div>
+                          <div className="font-medium" style={{ color: c.text }}>{pedido.cantidad} aves</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.estado}</div>
                         </div>
                       </div>
                     ))}
                     {grupo.pedidos.length > 3 && (
-                      <div className="text-center text-sm text-gray-400">
+                      <div className="text-center text-sm" style={{ color: c.textSecondary }}>
                         + {grupo.pedidos.length - 3} pedidos más
                       </div>
                     )}
@@ -631,34 +640,34 @@ export function Pedidos() {
       )}
 
       {/* Tabla de Pedidos */}
-      <div className="bg-black/50 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="border rounded-2xl overflow-hidden" style={{ background: c.bgCardAlt, borderColor: c.border }}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-black border-b border-gray-800">
+              <tr className="border-b" style={{ background: c.bgTableHeader, borderColor: c.border }}>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Orden</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Orden</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">N° Pedido</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>N° Pedido</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Cliente</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Cliente</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Producto</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Producto</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Cantidad</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Cantidad</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Presentación</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Presentación</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Estado</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Estado</div>
                 </th>
                 <th className="px-6 py-4 text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase">Acciones</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Acciones</div>
                 </th>
               </tr>
             </thead>
@@ -666,7 +675,7 @@ export function Pedidos() {
               {filteredPedidos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="text-gray-500">
+                    <div style={{ color: c.textMuted }}>
                       {pedidos.length === 0 
                         ? 'No hay pedidos confirmados' 
                         : 'No hay pedidos que coincidan con los filtros'}
@@ -682,9 +691,10 @@ export function Pedidos() {
                   return (
                     <tr 
                       key={pedido.id}
-                      className={`border-b border-gray-800/50 hover:bg-gray-900/30 transition-colors ${
+                      className={`border-b transition-colors ${
                         pedido.estado === 'Cancelado' ? 'opacity-60' : ''
                       }`}
+                      style={{ borderColor: c.borderSubtle }}
                     >
                       <td className="px-6 py-4">
                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${priorityStyle.bg} border ${priorityStyle.border} flex items-center justify-center font-bold ${priorityStyle.text}`}>
@@ -694,16 +704,16 @@ export function Pedidos() {
                       
                       <td className="px-6 py-4">
                         <div className="space-y-1">
-                          <div className="font-mono font-bold text-white">{pedido.numeroPedido}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="font-mono font-bold" style={{ color: c.text }}>{pedido.numeroPedido}</div>
+                          <div className="text-xs" style={{ color: c.textMuted }}>
                             {pedido.fecha} {pedido.hora}
                           </div>
                         </div>
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="text-white font-medium">{pedido.cliente}</div>
-                        <div className="text-xs text-gray-500">Cliente {pedido.numeroCliente}</div>
+                        <div className="font-medium" style={{ color: c.text }}>{pedido.cliente}</div>
+                        <div className="text-xs" style={{ color: c.textMuted }}>Cliente {pedido.numeroCliente}</div>
                       </td>
                       
                       <td className="px-6 py-4">
@@ -716,7 +726,7 @@ export function Pedidos() {
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="text-white font-bold text-lg">{pedido.cantidad}</div>
+                        <div className="font-bold text-lg" style={{ color: c.text }}>{pedido.cantidad}</div>
                         {esVivo && pedido.cantidadJabas && (
                           <div className="text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1"
                             style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
@@ -727,7 +737,7 @@ export function Pedidos() {
                       </td>
                       
                       <td className="px-6 py-4">
-                        <div className="text-white">{pedido.presentacion}</div>
+                        <div style={{ color: c.text }}>{pedido.presentacion}</div>
                       </td>
                       
                       <td className="px-6 py-4">
@@ -804,12 +814,12 @@ export function Pedidos() {
       {/* Modal de Detalle */}
       {mostrarDetalle && pedidoSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.85)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-black border border-gray-800 rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-800">
+          <div className="border rounded-2xl w-full max-w-md" style={{ background: c.bgModal, borderColor: c.border }}>
+            <div className="p-6 border-b" style={{ borderColor: c.border }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">Detalle del Pedido</h3>
+                <h3 className="text-xl font-bold" style={{ color: c.text }}>Detalle del Pedido</h3>
                 <button
                   onClick={() => setMostrarDetalle(false)}
                   className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
@@ -821,23 +831,23 @@ export function Pedidos() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-gray-400">N° Pedido</div>
-                  <div className="text-white font-mono font-bold">{pedidoSeleccionado.numeroPedido}</div>
+                  <div className="text-sm" style={{ color: c.textSecondary }}>N° Pedido</div>
+                  <div className="font-mono font-bold" style={{ color: c.text }}>{pedidoSeleccionado.numeroPedido}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Cliente</div>
-                  <div className="text-white font-medium">{pedidoSeleccionado.cliente}</div>
+                  <div className="text-sm" style={{ color: c.textSecondary }}>Cliente</div>
+                  <div className="font-medium" style={{ color: c.text }}>{pedidoSeleccionado.cliente}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Producto</div>
+                  <div className="text-sm" style={{ color: c.textSecondary }}>Producto</div>
                   <div className="text-emerald-300 font-medium">{pedidoSeleccionado.tipoAve}</div>
                   {pedidoSeleccionado.variedad && (
                     <div className="text-xs text-amber-400">{pedidoSeleccionado.variedad}</div>
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Cantidad</div>
-                  <div className="text-white font-bold">{pedidoSeleccionado.cantidad} aves</div>
+                  <div className="text-sm" style={{ color: c.textSecondary }}>Cantidad</div>
+                  <div className="font-bold" style={{ color: c.text }}>{pedidoSeleccionado.cantidad} aves</div>
                   {pedidoSeleccionado.cantidadJabas && (
                     <div className="text-xs text-amber-400">
                       {pedidoSeleccionado.cantidadJabas} jabas × {pedidoSeleccionado.unidadesPorJaba} u
@@ -845,28 +855,28 @@ export function Pedidos() {
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Presentación</div>
-                  <div className="text-white">{pedidoSeleccionado.presentacion}</div>
+                  <div className="text-sm" style={{ color: c.textSecondary }}>Presentación</div>
+                  <div style={{ color: c.text }}>{pedidoSeleccionado.presentacion}</div>
                 </div>
               </div>
               
-              <div className="pt-4 border-t border-gray-800">
-                <div className="text-sm text-gray-400 mb-2">Resumen de Pesos</div>
+              <div className="pt-4 border-t" style={{ borderColor: c.border }}>
+                <div className="text-sm mb-2" style={{ color: c.textSecondary }}>Resumen de Pesos</div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-black/30 rounded-lg p-3">
-                    <div className="text-xs text-gray-400">Merma Total</div>
+                  <div className="rounded-lg p-3" style={{ background: c.bgCard }}>
+                    <div className="text-xs" style={{ color: c.textSecondary }}>Merma Total</div>
                     <div className="text-red-400 font-bold">{pedidoSeleccionado.mermaTotal.toFixed(2)} kg</div>
                   </div>
-                  <div className="bg-black/30 rounded-lg p-3">
-                    <div className="text-xs text-gray-400">Peso Estimado</div>
+                  <div className="rounded-lg p-3" style={{ background: c.bgCard }}>
+                    <div className="text-xs" style={{ color: c.textSecondary }}>Peso Estimado</div>
                     <div className="text-green-400 font-bold">{pedidoSeleccionado.pesoTotalPedido.toFixed(2)} kg</div>
                   </div>
                 </div>
               </div>
               
-              <div className="pt-4 border-t border-gray-800">
-                <div className="text-sm text-gray-400 mb-2">Información Adicional</div>
-                <div className="text-sm text-gray-300 space-y-1">
+              <div className="pt-4 border-t" style={{ borderColor: c.border }}>
+                <div className="text-sm mb-2" style={{ color: c.textSecondary }}>Información Adicional</div>
+                <div className="text-sm space-y-1" style={{ color: c.textSecondary }}>
                   <div>Fecha: {pedidoSeleccionado.fecha} {pedidoSeleccionado.hora}</div>
                   <div>Estado: {pedidoSeleccionado.estado}</div>
                   {pedidoSeleccionado.esSubPedido && (
@@ -882,12 +892,12 @@ export function Pedidos() {
       {/* Modal de Edición por Jabas/Unidades */}
       {modoEdicion === 'EDITAR' && pedidoSeleccionado && edicionJabas && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.85)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-black border border-gray-800 rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-800">
+          <div className="border rounded-2xl w-full max-w-md" style={{ background: c.bgModal, borderColor: c.border }}>
+            <div className="p-6 border-b" style={{ borderColor: c.border }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">Editar Pedido</h3>
+                <h3 className="text-xl font-bold" style={{ color: c.text }}>Editar Pedido</h3>
                 <button
                   onClick={() => {
                     setModoEdicion(null);
@@ -901,23 +911,23 @@ export function Pedidos() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-black/30 border border-gray-800 rounded-xl p-4">
+              <div className="rounded-xl p-4" style={{ background: c.bgCard, border: '1px solid ' + c.border }}>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="text-gray-400">N° Pedido</div>
-                    <div className="text-white font-mono">{pedidoSeleccionado.numeroPedido}</div>
+                    <div style={{ color: c.textSecondary }}>N° Pedido</div>
+                    <div className="font-mono" style={{ color: c.text }}>{pedidoSeleccionado.numeroPedido}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Cliente</div>
-                    <div className="text-white">{pedidoSeleccionado.cliente}</div>
+                    <div style={{ color: c.textSecondary }}>Cliente</div>
+                    <div style={{ color: c.text }}>{pedidoSeleccionado.cliente}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Producto</div>
+                    <div style={{ color: c.textSecondary }}>Producto</div>
                     <div className="text-emerald-300">{pedidoSeleccionado.tipoAve}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Presentación</div>
-                    <div className="text-white">{pedidoSeleccionado.presentacion}</div>
+                    <div style={{ color: c.textSecondary }}>Presentación</div>
+                    <div style={{ color: c.text }}>{pedidoSeleccionado.presentacion}</div>
                   </div>
                 </div>
               </div>
@@ -952,7 +962,7 @@ export function Pedidos() {
               {edicionJabas.tipo === 'JABAS' ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                       Cantidad de Jabas
                     </label>
                     <input
@@ -969,11 +979,12 @@ export function Pedidos() {
                         });
                       }}
                       min="1"
-                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                      style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                       Unidades por Jaba
                     </label>
                     <input
@@ -990,12 +1001,13 @@ export function Pedidos() {
                         });
                       }}
                       min="1"
-                      className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                      style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                     />
                   </div>
                   <div className="bg-amber-900/10 border border-amber-700/30 rounded-lg p-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-400">Total aves:</span>
+                      <span style={{ color: c.textSecondary }}>Total aves:</span>
                       <span className="text-amber-400 font-bold text-xl">
                         {(edicionJabas.cantidadJabas || 0) * (edicionJabas.unidadesPorJaba || 0)}
                       </span>
@@ -1004,7 +1016,7 @@ export function Pedidos() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                     Nueva Cantidad (aves)
                   </label>
                   <input
@@ -1018,7 +1030,8 @@ export function Pedidos() {
                       });
                     }}
                     min="1"
-                    className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                    style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                   />
                   {pedidoSeleccionado.presentacion.toLowerCase().includes('vivo') && (
                     <p className="text-xs text-gray-500 mt-2">
@@ -1041,7 +1054,8 @@ export function Pedidos() {
                     setPedidoSeleccionado(null);
                     setEdicionJabas(null);
                   }}
-                  className="px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white font-semibold hover:bg-black/50 transition-colors"
+                  className="px-4 py-3 border rounded-lg font-semibold transition-colors"
+                  style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                 >
                   Cancelar
                 </button>
@@ -1054,12 +1068,12 @@ export function Pedidos() {
       {/* Modal de Cancelación */}
       {modoEdicion === 'CANCELAR' && pedidoSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.85)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-black border border-gray-800 rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-800">
+          <div className="border rounded-2xl w-full max-w-md" style={{ background: c.bgModal, borderColor: c.border }}>
+            <div className="p-6 border-b" style={{ borderColor: c.border }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">Cancelar Pedido</h3>
+                <h3 className="text-xl font-bold" style={{ color: c.text }}>Cancelar Pedido</h3>
                 <button
                   onClick={() => {
                     setModoEdicion(null);
@@ -1072,29 +1086,29 @@ export function Pedidos() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-black/30 border border-gray-800 rounded-xl p-4">
+              <div className="rounded-xl p-4" style={{ background: c.bgCard, border: '1px solid ' + c.border }}>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="text-gray-400">N° Pedido</div>
-                    <div className="text-white font-mono">{pedidoSeleccionado.numeroPedido}</div>
+                    <div style={{ color: c.textSecondary }}>N° Pedido</div>
+                    <div className="font-mono" style={{ color: c.text }}>{pedidoSeleccionado.numeroPedido}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Cliente</div>
-                    <div className="text-white">{pedidoSeleccionado.cliente}</div>
+                    <div style={{ color: c.textSecondary }}>Cliente</div>
+                    <div style={{ color: c.text }}>{pedidoSeleccionado.cliente}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Producto</div>
+                    <div style={{ color: c.textSecondary }}>Producto</div>
                     <div className="text-emerald-300">{pedidoSeleccionado.tipoAve}</div>
                   </div>
                   <div>
-                    <div className="text-gray-400">Cantidad</div>
-                    <div className="text-white">{pedidoSeleccionado.cantidad} aves</div>
+                    <div style={{ color: c.textSecondary }}>Cantidad</div>
+                    <div style={{ color: c.text }}>{pedidoSeleccionado.cantidad} aves</div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                   Motivo de Cancelación
                 </label>
                 <textarea
@@ -1102,7 +1116,8 @@ export function Pedidos() {
                   onChange={(e) => setMotivoCancelacion(e.target.value)}
                   placeholder="Ingrese el motivo de la cancelación..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                  style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                 />
               </div>
 
@@ -1118,7 +1133,8 @@ export function Pedidos() {
                     setModoEdicion(null);
                     setPedidoSeleccionado(null);
                   }}
-                  className="px-4 py-3 bg-black/30 border border-gray-800 rounded-lg text-white font-semibold hover:bg-black/50 transition-colors"
+                  className="px-4 py-3 border rounded-lg font-semibold transition-colors"
+                  style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
                 >
                   Cancelar
                 </button>
@@ -1129,22 +1145,22 @@ export function Pedidos() {
       )}
 
       {/* Footer */}
-      <div className="mt-8 bg-black/50 border border-gray-800 rounded-xl p-4">
+      <div className="mt-8 border rounded-xl p-4" style={{ background: c.bgCardAlt, borderColor: c.border }}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Pedidos totales</div>
+            <div className="text-sm mb-1" style={{ color: c.textSecondary }}>Pedidos totales</div>
             <div className="text-2xl font-bold text-blue-400">{pedidos.length}</div>
           </div>
           <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Total aves</div>
+            <div className="text-sm mb-1" style={{ color: c.textSecondary }}>Total aves</div>
             <div className="text-2xl font-bold text-green-400">{cantidadTotalAves}</div>
           </div>
           <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Clientes activos</div>
+            <div className="text-sm mb-1" style={{ color: c.textSecondary }}>Clientes activos</div>
             <div className="text-2xl font-bold text-amber-400">{pedidosAgrupados.length}</div>
           </div>
           <div className="text-center p-3">
-            <div className="text-sm text-gray-400 mb-1">Peso estimado</div>
+            <div className="text-sm mb-1" style={{ color: c.textSecondary }}>Peso estimado</div>
             <div className="text-2xl font-bold text-emerald-400">{pesoTotalGeneral.toFixed(0)} kg</div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { CostosClientes } from './CostosClientes';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface ProductoSeleccionado {
   key: string; // tipoAveId_variedad
@@ -16,6 +17,8 @@ interface ProductoSeleccionado {
 
 export function Clientes() {
   const { clientes, addCliente, updateCliente, deleteCliente, tiposAve, costosClientes, setCostosClientes } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('all');
@@ -225,8 +228,8 @@ export function Clientes() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="w-full sm:w-auto">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Gestión de Clientes</h1>
-          <p className="text-xs sm:text-sm md:text-base text-gray-400">Administra la base de datos de clientes y precios</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>Gestión de Clientes</h1>
+          <p className="text-xs sm:text-sm md:text-base" style={{ color: c.textSecondary }}>Administra la base de datos de clientes y precios</p>
         </div>
         {activeTab === 'clientes' && (
           <button
@@ -246,8 +249,8 @@ export function Clientes() {
 
       {/* Tabs */}
       <div className="backdrop-blur-xl rounded-lg sm:rounded-xl p-1" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: '1px solid ' + c.border
       }}>
         <div className="grid grid-cols-2 gap-1">
           <button
@@ -287,33 +290,33 @@ export function Clientes() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
+              background: c.bgCard,
+              border: '1px solid ' + c.g20
             }}>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-xs sm:text-sm">Total Clientes</p>
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Total Clientes</p>
+                <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: c.textSecondary }} />
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{totalClientes}</p>
+              <p className="text-2xl sm:text-3xl font-bold" style={{ color: c.text }}>{totalClientes}</p>
             </div>
 
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: c.bgCard,
               border: '1px solid rgba(34, 197, 94, 0.3)'
             }}>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-xs sm:text-sm">Activos</p>
+                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Activos</p>
                 <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
               </div>
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#22c55e' }}>{clientesActivos}</p>
             </div>
 
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: c.bgCard,
               border: '1px solid rgba(239, 68, 68, 0.3)'
             }}>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-xs sm:text-sm">Inactivos</p>
+                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Inactivos</p>
                 <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ef4444' }} />
               </div>
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#ef4444' }}>{clientesInactivos}</p>
@@ -324,13 +327,13 @@ export function Clientes() {
 
           {/* Tabla de Clientes */}
           <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            background: c.bgCard,
+            border: '1px solid ' + c.border
           }}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[800px] sm:min-w-full">
                 <thead>
-                  <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
+                  <tr style={{ background: c.bgTableHeader, borderBottom: '1px solid ' + c.borderGold }}>
                     <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Cliente</th>
                     <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm hidden sm:table-cell" style={{ color: '#ccaa00' }}>Contacto</th>
                     <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Teléfono</th>
@@ -343,8 +346,8 @@ export function Clientes() {
                   {filteredClientes.map((cliente) => (
                     <tr
                       key={cliente.id}
-                      className="border-b transition-colors hover:bg-white/5"
-                      style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                      className="border-b transition-colors"
+                      style={{ borderColor: c.borderSubtle }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -354,24 +357,24 @@ export function Clientes() {
                             <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-white text-sm truncate">{cliente.nombre}</p>
-                            <p className="text-gray-400 text-xs sm:hidden">{cliente.contacto}</p>
+                            <p className="font-bold text-sm truncate" style={{ color: c.text }}>{cliente.nombre}</p>
+                            <p className="text-xs sm:hidden" style={{ color: c.textSecondary }}>{cliente.contacto}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-300 text-sm hidden sm:table-cell">
+                      <td className="px-4 py-3 text-sm hidden sm:table-cell" style={{ color: c.textSecondary }}>
                         {cliente.contacto}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 sm:gap-2">
                           <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#ccaa00' }} />
-                          <span className="text-white text-xs sm:text-sm truncate">{cliente.telefono}</span>
+                          <span className="text-xs sm:text-sm truncate" style={{ color: c.text }}>{cliente.telefono}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="flex items-center gap-1 sm:gap-2">
                           <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#ccaa00' }} />
-                          <span className="text-gray-300 text-sm truncate">{cliente.zona}</span>
+                          <span className="text-sm truncate" style={{ color: c.textSecondary }}>{cliente.zona}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -425,8 +428,8 @@ export function Clientes() {
 
             {filteredClientes.length === 0 && (
               <div className="text-center py-8 sm:py-12">
-                <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-600" />
-                <p className="text-gray-400 text-sm sm:text-base">No se encontraron clientes</p>
+                <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4" style={{ color: c.textMuted }} />
+                <p className="text-sm sm:text-base" style={{ color: c.textSecondary }}>No se encontraron clientes</p>
               </div>
             )}
           </div>
@@ -435,20 +438,22 @@ export function Clientes() {
           {isModalOpen && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto"
-              style={{ background: 'rgba(0, 0, 0, 0.85)' }}
+              style={{ background: c.bgModalOverlay }}
               onClick={handleCloseModal}
             >
               <div
                 className="backdrop-blur-2xl rounded-xl sm:rounded-2xl md:rounded-3xl w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-3xl mx-2 sm:mx-4 p-3 sm:p-4 md:p-6 max-h-[90vh] overflow-y-auto"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
+                  background: isDark
+                    ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)'
+                    : '#ffffff',
                   border: '2px solid rgba(204, 170, 0, 0.3)',
-                  boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.15)'
+                  boxShadow: c.shadowLg
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3 sm:mb-6 pb-3 sm:pb-4 border-b" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
+                <div className="flex items-center justify-between mb-3 sm:mb-6 pb-3 sm:pb-4 border-b" style={{ borderColor: c.borderGold }}>
                   <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                     <div
                       className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -460,10 +465,10 @@ export function Clientes() {
                       <User className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-black" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold truncate" style={{ color: c.text }}>
                         {editingCliente ? 'Editar Cliente' : 'Registrar Cliente'}
                       </h2>
-                      <p className="text-xs text-gray-400 hidden sm:block truncate">Complete los datos del cliente</p>
+                      <p className="text-xs hidden sm:block truncate" style={{ color: c.textSecondary }}>Complete los datos del cliente</p>
                     </div>
                   </div>
                   <button
@@ -491,11 +496,12 @@ export function Clientes() {
                           required
                           value={formData.nombre}
                           onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base text-white placeholder-gray-400 transition-all focus:ring-2"
+                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base placeholder-gray-400 transition-all focus:ring-2"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
+                            background: c.g08,
                             border: '1.5px solid rgba(204, 170, 0, 0.3)',
-                            outlineColor: '#ccaa00'
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="Ej: Restaurante El Sabor"
                         />
@@ -513,11 +519,12 @@ export function Clientes() {
                           required
                           value={formData.contacto}
                           onChange={(e) => setFormData({ ...formData, contacto: e.target.value })}
-                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base text-white placeholder-gray-400 transition-all focus:ring-2"
+                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base placeholder-gray-400 transition-all focus:ring-2"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
+                            background: c.g08,
                             border: '1.5px solid rgba(59, 130, 246, 0.3)',
-                            outlineColor: '#3b82f6'
+                            outlineColor: '#3b82f6',
+                            color: c.text
                           }}
                           placeholder="Ej: Carlos Mendoza"
                         />
@@ -535,11 +542,12 @@ export function Clientes() {
                           required
                           value={formData.telefono}
                           onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base text-white placeholder-gray-400 transition-all focus:ring-2"
+                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base placeholder-gray-400 transition-all focus:ring-2"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
+                            background: c.g08,
                             border: '1.5px solid rgba(34, 197, 94, 0.3)',
-                            outlineColor: '#22c55e'
+                            outlineColor: '#22c55e',
+                            color: c.text
                           }}
                           placeholder="Ej: 987 654 321"
                         />
@@ -558,20 +566,21 @@ export function Clientes() {
                           required
                           value={formData.zona}
                           onChange={(e) => setFormData({ ...formData, zona: e.target.value })}
-                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base text-white placeholder-gray-400 transition-all focus:ring-2"
+                          className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm md:text-base placeholder-gray-400 transition-all focus:ring-2"
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
+                            background: c.g08,
                             border: '1.5px solid rgba(204, 170, 0, 0.3)',
-                            outlineColor: '#ccaa00'
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                         >
-                          <option value="" style={{ background: '#1a1a1a', color: 'white' }}>Seleccionar zona...</option>
-                          <option value="Zona 1" style={{ background: '#1a1a1a', color: 'white' }}>Zona 1 - Independencia, Provincia, Jicamarca</option>
-                          <option value="Zona 2" style={{ background: '#1a1a1a', color: 'white' }}>Zona 2 - Sedapal, Zona Alta/Baja, Corralito</option>
-                          <option value="Zona 3" style={{ background: '#1a1a1a', color: 'white' }}>Zona 3 - Vencedores</option>
-                          <option value="Zona 4" style={{ background: '#1a1a1a', color: 'white' }}>Zona 4 - Montenegro, 10 de Octubre, Motupe</option>
-                          <option value="Zona 5" style={{ background: '#1a1a1a', color: 'white' }}>Zona 5 - Valle Sagrado, Saruta</option>
-                          <option value="Zona 6" style={{ background: '#1a1a1a', color: 'white' }}>Zona 6 - Bayovar, Huáscar, Peladero</option>
+                          <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Seleccionar zona...</option>
+                          <option value="Zona 1" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 1 - Independencia, Provincia, Jicamarca</option>
+                          <option value="Zona 2" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 2 - Sedapal, Zona Alta/Baja, Corralito</option>
+                          <option value="Zona 3" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 3 - Vencedores</option>
+                          <option value="Zona 4" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 4 - Montenegro, 10 de Octubre, Motupe</option>
+                          <option value="Zona 5" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 5 - Valle Sagrado, Saruta</option>
+                          <option value="Zona 6" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 6 - Bayovar, Huáscar, Peladero</option>
                         </select>
                       </div>
                     </div>
@@ -588,7 +597,7 @@ export function Clientes() {
                         <p className="text-xs text-gray-500 mb-2">
                           Seleccione los tipos de ave y presentaciones que este cliente maneja. Los precios se obtienen de la tabla general.
                         </p>
-                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1 rounded-lg p-2" style={{ background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1 rounded-lg p-2" style={{ background: c.bgTableRow, border: '1px solid ' + c.g08 }}>
                           {productosDisponibles.map((item) => {
                             const isSelected = productosSeleccionados.some(p => p.key === item.key);
                             const productoSel = productosSeleccionados.find(p => p.key === item.key);
@@ -606,9 +615,9 @@ export function Clientes() {
                                   <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ background: `${item.color}20`, border: `1px solid ${item.color}40` }}>
                                     <Bird className="w-3 h-3" style={{ color: item.color }} />
                                   </div>
-                                  <span className="text-white text-xs sm:text-sm font-medium">{item.nombre}</span>
+                                  <span className="text-xs sm:text-sm font-medium" style={{ color: c.text }}>{item.nombre}</span>
                                   {item.variedad !== '-' && (
-                                    <span className="text-gray-400 text-xs">({item.variedad})</span>
+                                    <span className="text-xs" style={{ color: c.textSecondary }}>({item.variedad})</span>
                                   )}
                                 </button>
                                 {isSelected && productoSel && (
@@ -622,8 +631,8 @@ export function Clientes() {
                                           onClick={() => togglePresentacion(item.key, pres)}
                                           className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${active ? 'scale-105' : 'opacity-50'}`}
                                           style={{
-                                            background: active ? 'rgba(204, 170, 0, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                            border: active ? '1px solid rgba(204, 170, 0, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                            background: active ? 'rgba(204, 170, 0, 0.2)' : c.bgInput,
+                                            border: active ? '1px solid rgba(204, 170, 0, 0.4)' : '1px solid ' + c.border,
                                             color: active ? '#ccaa00' : '#666',
                                           }}
                                         >
@@ -637,7 +646,7 @@ export function Clientes() {
                             );
                           })}
                           {productosDisponibles.length === 0 && (
-                            <p className="text-center text-gray-500 text-xs py-3">No hay aves activas registradas</p>
+                            <p className="text-center text-xs py-3" style={{ color: c.textMuted }}>No hay aves activas registradas</p>
                           )}
                         </div>
                         {productosSeleccionados.length > 0 && (
@@ -689,9 +698,9 @@ export function Clientes() {
                       onClick={handleCloseModal}
                       className="w-full sm:flex-1 px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-bold transition-all hover:scale-105"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        color: '#ffffff',
-                        border: '1.5px solid rgba(255, 255, 255, 0.2)'
+                        background: c.g10,
+                        color: c.text,
+                        border: '1.5px solid ' + c.g20
                       }}
                     >
                       Cancelar

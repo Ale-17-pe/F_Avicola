@@ -5,6 +5,7 @@ import {
   ArrowLeft, Layers, Users,
 } from 'lucide-react';
 import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 // ===================== CONSTANTES =====================
@@ -168,6 +169,8 @@ function useSerialScale() {
 
 export function PesajeOperador() {
   const { pedidosConfirmados, updatePedidoConfirmado, contenedores, clientes } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const scale = useSerialScale();
 
   // ── Vista principal ──
@@ -521,21 +524,21 @@ export function PesajeOperador() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {vista !== 'clientes' && (
-            <button onClick={handleVolver} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <button onClick={handleVolver} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:text-white transition-colors" style={{ background: c.g04, border: '1px solid ' + c.g08, color: c.textSecondary }}>
               <ArrowLeft className="w-3.5 h-3.5" /> Volver
             </button>
           )}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <Package className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-bold text-amber-400">{pedidosEnPesaje.length}</span>
-            <span className="text-xs text-gray-500">en cola</span>
+            <span className="text-xs" style={{ color: c.textMuted }}>en cola</span>
           </div>
           {vista !== 'clientes' && grupoActual && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
               <Users className="w-4 h-4 text-green-500" />
               <span className="text-sm font-semibold text-green-400">{grupoActual.pedidos[0].cliente}</span>
-              <span className="text-[10px] text-gray-500">·</span>
-              <span className="text-xs text-gray-400">{vista === 'entrega' ? 'Asignando entrega' : `Pedido ${ordenActualIdx + 1} de ${grupoActual.pedidos.length}`}</span>
+              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
+              <span className="text-xs" style={{ color: c.textSecondary }}>{vista === 'entrega' ? 'Asignando entrega' : `Pedido ${ordenActualIdx + 1} de ${grupoActual.pedidos.length}`}</span>
             </div>
           )}
         </div>
@@ -558,29 +561,29 @@ export function PesajeOperador() {
       {vista === 'clientes' && (
         <div className="space-y-2">
           {clientesEnPesaje.length === 0 ? (
-            <div className="flex-1 rounded-xl p-10 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}>
-              <Scale className="w-10 h-10 mx-auto mb-3 text-gray-800" />
-              <p className="text-gray-600 text-sm">Sin pedidos en cola de pesaje</p>
-              <p className="text-gray-700 text-xs mt-1">Los pedidos llegarán aquí desde Seguimiento de Pedidos</p>
+            <div className="flex-1 rounded-xl p-10 text-center" style={{ background: c.g02, border: '1px dashed ' + c.borderSubtle }}>
+              <Scale className="w-10 h-10 mx-auto" style={{ color: c.g10 }} />
+              <p className="text-sm mt-3" style={{ color: c.textMuted }}>Sin pedidos en cola de pesaje</p>
+              <p className="text-xs mt-1" style={{ color: c.textMuted }}>Los pedidos llegarán aquí desde Seguimiento de Pedidos</p>
             </div>
           ) : (
             clientesEnPesaje.map((clienteData, cIdx) => (
-              <div key={clienteData.cliente} className="rounded-xl overflow-hidden transition-all duration-200" style={{ background: 'rgba(255,255,255,0.02)', border: clienteExpandido === clienteData.cliente ? '2px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
+              <div key={clienteData.cliente} className="rounded-xl overflow-hidden transition-all duration-200" style={{ background: c.g02, border: clienteExpandido === clienteData.cliente ? '2px solid rgba(34,197,94,0.3)' : '1px solid ' + c.borderSubtle }}>
                 {/* Cabecera del cliente */}
                 <button
                   onClick={() => setClienteExpandido(clienteExpandido === clienteData.cliente ? null : clienteData.cliente)}
                   className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ background: clienteExpandido === clienteData.cliente ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: clienteExpandido === clienteData.cliente ? '#22c55e' : '#555' }}>
+                    style={{ background: clienteExpandido === clienteData.cliente ? 'rgba(34,197,94,0.15)' : c.bgInput, color: clienteExpandido === clienteData.cliente ? '#22c55e' : c.textMuted }}>
                     {cIdx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-base font-bold text-white truncate">{clienteData.cliente}</div>
+                    <div className="text-base font-bold truncate" style={{ color: c.text }}>{clienteData.cliente}</div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-gray-500">{clienteData.totalPedidos} pedido{clienteData.totalPedidos > 1 ? 's' : ''}</span>
-                      <span className="text-[10px] text-gray-700">·</span>
-                      <span className="text-[10px] text-gray-500">{clienteData.grupos.length} lote{clienteData.grupos.length > 1 ? 's' : ''}</span>
+                      <span className="text-[10px]" style={{ color: c.textMuted }}>{clienteData.totalPedidos} pedido{clienteData.totalPedidos > 1 ? 's' : ''}</span>
+                      <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
+                      <span className="text-[10px]" style={{ color: c.textMuted }}>{clienteData.grupos.length} lote{clienteData.grupos.length > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -593,15 +596,15 @@ export function PesajeOperador() {
 
                 {/* Contenido expandido: grupos/lotes */}
                 {clienteExpandido === clienteData.cliente && (
-                  <div className="px-5 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div className="px-5 pb-4 space-y-3" style={{ borderTop: '1px solid ' + c.g04 }}>
                     {clienteData.grupos.map((grupo, gIdx) => (
-                      <div key={grupo.grupoId} className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div key={grupo.grupoId} className="rounded-xl p-4 space-y-3" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
                         {/* Header del lote */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Layers className="w-4 h-4 text-blue-400/60" />
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lote {gIdx + 1}</span>
-                            <span className="text-[10px] text-gray-600">· {grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Lote {gIdx + 1}</span>
+                            <span className="text-[10px]" style={{ color: c.textMuted }}>· {grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
                           </div>
                           <button
                             onClick={() => iniciarPesajeGrupo(grupo)}
@@ -615,18 +618,18 @@ export function PesajeOperador() {
                         {/* Lista de pedidos del lote */}
                         <div className="space-y-1.5">
                           {grupo.pedidos.map((pedido, pIdx) => (
-                            <div key={pedido.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div key={pedido.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: c.g02, border: '1px solid ' + c.g03 }}>
                               <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
                                 {pIdx + 1}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-mono text-gray-400">{pedido.numeroPedido || 'S/N'}</span>
-                                  <span className="text-xs font-semibold text-white truncate">{pedido.tipoAve}</span>
+                                  <span className="text-xs font-mono" style={{ color: c.textSecondary }}>{pedido.numeroPedido || 'S/N'}</span>
+                                  <span className="text-xs font-semibold truncate" style={{ color: c.text }}>{pedido.tipoAve}</span>
                                 </div>
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.08)', color: '#3b82f6' }}>{pedido.presentacion}</span>
-                                  <span className="text-[10px] text-gray-600">{pedido.cantidad} unids.</span>
+                                  <span className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidad} unids.</span>
                                   {pedido.cantidadJabas && (
                                     <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#f59e0b' }}>
                                       <Lock className="w-2.5 h-2.5" />{pedido.cantidadJabas}j
@@ -660,7 +663,7 @@ export function PesajeOperador() {
             <div className="flex gap-1">
               {grupoActual.pedidos.map((p, i) => (
                 <div key={p.id} className="flex-1 h-2 rounded-full transition-all duration-300" style={{
-                  background: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.06)',
+                  background: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? 'rgba(245,158,11,0.6)' : c.g06,
                 }} />
               ))}
             </div>
@@ -668,9 +671,9 @@ export function PesajeOperador() {
             <div className="flex flex-wrap gap-1.5 mt-2">
               {grupoActual.pedidos.map((p, i) => (
                 <span key={p.id} className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{
-                  background: i < resultadosCompletos.length ? 'rgba(34,197,94,0.1)' : i === ordenActualIdx ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
-                  color: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? '#f59e0b' : '#555',
-                  border: `1px solid ${i < resultadosCompletos.length ? 'rgba(34,197,94,0.2)' : i === ordenActualIdx ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                  background: i < resultadosCompletos.length ? 'rgba(34,197,94,0.1)' : i === ordenActualIdx ? 'rgba(245,158,11,0.1)' : c.g03,
+                  color: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? '#f59e0b' : c.textMuted,
+                  border: `1px solid ${i < resultadosCompletos.length ? 'rgba(34,197,94,0.2)' : i === ordenActualIdx ? 'rgba(245,158,11,0.2)' : c.borderSubtle}`,
                 }}>
                   {i < resultadosCompletos.length ? '✓' : i === ordenActualIdx ? '●' : '○'} {p.numeroPedido || `#${i + 1}`}
                 </span>
@@ -685,9 +688,9 @@ export function PesajeOperador() {
                 <User className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">{ordenActual.cliente}</h2>
+                <h2 className="text-lg font-bold" style={{ color: c.text }}>{ordenActual.cliente}</h2>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.06)', color: '#aaa' }}>{ordenActual.numeroPedido || 'S/N'}</span>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: c.g06, color: c.textSecondary }}>{ordenActual.numeroPedido || 'S/N'}</span>
                   <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{ordenActual.tipoAve}</span>
                   <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{ordenActual.presentacion}</span>
                   <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{ordenActual.cantidad} unids.</span>
@@ -715,15 +718,15 @@ export function PesajeOperador() {
           {/* Info jabas Vivo */}
           {esVivo && totalJabasPedido > 0 && (
             <div className="flex gap-2">
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.2)' }}>
                 <div className="text-[9px] text-amber-500/70 font-bold uppercase">Jabas</div>
                 <div className="text-lg font-black text-amber-400 tabular-nums">{totalJabasPedido}</div>
               </div>
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)' }}>
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(34,197,94,0.2)' }}>
                 <div className="text-[9px] text-green-500/70 font-bold uppercase">Aves/Jaba</div>
                 <div className="text-lg font-black text-green-400 tabular-nums">{unidadesPorJaba || '—'}</div>
               </div>
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)' }}>
                 <div className="text-[9px] text-blue-500/70 font-bold uppercase">Total Aves</div>
                 <div className="text-lg font-black text-blue-400 tabular-nums">{totalAvesPedido || '—'}</div>
               </div>
@@ -740,7 +743,7 @@ export function PesajeOperador() {
               }}
             >
               {/* Status bar */}
-              <div className="flex items-center justify-between px-5 py-3 flex-wrap gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex items-center justify-between px-5 py-3 flex-wrap gap-2" style={{ borderBottom: '1px solid ' + c.g04 }}>
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full"
                   style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
                   {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
@@ -778,20 +781,20 @@ export function PesajeOperador() {
                         onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
                         placeholder="0.00"
                         className="w-full pl-16 pr-16 py-6 rounded-2xl text-white text-6xl md:text-7xl font-black font-mono text-center placeholder-gray-800 focus:ring-2 focus:ring-blue-500/30 transition-all"
-                        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(59,130,246,0.25)' }}
+                        style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)' }}
                         autoFocus
                       />
                       <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-2">
-                      <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-white text-[10px]">Enter</kbd> para sumar
+                    <p className="text-xs mt-2" style={{ color: c.textMuted }}>
+                      <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: c.bgCard, color: c.text }}>Enter</kbd> para sumar
                     </p>
                   </div>
                 ) : (
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                      <span className="text-xs text-gray-500">{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
+                      <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
                       {scale.connected && (scale.stable
                         ? <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Estable</span>
                         : <span className="text-xs text-amber-400">Estabilizando...</span>
@@ -800,7 +803,7 @@ export function PesajeOperador() {
                     <p className="text-7xl font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
                       {scale.currentWeight.toFixed(2)}
                     </p>
-                    <p className="text-xl font-light text-gray-600 mt-1">Kilogramos</p>
+                    <p className="text-xl font-light mt-1" style={{ color: c.textMuted }}>Kilogramos</p>
                   </div>
                 )}
               </div>
@@ -818,10 +821,10 @@ export function PesajeOperador() {
                         onChange={(e) => setJabasEnEstaPesada(e.target.value)}
                         placeholder={`1-${jabasRestantes}`}
                         className="w-full mt-1 px-3 py-2 rounded-lg text-white text-xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.3)' }} />
+                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }} />
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-[10px] text-gray-500">quedan</div>
+                      <div className="text-[10px]" style={{ color: c.textMuted }}>quedan</div>
                       <div className="text-lg font-black text-amber-400 tabular-nums">{jabasRestantes}</div>
                     </div>
                   </div>
@@ -850,13 +853,13 @@ export function PesajeOperador() {
                   <div className="grid grid-cols-2 gap-3 px-6 pb-6">
                     <button onClick={sumarPesada} disabled={sumarDisabled}
                       className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : 'rgba(255,255,255,0.03)', boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
+                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : c.g03, boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
                       <Plus className="w-5 h-5" /> SUMAR
                       {sumarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}{jabasInput > 0 ? ` · ${jabasInput}j` : ''}</span>}
                     </button>
                     <button onClick={terminarPesaje} disabled={terminarDisabled}
                       className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : 'rgba(255,255,255,0.03)', boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
+                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : c.g03, boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
                       <CheckCircle className="w-5 h-5" /> TERMINAR
                       {terminarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
                     </button>
@@ -866,7 +869,7 @@ export function PesajeOperador() {
 
               {pesadas.length > 0 && (
                 <div className="text-center pb-4">
-                  <button onClick={quitarUltimaPesada} className="text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto">
+                  <button onClick={quitarUltimaPesada} className="text-xs hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto" style={{ color: c.textMuted }}>
                     <RotateCcw className="w-3 h-3" /> Deshacer última
                   </button>
                 </div>
@@ -879,12 +882,12 @@ export function PesajeOperador() {
             <div className="rounded-2xl overflow-hidden"
               style={{ background: 'linear-gradient(160deg, #080808, #111)', border: '2px solid rgba(245,158,11,0.35)' }}>
 
-              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid ' + c.g04 }}>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   <span className="text-xs font-bold text-green-400">PESAJE COMPLETADO</span>
                 </div>
-                <p className="text-4xl font-black font-mono text-white tabular-nums">
+                <p className="text-4xl font-black font-mono tabular-nums" style={{ color: c.text }}>
                   {pesoBrutoTotal.toFixed(2)} <span className="text-lg text-gray-500 font-light">kg bruto</span>
                 </p>
                 <div className="flex justify-center gap-1.5 flex-wrap mt-2">
@@ -916,8 +919,8 @@ export function PesajeOperador() {
                       onClick={() => !esVivo && setContenedorFinalId(cont.id)}
                       className={`px-4 py-2.5 rounded-xl font-bold transition-all text-center ${!esVivo ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
                       style={{
-                        background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.03)',
-                        border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.06)'}`,
+                        background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.15)' : c.g03,
+                        border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.5)' : c.borderSubtle}`,
                         color: contenedorFinalId === cont.id ? '#f59e0b' : '#666',
                       }}>
                       <div className="flex items-center gap-2">
@@ -932,7 +935,7 @@ export function PesajeOperador() {
                 </div>
 
                 <div>
-                  <p className="text-center text-sm font-medium text-gray-400 mb-3">
+                  <p className="text-center text-sm font-medium mb-3" style={{ color: c.textSecondary }}>
                     {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
                   </p>
                   {cantidadBloqueada ? (
@@ -941,8 +944,8 @@ export function PesajeOperador() {
                       <Lock className="w-5 h-5 text-amber-400" />
                       <span className="text-4xl font-black font-mono text-amber-400 tabular-nums">{cantidadContenedoresInput}</span>
                       <div className="text-left">
-                        <div className="text-xs text-amber-500 font-bold">jabas</div>
-                        <div className="text-[10px] text-gray-600">según pedido</div>
+                        <div className="text-xs font-bold" style={{ color: '#f59e0b' }}>jabas</div>
+                        <div className="text-[10px]" style={{ color: c.textMuted }}>según pedido</div>
                       </div>
                     </div>
                   ) : (
@@ -954,7 +957,7 @@ export function PesajeOperador() {
                         onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedorYAvanzar(); }}
                         placeholder="Ej: 5"
                         className="w-full pl-12 pr-6 py-4 rounded-xl text-white text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(245,158,11,0.3)' }}
+                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }}
                         autoFocus
                       />
                     </div>
@@ -963,17 +966,17 @@ export function PesajeOperador() {
 
                 {contenedorFinalId && cantidadPreview > 0 && (
                   <div className="grid grid-cols-3 gap-2 p-3 rounded-xl text-center"
-                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">Peso Bruto</div>
-                      <div className="text-white font-bold font-mono tabular-nums">{pesoBrutoTotal.toFixed(2)} kg</div>
+                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Peso Bruto</div>
+                      <div className="font-bold font-mono tabular-nums" style={{ color: c.text }}>{pesoBrutoTotal.toFixed(2)} kg</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">Tara ({cantidadPreview}×{esVivo ? pesoJabaEditable : contSeleccionadoPreview?.peso})</div>
+                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Tara ({cantidadPreview}×{esVivo ? pesoJabaEditable : contSeleccionadoPreview?.peso})</div>
                       <div className="text-amber-400 font-bold font-mono tabular-nums">{taraPreview.toFixed(2)} kg</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">Peso Neto</div>
+                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Peso Neto</div>
                       <div className="text-green-400 font-black font-mono text-lg tabular-nums">{netoPreview.toFixed(2)} kg</div>
                     </div>
                   </div>
@@ -981,8 +984,8 @@ export function PesajeOperador() {
 
                 <div className="flex gap-3">
                   <button onClick={() => setFaseOrden('pesando')}
-                    className="flex-1 py-3 rounded-xl text-gray-400 font-semibold flex items-center justify-center gap-2 hover:bg-white/5 transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                    className="flex-1 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-white/5 transition-all"
+                    style={{ border: '1px solid ' + c.g08, color: c.textSecondary }}>
                     <RotateCcw className="w-4 h-4" /> Volver
                   </button>
                   <button onClick={confirmarContenedorYAvanzar} disabled={!contenedorFinalId || cantidadPreview <= 0}
@@ -1014,19 +1017,19 @@ export function PesajeOperador() {
               {/* Resumen por pedido */}
               <div className="space-y-2 mb-4">
                 {resultadosCompletos.map((r, i) => (
-                  <div key={r.pedidoId} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={r.pedidoId} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
                     <div className="flex items-center gap-3">
                       <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
                         {i + 1}
                       </span>
                       <div className="text-left">
-                        <div className="text-xs font-semibold text-white">{r.pedido.tipoAve}</div>
-                        <div className="text-[10px] text-gray-500">{r.pedido.presentacion} · {r.pesadas.length} pesada{r.pesadas.length > 1 ? 's' : ''}</div>
+                        <div className="text-xs font-semibold" style={{ color: c.text }}>{r.pedido.tipoAve}</div>
+                        <div className="text-[10px]" style={{ color: c.textMuted }}>{r.pedido.presentacion} · {r.pesadas.length} pesada{r.pesadas.length > 1 ? 's' : ''}</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-black text-white tabular-nums">{r.pesoBrutoTotal.toFixed(2)} kg</div>
-                      <div className="text-[10px] text-gray-600">bruto</div>
+                      <div className="text-sm font-black tabular-nums" style={{ color: c.text }}>{r.pesoBrutoTotal.toFixed(2)} kg</div>
+                      <div className="text-[10px]" style={{ color: c.textMuted }}>bruto</div>
                     </div>
                   </div>
                 ))}
@@ -1034,25 +1037,25 @@ export function PesajeOperador() {
 
               {/* Totales generales */}
               <div className="flex justify-center">
-                <div className="rounded-xl p-4 min-w-[160px]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="text-[10px] text-gray-500 mb-0.5 text-center">Bruto Total</div>
-                  <div className="text-2xl font-black text-white tabular-nums text-center">
+                <div className="rounded-xl p-4 min-w-[160px]" style={{ background: c.g02, border: '1px solid ' + c.borderSubtle }}>
+                  <div className="text-[10px] mb-0.5 text-center" style={{ color: c.textMuted }}>Bruto Total</div>
+                  <div className="text-2xl font-black tabular-nums text-center" style={{ color: c.text }}>
                     {resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0).toFixed(2)}
                   </div>
-                  <div className="text-[10px] text-gray-600 text-center">kg</div>
+                  <div className="text-[10px] text-center" style={{ color: c.textMuted }}>kg</div>
                 </div>
               </div>
             </div>
 
             <div className="p-6 space-y-4">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Asignar Entrega (para todo el lote)</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: c.textSecondary }}>Asignar Entrega (para todo el lote)</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Conductor */}
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
                   <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 rounded-xl text-white text-sm appearance-none"
-                    style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    className="w-full pl-10 pr-3 py-3 rounded-xl text-sm appearance-none"
+                    style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)', color: c.text }}>
                     <option value="">Seleccionar conductor...</option>
                     {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
                   </select>
@@ -1065,15 +1068,15 @@ export function PesajeOperador() {
                     <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
-                      <div className="text-white text-xs font-semibold truncate">{zonaSeleccionada?.nombre}</div>
+                      <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{zonaSeleccionada?.nombre}</div>
                     </div>
                   </div>
                 ) : (
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
                     <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white appearance-none"
-                      style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                      className="w-full pl-10 pr-4 py-3 rounded-xl appearance-none"
+                      style={{ background: c.bgCard, border: '1px solid rgba(168,85,247,0.2)', color: c.text }}>
                       <option value="">Seleccionar zona...</option>
                       {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
                     </select>
@@ -1095,8 +1098,8 @@ export function PesajeOperador() {
                     setVista('pesaje');
                   }
                 }}
-                  className="px-5 py-3 rounded-xl text-gray-400 font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
-                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                  className="px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
+                  style={{ border: '1px solid ' + c.g08, color: c.textSecondary }}>
                   <RotateCcw className="w-4 h-4" /> Volver
                 </button>
                 <button onClick={handleConfirmarDespacho}
@@ -1113,33 +1116,33 @@ export function PesajeOperador() {
       {/* Placeholder cuando no hay selección */}
       {vista === 'clientes' && clientesEnPesaje.length > 0 && !clienteExpandido && (
         <div className="flex items-center justify-center rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.05)', minHeight: '30vh' }}>
+          style={{ background: c.g02, border: '1px dashed ' + c.borderSubtle, minHeight: '30vh' }}>
           <div className="text-center">
             <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(34,197,94,0.08)' }} />
-            <p className="text-gray-500 text-sm font-medium">Seleccione un cliente de la lista</p>
-            <p className="text-gray-700 text-xs mt-1">Expanda el cliente → seleccione un lote → inicie el pesaje</p>
+            <p className="text-sm font-medium" style={{ color: c.textMuted }}>Seleccione un cliente de la lista</p>
+            <p className="text-xs mt-1" style={{ color: c.textMuted }}>Expanda el cliente → seleccione un lote → inicie el pesaje</p>
           </div>
         </div>
       )}
 
       {/* ═══════ MODAL TICKET CONSOLIDADO ═══════ */}
       {ticketVisible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
-          <div className="bg-gray-950 rounded-3xl border border-gray-800 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
+          <div className="rounded-3xl border p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            style={{ background: c.bgModal, borderColor: c.border, boxShadow: c.shadowLg }}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: c.text }}>
                 <FileText className="w-5 h-5 text-green-400" /> Tickets de Despacho
               </h2>
               <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10">
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5" style={{ color: c.textSecondary }} />
               </button>
             </div>
 
             <div ref={ticketRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {(['CLIENTE', 'NEGOCIO'] as const).map((tipo) => (
                 <div key={tipo} className="ticket rounded-2xl p-5 relative overflow-hidden"
-                  style={{ background: 'rgba(10,10,10,0.95)', border: '2px solid rgba(51,51,51,0.6)' }}>
+                  style={{ background: c.bgModal, border: '2px solid ' + c.border }}>
                   <div className="absolute top-0 left-0 right-0 h-1"
                     style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
 
@@ -1153,14 +1156,14 @@ export function PesajeOperador() {
 
                   {/* N° ticket */}
                   <div className="text-center py-1.5 px-3 rounded-lg mb-3 font-mono text-xs"
-                    style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)', color: 'white' }}>
+                    style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid ' + c.borderGold, color: c.text }}>
                     {ticketVisible.numeroTicket}
                   </div>
 
                   {/* Cliente */}
                   <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <div className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1">Cliente</div>
-                    <div className="text-sm font-bold text-white">{ticketVisible.cliente}</div>
+                    <div className="text-sm font-bold" style={{ color: c.text }}>{ticketVisible.cliente}</div>
                   </div>
 
                   {/* Bloques de pedidos */}
@@ -1186,7 +1189,7 @@ export function PesajeOperador() {
                         ].map(([label, value]) => (
                           <div key={label} className="flex justify-between text-[11px]">
                             <span className="text-gray-500">{label}</span>
-                            <span className="text-white font-bold">{value}</span>
+                            <span className="font-bold" style={{ color: c.text }}>{value}</span>
                           </div>
                         ))}
                       </div>
@@ -1205,12 +1208,12 @@ export function PesajeOperador() {
                             {resultado.pesadas.map(p => (
                               <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
                                 <td className="py-0.5 text-gray-400">Pesada {p.numero}</td>
-                                <td className="py-0.5 text-right font-mono font-bold text-white">{p.peso.toFixed(2)}</td>
+                                <td className="py-0.5 text-right font-mono font-bold" style={{ color: c.text }}>{p.peso.toFixed(2)}</td>
                               </tr>
                             ))}
                             <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)' }}>
                               <td className="py-0.5 text-gray-300 font-bold text-[10px]">BRUTO</td>
-                              <td className="py-0.5 text-right font-mono font-black text-white">{resultado.pesoBrutoTotal.toFixed(2)}</td>
+                              <td className="py-0.5 text-right font-mono font-black" style={{ color: c.text }}>{resultado.pesoBrutoTotal.toFixed(2)}</td>
                             </tr>
 
                           </tbody>

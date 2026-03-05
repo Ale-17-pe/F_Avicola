@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shield, Search, Filter, Calendar, User, Activity, FileText, Eye, Clock, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface AuditoriaLog {
   id: string;
@@ -30,6 +31,7 @@ interface LogsPorDia {
 
 export function Auditoria() {
   const { empleados } = useApp();
+  const { isDark } = useTheme(); const c = t(isDark);
   const [busqueda, setBusqueda] = useState('');
   const [filtroUsuario, setFiltroUsuario] = useState('');
   const [filtroModulo, setFiltroModulo] = useState('');
@@ -177,11 +179,11 @@ export function Auditoria() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-white flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl flex items-center gap-3" style={{ color: c.text }}>
             <Shield className="w-8 h-8 text-amber-400" />
             Auditoría del Sistema
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1" style={{ color: c.textSecondary }}>
             Registro completo de acciones organizadas por día
           </p>
         </div>
@@ -189,40 +191,40 @@ export function Auditoria() {
 
       {/* Estadísticas Generales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Total Acciones</p>
-              <p className="text-3xl text-white">{estadisticasGenerales.total}</p>
+              <p className="text-sm mb-1" style={{ color: c.textSecondary }}>Total Acciones</p>
+              <p className="text-3xl" style={{ color: c.text }}>{estadisticasGenerales.total}</p>
             </div>
             <Activity className="w-10 h-10 text-amber-400 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Exitosas</p>
+              <p className="text-sm mb-1" style={{ color: c.textSecondary }}>Exitosas</p>
               <p className="text-3xl text-green-400">{estadisticasGenerales.exitosos}</p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-400 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Fallidas</p>
+              <p className="text-sm mb-1" style={{ color: c.textSecondary }}>Fallidas</p>
               <p className="text-3xl text-red-400">{estadisticasGenerales.fallidos}</p>
             </div>
             <XCircle className="w-10 h-10 text-red-400 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Advertencias</p>
+              <p className="text-sm mb-1" style={{ color: c.textSecondary }}>Advertencias</p>
               <p className="text-3xl text-amber-400">{estadisticasGenerales.advertencias}</p>
             </div>
             <AlertTriangle className="w-10 h-10 text-amber-400 opacity-50" />
@@ -231,22 +233,23 @@ export function Auditoria() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-amber-400" />
-          <h3 className="text-white">Filtros de Búsqueda</h3>
+          <h3 style={{ color: c.text }}>Filtros de Búsqueda</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Búsqueda General */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: c.textSecondary }} />
             <input
               type="text"
               placeholder="Buscar..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
             />
           </div>
 
@@ -254,7 +257,8 @@ export function Auditoria() {
           <select
             value={filtroUsuario}
             onChange={(e) => setFiltroUsuario(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
+            className="px-4 py-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
           >
             <option value="">Todos los usuarios</option>
             {usuariosUnicos.map(usuario => (
@@ -266,7 +270,8 @@ export function Auditoria() {
           <select
             value={filtroModulo}
             onChange={(e) => setFiltroModulo(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
+            className="px-4 py-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
           >
             <option value="">Todos los módulos</option>
             {modulosUnicos.map(modulo => (
@@ -278,7 +283,8 @@ export function Auditoria() {
           <select
             value={filtroTipo}
             onChange={(e) => setFiltroTipo(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
+            className="px-4 py-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
           >
             <option value="">Todos los tipos</option>
             <option value="crear">Crear</option>
@@ -294,12 +300,13 @@ export function Auditoria() {
             type="date"
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
-            className="px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
+            className="px-4 py-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
           />
         </div>
 
         <div className="flex items-center justify-between mt-4">
-          <p className="text-gray-400 text-sm">
+          <p className="text-sm" style={{ color: c.textSecondary }}>
             Mostrando {logsFiltrados.length} de {logsAuditoria.length} registros
           </p>
           <div className="flex gap-3">
@@ -327,10 +334,10 @@ export function Auditoria() {
       </div>
 
       {/* Acceso Rápido por Fecha */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-amber-400" />
-          <h3 className="text-white">Acceso Rápido por Fecha</h3>
+          <h3 style={{ color: c.text }}>Acceso Rápido por Fecha</h3>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -356,13 +363,14 @@ export function Auditoria() {
                 className={`px-4 py-3 rounded-xl border transition-all ${
                   filtroFecha === fecha
                     ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-amber-400 text-black'
-                    : 'bg-zinc-800 border-zinc-700 text-white hover:border-amber-500 hover:bg-zinc-700'
+                    : ''
                 }`}
+                style={filtroFecha !== fecha ? { background: c.bgInput, borderColor: c.border, color: c.text } : {}}
               >
                 <div className="flex flex-col items-center">
                   <span className="text-sm font-medium mb-1">{fechaCorta}</span>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className={filtroFecha === fecha ? 'text-black/70' : 'text-gray-400'}>
+                    <span className={filtroFecha === fecha ? 'text-black/70' : ''} style={filtroFecha !== fecha ? { color: c.textSecondary } : {}}>
                       {logsDelDia.length} acciones
                     </span>
                   </div>
@@ -392,7 +400,8 @@ export function Auditoria() {
         {logsPorDia.map((dia) => (
           <div
             key={dia.fecha}
-            className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl overflow-hidden"
+            className="rounded-xl overflow-hidden"
+            style={{ background: c.bgCard, border: `1px solid ${c.border}` }}
           >
             {/* Header del día */}
             <button
@@ -404,9 +413,9 @@ export function Auditoria() {
                   <Calendar className="w-6 h-6" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-white text-lg">{dia.fechaFormateada}</h3>
+                  <h3 className="text-lg" style={{ color: c.text }}>{dia.fechaFormateada}</h3>
                   <div className="flex items-center gap-4 mt-1">
-                    <span className="text-gray-400 text-sm flex items-center gap-1.5">
+                    <span className="text-sm flex items-center gap-1.5" style={{ color: c.textSecondary }}>
                       <Activity className="w-4 h-4" />
                       {dia.estadisticas.total} acciones
                     </span>
@@ -430,21 +439,20 @@ export function Auditoria() {
                 </div>
               </div>
               {diasExpandidos.has(dia.fecha) ? (
-                <ChevronUp className="w-6 h-6 text-gray-400" />
+                <ChevronUp className="w-6 h-6" style={{ color: c.textSecondary }} />
               ) : (
-                <ChevronDown className="w-6 h-6 text-gray-400" />
+                <ChevronDown className="w-6 h-6" style={{ color: c.textSecondary }} />
               )}
             </button>
 
             {/* Logs del día */}
             {diasExpandidos.has(dia.fecha) && (
-              <div className="border-t border-zinc-700">
+              <div style={{ borderTop: `1px solid ${c.border}` }}>
                 {dia.logs.map((log, index) => (
                   <div
                     key={log.id}
-                    className={`border-b border-zinc-800 last:border-b-0 ${
-                      mostrarDetalles === log.id ? 'bg-zinc-800/30' : ''
-                    }`}
+                    className={`last:border-b-0`}
+                    style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: mostrarDetalles === log.id ? c.bgCardAlt : 'transparent' }}
                   >
                     <div className="px-6 py-4 hover:bg-zinc-800/20 transition-colors">
                       <div className="flex items-start gap-4">
@@ -454,7 +462,7 @@ export function Auditoria() {
                             {getEstadoIcon(log.estado)}
                           </div>
                           {index < dia.logs.length - 1 && (
-                            <div className="w-px h-full bg-zinc-700 mt-2"></div>
+                            <div className="w-px h-full mt-2" style={{ background: c.border }}></div>
                           )}
                         </div>
 
@@ -465,12 +473,12 @@ export function Auditoria() {
                               {/* Usuario y hora */}
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-gray-400" />
-                                  <span className="text-white">{log.usuario}</span>
-                                  <span className="text-gray-500 text-sm">({log.cargo})</span>
+                                  <User className="w-4 h-4" style={{ color: c.textSecondary }} />
+                                  <span style={{ color: c.text }}>{log.usuario}</span>
+                                  <span className="text-sm" style={{ color: c.textMuted }}>({log.cargo})</span>
                                 </div>
-                                <span className="text-gray-600">•</span>
-                                <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                                <span style={{ color: c.textMuted }}>•</span>
+                                <div className="flex items-center gap-1.5 text-sm" style={{ color: c.textSecondary }}>
                                   <Clock className="w-4 h-4" />
                                   {log.hora}
                                 </div>
@@ -482,26 +490,26 @@ export function Auditoria() {
                                   <span className="mr-1.5">{getTipoIcono(log.tipo)}</span>
                                   {log.tipo}
                                 </span>
-                                <span className="text-white">{log.accion}</span>
-                                <span className="text-gray-600">en</span>
+                                <span style={{ color: c.text }}>{log.accion}</span>
+                                <span style={{ color: c.textMuted }}>en</span>
                                 <span className="text-amber-400">{log.modulo}</span>
                               </div>
 
                               {/* Detalles expandibles */}
                               {mostrarDetalles === log.id && (
-                                <div className="mt-3 pt-3 border-t border-zinc-700">
+                                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${c.border}` }}>
                                   <div className="flex items-start gap-2 mb-2">
                                     <FileText className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                                     <div>
-                                      <p className="text-gray-400 text-sm mb-1">Detalles:</p>
-                                      <p className="text-white text-sm">{log.detalles}</p>
+                                      <p className="text-sm mb-1" style={{ color: c.textSecondary }}>Detalles:</p>
+                                      <p className="text-sm" style={{ color: c.text }}>{log.detalles}</p>
                                     </div>
                                   </div>
                                   {log.ip && (
                                     <div className="flex items-center gap-2 mt-2">
-                                      <Activity className="w-4 h-4 text-gray-400" />
-                                      <p className="text-gray-400 text-sm">
-                                        Dirección IP: <span className="text-white">{log.ip}</span>
+                                      <Activity className="w-4 h-4" style={{ color: c.textSecondary }} />
+                                      <p className="text-sm" style={{ color: c.textSecondary }}>
+                                        Dirección IP: <span style={{ color: c.text }}>{log.ip}</span>
                                       </p>
                                     </div>
                                   )}
@@ -528,9 +536,9 @@ export function Auditoria() {
         ))}
 
         {logsPorDia.length === 0 && (
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-12 text-center">
-            <Shield className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No se encontraron registros con los filtros aplicados</p>
+          <div className="rounded-xl p-12 text-center" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <Shield className="w-16 h-16 mx-auto mb-4" style={{ color: c.textMuted }} />
+            <p style={{ color: c.textSecondary }}>No se encontraron registros con los filtros aplicados</p>
           </div>
         )}
       </div>

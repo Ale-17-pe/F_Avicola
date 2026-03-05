@@ -3,6 +3,7 @@ import { Eye, EyeOff, User, Lock, AlertCircle, Shield, Mail, X } from 'lucide-re
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useTheme, t } from '../contexts/ThemeContext';
 import logoImage from '../assets/AvicolaLogo.png';
 import avicolaBackground from 'figma:asset/fa25e4c6806fdd3db2dbb1c20513fce22ccd856a.png';
 
@@ -19,6 +20,9 @@ export function Login() {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [credencialesTemporales, setCredencialesTemporales] = useState<{username: string, password: string} | null>(null);
   
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   // Estados para recuperación de contraseña
   const [recoverEmail, setRecoverEmail] = useState('');
   const [recoverCode, setRecoverCode] = useState(['', '', '', '', '', '']);
@@ -283,7 +287,9 @@ export function Login() {
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0" style={{ 
-          background: 'linear-gradient(to right, rgba(0, 0, 0, 0.85), rgba(15, 10, 0, 0.80), rgba(25, 20, 0, 0.75))' 
+          background: isDark 
+            ? 'linear-gradient(to right, rgba(0, 0, 0, 0.85), rgba(15, 10, 0, 0.80), rgba(25, 20, 0, 0.75))'
+            : 'linear-gradient(to right, rgba(255, 255, 255, 0.88), rgba(245, 245, 240, 0.85), rgba(243, 244, 246, 0.80))'
         }}></div>
         
         <div className="absolute inset-0 opacity-10">
@@ -308,23 +314,24 @@ export function Login() {
       {showRecoverModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 backdrop-blur-sm"
+            style={{ backgroundColor: c.bgModalOverlay }}
             onClick={closeRecoverModal}
           />
           
           <div 
             className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl p-8"
             style={{
-              background: 'rgba(0, 0, 0, 0.95)',
-              border: '1px solid rgba(204, 170, 0, 0.2)',
-              boxShadow: '0 8px 32px 0 rgba(13, 74, 36, 0.5)'
+              background: c.bgModal,
+              border: `1px solid ${c.borderGold}`,
+              boxShadow: isDark ? '0 8px 32px 0 rgba(13, 74, 36, 0.5)' : '0 8px 32px 0 rgba(13, 74, 36, 0.15)'
             }}
           >
             {/* Botón cerrar */}
             <button
               onClick={closeRecoverModal}
               className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors"
-              style={{ color: '#9ca3af' }}
+              style={{ color: c.textSecondary }}
             >
               <X className="w-5 h-5" />
             </button>
@@ -342,12 +349,12 @@ export function Login() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">¡Contraseña Actualizada!</h3>
-                <p className="text-gray-400">Ya puedes iniciar sesión con tu nueva contraseña</p>
+                <h3 className="text-xl font-bold mb-2" style={{ color: c.text }}>¡Contraseña Actualizada!</h3>
+                <p style={{ color: c.textSecondary }}>Ya puedes iniciar sesión con tu nueva contraseña</p>
               </div>
             ) : (
               <>
-                <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                <h3 className="text-2xl font-bold mb-6 text-center" style={{ color: c.text }}>
                   Recuperar Contraseña
                 </h3>
 
@@ -365,13 +372,14 @@ export function Login() {
                           type="email"
                           value={recoverEmail}
                           onChange={(e) => setRecoverEmail(e.target.value)}
-                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
+                          className="block w-full pl-12 pr-4 py-3.5 rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
-                            borderColor: recoverErrors.email ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-                            outlineColor: '#ccaa00'
+                            borderColor: recoverErrors.email ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="usuario@avicolajossy.com"
                         />
@@ -381,7 +389,7 @@ export function Login() {
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-400 text-center">
+                    <p className="text-sm text-center" style={{ color: c.textSecondary }}>
                       Se enviará un código de verificación al correo de la secretaria para autorizar el cambio
                     </p>
 
@@ -402,7 +410,7 @@ export function Login() {
                 {recoverStep === 'code' && (
                   <form onSubmit={handleRecoverCodeSubmit} className="space-y-6">
                     <div className="text-center mb-4">
-                      <p className="text-white">Se ha enviado un código a:</p>
+                      <p style={{ color: c.text }}>Se ha enviado un código a:</p>
                       <p className="font-medium" style={{ color: '#ccaa00' }}>secretaria@avicolajossy.com</p>
                     </div>
 
@@ -428,16 +436,17 @@ export function Login() {
                               }
                             }}
                             ref={(el) => { inputsRef.current[index] = el; }}
-                            className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold text-white rounded-lg sm:rounded-xl"
+                            className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold rounded-lg sm:rounded-xl"
                             style={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                               borderWidth: '2px',
                               borderStyle: 'solid',
                               borderColor: digit 
                                 ? 'rgba(204, 170, 0, 0.5)' 
                                 : recoverErrors.code 
                                   ? '#ef4444' 
-                                  : 'rgba(255, 255, 255, 0.1)'
+                                  : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                              color: c.text
                             }}
                             maxLength={1}
                           />
@@ -485,13 +494,14 @@ export function Login() {
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg"
+                          className="block w-full pl-12 pr-4 py-3.5 rounded-lg"
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
-                            borderColor: recoverErrors.password ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-                            outlineColor: '#ccaa00'
+                            borderColor: recoverErrors.password ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="••••••••"
                         />
@@ -513,13 +523,14 @@ export function Login() {
                           type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg"
+                          className="block w-full pl-12 pr-4 py-3.5 rounded-lg"
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
-                            borderColor: recoverErrors.confirm ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-                            outlineColor: '#ccaa00'
+                            borderColor: recoverErrors.confirm ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="••••••••"
                         />
@@ -614,13 +625,15 @@ export function Login() {
           <div className="w-full max-w-md">
             {/* Card de Login */}
             <div className="backdrop-blur-xl rounded-2xl shadow-2xl p-8 lg:p-10" style={{ 
-              background: 'rgba(0, 0, 0, 0.15)',
-              boxShadow: '0 8px 32px 0 rgba(13, 74, 36, 0.3), inset 0 1px 1px 0 rgba(204, 170, 0, 0.1)'
+              background: isDark ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.85)',
+              boxShadow: isDark 
+                ? '0 8px 32px 0 rgba(13, 74, 36, 0.3), inset 0 1px 1px 0 rgba(204, 170, 0, 0.1)'
+                : '0 8px 32px 0 rgba(13, 74, 36, 0.1), inset 0 1px 1px 0 rgba(204, 170, 0, 0.1)'
             }}>
               {/* Header */}
               <div className="mb-8 text-center">
-                <h2 className="text-3xl font-bold text-white mb-2">Iniciar Sesión</h2>
-                <p className="text-gray-300">Sistema de Gestión Empresarial</p>
+                <h2 className="text-3xl font-bold mb-2" style={{ color: c.text }}>Iniciar Sesión</h2>
+                <p style={{ color: c.textSecondary }}>Sistema de Gestión Empresarial</p>
               </div>
 
               {/* Alerta de error general */}
@@ -657,13 +670,14 @@ export function Login() {
                           type="text"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="block w-full pl-12 pr-4 py-3.5 text-white rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
+                          className="block w-full pl-12 pr-4 py-3.5 rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
-                            borderColor: errors.email ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-                            outlineColor: '#ccaa00'
+                            borderColor: errors.email ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="Ingrese su usuario"
                         />
@@ -692,13 +706,14 @@ export function Login() {
                           type={showPassword ? 'text' : 'password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="block w-full pl-12 pr-12 py-3.5 text-white rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
+                          className="block w-full pl-12 pr-12 py-3.5 rounded-lg focus:ring-2 focus:border-transparent transition-all placeholder-gray-400"
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
-                            borderColor: errors.password ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-                            outlineColor: '#ccaa00'
+                            borderColor: errors.password ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                            outlineColor: '#ccaa00',
+                            color: c.text
                           }}
                           placeholder="••••••••"
                         />
@@ -708,9 +723,9 @@ export function Login() {
                           className="absolute inset-y-0 right-0 pr-4 flex items-center"
                         >
                           {showPassword ? (
-                            <EyeOff className="h-5 w-5 transition-colors" style={{ color: '#9ca3af' }} />
+                            <EyeOff className="h-5 w-5 transition-colors" style={{ color: c.textSecondary }} />
                           ) : (
-                            <Eye className="h-5 w-5 transition-colors" style={{ color: '#9ca3af' }} />
+                            <Eye className="h-5 w-5 transition-colors" style={{ color: c.textSecondary }} />
                           )}
                         </button>
                       </div>
@@ -752,8 +767,8 @@ export function Login() {
                     </div>
 
                     <div className="text-center mb-6">
-                      <p className="text-white font-medium mb-2">Verificación de Dos Pasos</p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="font-medium mb-2" style={{ color: c.text }}>Verificación de Dos Pasos</p>
+                      <p className="text-sm" style={{ color: c.textSecondary }}>
                         Ingrese el código de 6 dígitos enviado a su dispositivo
                       </p>
                     </div>
@@ -783,17 +798,18 @@ export function Login() {
                               }
                             }}
                             ref={(el) => { inputsRef.current[index] = el; }}
-                            className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold text-white rounded-lg sm:rounded-xl focus:ring-2 focus:border-transparent transition-all"
+                            className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold rounded-lg sm:rounded-xl focus:ring-2 focus:border-transparent transition-all"
                             style={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                               borderWidth: '2px',
                               borderStyle: 'solid',
                               borderColor: digit 
                                 ? 'rgba(204, 170, 0, 0.5)' 
                                 : errors.code 
                                   ? '#ef4444' 
-                                  : 'rgba(255, 255, 255, 0.1)',
-                              outlineColor: '#ccaa00'
+                                  : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)'),
+                              outlineColor: '#ccaa00',
+                              color: c.text
                             }}
                             maxLength={1}
                             autoComplete="off"
@@ -826,7 +842,7 @@ export function Login() {
                         border: '1px solid rgba(204, 170, 0, 0.2)'
                       }}
                     >
-                      <p className="text-xs text-gray-300 text-center">
+                      <p className="text-xs text-center" style={{ color: c.textSecondary }}>
                         💡 <span className="font-medium" style={{ color: '#ccaa00' }}>Código de prueba:</span> 123456
                       </p>
                     </div>
@@ -841,9 +857,9 @@ export function Login() {
                   style={{
                     background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
                     color: '#ffffff',
-                    boxShadow: '0 10px 25px -5px rgba(13, 74, 36, 0.4)',
+                    boxShadow: isDark ? '0 10px 25px -5px rgba(13, 74, 36, 0.4)' : '0 10px 25px -5px rgba(13, 74, 36, 0.25)',
                     ringColor: '#166534',
-                    ringOffsetColor: '#000000'
+                    ringOffsetColor: isDark ? '#000000' : '#f3f4f6'
                   }}
                 >
                   {isLoading ? (
