@@ -304,6 +304,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           case 'avicola_pagos':
             setPagos(data);
             break;
+          case 'avicola_contenedores':
+            setContenedores(data);
+            break;
+          case 'avicola_presentaciones':
+            setPresentaciones(data);
+            break;
+          case 'avicola_empleados':
+            setEmpleados(data);
+            break;
         }
       } catch (err) {
         console.error('Error parsing storage event data:', err);
@@ -331,6 +340,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const pagosStr = localStorage.getItem('avicola_pagos');
         if (pagosStr) setPagos(JSON.parse(pagosStr));
+
+        const contenedoresStr = localStorage.getItem('avicola_contenedores');
+        if (contenedoresStr) setContenedores(JSON.parse(contenedoresStr));
+
+        const presentacionesStr = localStorage.getItem('avicola_presentaciones');
+        if (presentacionesStr) setPresentaciones(JSON.parse(presentacionesStr));
+
+        const empleadosStr = localStorage.getItem('avicola_empleados');
+        if (empleadosStr) setEmpleados(JSON.parse(empleadosStr));
       } catch (err) {
         console.error('Error recargando datos desde localStorage:', err);
       }

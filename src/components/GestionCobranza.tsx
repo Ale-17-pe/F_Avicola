@@ -1,410 +1,607 @@
-import { useState, useRef } from 'react';
-import { 
-  Wallet, 
-  MapPin, 
-  Clock, 
-  TrendingUp, 
-  Search, 
-  Filter,
-  DollarSign,
-  Plus,
-  RotateCcw,
-  ShoppingCart,
-  Receipt,
-  CheckCircle2,
-  X,
-  CreditCard,
-  Banknote,
-  Camera,
-  User,
-  Image as ImageIcon,
-  ChevronDown
+import { useState, useEffect, useMemo } from 'react';
+import {
+  Wallet, MapPin, Search, User, ChevronLeft,
+  Calendar, DollarSign, ArrowLeft, CreditCard,
+  ChevronDown, ChevronUp, Lock, Package
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+interface FilaCartera {
+  id: string; pedidoId: string; cliente: string; tipo: string;
+  presentacion: string; cantidad: number; cantidadLabel: string;
+  merma: number; tara: number; contenedorTipo: string;
+  devolucionPeso: number; devolucionCantidad: number;
+  repesada: number; adicionPeso: number;
+  pesoPedido: number; pesoContenedor: number; pesoBruto: number;
+  pesoNeto: number; precio: number; total: number;
+  confirmado: boolean; editando: boolean; fecha: string;
+  zona: string; conductor: string;
+  cantidadContenedores: number; contenedorPesoUnit: number;
+  contenedorRecalculado?: boolean;
+  recalcLines?: any[];
+}
+
+interface PagosDia {
+  [fecha: string]: boolean; // true = pagado
+}
+
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+const GOLD   = '#ccaa00';
+const G04    = 'rgba(255,255,255,0.04)';
+const G06    = 'rgba(255,255,255,0.06)';
+const G08    = 'rgba(255,255,255,0.08)';
+const G10    = 'rgba(255,255,255,0.10)';
+const G15    = 'rgba(255,255,255,0.15)';
+const G20    = 'rgba(255,255,255,0.20)';
+const G30    = 'rgba(255,255,255,0.30)';
+
+const COL = {
+  tipo:       '#a78bfa',
+  devolucion: '#f87171',
+  neto:       '#22d3ee',
+  total:      '#fbbf24',
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const hoyStr = () => new Date().toISOString().split('T')[0];
+
+/** Buscar todas las keys carteraCobro_* en localStorage */
+const getAllCarteraKeys = (): string[] => {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('carteraCobro_')) keys.push(k);
+  }
+  return keys.sort(); // sort chronologically
+};
+
+/** Parsear filas liquidadas de un día para un cliente */
+const getFilasLiquidadasPorCliente = (clienteNombre: string): Map<string, FilaCartera[]> => {
+  const keys = getAllCarteraKeys();
+  const porDia = new Map<string, FilaCartera[]>();
+
+  for (const key of keys) {
+    try {
+      const data = localStorage.getItem(key);
+      if (!data) continue;
+      const filas: FilaCartera[] = JSON.parse(data);
+      const liquidadas = filas.filter(f => f.confirmado && f.cliente === clienteNombre);
+      if (liquidadas.length > 0) {
+        const fecha = key.replace('carteraCobro_', '');
+        porDia.set(fecha, liquidadas);
+      }
+    } catch (_) { /* ignore parse errors */ }
+  }
+
+  return porDia;
+};
+
+/** Obtener todos los clientes que tienen pedidos liquidados */
+const getClientesConPedidosLiquidados = (): Set<string> => {
+  const nombres = new Set<string>();
+  const keys = getAllCarteraKeys();
+  for (const key of keys) {
+    try {
+      const data = localStorage.getItem(key);
+      if (!data) continue;
+      const filas: FilaCartera[] = JSON.parse(data);
+      filas.filter(f => f.confirmado).forEach(f => nombres.add(f.cliente));
+    } catch (_) {}
+  }
+  return nombres;
+};
+
+const formatFecha = (fecha: string) => {
+  try {
+    const d = new Date(fecha + 'T00:00:00');
+    return d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch { return fecha; }
+};
+
+// ─── COMPONENT ────────────────────────────────────────────────────────────────
 export function GestionCobranza() {
-  const { clientes, updateCliente, addPago, addPedidoConfirmado } = useApp();
+  const { clientes, pedidosConfirmados, pagos } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCliente, setSelectedCliente] = useState<any>(null);
-  const [modalType, setModalType] = useState<'PAGO' | 'DEVOLUCION' | 'PEDIDO' | null>(null);
-  const [statsCollapsed, setStatsCollapsed] = useState(true);
+  const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Per-client per-day payment state stored in localStorage
+  const pagosDiaKey = (clienteNombre: string) => `cobranzaPagosDia_${clienteNombre}`;
   
-  // Estados para Pago
-  const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Transferencia' | 'Yape' | 'Plin' | 'Otro'>('Efectivo');
-  const [paymentPhoto, setPaymentPhoto] = useState<string | null>(null);
-  const [note, setNote] = useState('');
-  
-  // Estados para Pedido
-  const [pedidoTipoAve, setPedidoTipoAve] = useState('Pollo');
-  const [pedidoCantidad, setPedidoCantidad] = useState('');
-
-  // Filtrar clientes
-  const clientesFiltrados = clientes
-    .filter(c => 
-      c.estado === 'Activo' && 
-      (c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       c.zona.includes(searchTerm))
-    )
-    .sort((a, b) => (b.saldoPendiente || 0) - (a.saldoPendiente || 0));
-
-  const totalPorCobrar = clientes.reduce((acc, c) => acc + (c.saldoPendiente || 0), 0);
-
-  const handleCapturePhoto = () => {
-    // Simulación de captura
-    const mockPhoto = `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?w=400`;
-    setPaymentPhoto(mockPhoto);
-    toast.success("Foto del comprobante capturada");
+  const getPagosDia = (clienteNombre: string): PagosDia => {
+    try {
+      const data = localStorage.getItem(pagosDiaKey(clienteNombre));
+      return data ? JSON.parse(data) : {};
+    } catch { return {}; }
   };
 
-  const handleTransaction = () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Ingrese un monto válido');
-      return;
-    }
+  const setPagoDia = (clienteNombre: string, fecha: string, pagado: boolean) => {
+    const current = getPagosDia(clienteNombre);
+    current[fecha] = pagado;
+    localStorage.setItem(pagosDiaKey(clienteNombre), JSON.stringify(current));
+    setRefreshKey(k => k + 1);
+  };
 
-    const valor = parseFloat(amount);
-    
-    if (modalType === 'PAGO') {
-      if (paymentMethod !== 'Efectivo' && !paymentPhoto) {
-        toast.error('Para pagos digitales debe adjuntar foto del comprobante');
-        return;
+  const setPagarTodo = (clienteNombre: string, fechas: string[]) => {
+    const current = getPagosDia(clienteNombre);
+    fechas.forEach(f => { current[f] = true; });
+    localStorage.setItem(pagosDiaKey(clienteNombre), JSON.stringify(current));
+    setRefreshKey(k => k + 1);
+  };
+
+  // Get unique clients who made orders (from pedidosConfirmados) + also from cartera
+  const clientesConPedidos = useMemo(() => {
+    const nombresSet = new Set<string>();
+
+    // Clientes con pedidosConfirmados
+    (pedidosConfirmados || []).forEach(p => {
+      if (p.cliente) nombresSet.add(p.cliente);
+    });
+
+    // Also add clients who have liquidated entries in cartera
+    const liquidados = getClientesConPedidosLiquidados();
+    liquidados.forEach(n => nombresSet.add(n));
+
+    // Map to client objects, filter active + search
+    return clientes
+      .filter(c => nombresSet.has(c.nombre))
+      .filter(c =>
+        !searchTerm ||
+        c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.zona.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [clientes, pedidosConfirmados, searchTerm, refreshKey]);
+
+  // Data for selected client
+  const clienteData = useMemo(() => {
+    if (!selectedCliente) return null;
+
+    const porDia = getFilasLiquidadasPorCliente(selectedCliente);
+    const pagosDia = getPagosDia(selectedCliente);
+
+    // Sort dates ascending for saldo calculation
+    const fechasAsc = Array.from(porDia.keys()).sort();
+
+    // Calculate per-day totals and accumulated saldo
+    let saldoAcumulado = 0;
+
+    const diasData = fechasAsc.map(fecha => {
+      const filas = porDia.get(fecha) || [];
+      const totalDia = filas.reduce((s, f) => s + f.total, 0);
+      const pagado = pagosDia[fecha] === true;
+
+      const saldoAnterior = saldoAcumulado;
+      if (!pagado) {
+        saldoAcumulado += totalDia;
       }
 
-      // Registrar el Pago
-      addPago({
-        id: crypto.randomUUID(),
-        clienteId: selectedCliente.id,
-        clienteNombre: selectedCliente.nombre,
-        monto: valor,
-        metodo: paymentMethod,
-        fecha: new Date().toISOString().split('T')[0],
-        hora: new Date().toLocaleTimeString(),
-        referencia: note,
-        foto: paymentPhoto || undefined,
-        estado: 'Pendiente', // Siempre pendiente hasta conf. de secretaria
-        registradoPor: 'Cobranza'
-      });
-      
-      // Si es Efectivo, se descuenta de inmediato visualmente, pero igual el estado del pago es pendiente en BD
-      // Para efectos prácticos, lo descontamos del saldoCliente para que vea su "nuevo saldo"
-      const nuevoSaldo = (selectedCliente.saldoPendiente || 0) - valor;
-      updateCliente({
-        ...selectedCliente,
-        saldoPendiente: nuevoSaldo,
-        ultimoPedido: new Date().toISOString().split('T')[0]
-      });
+      return { fecha, filas, totalDia, pagado, saldoAnterior };
+    });
 
-      toast.success('Pago registrado correctamente', {
-        description: 'Pendiente de validación por secretaría'
-      });
+    // Reverse to show most recent first
+    const diasDataDesc = [...diasData].reverse();
 
-    } else if (modalType === 'DEVOLUCION') {
-      const nuevoSaldo = (selectedCliente.saldoPendiente || 0) - valor;
-      updateCliente({
-        ...selectedCliente,
-        saldoPendiente: nuevoSaldo
-      });
-      toast.info('Devolución registrada');
+    // Grand total = sum of all unpaid days
+    const totalPendiente = diasData
+      .filter(d => !d.pagado)
+      .reduce((s, d) => s + d.totalDia, 0);
 
-    } else if (modalType === 'PEDIDO') {
-       // Lógica simple para agregar deuda, el pedido real iría a pedidosConfirmados
-      const nuevoSaldo = (selectedCliente.saldoPendiente || 0) + valor;
-      updateCliente({
-        ...selectedCliente,
-        saldoPendiente: nuevoSaldo
-      });
-      
-      // Crear pedido básico
-      addPedidoConfirmado({
-        id: crypto.randomUUID(),
-        cliente: selectedCliente.nombre,
-        tipoAve: pedidoTipoAve,
-        presentacion: 'Vivo',
-        cantidad: parseInt(pedidoCantidad) || 10,
-        contenedor: 'Jabas Nuevas',
-        fecha: new Date().toISOString().split('T')[0],
-        hora: new Date().toLocaleTimeString(),
-        prioridad: 2,
-        estado: 'Pendiente'
-      });
+    return { fechas: diasDataDesc, totalPendiente, saldoAcumulado };
+  }, [selectedCliente, refreshKey]);
 
-      toast.success('Pedido registrado y cargado a cuenta');
-    }
+  const clienteObj = clientes.find(c => c.nombre === selectedCliente);
 
-    closeModal();
-  };
-
-  const closeModal = () => {
-    setModalType(null);
-    setAmount('');
-    setNote('');
-    setPaymentMethod('Efectivo');
-    setPaymentPhoto(null);
-    setPedidoCantidad('');
-  };
-
-  return (
-    <div className="space-y-6 pb-20">
-      {/* Header Stats - Collapsible */}
-      <div>
-        <button 
-          onClick={() => setStatsCollapsed(!statsCollapsed)}
-          className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-emerald-400"
-          style={{ color: 'rgba(156,163,175,0.7)' }}
-        >
-          {statsCollapsed ? <ChevronDown className="w-3.5 h-3.5 -rotate-90" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          Estadísticas {statsCollapsed ? '(expandir)' : ''}
-        </button>
-        {!statsCollapsed && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Wallet className="w-16 h-16 text-emerald-500" />
-          </div>
-          <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Total por Cobrar</p>
-          <h3 className="text-3xl font-black text-white mt-1">S/ {totalPorCobrar.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h3>
-          <div className="flex items-center gap-2 mt-2 text-emerald-400 text-xs font-bold">
-            <TrendingUp className="w-3 h-3" /> +12% vs mes anterior
+  // ─── CLIENT LIST VIEW ────────────────────────────────────────────────────
+  if (!selectedCliente) {
+    return (
+      <div className="space-y-5 pb-20">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.30)' }}>
+              <Wallet className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Gestión de Cobranza</h2>
+              <p className="text-xs text-gray-500">{clientesConPedidos.length} clientes con pedidos</p>
+            </div>
           </div>
         </div>
-      </div>
-        )}
-      </div>
 
-      {/* Buscador y Filtros */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-          <input 
-            type="text" 
-            placeholder="Buscar cliente por nombre o zona..." 
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar cliente por nombre o zona..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-white placeholder-gray-600 outline-none transition-all"
+            style={{ background: G06, border: `1px solid ${G15}` }}
+            onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
+            onBlur={e => (e.target.style.borderColor = G15)}
           />
         </div>
-      </div>
 
-      {/* Lista de Clientes */}
-      <div className="grid gap-4">
-        {clientesFiltrados.map((cliente) => (
-          <div 
-            key={cliente.id}
-            className="group bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-emerald-500/50 transition-all relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center shrink-0 border border-gray-700 group-hover:border-emerald-500/30 transition-colors">
-                  <User className="w-6 h-6 text-gray-400 group-hover:text-emerald-400 transition-colors" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-white font-bold text-lg">{cliente.nombre}</h3>
-                    {cliente.saldoPendiente && cliente.saldoPendiente > 0 && (
-                      <span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-red-500/20">
-                        Deuda
-                      </span>
-                    )}
+        {/* Client Cards */}
+        <div className="grid gap-3">
+          <AnimatePresence>
+            {clientesConPedidos.map((cliente, idx) => {
+              // Quick check for pending amounts
+              const porDia = getFilasLiquidadasPorCliente(cliente.nombre);
+              const pagosDia = getPagosDia(cliente.nombre);
+              let totalPendiente = 0;
+              porDia.forEach((filas, fecha) => {
+                if (pagosDia[fecha] !== true) {
+                  totalPendiente += filas.reduce((s, f) => s + f.total, 0);
+                }
+              });
+              const diasPendientes = Array.from(porDia.keys()).filter(f => pagosDia[f] !== true).length;
+
+              return (
+                <motion.div
+                  key={cliente.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  onClick={() => setSelectedCliente(cliente.nombre)}
+                  className="group cursor-pointer rounded-2xl p-4 transition-all hover:scale-[1.01]"
+                  style={{
+                    background: G04,
+                    border: `1px solid ${G10}`,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.40)';
+                    e.currentTarget.style.background = G08;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = G10;
+                    e.currentTarget.style.background = G04;
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: G08, border: `1px solid ${G15}` }}>
+                        <User className="w-5 h-5 text-gray-400 group-hover:text-emerald-400 transition-colors" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-bold text-sm">{cliente.nombre}</h3>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {cliente.zona || '—'}</span>
+                          {diasPendientes > 0 && (
+                            <span className="flex items-center gap-1 text-amber-500">
+                              <Calendar className="w-3 h-3" /> {diasPendientes} día{diasPendientes > 1 ? 's' : ''} pendiente{diasPendientes > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {totalPendiente > 0 ? (
+                        <>
+                          <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Pendiente</p>
+                          <p className="text-lg font-black text-red-400">S/ {totalPendiente.toFixed(2)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Estado</p>
+                          <p className="text-sm font-bold text-emerald-400">Al día</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Zona {cliente.zona}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Últ. Mov: {cliente.ultimoPedido}</span>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
 
-              <div className="flex flex-col sm:items-end gap-1">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Saldo Pendiente</p>
-                <div className={`text-2xl font-black ${(cliente.saldoPendiente || 0) > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                  S/ {(cliente.saldoPendiente || 0).toFixed(2)}
-                </div>
-              </div>
-
-              {/* Botones de Acción */}
-              <div className="flex items-center gap-2 pt-4 sm:pt-0 sm:border-l border-gray-800 sm:pl-4">
-                <button 
-                  onClick={() => { setSelectedCliente(cliente); setModalType('PAGO'); }}
-                  className="flex-1 sm:flex-none py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
-                >
-                  <DollarSign className="w-4 h-4" /> Cobrar
-                </button>
-                <button 
-                  onClick={() => { setSelectedCliente(cliente); setModalType('PEDIDO'); }}
-                  className="p-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 rounded-lg transition-colors"
-                  title="Nuevo Pedido"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => { setSelectedCliente(cliente); setModalType('DEVOLUCION'); }}
-                  className="p-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/30 rounded-lg transition-colors"
-                  title="Registrar Devolución"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-              </div>
+          {clientesConPedidos.length === 0 && (
+            <div className="text-center py-16">
+              <Package className="w-12 h-12 mx-auto mb-3 text-gray-700" />
+              <p className="text-gray-500 text-sm">No hay clientes con pedidos</p>
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
+    );
+  }
 
-      {/* Modal de Acciones */}
-      {modalType && selectedCliente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button 
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-6">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                modalType === 'PAGO' ? 'bg-emerald-500/20 text-emerald-500' :
-                modalType === 'PEDIDO' ? 'bg-blue-500/20 text-blue-500' :
-                'bg-orange-500/20 text-orange-500'
-              }`}>
-                {modalType === 'PAGO' && <DollarSign className="w-6 h-6" />}
-                {modalType === 'PEDIDO' && <ShoppingCart className="w-6 h-6" />}
-                {modalType === 'DEVOLUCION' && <RotateCcw className="w-6 h-6" />}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  {modalType === 'PAGO' ? 'Registrar Cobranza' :
-                   modalType === 'PEDIDO' ? 'Nuevo Pedido' :
-                   'Registrar Devolución'}
-                </h2>
-                <p className="text-sm text-gray-400">{selectedCliente.nombre}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              
-              {/* Campos específicos para Pago */}
-              {modalType === 'PAGO' && (
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {['Efectivo', 'Transferencia', 'Yape', 'Plin', 'Otro'].map(metodo => (
-                    <button
-                      key={metodo}
-                      onClick={() => setPaymentMethod(metodo as any)}
-                      className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${
-                        paymentMethod === metodo 
-                          ? 'bg-emerald-600 border-emerald-500 text-white' 
-                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
-                      }`}
-                    >
-                      {metodo}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Campos específicos para Pedido */}
-              {modalType === 'PEDIDO' && (
-                <div className="mb-4 space-y-3">
-                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo de Ave</label>
-                    <select 
-                      value={pedidoTipoAve}
-                      onChange={(e) => setPedidoTipoAve(e.target.value)}
-                      className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option>Pollo</option>
-                      <option>Pato</option>
-                      <option>Pavo</option>
-                      <option>Gallina</option>
-                    </select>
-                   </div>
-                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Cantidad (Unidades)</label>
-                    <input 
-                      type="number" 
-                      value={pedidoCantidad}
-                      onChange={(e) => setPedidoCantidad(e.target.value)}
-                      className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="Ej: 50"
-                    />
-                   </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  {modalType === 'PEDIDO' ? 'Monto Estimado (S/)' : 'Monto (S/)'}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">S/</span>
-                  <input 
-                    type="number" 
-                    step="0.10"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-black/50 border border-gray-700 rounded-xl pl-10 pr-4 py-4 text-white text-xl font-bold focus:outline-none focus:border-emerald-500 transition-colors"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              {/* Foto Comprobante (Solo Pagos Digitales) */}
-              {modalType === 'PAGO' && paymentMethod !== 'Efectivo' && (
-                <div>
-                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Foto del Comprobante (Obligatorio)</label>
-                   {paymentPhoto ? (
-                     <div className="relative h-32 rounded-xl border border-gray-700 overflow-hidden group">
-                       <img src={paymentPhoto} alt="Comprobante" className="w-full h-full object-cover" />
-                       <button 
-                         onClick={() => setPaymentPhoto(null)} 
-                         className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/80"
-                       >
-                         <X className="w-4 h-4" />
-                       </button>
-                     </div>
-                   ) : (
-                     <button 
-                       onClick={handleCapturePhoto}
-                       className="w-full h-32 border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-emerald-500 hover:text-emerald-500 transition-colors hover:bg-emerald-900/10"
-                     >
-                       <Camera className="w-8 h-8" />
-                       <span className="text-xs font-bold">TOMAR FOTO / SUBIR</span>
-                     </button>
-                   )}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Nota / Detalle
-                </label>
-                <textarea 
-                  placeholder={modalType === 'PAGO' ? "Nro Operación, Observaciones..." : "Detalles adicionales..."}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors h-20 resize-none"
-                />
-              </div>
-
-              <div className="pt-2">
-                <button 
-                  onClick={handleTransaction}
-                  className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2 text-white ${
-                    modalType === 'PAGO' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20' :
-                    modalType === 'PEDIDO' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' :
-                    'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20'
-                  }`}
-                >
-                  <CheckCircle2 className="w-5 h-5" /> CONFIRMAR
-                </button>
-              </div>
+  // ─── CLIENT DETAIL VIEW — Pedidos Liquidados por Día ──────────────────────
+  return (
+    <div className="space-y-5 pb-20">
+      {/* Back header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelectedCliente(null)}
+            className="p-2 rounded-xl transition-all hover:scale-105"
+            style={{ background: G08, border: `1px solid ${G15}` }}>
+            <ArrowLeft className="w-4 h-4 text-gray-400" />
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-white">{selectedCliente}</h2>
+            <div className="flex items-center gap-3 text-[11px] text-gray-500">
+              {clienteObj && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {clienteObj.zona || '—'}</span>}
+              {clienteObj?.telefono && <span>{clienteObj.telefono}</span>}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* No data */}
+      {!clienteData || clienteData.fechas.length === 0 ? (
+        <div className="text-center py-20">
+          <Lock className="w-12 h-12 mx-auto mb-3 text-gray-700" />
+          <p className="text-gray-500 text-sm">No hay pedidos liquidados para este cliente</p>
+          <p className="text-gray-600 text-[10px] mt-1">Los pedidos aparecerán aquí cuando sean liquidados en Cartera de Cobro</p>
+        </div>
+      ) : (
+        <>
+          {/* Day-by-day tables */}
+          {clienteData.fechas.map(({ fecha, filas, totalDia, pagado, saldoAnterior }) => (
+            <DiaTable
+              key={fecha}
+              fecha={fecha}
+              filas={filas}
+              totalDia={totalDia}
+              saldoAnterior={saldoAnterior}
+              pagado={pagado}
+              onPagar={() => setPagoDia(selectedCliente, fecha, true)}
+            />
+          ))}
+
+          {/* ─── RESUMEN FINAL ─────────────────────────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: G04, border: `1px solid ${G20}` }}>
+            <div className="p-5 space-y-3">
+
+              {/* Subtotal (sum of all days' totals that are NOT paid) */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Subtotal Pendiente</span>
+                <span className="text-lg font-black text-white tabular-nums">
+                  S/ {clienteData.totalPendiente.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Saldo (accumulated from unpaid previous days) */}
+              <div className="flex items-center justify-between py-2"
+                style={{ borderTop: `1px solid ${G10}`, borderBottom: `1px solid ${G10}` }}>
+                <div>
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Saldo Acumulado</span>
+                  <p className="text-[10px] text-gray-600 mt-0.5">Días impagos anteriores</p>
+                </div>
+                <span className={`text-lg font-black tabular-nums ${clienteData.saldoAcumulado > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  S/ {clienteData.saldoAcumulado.toFixed(2)}
+                </span>
+              </div>
+
+              {/* TOTAL A PAGAR */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-black uppercase tracking-wider" style={{ color: GOLD }}>Total a Pagar</span>
+                <span className="text-2xl font-black tabular-nums" style={{ color: GOLD }}>
+                  S/ {clienteData.totalPendiente.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Pagar Todo button */}
+              {clienteData.totalPendiente > 0 && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const fechasNoPagadas = clienteData.fechas.filter(d => !d.pagado).map(d => d.fecha);
+                    setPagarTodo(selectedCliente, fechasNoPagadas);
+                  }}
+                  className="w-full py-3.5 mt-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all text-black"
+                  style={{
+                    background: `linear-gradient(135deg, #10b981, #059669)`,
+                    boxShadow: '0 4px 20px rgba(16,185,129,0.30)',
+                  }}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  PAGAR TODO — S/ {clienteData.totalPendiente.toFixed(2)}
+                </motion.button>
+              )}
+
+              {clienteData.totalPendiente === 0 && (
+                <div className="text-center py-2">
+                  <span className="text-emerald-400 text-sm font-bold">✓ Todo pagado — Sin saldo pendiente</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+// ─── Column config for alignment ──────────────────────────────────────────────
+const TH_COLS: { label: string; align: 'left' | 'right'; width?: string }[] = [
+  { label: 'TIPO',       align: 'left',  width: '22%' },
+  { label: 'PRES.',      align: 'left',  width: '14%' },
+  { label: 'CANT.',      align: 'right', width: '10%' },
+  { label: 'DEVOL. kg',  align: 'right', width: '12%' },
+  { label: 'P.NETO kg',  align: 'right', width: '14%' },
+  { label: 'PRECIO S/',  align: 'right', width: '12%' },
+  { label: 'TOTAL S/',   align: 'right', width: '16%' },
+];
+
+// ─── DiaTable — Table for a single day ────────────────────────────────────────
+function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
+  fecha: string;
+  filas: FilaCartera[];
+  totalDia: number;
+  saldoAnterior: number;
+  pagado: boolean;
+  onPagar: () => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const totalConSaldo = totalDia + saldoAnterior;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: G04,
+        border: `1px solid ${pagado ? 'rgba(16,185,129,0.25)' : G15}`,
+        opacity: pagado ? 0.7 : 1,
+      }}
+    >
+      {/* Day header */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between px-4 py-3 transition-all hover:bg-white/[0.02]"
+        style={{ borderBottom: collapsed ? 'none' : `1px solid ${G10}` }}
+      >
+        <div className="flex items-center gap-2.5">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-bold text-white">{formatFecha(fecha)}</span>
+          <span className="text-[10px] text-gray-500 font-mono">{filas.length} pedido{filas.length > 1 ? 's' : ''}</span>
+          {pagado && (
+            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+              Pagado
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-black tabular-nums" style={{ color: pagado ? '#10b981' : COL.total }}>
+            S/ {totalDia.toFixed(2)}
+          </span>
+          {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronUp className="w-3.5 h-3.5 text-gray-500" />}
+        </div>
+      </button>
+
+      {/* Table */}
+      <AnimatePresence>
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr style={{ background: G06 }}>
+                    {TH_COLS.map(col => (
+                      <th key={col.label}
+                        className={`px-3 py-2.5 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                        style={{ width: col.width }}>
+                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: GOLD }}>{col.label}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.map((fila, idx) => (
+                    <tr key={fila.id}
+                      style={{
+                        borderBottom: `1px solid ${G06}`,
+                        background: idx % 2 !== 0 ? G04 : 'transparent',
+                      }}>
+                      <td className="px-3 py-2.5">
+                        <span className="text-xs font-semibold truncate block" style={{ color: COL.tipo }}>{fila.tipo}</span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-xs text-gray-400 truncate block">{fila.presentacion}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-white font-bold text-xs tabular-nums">{fila.cantidad}</span>
+                        <span className="text-[9px] text-gray-600 ml-0.5">{fila.cantidadLabel}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-xs tabular-nums font-mono" style={{ color: fila.devolucionPeso > 0 ? COL.devolucion : '#4b5563' }}>
+                          {fila.devolucionPeso.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="font-bold text-xs tabular-nums font-mono px-1.5 py-0.5 rounded-md inline-block"
+                          style={{ background: 'rgba(6,182,212,0.10)', border: '1px solid rgba(6,182,212,0.25)', color: COL.neto }}>
+                          {fila.pesoNeto.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="text-xs tabular-nums font-mono text-gray-300">{fila.precio.toFixed(2)}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className="font-black text-xs tabular-nums font-mono" style={{ color: COL.total }}>
+                          S/ {fila.total.toFixed(2)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  {/* Total del día */}
+                  <tr style={{ borderTop: `2px solid ${G20}`, background: G08 }}>
+                    <td colSpan={6} className="px-3 py-2.5 text-right">
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: GOLD }}>Total del día</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <span className="text-sm font-black tabular-nums" style={{ color: COL.total }}>
+                        S/ {totalDia.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
+                  {/* Saldo anterior */}
+                  <tr style={{ background: G06 }}>
+                    <td colSpan={6} className="px-3 py-2 text-right">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Saldo anterior</span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <span className={`text-xs font-bold tabular-nums ${saldoAnterior > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                        S/ {saldoAnterior.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
+                  {/* Total a pagar este día (total + saldo) */}
+                  <tr style={{ background: G08, borderTop: `1px solid ${G15}` }}>
+                    <td colSpan={6} className="px-3 py-2.5 text-right">
+                      <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: GOLD }}>Total a pagar</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <span className="text-sm font-black tabular-nums" style={{ color: GOLD }}>
+                        S/ {totalConSaldo.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Pay this day button */}
+            {!pagado && (
+              <div className="px-4 py-3" style={{ borderTop: `1px solid ${G10}` }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onPagar}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: 'rgba(16,185,129,0.10)',
+                    border: '1px solid rgba(16,185,129,0.30)',
+                    color: '#10b981',
+                  }}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Pagar este día — S/ {totalDia.toFixed(2)}
+                </motion.button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

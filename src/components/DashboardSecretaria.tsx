@@ -792,11 +792,6 @@ export function DashboardSecretaria() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={confirmarTodas}
-            className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-105"
-            style={{background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'#22c55e'}}>
-            <Save className="w-3.5 h-3.5" /> Confirmar Todo
-          </button>
         </div>
       </div>
 
