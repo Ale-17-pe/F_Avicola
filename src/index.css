@@ -5686,19 +5686,38 @@ html {
   animation: 3s ease-in-out infinite float-logo;
 }
 
-select {
+[data-theme="dark"] select {
   color: #fff !important;
   background-color: #ffffff0d !important;
 }
 
-select option {
+[data-theme="dark"] select option {
   padding: 8px;
   color: #fff !important;
   background-color: #1a1a1a !important;
 }
 
-select option:hover, select option:focus, select option:checked {
+[data-theme="dark"] select option:hover,
+[data-theme="dark"] select option:focus,
+[data-theme="dark"] select option:checked {
   background: linear-gradient(90deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+}
+
+[data-theme="light"] select {
+  color: #1a1a2e !important;
+  background-color: #ffffff !important;
+}
+
+[data-theme="light"] select option {
+  padding: 8px;
+  color: #1a1a2e !important;
+  background-color: #ffffff !important;
+}
+
+[data-theme="light"] select option:hover,
+[data-theme="light"] select option:focus,
+[data-theme="light"] select option:checked {
+  background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 100%) !important;
 }
 
 .recharts-wrapper, .recharts-surface {
