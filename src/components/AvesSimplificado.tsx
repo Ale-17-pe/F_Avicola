@@ -515,14 +515,14 @@ export function AvesSimplificado() {
                   {tipo.categoria === 'Otro' ? <Egg className="w-6 h-6" style={{ color: tipo.color }} /> : <Bird className="w-6 h-6" style={{ color: tipo.color }} />}
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">
+                  <h3 className="font-bold text-lg" style={{ color: c.text }}>
                     {tipo.nombre}
                   </h3>
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    <span className={`px-2 py-0.5 rounded text-xs ${tipo.categoria === 'Otro' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                    <span className="px-2 py-0.5 rounded text-xs" style={{ background: isDark ? (tipo.categoria === 'Otro' ? 'rgba(234,179,8,0.2)' : 'rgba(59,130,246,0.2)') : (tipo.categoria === 'Otro' ? 'rgba(234,179,8,0.12)' : 'rgba(59,130,246,0.12)'), color: isDark ? (tipo.categoria === 'Otro' ? '#facc15' : '#60a5fa') : (tipo.categoria === 'Otro' ? '#a16207' : '#1d4ed8') }}>
                       {tipo.categoria === 'Otro' ? 'Otro Producto' : 'Ave'}
                     </span>
-                    <span className="px-2 py-0.5 rounded text-xs bg-black/40 text-gray-300">
+                    <span className="px-2 py-0.5 rounded text-xs" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)', color: c.textSecondary }}>
                       {tipo.tieneSexo
                         ? "Con Sexo"
                         : tipo.tieneVariedad
@@ -541,8 +541,8 @@ export function AvesSimplificado() {
               </div>
 
               {tipo.tieneVariedad && tipo.variedades && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-xs text-gray-400 mb-2">Variedades:</p>
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: c.border }}>
+                  <p className="text-xs mb-2" style={{ color: c.textSecondary }}>Variedades:</p>
                   <div className="flex flex-wrap gap-1">
                     {tipo.variedades.slice(0, 3).map((v, idx) => (
                       <span
@@ -558,7 +558,7 @@ export function AvesSimplificado() {
                       </span>
                     ))}
                     {tipo.variedades.length > 3 && (
-                      <span className="px-2 py-1 rounded text-xs bg-black/40 text-gray-400">
+                      <span className="px-2 py-1 rounded text-xs" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)', color: c.textSecondary }}>
                         +{tipo.variedades.length - 3}
                       </span>
                     )}
@@ -574,17 +574,17 @@ export function AvesSimplificado() {
       <div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold" style={{ color: c.text }}>
               Presentaciones Comerciales
             </h2>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm mt-1" style={{ color: c.textSecondary }}>
               Configuración de mermas por presentación
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: c.textSecondary }} />
               <input
                 type="text"
                 placeholder="Buscar presentación..."
@@ -592,9 +592,9 @@ export function AvesSimplificado() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 rounded-lg text-sm w-full sm:w-64"
                 style={{
-                  background: "rgba(0, 0, 0, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  color: "white",
+                  background: c.bgInput,
+                  border: `1px solid ${c.border}`,
+                  color: c.text,
                 }}
               />
             </div>
@@ -604,9 +604,9 @@ export function AvesSimplificado() {
               onChange={(e) => setFiltroPresentacionTipo(e.target.value)}
               className="px-4 py-2 rounded-lg text-sm"
               style={{
-                background: "rgba(0, 0, 0, 0.4)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: "white",
+                background: c.bgInput,
+                border: `1px solid ${c.border}`,
+                color: c.text,
               }}
             >
               <option value="all">Todos los tipos</option>
@@ -647,7 +647,8 @@ export function AvesSimplificado() {
             <div key={tipo} className="mb-4">
               <button
                 onClick={() => toggleType(tipo)}
-                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-black/20 to-transparent rounded-xl border border-white/5 hover:bg-white/5 transition-all group"
+                className="w-full flex items-center justify-between p-4 rounded-xl border transition-all group"
+                style={{ background: isDark ? 'linear-gradient(to right, rgba(0,0,0,0.2), transparent)' : 'linear-gradient(to right, rgba(0,0,0,0.03), transparent)', borderColor: c.border }}
               >
                 <div className="flex items-center gap-3">
                   {tipoInfo && (
@@ -665,16 +666,16 @@ export function AvesSimplificado() {
                     </div>
                   )}
                   <div className="text-left">
-                    <h3 className="text-lg font-semibold text-white">{tipo}</h3>
-                    <p className="text-sm text-gray-400">
+                    <h3 className="text-lg font-semibold" style={{ color: c.text }}>{tipo}</h3>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>
                       {presList.length} presentaciones
                     </p>
                   </div>
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                  <ChevronUp className="w-5 h-5 transition-colors" style={{ color: c.textSecondary }} />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                  <ChevronDown className="w-5 h-5 transition-colors" style={{ color: c.textSecondary }} />
                 )}
               </button>
 
@@ -683,24 +684,24 @@ export function AvesSimplificado() {
                   {Object.entries(presAgrupadas).map(([grupo, presVar]) => (
                     <div key={grupo}>
                       <div className="flex items-center gap-2 mb-3 ml-1">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${tieneSexo ? (grupo === 'Macho' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : grupo === 'Hembra' ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30') : 'bg-purple-500/20 text-purple-300 border-purple-500/30'}`}>
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold border" style={tieneSexo ? (grupo === 'Macho' ? { background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', color: isDark ? '#93c5fd' : '#1d4ed8', borderColor: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.3)' } : grupo === 'Hembra' ? { background: isDark ? 'rgba(236,72,153,0.2)' : 'rgba(236,72,153,0.1)', color: isDark ? '#f9a8d4' : '#be185d', borderColor: isDark ? 'rgba(236,72,153,0.3)' : 'rgba(236,72,153,0.3)' } : { background: isDark ? 'rgba(107,114,128,0.2)' : 'rgba(107,114,128,0.1)', color: c.textSecondary, borderColor: isDark ? 'rgba(107,114,128,0.3)' : 'rgba(107,114,128,0.3)' }) : { background: isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.1)', color: isDark ? '#c4b5fd' : '#7c3aed', borderColor: isDark ? 'rgba(168,85,247,0.3)' : 'rgba(168,85,247,0.3)' }}>
                           {tieneSexo ? (grupo === 'Macho' ? '♂ Macho' : grupo === 'Hembra' ? '♀ Hembra' : grupo) : grupo}
                         </span>
-                        <span className="text-xs text-gray-500">{presVar.length} presentaciones</span>
+                        <span className="text-xs" style={{ color: c.textSecondary }}>{presVar.length} presentaciones</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {presVar.map((pres) => (
                           <div
                             key={pres.id}
-                            className="group bg-gradient-to-br from-black/30 to-black/20 rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
-                            style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
+                            className="group rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
+                            style={{ background: isDark ? 'linear-gradient(to br, rgba(0,0,0,0.3), rgba(0,0,0,0.2))' : c.bgCard, borderColor: c.border }}
                           >
                             <div className="flex justify-between items-start mb-2">
                               <div>
-                                <h4 className="text-white font-medium">{pres.nombre}</h4>
+                                <h4 className="font-medium" style={{ color: c.text }}>{pres.nombre}</h4>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {pres.sexo && (
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${pres.sexo === 'Macho' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-pink-500/20 text-pink-400 border border-pink-500/20'}`}>
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] border" style={pres.sexo === 'Macho' ? { background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', color: isDark ? '#60a5fa' : '#1d4ed8', borderColor: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.3)' } : { background: isDark ? 'rgba(236,72,153,0.2)' : 'rgba(236,72,153,0.1)', color: isDark ? '#f472b6' : '#be185d', borderColor: isDark ? 'rgba(236,72,153,0.2)' : 'rgba(236,72,153,0.3)' }}>
                                       {pres.sexo === 'Macho' ? '♂ Macho' : '♀ Hembra'}
                                     </span>
                                   )}
@@ -727,12 +728,12 @@ export function AvesSimplificado() {
                             </div>
                             <div className="mt-4">
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-400">Merma</span>
+                                <span className="text-sm" style={{ color: c.textSecondary }}>Merma</span>
                                 <span className={`text-lg font-bold ${pres.mermaKg === 0 ? 'text-green-400' : 'text-amber-400'}`}>
                                   {pres.mermaKg.toFixed(2)} kg
                                 </span>
                               </div>
-                              <div className="w-full h-1.5 rounded-full bg-black/40 mt-1 overflow-hidden">
+                              <div className="w-full h-1.5 rounded-full mt-1 overflow-hidden" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)' }}>
                                 <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(pres.mermaKg * 500, 100)}%`, background: pres.mermaKg === 0 ? 'linear-gradient(to right, #10b981, #22c55e)' : 'linear-gradient(to right, #f59e0b, #eab308)' }} />
                               </div>
                             </div>
@@ -749,27 +750,27 @@ export function AvesSimplificado() {
                   {presList.map((pres) => (
                     <div
                       key={pres.id}
-                      className="group bg-gradient-to-br from-black/30 to-black/20 rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
-                      style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                      className="group rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
+                      style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(0,0,0,0.3), rgba(0,0,0,0.2))' : c.bgCard, borderColor: c.border }}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="text-white font-medium">
+                          <h4 className="font-medium" style={{ color: c.text }}>
                             {pres.nombre}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {pres.variedad && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/20">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] border" style={{ background: isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.1)', color: isDark ? '#c084fc' : '#7c3aed', borderColor: isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.3)' }}>
                                 {pres.variedad}
                               </span>
                             )}
                             {pres.sexo && (
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] ${pres.sexo === 'Macho' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-pink-500/20 text-pink-400 border border-pink-500/20'}`}>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] border" style={pres.sexo === 'Macho' ? { background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', color: isDark ? '#60a5fa' : '#1d4ed8', borderColor: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.3)' } : { background: isDark ? 'rgba(236,72,153,0.2)' : 'rgba(236,72,153,0.1)', color: isDark ? '#f472b6' : '#be185d', borderColor: isDark ? 'rgba(236,72,153,0.2)' : 'rgba(236,72,153,0.3)' }}>
                                 {pres.sexo === 'Macho' ? '♂ Macho' : '♀ Hembra'}
                               </span>
                             )}
                             {!pres.variedad && !pres.sexo && (
-                              <span className="text-xs text-gray-500">General</span>
+                              <span className="text-xs" style={{ color: c.textSecondary }}>General</span>
                             )}
                           </div>
                         </div>
@@ -801,14 +802,14 @@ export function AvesSimplificado() {
 
                       <div className="mt-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-400">Merma</span>
+                          <span className="text-sm" style={{ color: c.textSecondary }}>Merma</span>
                           <span
                             className={`text-lg font-bold ${pres.mermaKg === 0 ? "text-green-400" : "text-amber-400"}`}
                           >
                             {pres.mermaKg.toFixed(2)} kg
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-black/40 mt-1 overflow-hidden">
+                        <div className="w-full h-1.5 rounded-full mt-1 overflow-hidden" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)' }}>
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{

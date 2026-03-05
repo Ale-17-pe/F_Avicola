@@ -599,7 +599,7 @@ export function NuevoPedido() {
               {presDisponibles.map(p => <option key={p.id} value={p.nombre} style={{ background: c.bgPage, color: c.text }}>{p.nombre}</option>)}
             </select>
           </div>
-          <div className="bg-blue-900/10 border border-blue-800/30 rounded-lg p-3 flex items-center justify-center text-xs text-blue-400">
+          <div className="rounded-lg p-3 flex items-center justify-center text-xs" style={{ background: isDark ? 'rgba(30,58,138,0.1)' : 'rgba(59,130,246,0.08)', border: `1px solid ${isDark ? 'rgba(30,64,175,0.3)' : 'rgba(59,130,246,0.2)'}`, color: isDark ? '#60a5fa' : '#1d4ed8' }}>
             Contenedor se asigna en pesaje
           </div>
         </div>
@@ -626,7 +626,8 @@ export function NuevoPedido() {
             <div>
               <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Total</label>
               <input type="text" readOnly value={data.cantidadTotal || '0'}
-                className="w-full px-4 py-3 bg-green-900/20 border border-green-800/30 rounded-lg text-green-400 text-sm font-bold text-center" />
+                className="w-full px-4 py-3 rounded-lg text-sm font-bold text-center"
+                style={{ background: isDark ? 'rgba(20,83,45,0.2)' : 'rgba(22,163,74,0.08)', border: `1px solid ${isDark ? 'rgba(22,101,52,0.3)' : 'rgba(22,163,74,0.25)'}`, color: isDark ? '#4ade80' : '#166534' }} />
             </div>
           </>
         )}
@@ -644,7 +645,7 @@ export function NuevoPedido() {
               className="w-full px-4 py-3 border rounded-lg text-sm"
               style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} />
             {(esVivo || esCatOtro) && data.cantidadTotal && (
-              <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+              <p className="text-[10px] mt-1 flex items-center gap-1" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>
                 {esCatOtro ? '🥚' : '🐔'} {data.cantidadTotal} jaba(s){!esCatOtro ? ' se pesarán por bloque en Pesaje' : ''}
               </p>
             )}
@@ -666,7 +667,7 @@ export function NuevoPedido() {
               <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
                 style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                 <span style={{ color: c.textSecondary }}>Total aves estimadas</span>
-                <span className="text-green-400 font-bold font-mono">🐔 {data.totalAves} unidades</span>
+                <span className="font-bold font-mono" style={{ color: isDark ? '#4ade80' : '#166534' }}>🐔 {data.totalAves} unidades</span>
               </div>
             )}
           </div>
@@ -709,12 +710,12 @@ export function NuevoPedido() {
             <div className="border rounded-xl px-4 py-2 flex items-center gap-3" style={{ background: c.bgCardAlt, borderColor: c.border }}>
               <div className="text-center">
                 <div className="text-sm" style={{ color: c.textSecondary }}>Clientes únicos</div>
-                <div className="text-2xl font-bold text-amber-400">{[...new Set(pedidosEnCola.map(p => p.numeroCliente))].length}</div>
+                <div className="text-2xl font-bold" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>{[...new Set(pedidosEnCola.map(p => p.numeroCliente))].length}</div>
               </div>
               <div className="h-8 w-px" style={{ background: c.border }} />
               <div className="text-center">
                 <div className="text-sm" style={{ color: c.textSecondary }}>Total pedidos</div>
-                <div className="text-2xl font-bold text-green-400">{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</div>
+                <div className="text-2xl font-bold" style={{ color: isDark ? '#4ade80' : '#166534' }}>{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</div>
               </div>
             </div>
           </div>
@@ -749,8 +750,8 @@ export function NuevoPedido() {
 
               <div className="absolute top-4 right-4 z-10">
                 {form.completado
-                  ? <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /><span className="text-xs text-green-400 font-medium">Listo</span></div>
-                  : <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-xs text-amber-400">En progreso</span></div>}
+                  ? <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /><span className="text-xs font-medium" style={{ color: isDark ? '#4ade80' : '#166534' }}>Listo</span></div>
+                  : <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-xs" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>En progreso</span></div>}
               </div>
 
               <div className="mb-5">
@@ -834,7 +835,8 @@ export function NuevoPedido() {
                     <div>
                       <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Total {esVivo ? '(Jabas)' : ''}</label>
                       <input type="text" value={form.cantidadTotal} readOnly
-                        className="w-full px-4 py-3 bg-green-900/20 border border-green-800/30 rounded-lg text-green-400 text-sm font-bold text-center" />
+                        className="w-full px-4 py-3 rounded-lg text-sm font-bold text-center"
+                        style={{ background: isDark ? 'rgba(20,83,45,0.2)' : 'rgba(22,163,74,0.08)', border: `1px solid ${isDark ? 'rgba(22,101,52,0.3)' : 'rgba(22,163,74,0.25)'}`, color: isDark ? '#4ade80' : '#166534' }} />
                     </div>
                   </>
                 )}
@@ -850,7 +852,7 @@ export function NuevoPedido() {
                       className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-green-500 transition-all"
                       style={{ background: c.bgCard, borderColor: c.border, color: c.text }} />
                     {esVivo && form.cantidadTotal && (
-                      <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1"> {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje</p>
+                      <p className="text-[10px] mt-1 flex items-center gap-1" style={{ color: isDark ? '#fbbf24' : '#b45309' }}> {form.cantidadTotal} jaba(s) se pesarán por bloque en Pesaje</p>
                     )}
                   </div>
                 )}
@@ -867,7 +869,7 @@ export function NuevoPedido() {
                       <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
                         style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                         <span style={{ color: c.textSecondary }}>Total aves</span>
-                        <span className="text-green-400 font-bold font-mono">{form.totalAves} unidades</span>
+                        <span className="font-bold font-mono" style={{ color: isDark ? '#4ade80' : '#166534' }}>{form.totalAves} unidades</span>
                       </div>
                     )}
                   </div>
@@ -899,14 +901,14 @@ export function NuevoPedido() {
           style={pedidosEnCola.length > 0
             ? { background: c.bgCardAlt, color: c.text }
             : { background: c.bgCard, borderColor: c.border, color: c.textMuted }}>
-          <div className={`p-2 rounded-lg ${pedidosEnCola.length > 0 ? 'bg-amber-900/30' : 'bg-gray-800/30'}`}>
-            <CheckCircle className={`w-5 h-5 ${pedidosEnCola.length > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
+          <div className={`p-2 rounded-lg ${pedidosEnCola.length > 0 ? '' : ''}`} style={pedidosEnCola.length > 0 ? { background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)' } : { background: isDark ? 'rgba(31,41,55,0.3)' : 'rgba(0,0,0,0.05)' }}>
+            <CheckCircle className="w-5 h-5" style={{ color: pedidosEnCola.length > 0 ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#4b5563' : '#9ca3af') }} />
           </div>
           <span className="flex items-center gap-2">
             Confirmar Pedidos
-            {pedidosEnCola.length > 0 && <span className="px-2 py-1 text-xs bg-amber-900/30 text-amber-300 rounded-lg">{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</span>}
+            {pedidosEnCola.length > 0 && <span className="px-2 py-1 text-xs rounded-lg" style={{ background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)', color: isDark ? '#fcd34d' : '#92400e' }}>{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</span>}
           </span>
-          {pedidosEnCola.length > 0 && <ChevronRight className="w-5 h-5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
+          {pedidosEnCola.length > 0 && <ChevronRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: isDark ? '#fbbf24' : '#d97706' }} />}
         </button>
       </div>
 
@@ -921,12 +923,12 @@ export function NuevoPedido() {
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm" style={{ color: c.textSecondary }}>{pedidosEnCola.length} cliente(s) - {pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)} pedidos</span>
                   <div className="w-1 h-1 rounded-full" style={{ background: c.border }} />
-                  <span className="text-sm text-amber-400 font-medium">Listos para confirmar</span>
+                  <span className="text-sm font-medium" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Listos para confirmar</span>
                 </div>
               </div>
             </div>
-            <div className="px-3 py-1 bg-amber-900/20 border border-amber-700/30 rounded-lg">
-              <span className="text-sm text-amber-400 font-medium">Total: {pedidosEnCola.length}</span>
+            <div className="px-3 py-1 border rounded-lg" style={{ background: isDark ? 'rgba(120,53,15,0.2)' : 'rgba(245,158,11,0.1)', borderColor: isDark ? 'rgba(180,83,9,0.3)' : 'rgba(245,158,11,0.3)' }}>
+              <span className="text-sm font-medium" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Total: {pedidosEnCola.length}</span>
             </div>
           </div>
 
@@ -950,7 +952,7 @@ export function NuevoPedido() {
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-green-400" /><span className="text-xs" style={{ color: c.textSecondary }}>Sub-pedidos</span></div>
                     <div className="flex items-center gap-3">
-                      <div className="text-2xl font-bold text-green-400">{pedido.subPedidos.length}</div>
+                      <div className="text-2xl font-bold" style={{ color: isDark ? '#4ade80' : '#166534' }}>{pedido.subPedidos.length}</div>
                       <div className="flex-1">
                         <div className="h-2 rounded-full overflow-hidden" style={{ background: c.bgCardAlt }}>
                           <div className="h-full bg-gradient-to-r from-green-600 to-amber-500 rounded-full" style={{ width: `${Math.min(100, (pedido.subPedidos.length / 10) * 100)}%` }} />
@@ -1049,18 +1051,18 @@ export function NuevoPedido() {
                                             <div className="flex flex-wrap gap-1.5 mt-2">
                                               {(sub.cantidadMachos || sub.cantidadHembras) ? (
                                                 <>
-                                                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-900/20 border border-blue-700/20 text-blue-300">♂ {sub.cantidadMachos || 0}</span>
-                                                  <span className="text-[10px] px-2 py-0.5 rounded bg-pink-900/20 border border-pink-700/20 text-pink-300">♀ {sub.cantidadHembras || 0}</span>
-                                                  <span className="text-[10px] px-2 py-0.5 rounded bg-green-900/20 border border-green-700/20 text-green-300">Total: {sub.cantidadTotal}</span>
+                                                  <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: isDark ? 'rgba(30,58,138,0.2)' : 'rgba(59,130,246,0.1)', borderColor: isDark ? 'rgba(29,78,216,0.2)' : 'rgba(59,130,246,0.25)', color: isDark ? '#93c5fd' : '#1d4ed8' }}>♂ {sub.cantidadMachos || 0}</span>
+                                                  <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: isDark ? 'rgba(131,24,67,0.2)' : 'rgba(236,72,153,0.1)', borderColor: isDark ? 'rgba(190,24,93,0.2)' : 'rgba(236,72,153,0.25)', color: isDark ? '#f9a8d4' : '#be185d' }}>♀ {sub.cantidadHembras || 0}</span>
+                                                  <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: isDark ? 'rgba(20,83,45,0.2)' : 'rgba(22,163,74,0.1)', borderColor: isDark ? 'rgba(21,128,61,0.2)' : 'rgba(22,163,74,0.25)', color: isDark ? '#86efac' : '#166534' }}>Total: {sub.cantidadTotal}</span>
                                                 </>
                                               ) : esVivo ? (
                                                 <>
-                                                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/20 border border-amber-700/20 text-amber-300">🧺 {sub.cantidadTotal} jabas</span>
+                                                  <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: isDark ? 'rgba(120,53,15,0.2)' : 'rgba(245,158,11,0.1)', borderColor: isDark ? 'rgba(180,83,9,0.2)' : 'rgba(245,158,11,0.25)', color: isDark ? '#fcd34d' : '#92400e' }}>🧺 {sub.cantidadTotal} jabas</span>
                                                   {sub.unidadesPorJaba && <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.textSecondary }}>×{sub.unidadesPorJaba}/jaba</span>}
-                                                  {sub.totalAves && <span className="text-[10px] px-2 py-0.5 rounded bg-green-900/20 border border-green-700/20 text-green-300 font-bold">🐔 {sub.totalAves} aves</span>}
+                                                  {sub.totalAves && <span className="text-[10px] px-2 py-0.5 rounded border font-bold" style={{ background: isDark ? 'rgba(20,83,45,0.2)' : 'rgba(22,163,74,0.1)', borderColor: isDark ? 'rgba(21,128,61,0.2)' : 'rgba(22,163,74,0.25)', color: isDark ? '#86efac' : '#166534' }}>🐔 {sub.totalAves} aves</span>}
                                                 </>
                                               ) : (
-                                                <span className="text-[10px] px-2 py-0.5 rounded bg-green-900/20 border border-green-700/20 text-green-300">{sub.cantidadTotal} unidades</span>
+                                                <span className="text-[10px] px-2 py-0.5 rounded border" style={{ background: isDark ? 'rgba(20,83,45,0.2)' : 'rgba(22,163,74,0.1)', borderColor: isDark ? 'rgba(21,128,61,0.2)' : 'rgba(22,163,74,0.25)', color: isDark ? '#86efac' : '#166534' }}>{sub.cantidadTotal} unidades</span>
                                               )}
                                             </div>
                                           </div>
