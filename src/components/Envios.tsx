@@ -27,7 +27,7 @@ const ZONAS_DEFAULT: Zona[] = [
 ];
 
 export function Envios() {
-  const { pedidosConfirmados } = useApp();
+  const { pedidosConfirmados, clientes, updateCliente } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
@@ -96,7 +96,17 @@ export function Envios() {
   const handleSubmitZona = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingZona) {
+      const oldName = editingZona.nombre;
+      const newName = zonaForm.nombre;
       setZonas(zonas.map(z => z.id === editingZona.id ? { ...z, ...zonaForm } : z));
+      // Sincronizar nombre de zona en clientes que tenían la zona anterior
+      if (oldName !== newName) {
+        clientes.forEach(cliente => {
+          if (cliente.zona === oldName) {
+            updateCliente({ ...cliente, zona: newName });
+          }
+        });
+      }
     } else {
       const nueva: Zona = {
         id: Date.now().toString(),

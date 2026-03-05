@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, User, Phone, MapPin, Mail, TrendingUp, ShoppingCart, X, Building2, Users, DollarSign, Bird, CheckSquare, Square } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CostosClientes } from './CostosClientes';
@@ -20,8 +20,34 @@ export function Clientes() {
   const { isDark } = useTheme();
   const c = t(isDark);
 
+  // Zonas dinámicas desde localStorage (sincronizadas con Envíos)
+  const [zonasEnvios, setZonasEnvios] = useState<{ id: string; nombre: string; descripcion: string; color: string }[]>(() => {
+    try {
+      const stored = localStorage.getItem('avicola_zonas');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  // Polling para sincronizar zonas en tiempo real
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const stored = localStorage.getItem('avicola_zonas');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setZonasEnvios(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(parsed)) return parsed;
+            return prev;
+          });
+        }
+      } catch { /* ignore */ }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('all');
+  const [filterZona, setFilterZona] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'clientes' | 'costos'>('clientes');
@@ -85,13 +111,22 @@ export function Clientes() {
     }));
   };
 
+  // Zonas únicas para filtro (combina zonas de Envíos + zonas existentes en clientes)
+  const zonasUnicas = useMemo(() => {
+    const zonas = new Set<string>();
+    zonasEnvios.forEach(z => zonas.add(z.nombre));
+    clientes.forEach(c => { if (c.zona) zonas.add(c.zona); });
+    return Array.from(zonas).sort();
+  }, [clientes, zonasEnvios]);
+
   const filteredClientes = clientes.filter(cliente => {
     const matchesSearch =
       cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cliente.contacto.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cliente.telefono.includes(searchTerm);
     const matchesEstado = filterEstado === 'all' || cliente.estado === filterEstado;
-    return matchesSearch && matchesEstado;
+    const matchesZona = filterZona === 'all' || cliente.zona === filterZona;
+    return matchesSearch && matchesEstado && matchesZona;
   });
 
   const handleOpenModal = (cliente?: any) => {
@@ -324,6 +359,57 @@ export function Clientes() {
           </div>
 
           {/* Filtros */}
+          <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
+            background: c.bgCard,
+            border: '1px solid ' + c.border
+          }}>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textSecondary }} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, contacto o teléfono..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                  style={{
+                    background: c.bgInput,
+                    border: '1px solid ' + c.border,
+                    color: c.text,
+                  }}
+                />
+              </div>
+              <select
+                value={filterZona}
+                onChange={(e) => setFilterZona(e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm"
+                style={{
+                  background: c.bgInput,
+                  border: '1px solid ' + c.border,
+                  color: c.text,
+                }}
+              >
+                <option value="all">Todas las zonas</option>
+                {zonasUnicas.map(z => (
+                  <option key={z} value={z}>{z}</option>
+                ))}
+              </select>
+              <select
+                value={filterEstado}
+                onChange={(e) => setFilterEstado(e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm"
+                style={{
+                  background: c.bgInput,
+                  border: '1px solid ' + c.border,
+                  color: c.text,
+                }}
+              >
+                <option value="all">Todos</option>
+                <option value="Activo">Activos</option>
+                <option value="Inactivo">Inactivos</option>
+              </select>
+            </div>
+          </div>
 
           {/* Tabla de Clientes */}
           <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
@@ -575,12 +661,11 @@ export function Clientes() {
                           }}
                         >
                           <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Seleccionar zona...</option>
-                          <option value="Zona 1" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 1 - Independencia, Provincia, Jicamarca</option>
-                          <option value="Zona 2" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 2 - Sedapal, Zona Alta/Baja, Corralito</option>
-                          <option value="Zona 3" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 3 - Vencedores</option>
-                          <option value="Zona 4" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 4 - Montenegro, 10 de Octubre, Motupe</option>
-                          <option value="Zona 5" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 5 - Valle Sagrado, Saruta</option>
-                          <option value="Zona 6" style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>Zona 6 - Bayovar, Huáscar, Peladero</option>
+                          {zonasEnvios.map(z => (
+                            <option key={z.id} value={z.nombre} style={{ background: isDark ? '#1a1a1a' : '#ffffff', color: c.text }}>
+                              {z.nombre}{z.descripcion ? ` - ${z.descripcion}` : ''}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>

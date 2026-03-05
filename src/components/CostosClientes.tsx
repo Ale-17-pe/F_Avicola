@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useRef, useCallback } from "react";
+﻿import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   Search,
   DollarSign,
@@ -7,6 +7,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
   Settings,
   Trash2,
   Check,
@@ -57,8 +60,8 @@ export function CostosClientes() {
   // ============ ESTADOS ============
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipoAve, setFilterTipoAve] = useState<string>("all");
-  const [filterPrecioMin, setFilterPrecioMin] = useState("");
-  const [filterPrecioMax, setFilterPrecioMax] = useState("");
+  const [filterVariedad, setFilterVariedad] = useState<string>("all");
+  const [filterPresentacion, setFilterPresentacion] = useState<string>("all");
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
@@ -78,12 +81,29 @@ export function CostosClientes() {
   // Estado para ajuste masivo
   const [isAjusteMasivoOpen, setIsAjusteMasivoOpen] = useState(false);
   const [ajusteTipo, setAjusteTipo] = useState<"subir" | "bajar">("subir");
-  const [ajustePorcentaje, setAjustePorcentaje] = useState("");
   const [ajusteMonto, setAjusteMonto] = useState("");
-  const [ajusteMetodo, setAjusteMetodo] = useState<"porcentaje" | "monto">("porcentaje");
   const [ajusteFilterTipoAve, setAjusteFilterTipoAve] = useState<string>("all");
   const [ajusteFilterVariedad, setAjusteFilterVariedad] = useState<string>("all");
   const [ajusteFilterPresentacion, setAjusteFilterPresentacion] = useState<string>("all");
+
+  // ============ HELPERS DE FECHA ============
+  const hoyStr = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+  const addDays = (dateStr: string, n: number) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const fmtDate = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+  // ============ ESTADOS DE FECHA ============
+  const [fechaGeneral, setFechaGeneral] = useState(hoyStr());
+  const [fechaClientes, setFechaClientes] = useState(hoyStr());
+  const esHoyGeneral = fechaGeneral === hoyStr();
+  const esHoyClientes = fechaClientes === hoyStr();
 
   // ============ AVES ACTIVAS ============
   const avesActivas = useMemo(
@@ -167,12 +187,77 @@ export function CostosClientes() {
   // Guardar precios generales
   const guardarPreciosGenerales = (precios: PrecioGeneral[]) => {
     setPreciosGenerales(precios);
-    localStorage.setItem("avicola_preciosGenerales", JSON.stringify(precios));
+    const json = JSON.stringify(precios);
+    localStorage.setItem("avicola_preciosGenerales", json);
+    // Guardar snapshot del día actual
+    localStorage.setItem(`avicola_preciosGenerales_${hoyStr()}`, json);
   };
 
+  // Cargar precios generales de una fecha específica
+  const cargarPreciosGeneralesFecha = (fecha: string) => {
+    const key = fecha === hoyStr() ? "avicola_preciosGenerales" : `avicola_preciosGenerales_${fecha}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const base = generarPreciosGenerales();
+        return base.map((b) => {
+          const found = parsed.find(
+            (p: PrecioGeneral) => p.tipoAveId === b.tipoAveId && p.variedad === b.variedad
+          );
+          return found
+            ? { ...b, precioVivo: found.precioVivo || 0, precioPelado: found.precioPelado || 0, precioDestripado: found.precioDestripado || 0 }
+            : b;
+        });
+      } catch { return null; }
+    }
+    return null;
+  };
+
+  // Estado de precios históricos generales (read-only para fechas pasadas)
+  const [preciosGeneralesHistorico, setPreciosGeneralesHistorico] = useState<PrecioGeneral[] | null>(null);
+
+  useEffect(() => {
+    if (!esHoyGeneral) {
+      const historico = cargarPreciosGeneralesFecha(fechaGeneral);
+      setPreciosGeneralesHistorico(historico);
+    } else {
+      setPreciosGeneralesHistorico(null);
+    }
+  }, [fechaGeneral]);
+
+  // Precios a mostrar: históricos si es fecha pasada, actuales si es hoy
+  const preciosGeneralesMostrados = esHoyGeneral ? preciosGenerales : (preciosGeneralesHistorico || []);
+
+  // Guardar snapshot diario de costos por cliente cuando cambian
+  useEffect(() => {
+    if (costosClientes.length === 0) return;
+    const hoy = hoyStr();
+    // Agrupar costos por cliente y guardar snapshot de hoy
+    const clienteIds = new Set(costosClientes.map(c => c.clienteId));
+    clienteIds.forEach(clienteId => {
+      const costosDelCliente = costosClientes.filter(c => c.clienteId === clienteId);
+      localStorage.setItem(`avicola_costosCliente_${clienteId}_${hoy}`, JSON.stringify(costosDelCliente));
+    });
+  }, [costosClientes]);
+
   // ============ PRECIOS POR CLIENTE ============
-  const getPreciosCliente = (clienteId: string): PrecioCliente[] => {
-    const costos = costosClientes.filter((c) => c.clienteId === clienteId);
+  const getPreciosCliente = (clienteId: string, fecha?: string): PrecioCliente[] => {
+    let costos = costosClientes.filter((c) => c.clienteId === clienteId);
+
+    // Si se quiere ver una fecha específica diferente a hoy, buscar snapshot
+    if (fecha && fecha !== hoyStr()) {
+      const snapshotKey = `avicola_costosCliente_${clienteId}_${fecha}`;
+      const saved = localStorage.getItem(snapshotKey);
+      if (saved) {
+        try { costos = JSON.parse(saved); } catch { /* usar actuales */ }
+      } else {
+        // Fallback: filtrar por fecha del registro
+        const conFecha = costosClientes.filter((c) => c.clienteId === clienteId && c.fecha && c.fecha <= fecha);
+        if (conFecha.length > 0) costos = conFecha;
+      }
+    }
+
     const mapaPrecios = new Map<string, PrecioCliente>();
 
     costos.forEach((c) => {
@@ -194,31 +279,38 @@ export function CostosClientes() {
     return Array.from(mapaPrecios.values());
   };
 
+  // ============ VARIEDADES DISPONIBLES PARA FILTRO PRINCIPAL ============
+  const filterVariedadesDisponibles = useMemo(() => {
+    if (filterTipoAve === "all") return [];
+    const tipo = tiposAve.find((t) => t.id === filterTipoAve);
+    if (!tipo) return [];
+    if (tipo.tieneVariedad && tipo.variedades && tipo.variedades.length > 0) return tipo.variedades;
+    return []; // Sin variedades disponibles (Pollo, etc.)
+  }, [filterTipoAve, tiposAve]);
+
+  const tipoTieneVariedades = filterVariedadesDisponibles.length > 0;
+
   // ============ FILTRADO DE CLIENTES ============
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
+      // Solo mostrar clientes activos
+      if (cliente.estado === 'Inactivo') return false;
+
       const matchesSearch = cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (filterTipoAve !== "all") {
         const preciosCliente = getPreciosCliente(cliente.id);
-        const tieneAve = preciosCliente.some((p) => p.tipoAveId === filterTipoAve);
-        if (!tieneAve) return false;
-      }
-
-      if (filterPrecioMin || filterPrecioMax) {
-        const preciosCliente = getPreciosCliente(cliente.id);
-        const min = parseFloat(filterPrecioMin) || 0;
-        const max = parseFloat(filterPrecioMax) || Infinity;
-        const tieneEnRango = preciosCliente.some((p) => {
-          const precios = [p.precioVivo, p.precioPelado, p.precioDestripado].filter((v) => v > 0);
-          return precios.some((pr) => pr >= min && pr <= max);
+        const tieneAve = preciosCliente.some((p) => {
+          if (p.tipoAveId !== filterTipoAve) return false;
+          if (filterVariedad !== "all" && p.variedad !== filterVariedad) return false;
+          return true;
         });
-        if (!tieneEnRango && preciosCliente.length > 0) return false;
+        if (!tieneAve) return false;
       }
 
       return matchesSearch;
     });
-  }, [clientes, searchTerm, filterTipoAve, filterPrecioMin, filterPrecioMax, costosClientes]);
+  }, [clientes, searchTerm, filterTipoAve, filterVariedad, costosClientes]);
 
   // ============ HANDLERS GENERALES ============
   const handleEditGeneralCell = (
@@ -493,14 +585,9 @@ export function CostosClientes() {
       return;
     }
 
-    const porcentaje = parseFloat(ajustePorcentaje) || 0;
     const monto = parseFloat(ajusteMonto) || 0;
 
-    if (ajusteMetodo === "porcentaje" && porcentaje === 0) {
-      toast.error("Ingrese un porcentaje valido");
-      return;
-    }
-    if (ajusteMetodo === "monto" && monto === 0) {
+    if (monto === 0) {
       toast.error("Ingrese un monto valido");
       return;
     }
@@ -525,17 +612,11 @@ export function CostosClientes() {
       const aplicarPelado = ajusteFilterPresentacion === "all" || ajusteFilterPresentacion === "Pelado";
       const aplicarDestripado = ajusteFilterPresentacion === "all" || ajusteFilterPresentacion === "Destripado";
 
-      if (ajusteMetodo === "porcentaje") {
-        const mult = 1 + (factor * porcentaje) / 100;
-        if (aplicarVivo) updated.precioVivo = Math.max(0, (updated.precioVivo || 0) * mult);
-        if (aplicarPelado) updated.precioPelado = Math.max(0, (updated.precioPelado || 0) * mult);
-        if (aplicarDestripado) updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) * mult);
-      } else {
-        const delta = factor * monto;
-        if (aplicarVivo) updated.precioVivo = Math.max(0, (updated.precioVivo || 0) + delta);
-        if (aplicarPelado) updated.precioPelado = Math.max(0, (updated.precioPelado || 0) + delta);
-        if (aplicarDestripado) updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) + delta);
-      }
+      const delta = factor * monto;
+      if (aplicarVivo) updated.precioVivo = Math.max(0, (updated.precioVivo || 0) + delta);
+      if (aplicarPelado) updated.precioPelado = Math.max(0, (updated.precioPelado || 0) + delta);
+      if (aplicarDestripado) updated.precioDestripado = Math.max(0, (updated.precioDestripado || 0) + delta);
+
       updated.precioPorKg = updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
       registrosAfectados++;
       return updated;
@@ -551,7 +632,6 @@ export function CostosClientes() {
       `Precios ${ajusteTipo === "subir" ? "incrementados" : "reducidos"} en ${registrosAfectados} registro(s) de ${selectedClientes.size} cliente(s)`
     );
     setIsAjusteMasivoOpen(false);
-    setAjustePorcentaje("");
     setAjusteMonto("");
     setAjusteFilterTipoAve("all");
     setAjusteFilterVariedad("all");
@@ -571,42 +651,94 @@ export function CostosClientes() {
         }}
       >
         <div
-          className="px-4 sm:px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="px-4 sm:px-6 py-4 border-b flex flex-col gap-3"
           style={{
             borderColor: c.borderGold,
             background: "linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(0, 0, 0, 0.5))",
           }}
         >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
-            >
-              <DollarSign className="w-5 h-5 text-black" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold" style={{ color: c.text }}>Costos Generales</h2>
-              <p className="text-xs" style={{ color: c.textSecondary }}>
-                Tabla de precios base por tipo de ave y presentacion
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {preciosGenerales.some((p) => p.selected) && selectedClientes.size > 0 && (
-              <button
-                onClick={aplicarPreciosAClientes}
-                className="px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 flex items-center gap-2"
-                style={{
-                  background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
-                  color: "white",
-                  boxShadow: "0 4px 15px rgba(204, 170, 0, 0.4)",
-                }}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
               >
-                <Check className="w-4 h-4" />
-                Aplicar a {selectedClientes.size} cliente(s)
-              </button>
-            )}
+                <DollarSign className="w-5 h-5 text-black" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold" style={{ color: c.text }}>Costos Generales</h2>
+                <p className="text-xs" style={{ color: c.textSecondary }}>
+                  Tabla de precios base por tipo de ave y presentacion
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {esHoyGeneral && preciosGenerales.some((p) => p.selected) && selectedClientes.size > 0 && (
+                <button
+                  onClick={aplicarPreciosAClientes}
+                  className="px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 flex items-center gap-2"
+                  style={{
+                    background: "linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)",
+                    color: "white",
+                    boxShadow: "0 4px 15px rgba(204, 170, 0, 0.4)",
+                  }}
+                >
+                  <Check className="w-4 h-4" />
+                  Aplicar a {selectedClientes.size} cliente(s)
+                </button>
+              )}
+            </div>
           </div>
+          {/* Navegación de fechas */}
+          <div className="flex items-center justify-between gap-3 pt-2 border-t" style={{ borderColor: 'rgba(204,170,0,0.15)' }}>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setFechaGeneral(addDays(fechaGeneral, -1))}
+                className="p-1.5 rounded-lg transition-all hover:scale-110"
+                style={{ background: c.g10, border: '1px solid ' + c.g20 }}
+              >
+                <ChevronLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
+              </button>
+              <div className="text-center px-2">
+                <span className="text-sm font-bold" style={{ color: esHoyGeneral ? '#22c55e' : '#ccaa00' }}>
+                  {esHoyGeneral ? '● HOY' : fmtDate(fechaGeneral)}
+                </span>
+              </div>
+              <button
+                onClick={() => !esHoyGeneral && setFechaGeneral(addDays(fechaGeneral, 1))}
+                className="p-1.5 rounded-lg transition-all hover:scale-110"
+                style={{ background: c.g10, border: '1px solid ' + c.g20, opacity: esHoyGeneral ? 0.3 : 1 }}
+                disabled={esHoyGeneral}
+              >
+                <ChevronRight className="w-4 h-4" style={{ color: c.textSecondary }} />
+              </button>
+              {!esHoyGeneral && (
+                <button
+                  onClick={() => setFechaGeneral(hoyStr())}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all hover:scale-105"
+                  style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}
+                >
+                  Ir a Hoy
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5" style={{ color: c.textSecondary }} />
+              <input
+                type="date"
+                value={fechaGeneral}
+                onChange={(e) => e.target.value && setFechaGeneral(e.target.value)}
+                max={hoyStr()}
+                className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                style={{ background: c.bgInput, border: '1px solid ' + c.border, color: c.text }}
+              />
+            </div>
+          </div>
+          {!esHoyGeneral && !preciosGeneralesHistorico && (
+            <div className="text-center py-1">
+              <span className="text-xs italic" style={{ color: c.textMuted }}>No hay registro de precios para esta fecha</span>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -617,16 +749,18 @@ export function CostosClientes() {
                 style={{ background: c.bgTableHeader, borderColor: "rgba(204, 170, 0, 0.15)" }}
               >
                 <th className="px-3 py-3 text-center w-10">
-                  <button
-                    onClick={toggleSelectAllGeneral}
-                    className="p-1 rounded hover:bg-amber-500/20 transition-colors"
-                  >
-                    {preciosGenerales.every((p) => p.selected) ? (
-                      <CheckSquare className="w-4 h-4 text-amber-400" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-500" />
-                    )}
-                  </button>
+                  {esHoyGeneral && (
+                    <button
+                      onClick={toggleSelectAllGeneral}
+                      className="p-1 rounded hover:bg-amber-500/20 transition-colors"
+                    >
+                      {preciosGenerales.every((p) => p.selected) ? (
+                        <CheckSquare className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                  )}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
                   Tipo de Ave
@@ -646,23 +780,25 @@ export function CostosClientes() {
               </tr>
             </thead>
             <tbody>
-              {preciosGenerales.map((fila, idx) => (
+              {preciosGeneralesMostrados.map((fila, idx) => (
                 <tr
                   key={`${fila.tipoAveId}_${fila.variedad}`}
                   className={`border-b transition-colors ${fila.selected ? "bg-amber-500/10" : ""}`}
                   style={{ borderColor: c.borderSubtle }}
                 >
                   <td className="px-3 py-3 text-center">
-                    <button
-                      onClick={() => toggleGeneralRowSelection(idx)}
-                      className="p-1 rounded hover:bg-amber-500/20 transition-colors"
-                    >
-                      {fila.selected ? (
-                        <CheckSquare className="w-4 h-4 text-amber-400" />
-                      ) : (
-                        <Square className="w-4 h-4 text-gray-500" />
-                      )}
-                    </button>
+                    {esHoyGeneral && (
+                      <button
+                        onClick={() => toggleGeneralRowSelection(idx)}
+                        className="p-1 rounded hover:bg-amber-500/20 transition-colors"
+                      >
+                        {fila.selected ? (
+                          <CheckSquare className="w-4 h-4 text-amber-400" />
+                        ) : (
+                          <Square className="w-4 h-4 text-gray-500" />
+                        )}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -686,7 +822,7 @@ export function CostosClientes() {
                     const isEditing = editingGeneralCell === cellKey;
                     return (
                       <td key={field} className="px-4 py-3 text-right">
-                        {isEditing ? (
+                        {isEditing && esHoyGeneral ? (
                           <div className="flex items-center justify-end gap-1">
                             <input
                               type="number"
@@ -711,10 +847,10 @@ export function CostosClientes() {
                           </div>
                         ) : (
                           <span
-                            className="cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums"
+                            className={`px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${esHoyGeneral ? "cursor-pointer hover:bg-amber-500/10" : ""}`}
                             style={{ color: fila[field] > 0 ? c.text : c.textMuted }}
-                            onClick={() => handleEditGeneralCell(idx, field)}
-                            title="Clic para editar"
+                            onClick={() => esHoyGeneral && handleEditGeneralCell(idx, field)}
+                            title={esHoyGeneral ? "Clic para editar" : "Solo lectura (fecha pasada)"}
                           >
                             {fila[field] > 0 ? `S/ ${fila[field].toFixed(2)}` : "\u2014"}
                           </span>
@@ -728,14 +864,16 @@ export function CostosClientes() {
           </table>
         </div>
 
-        {preciosGenerales.length === 0 && (
+        {preciosGeneralesMostrados.length === 0 && (
           <div className="text-center py-8">
             <Bird className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
-            <p className="text-sm" style={{ color: c.textSecondary }}>No hay aves activas registradas</p>
+            <p className="text-sm" style={{ color: c.textSecondary }}>
+              {esHoyGeneral ? 'No hay aves activas registradas' : 'No hay registro de precios para esta fecha'}
+            </p>
           </div>
         )}
 
-        {preciosGenerales.some((p) => p.selected) && (
+        {esHoyGeneral && preciosGenerales.some((p) => p.selected) && (
           <div
             className="px-4 py-3 border-t flex items-center gap-2 text-xs text-amber-400"
             style={{
@@ -800,7 +938,7 @@ export function CostosClientes() {
           </div>
           <select
             value={filterTipoAve}
-            onChange={(e) => setFilterTipoAve(e.target.value)}
+            onChange={(e) => { setFilterTipoAve(e.target.value); setFilterVariedad("all"); setFilterPresentacion("all"); }}
             className="px-3 py-2.5 rounded-lg text-sm"
             style={{
               background: c.bgInput,
@@ -815,32 +953,38 @@ export function CostosClientes() {
               </option>
             ))}
           </select>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Precio min"
-              value={filterPrecioMin}
-              onChange={(e) => setFilterPrecioMin(e.target.value)}
-              className="w-28 px-3 py-2.5 rounded-lg text-sm placeholder-gray-500"
-              style={{
-                background: c.bgInput,
-                border: "1px solid " + c.border,
-                color: c.text,
-              }}
-            />
-            <input
-              type="number"
-              placeholder="Precio max"
-              value={filterPrecioMax}
-              onChange={(e) => setFilterPrecioMax(e.target.value)}
-              className="w-28 px-3 py-2.5 rounded-lg text-sm placeholder-gray-500"
-              style={{
-                background: c.bgInput,
-                border: "1px solid " + c.border,
-                color: c.text,
-              }}
-            />
-          </div>
+          <select
+            value={filterVariedad}
+            onChange={(e) => { setFilterVariedad(e.target.value); setFilterPresentacion("all"); }}
+            className="px-3 py-2.5 rounded-lg text-sm"
+            disabled={!tipoTieneVariedades}
+            style={{
+              background: c.bgInput,
+              border: "1px solid " + c.border,
+              color: c.text,
+              opacity: tipoTieneVariedades ? 1 : 0.4,
+            }}
+          >
+            <option value="all">{tipoTieneVariedades ? "Todas las variedades" : "Sin variedades"}</option>
+            {filterVariedadesDisponibles.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <select
+            value={filterPresentacion}
+            onChange={(e) => setFilterPresentacion(e.target.value)}
+            className="px-3 py-2.5 rounded-lg text-sm"
+            style={{
+              background: c.bgInput,
+              border: "1px solid " + c.border,
+              color: c.text,
+            }}
+          >
+            <option value="all">Todas las presentaciones</option>
+            <option value="Vivo">Vivo</option>
+            <option value="Pelado">Pelado</option>
+            <option value="Destripado">Destripado</option>
+          </select>
         </div>
 
         {/* Boton seleccionar todos los clientes */}
@@ -871,9 +1015,65 @@ export function CostosClientes() {
       </div>
 
       {/* ========== SECCION 3: TARJETAS DE CLIENTES ========== */}
+      {/* Navegación de fechas para costos de clientes */}
+      <div
+        className="backdrop-blur-xl rounded-xl p-3 sm:p-4"
+        style={{ background: c.bgCard, border: '1px solid ' + c.border }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFechaClientes(addDays(fechaClientes, -1))}
+              className="p-1.5 rounded-lg transition-all hover:scale-110"
+              style={{ background: c.g10, border: '1px solid ' + c.g20 }}
+            >
+              <ChevronLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
+            </button>
+            <div className="text-center px-2">
+              <span className="text-sm font-bold" style={{ color: esHoyClientes ? '#22c55e' : '#ccaa00' }}>
+                {esHoyClientes ? '● HOY' : fmtDate(fechaClientes)}
+              </span>
+            </div>
+            <button
+              onClick={() => !esHoyClientes && setFechaClientes(addDays(fechaClientes, 1))}
+              className="p-1.5 rounded-lg transition-all hover:scale-110"
+              style={{ background: c.g10, border: '1px solid ' + c.g20, opacity: esHoyClientes ? 0.3 : 1 }}
+              disabled={esHoyClientes}
+            >
+              <ChevronRight className="w-4 h-4" style={{ color: c.textSecondary }} />
+            </button>
+            {!esHoyClientes && (
+              <button
+                onClick={() => setFechaClientes(hoyStr())}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}
+              >
+                Ir a Hoy
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5" style={{ color: c.textSecondary }} />
+            <input
+              type="date"
+              value={fechaClientes}
+              onChange={(e) => e.target.value && setFechaClientes(e.target.value)}
+              max={hoyStr()}
+              className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              style={{ background: c.bgInput, border: '1px solid ' + c.border, color: c.text }}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4">
         {filteredClientes.map((cliente) => {
-          const preciosCliente = getPreciosCliente(cliente.id);
+          const preciosClienteAll = getPreciosCliente(cliente.id, fechaClientes);
+          const preciosCliente = preciosClienteAll.filter((p) => {
+            if (filterTipoAve !== "all" && p.tipoAveId !== filterTipoAve) return false;
+            if (filterVariedad !== "all" && p.variedad !== filterVariedad) return false;
+            return true;
+          });
           const isExpanded = expandedClients.has(cliente.id);
           const isSelected = selectedClientes.has(cliente.id);
 
@@ -1029,7 +1229,7 @@ export function CostosClientes() {
                                   const isEditingThis = editingClientCell === cellKey;
                                   return (
                                     <td key={field} className="px-3 py-2.5 text-right">
-                                      {isEditingThis ? (
+                                      {isEditingThis && esHoyClientes ? (
                                         <div className="flex items-center justify-end gap-1">
                                           <input
                                             type="number"
@@ -1060,16 +1260,16 @@ export function CostosClientes() {
                                         </div>
                                       ) : (
                                         <span
-                                          className="cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums"
+                                          className={`px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${esHoyClientes ? "cursor-pointer hover:bg-amber-500/10" : ""}`}
                                           style={{ color: precio[field] > 0 ? c.text : c.textMuted }}
                                           onClick={() =>
-                                            handleEditClientCell(
+                                            esHoyClientes && handleEditClientCell(
                                               precio.id,
                                               field,
                                               precio[field]
                                             )
                                           }
-                                          title="Clic para editar"
+                                          title={esHoyClientes ? "Clic para editar" : "Solo lectura (fecha pasada)"}
                                         >
                                           {precio[field] > 0
                                             ? `S/ ${precio[field].toFixed(2)}`
@@ -1080,15 +1280,17 @@ export function CostosClientes() {
                                   );
                                 })}
                                 <td className="px-3 py-2.5 text-center">
-                                  <button
-                                    onClick={() =>
-                                      handleEliminarPrecioCliente(precio.id, cliente.nombre)
-                                    }
-                                    className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
-                                    title="Eliminar producto"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                  </button>
+                                  {esHoyClientes && (
+                                    <button
+                                      onClick={() =>
+                                        handleEliminarPrecioCliente(precio.id, cliente.nombre)
+                                      }
+                                      className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
+                                      title="Eliminar producto"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1311,10 +1513,6 @@ export function CostosClientes() {
           setAjusteFilterPresentacion={setAjusteFilterPresentacion}
           ajusteTipo={ajusteTipo}
           setAjusteTipo={setAjusteTipo}
-          ajusteMetodo={ajusteMetodo}
-          setAjusteMetodo={setAjusteMetodo}
-          ajustePorcentaje={ajustePorcentaje}
-          setAjustePorcentaje={setAjustePorcentaje}
           ajusteMonto={ajusteMonto}
           setAjusteMonto={setAjusteMonto}
           handleAjusteMasivo={handleAjusteMasivo}
@@ -1332,8 +1530,6 @@ function DraggableAjusteMasivo({
   ajusteVariedadesDisponibles,
   ajusteFilterPresentacion, setAjusteFilterPresentacion,
   ajusteTipo, setAjusteTipo,
-  ajusteMetodo, setAjusteMetodo,
-  ajustePorcentaje, setAjustePorcentaje,
   ajusteMonto, setAjusteMonto,
   handleAjusteMasivo,
 }: {
@@ -1345,8 +1541,6 @@ function DraggableAjusteMasivo({
   ajusteVariedadesDisponibles: string[];
   ajusteFilterPresentacion: string; setAjusteFilterPresentacion: (v: string) => void;
   ajusteTipo: "subir" | "bajar"; setAjusteTipo: (v: "subir" | "bajar") => void;
-  ajusteMetodo: "porcentaje" | "monto"; setAjusteMetodo: (v: "porcentaje" | "monto") => void;
-  ajustePorcentaje: string; setAjustePorcentaje: (v: string) => void;
   ajusteMonto: string; setAjusteMonto: (v: string) => void;
   handleAjusteMasivo: () => void;
 }) {
@@ -1523,48 +1717,15 @@ function DraggableAjusteMasivo({
               </button>
             </div>
 
-            {/* Método */}
-            <div className="flex gap-2">
-              <button onClick={() => setAjusteMetodo("porcentaje")}
-                className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
-                style={{
-                  background: ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.2)" : c.bgInput,
-                  border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.4)" : c.border}`,
-                  color: ajusteMetodo === "porcentaje" ? "#c084fc" : "#888",
-                }}>
-                Porcentaje %
-              </button>
-              <button onClick={() => setAjusteMetodo("monto")}
-                className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
-                style={{
-                  background: ajusteMetodo === "monto" ? "rgba(168,85,247,0.2)" : c.bgInput,
-                  border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168,85,247,0.4)" : c.border}`,
-                  color: ajusteMetodo === "monto" ? "#c084fc" : "#888",
-                }}>
-                Monto fijo S/
-              </button>
+            {/* Método: solo Monto Fijo */}
+            <div>
+              <label className="block text-[10px] font-bold mb-1" style={{ color: c.textSecondary }}>Monto Fijo (S/)</label>
+              <input type="number" step="0.01" min="0" value={ajusteMonto}
+                onChange={e => setAjusteMonto(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-center"
+                style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}
+                placeholder="Ej: 0.50" />
             </div>
-
-            {/* Input */}
-            {ajusteMetodo === "porcentaje" ? (
-              <div>
-                <label className="block text-[10px] font-bold mb-1" style={{ color: c.textSecondary }}>Porcentaje (%)</label>
-                <input type="number" step="0.1" min="0" value={ajustePorcentaje}
-                  onChange={e => setAjustePorcentaje(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-center"
-                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}
-                  placeholder="Ej: 5" />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-[10px] font-bold mb-1" style={{ color: c.textSecondary }}>Monto (S/)</label>
-                <input type="number" step="0.01" min="0" value={ajusteMonto}
-                  onChange={e => setAjusteMonto(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-center"
-                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}
-                  placeholder="Ej: 0.50" />
-              </div>
-            )}
 
             {/* Botones */}
             <div className="flex gap-2 pt-1">
