@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import logoImage from '../assets/AvicolaLogo.png';
-import avicolaBackground from 'figma:asset/fa25e4c6806fdd3db2dbb1c20513fce22ccd856a.png';
+import avicolaBackground from '../assets/fondo.png';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, logout } = useAuth();
+  const { login, logout } = useAuth()
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
