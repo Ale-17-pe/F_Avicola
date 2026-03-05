@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface TipoAve {
   id: string;
@@ -61,6 +62,9 @@ export function ModalPresentaciones({
   filtroPresentacionTipo,
   setFiltroPresentacionTipo,
 }: ModalPresentacionesProps) {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   if (!isOpen) return null;
 
   const presentacionesFiltradas =
@@ -138,25 +142,24 @@ export function ModalPresentaciones({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
-      style={{ background: "rgba(0, 0, 0, 0.85)" }}
+      style={{ background: c.bgModalOverlay }}
     >
       <div
         className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl w-full max-w-6xl max-h-[98vh] sm:max-h-[95vh] overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)",
-          border: "2px solid rgba(204, 170, 0, 0.3)",
-          boxShadow:
-            "0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.15)",
+          background: c.bgModal,
+          border: `2px solid ${c.borderGold}`,
+          boxShadow: c.shadowLg,
         }}
       >
         {/* Header Responsive */}
         <div
           className="px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 border-b"
           style={{
-            background:
-              "linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))",
-            borderColor: "rgba(204, 170, 0, 0.2)",
+            background: isDark
+              ? "linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))"
+              : "linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(255, 255, 255, 0.95))",
+            borderColor: c.borderGold,
           }}
         >
           <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -171,10 +174,10 @@ export function ModalPresentaciones({
                 <PackageOpen className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-black" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0 sm:mb-1 truncate">
+                <h2 className="text-lg sm:text-2xl md:text-3xl font-bold mb-0 sm:mb-1 truncate" style={{ color: c.text }}>
                   Gestión de Presentaciones
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-300 hidden sm:block">
+                <p className="text-xs sm:text-sm hidden sm:block" style={{ color: c.textSecondary }}>
                   Configure presentaciones con merma por ave
                 </p>
               </div>
@@ -206,10 +209,11 @@ export function ModalPresentaciones({
               <div
                 className="backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 h-full"
                 style={{
-                  background:
-                    "linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))",
-                  border: "1px solid rgba(204, 170, 0, 0.25)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+                  background: isDark
+                    ? "linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))"
+                    : "linear-gradient(135deg, rgba(204, 170, 0, 0.06), rgba(255, 255, 255, 0.95))",
+                  border: `1px solid ${c.borderGold}`,
+                  boxShadow: c.shadowMd,
                 }}
               >
                 {/* Título del Formulario */}
@@ -283,18 +287,19 @@ export function ModalPresentaciones({
                           tipoAve: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
+                      className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
                       style={{
-                        background: "rgba(255, 255, 255, 0.08)",
+                        background: c.bgInput,
                         border: "1.5px solid rgba(204, 170, 0, 0.3)",
                         outlineColor: "#ccaa00",
+                        color: c.text,
                       }}
                     >
                       {tiposAve.map((tipo) => (
                         <option
                           key={tipo.id}
                           value={tipo.nombre}
-                          style={{ background: "#1a1a1a", color: "white" }}
+                          style={{ background: isDark ? "#1a1a1a" : "#ffffff", color: c.text }}
                         >
                           {tipo.nombre}
                         </option>
@@ -323,11 +328,12 @@ export function ModalPresentaciones({
                           nombre: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
+                      className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
                       style={{
-                        background: "rgba(255, 255, 255, 0.08)",
+                        background: c.bgInput,
                         border: "1.5px solid rgba(204, 170, 0, 0.3)",
                         outlineColor: "#ccaa00",
+                        color: c.text,
                       }}
                       placeholder="Ej: Pelado, Destripado, Vivo"
                     />
@@ -357,11 +363,12 @@ export function ModalPresentaciones({
                             mermaKg: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
+                        className="w-full px-3 py-3 sm:px-4 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#ccaa00] focus:ring-offset-transparent"
                         style={{
-                          background: "rgba(255, 255, 255, 0.08)",
+                          background: c.bgInput,
                           border: "1.5px solid rgba(204, 170, 0, 0.3)",
                           outlineColor: "#ccaa00",
+                          color: c.text,
                         }}
                         placeholder="Ej: 0.15, 0.20, 0"
                       />
@@ -375,7 +382,7 @@ export function ModalPresentaciones({
                         KG
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                    <p className="text-xs mt-2 flex items-center gap-2" style={{ color: c.textSecondary }}>
                       <span>💡</span>
                       <span>Merma en kg por ave. Ej: 0.15 kg = 150 gramos</span>
                     </p>
@@ -385,8 +392,8 @@ export function ModalPresentaciones({
                   <div
                     className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg sm:rounded-xl cursor-pointer transition-all hover:scale-[1.01]"
                     style={{
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1.5px solid rgba(204, 170, 0, 0.2)",
+                      background: c.g06,
+                      border: `1.5px solid ${c.borderGold}`,
                     }}
                     onClick={() =>
                       setNuevaPresentacionForm({
@@ -410,7 +417,8 @@ export function ModalPresentaciones({
                     />
                     <label
                       htmlFor="esVariable"
-                      className="text-xs sm:text-sm text-white cursor-pointer flex-1 font-medium"
+                      className="text-xs sm:text-sm cursor-pointer flex-1 font-medium"
+                      style={{ color: c.text }}
                     >
                       ¿La merma es variable? (Para presentación "Vivo")
                     </label>
@@ -436,9 +444,9 @@ export function ModalPresentaciones({
                         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
                           <div
                             className="p-2 sm:p-3 rounded-lg"
-                            style={{ background: "rgba(0, 0, 0, 0.3)" }}
+                            style={{ background: c.bgCard }}
                           >
-                            <p className="text-xs text-gray-400 mb-1">
+                            <p className="text-xs mb-1" style={{ color: c.textSecondary }}>
                               Merma por Ave
                             </p>
                             <p
@@ -449,24 +457,24 @@ export function ModalPresentaciones({
                                 nuevaPresentacionForm.mermaKg,
                               ).toFixed(2)}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs" style={{ color: c.textMuted }}>
                               kilogramos{" "}
                               {nuevaPresentacionForm.esVariable && "(variable)"}
                             </p>
                           </div>
                           <div
                             className="p-2 sm:p-3 rounded-lg"
-                            style={{ background: "rgba(0, 0, 0, 0.3)" }}
+                            style={{ background: c.bgCard }}
                           >
-                            <p className="text-xs text-gray-400 mb-1">
+                            <p className="text-xs mb-1" style={{ color: c.textSecondary }}>
                               100 Aves
                             </p>
-                            <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                            <p className="text-lg sm:text-xl md:text-2xl font-bold" style={{ color: c.text }}>
                               {(
                                 100 * parseFloat(nuevaPresentacionForm.mermaKg)
                               ).toFixed(2)}
                             </p>
-                            <p className="text-xs text-gray-500">kilogramos</p>
+                            <p className="text-xs" style={{ color: c.textMuted }}>kilogramos</p>
                           </div>
                         </div>
                         <div
@@ -526,9 +534,9 @@ export function ModalPresentaciones({
                         }}
                         className="w-full px-4 py-3 sm:px-6 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium transition-all hover:scale-[1.02]"
                         style={{
-                          background: "rgba(255, 255, 255, 0.05)",
-                          color: "#ffffff",
-                          border: "1.5px solid rgba(255, 255, 255, 0.2)",
+                          background: c.g06,
+                          color: c.text,
+                          border: `1.5px solid ${c.g20}`,
                         }}
                       >
                         Cancelar
@@ -544,13 +552,13 @@ export function ModalPresentaciones({
               <div
                 className="backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6"
                 style={{
-                  background: "rgba(0, 0, 0, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+                  background: c.bgCardAlt,
+                  border: `1px solid ${c.border}`,
+                  boxShadow: c.shadowMd,
                 }}
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-5 md:mb-6">
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold flex items-center gap-2" style={{ color: c.text }}>
                     <PackageOpen
                       className="w-5 h-5 sm:w-6 sm:h-6"
                       style={{ color: "#ccaa00" }}
@@ -572,15 +580,16 @@ export function ModalPresentaciones({
                   <select
                     value={filtroPresentacionTipo}
                     onChange={(e) => setFiltroPresentacionTipo(e.target.value)}
-                    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-white text-xs sm:text-sm"
+                    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm"
                     style={{
-                      background: "rgba(255, 255, 255, 0.05)",
+                      background: c.bgInput,
                       border: "1px solid rgba(204, 170, 0, 0.3)",
+                      color: c.text,
                     }}
                   >
                     <option
                       value="all"
-                      style={{ background: "#1a1a1a", color: "white" }}
+                      style={{ background: isDark ? "#1a1a1a" : "#ffffff", color: c.text }}
                     >
                       Todos
                     </option>
@@ -588,7 +597,7 @@ export function ModalPresentaciones({
                       <option
                         key={tipo.id}
                         value={tipo.nombre}
-                        style={{ background: "#1a1a1a", color: "white" }}
+                        style={{ background: isDark ? "#1a1a1a" : "#ffffff", color: c.text }}
                       >
                         {tipo.nombre}
                       </option>
@@ -617,8 +626,8 @@ export function ModalPresentaciones({
                           key={tipo.id}
                           className="rounded-xl overflow-hidden backdrop-blur-sm"
                           style={{
-                            background: "rgba(255, 255, 255, 0.03)",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            background: c.g04,
+                            border: `1px solid ${c.border}`,
                           }}
                         >
                           <button
@@ -626,7 +635,7 @@ export function ModalPresentaciones({
                             className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-white/5 transition-all group"
                             style={{
                               borderBottom: isExpanded
-                                ? "1px solid rgba(255, 255, 255, 0.1)"
+                                ? `1px solid ${c.border}`
                                 : "none",
                             }}
                           >
@@ -642,7 +651,7 @@ export function ModalPresentaciones({
                                 <PackageOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#ccaa00]" />
                               </div>
                               <div className="text-left">
-                                <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                                <h4 className="text-sm sm:text-base font-bold flex items-center gap-2" style={{ color: c.text }}>
                                   {tipo.nombre}
                                   <span
                                     className="text-xs px-2 py-0.5 rounded-full"
@@ -657,16 +666,16 @@ export function ModalPresentaciones({
                               </div>
                             </div>
                             {isExpanded ? (
-                              <ChevronUp className="w-5 h-5 text-gray-400 group-hover:text-[#ccaa00] transition-colors" />
+                              <ChevronUp className="w-5 h-5 group-hover:text-[#ccaa00] transition-colors" style={{ color: c.textSecondary }} />
                             ) : (
-                              <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-[#ccaa00] transition-colors" />
+                              <ChevronDown className="w-5 h-5 group-hover:text-[#ccaa00] transition-colors" style={{ color: c.textSecondary }} />
                             )}
                           </button>
 
                           {isExpanded && (
-                            <div className="p-3 bg-black/20 space-y-3 animate-in slide-in-from-top-2">
+                            <div className="p-3 space-y-3 animate-in slide-in-from-top-2" style={{ background: c.bgCard }}>
                               {presentacionesDelTipo.length === 0 ? (
-                                <div className="text-center py-4 text-gray-400 text-sm">
+                                <div className="text-center py-4 text-sm" style={{ color: c.textSecondary }}>
                                   No hay presentaciones para {tipo.nombre}
                                 </div>
                               ) : (
@@ -676,12 +685,12 @@ export function ModalPresentaciones({
                                       key={presentacion.id}
                                       className="group/card p-3 sm:p-4 rounded-lg sm:rounded-xl transition-all hover:scale-[1.01]"
                                       style={{
-                                        background:
-                                          "linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(0, 0, 0, 0.3))",
+                                        background: isDark
+                                          ? "linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(0, 0, 0, 0.3))"
+                                          : "linear-gradient(135deg, rgba(204, 170, 0, 0.06), rgba(255, 255, 255, 0.9))",
                                         border:
-                                          "1.5px solid rgba(204, 170, 0, 0.25)",
-                                        boxShadow:
-                                          "0 4px 15px rgba(0, 0, 0, 0.2)",
+                                          `1.5px solid ${c.borderGold}`,
+                                        boxShadow: c.shadowSm,
                                       }}
                                     >
                                       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
@@ -701,12 +710,12 @@ export function ModalPresentaciones({
 
                                           <div className="flex-1 min-w-0">
                                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                                              <p className="font-bold text-white text-sm sm:text-base md:text-lg truncate">
+                                              <p className="font-bold text-sm sm:text-base md:text-lg truncate" style={{ color: c.text }}>
                                                 {presentacion.nombre}
                                               </p>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: c.textSecondary }} />
                                               <span
                                                 className="text-xs sm:text-sm font-bold"
                                                 style={{ color: "#ccaa00" }}
@@ -716,7 +725,7 @@ export function ModalPresentaciones({
                                                 )}{" "}
                                                 kg
                                               </span>
-                                              <span className="text-xs text-gray-400">
+                                              <span className="text-xs" style={{ color: c.textSecondary }}>
                                                 por ave
                                               </span>
                                               {presentacion.esVariable && (
@@ -814,11 +823,11 @@ export function ModalPresentaciones({
         <div
           className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4"
           style={{
-            background: "rgba(0, 0, 0, 0.4)",
-            borderColor: "rgba(204, 170, 0, 0.2)",
+            background: c.bgCardAlt,
+            borderColor: c.borderGold,
           }}
         >
-          <p className="text-xs sm:text-sm text-gray-400">
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>
             Total:{" "}
             <span className="font-bold" style={{ color: "#ccaa00" }}>
               {presentaciones.length}

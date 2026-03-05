@@ -1,8 +1,12 @@
 import { Users, Bird, TrendingUp, Package } from 'lucide-react';
 import { Link } from 'react-router';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   // Datos para gráficas
   const avesData: { name: string; cantidad: number; valor: number }[] = [];
 
@@ -47,10 +51,10 @@ export function Dashboard() {
     if (active && payload && payload.length) {
       return (
         <div className="backdrop-blur-xl rounded-lg p-3" style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          border: '1px solid rgba(204, 170, 0, 0.3)'
+          background: c.bgModal,
+          border: `1px solid ${c.borderGold}`
         }}>
-          <p className="text-white font-bold mb-1">{label || payload[0].name}</p>
+          <p className="font-bold mb-1" style={{ color: c.text }}>{label || payload[0].name}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
               {entry.name}: {entry.value}
@@ -67,8 +71,8 @@ export function Dashboard() {
     <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-sm sm:text-base text-gray-400">Sistema de Gestión de Inventario - Avícola Jossy</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: c.text }}>Dashboard</h1>
+        <p className="text-sm sm:text-base" style={{ color: c.textSecondary }}>Sistema de Gestión de Inventario - Avícola Jossy</p>
       </div>
 
       {/* Stats Grid */}
@@ -81,9 +85,9 @@ export function Dashboard() {
               to={stat.link}
               className="backdrop-blur-xl rounded-xl p-4 sm:p-6 transition-all hover:scale-105 cursor-pointer"
               style={{
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+                background: c.bgCard,
+                border: `1px solid ${c.border}`,
+                boxShadow: c.shadowLg
               }}
             >
               <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -98,8 +102,8 @@ export function Dashboard() {
                 </div>
               </div>
               <div>
-                <p className="text-gray-400 text-xs sm:text-sm mb-1">{stat.label}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</p>
+                <p className="text-xs sm:text-sm mb-1" style={{ color: c.textSecondary }}>{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-bold" style={{ color: c.text }}>{stat.value}</p>
               </div>
             </Link>
           );
@@ -110,10 +114,10 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Gráfico de Barras - Aves por Tipo */}
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          background: c.bgCard,
+          border: `1px solid ${c.border}`
         }}>
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Inventario por Tipo de Ave</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Inventario por Tipo de Ave</h2>
           <div style={{ width: '100%', height: '250px', minHeight: '250px', minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={avesData}>
@@ -139,10 +143,10 @@ export function Dashboard() {
 
         {/* Gráfico de Líneas - Tendencia */}
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          background: c.bgCard,
+          border: `1px solid ${c.border}`
         }}>
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Tendencia de Inventario (6 meses)</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Tendencia de Inventario (6 meses)</h2>
           <div style={{ width: '100%', height: '250px', minHeight: '250px', minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={tendenciaData}>
@@ -178,10 +182,10 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Gráfico Circular - Distribución */}
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          background: c.bgCard,
+          border: `1px solid ${c.border}`
         }}>
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Distribución del Inventario</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Distribución del Inventario</h2>
           <div style={{ width: '100%', height: '220px', minHeight: '220px', minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -208,8 +212,8 @@ export function Dashboard() {
             {distribucionData.map((item, index) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                <span className="text-gray-300 truncate">{item.name}</span>
-                <span className="font-bold text-white ml-auto">{item.value}</span>
+                <span className="truncate" style={{ color: c.textSecondary }}>{item.name}</span>
+                <span className="font-bold ml-auto" style={{ color: c.text }}>{item.value}</span>
               </div>
             ))}
           </div>
@@ -217,27 +221,27 @@ export function Dashboard() {
 
         {/* Métricas Financieras */}
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          background: c.bgCard,
+          border: `1px solid ${c.border}`
         }}>
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Métricas Financieras</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Métricas Financieras</h2>
           <div className="space-y-3 sm:space-y-4">
             <div className="p-3 sm:p-4 rounded-lg" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-              <p className="text-gray-400 text-xs sm:text-sm mb-1">Valor Total del Inventario</p>
+              <p className="text-xs sm:text-sm mb-1" style={{ color: c.textSecondary }}>Valor Total del Inventario</p>
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#22c55e' }}>S/ 40,635</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">↑ 8.5% vs mes anterior</p>
+              <p className="text-xs sm:text-sm mt-2" style={{ color: c.textSecondary }}>↑ 8.5% vs mes anterior</p>
             </div>
             
             <div className="p-3 sm:p-4 rounded-lg" style={{ background: 'rgba(204, 170, 0, 0.1)', border: '1px solid rgba(204, 170, 0, 0.3)' }}>
-              <p className="text-gray-400 text-xs sm:text-sm mb-1">Precio Promedio por Ave</p>
+              <p className="text-xs sm:text-sm mb-1" style={{ color: c.textSecondary }}>Precio Promedio por Ave</p>
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#ccaa00' }}>S/ 32.56</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">↑ 2.1% vs mes anterior</p>
+              <p className="text-xs sm:text-sm mt-2" style={{ color: c.textSecondary }}>↑ 2.1% vs mes anterior</p>
             </div>
 
             <div className="p-3 sm:p-4 rounded-lg" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-              <p className="text-gray-400 text-xs sm:text-sm mb-1">Ingresos este mes</p>
+              <p className="text-xs sm:text-sm mb-1" style={{ color: c.textSecondary }}>Ingresos este mes</p>
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#3b82f6' }}>S/ 12,480</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">385 nuevas aves</p>
+              <p className="text-xs sm:text-sm mt-2" style={{ color: c.textSecondary }}>385 nuevas aves</p>
             </div>
           </div>
         </div>
@@ -245,10 +249,10 @@ export function Dashboard() {
 
       {/* Quick Actions */}
       <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
-        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Acciones Rápidas</h2>
+        <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Acciones Rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <Link
             to="/dashboard/proveedores"
@@ -260,8 +264,8 @@ export function Dashboard() {
           >
             <Users className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{ color: '#22c55e' }} />
             <div>
-              <p className="font-bold text-white text-sm sm:text-base">Gestionar Proveedores</p>
-              <p className="text-xs sm:text-sm text-gray-400">Añadir, editar o eliminar proveedores</p>
+              <p className="font-bold text-sm sm:text-base" style={{ color: c.text }}>Gestionar Proveedores</p>
+              <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Añadir, editar o eliminar proveedores</p>
             </div>
           </Link>
 
@@ -275,8 +279,8 @@ export function Dashboard() {
           >
             <Bird className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{ color: '#ccaa00' }} />
             <div>
-              <p className="font-bold text-white text-sm sm:text-base">Gestionar Aves</p>
-              <p className="text-xs sm:text-sm text-gray-400">Registrar y actualizar inventario de aves</p>
+              <p className="font-bold text-sm sm:text-base" style={{ color: c.text }}>Gestionar Aves</p>
+              <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Registrar y actualizar inventario de aves</p>
             </div>
           </Link>
         </div>
@@ -284,10 +288,10 @@ export function Dashboard() {
 
       {/* Recent Activity */}
       <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
-        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Actividad Reciente</h2>
+        <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6" style={{ color: c.text }}>Actividad Reciente</h2>
         <div className="space-y-3 sm:space-y-4">
           {[
             { action: 'Nuevo proveedor registrado', detail: 'Distribuidora San Martín', time: 'Hace 2 horas' },
@@ -297,11 +301,11 @@ export function Dashboard() {
             <div 
               key={index}
               className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 sm:p-4 rounded-lg"
-              style={{ background: 'rgba(255, 255, 255, 0.05)' }}
+              style={{ background: c.g04 }}
             >
               <div>
-                <p className="font-medium text-white text-sm sm:text-base">{activity.action}</p>
-                <p className="text-xs sm:text-sm text-gray-400">{activity.detail}</p>
+                <p className="font-medium text-sm sm:text-base" style={{ color: c.text }}>{activity.action}</p>
+                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>{activity.detail}</p>
               </div>
               <p className="text-xs sm:text-sm" style={{ color: '#ccaa00' }}>{activity.time}</p>
             </div>

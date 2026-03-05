@@ -5,17 +5,12 @@ import {
   AlertTriangle, ChevronDown, ChevronUp, Search, Filter
 } from 'lucide-react';
 import { useApp, Pago } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────
 const GOLD = '#ccaa00';
-const G04 = 'rgba(255,255,255,0.04)';
-const G06 = 'rgba(255,255,255,0.06)';
-const G08 = 'rgba(255,255,255,0.08)';
-const G10 = 'rgba(255,255,255,0.10)';
-const G15 = 'rgba(255,255,255,0.15)';
-const G20 = 'rgba(255,255,255,0.20)';
 
 const METODO_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
   Efectivo:  { color: '#10b981', icon: Banknote,   label: 'Efectivo' },
@@ -35,6 +30,8 @@ const formatFecha = (fecha: string) => {
 
 // ─── COMPONENT ────────────────────────────────────────────────────
 export function ValidacionPagos() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const { pagos, updatePago } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filtro, setFiltro] = useState<'pendientes' | 'todos' | 'confirmados'>('pendientes');
@@ -127,8 +124,8 @@ export function ValidacionPagos() {
             <DollarSign className="w-5 h-5" style={{ color: GOLD }} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Validación de Pagos</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="text-lg font-bold" style={{ color: c.text }}>Validación de Pagos</h2>
+            <p className="text-xs" style={{ color: c.textMuted }}>
               {pendientes > 0
                 ? <span className="text-amber-400 font-bold">{pendientes} pago{pendientes > 1 ? 's' : ''} pendiente{pendientes > 1 ? 's' : ''}</span>
                 : <span className="text-emerald-400">Sin pagos pendientes</span>}
@@ -140,16 +137,16 @@ export function ValidacionPagos() {
       {/* Search + Filters */}
       <div className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
           <input
             type="text"
             placeholder="Buscar por cliente..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none transition-all"
-            style={{ background: G06, border: `1px solid ${G15}` }}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm placeholder-gray-600 outline-none transition-all"
+            style={{ color: c.text, background: c.g06, border: `1px solid ${c.g15}` }}
             onFocus={e => (e.target.style.borderColor = `${GOLD}60`)}
-            onBlur={e => (e.target.style.borderColor = G15)}
+            onBlur={e => (e.target.style.borderColor = c.g15)}
           />
         </div>
 
@@ -164,9 +161,9 @@ export function ValidacionPagos() {
               onClick={() => setFiltro(f.key)}
               className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
               style={{
-                background: filtro === f.key ? f.color + '20' : G06,
-                border: `1px solid ${filtro === f.key ? f.color + '50' : G15}`,
-                color: filtro === f.key ? f.color : '#666',
+                background: filtro === f.key ? f.color + '20' : c.g06,
+                border: `1px solid ${filtro === f.key ? f.color + '50' : c.g15}`,
+                color: filtro === f.key ? f.color : c.textMuted,
               }}
             >
               {f.label}
@@ -177,20 +174,20 @@ export function ValidacionPagos() {
 
       {/* Date filter */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Calendar className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Fecha</span>
+        <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Fecha</span>
         <input
           type="date"
           value={filterFecha}
           onChange={e => setFilterFecha(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
-          style={{ background: G08, border: `1px solid ${G15}` }}
+          className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
+          style={{ color: c.text, background: c.g08, border: `1px solid ${c.g15}` }}
         />
         {filterFecha && (
           <button
             onClick={() => setFilterFecha('')}
-            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-colors"
-            style={{ background: G08, border: `1px solid ${G15}` }}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors"
+            style={{ color: c.textSecondary, background: c.g08, border: `1px solid ${c.g15}` }}
           >
             Ver todos
           </button>
@@ -204,9 +201,9 @@ export function ValidacionPagos() {
             {/* Day header */}
             <div className="flex items-center justify-between px-1 py-1">
               <div className="flex items-center gap-2.5">
-                <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs font-bold text-white">{formatFecha(fecha)}</span>
-                <span className="text-[10px] text-gray-600">{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
+                <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+                <span className="text-xs font-bold" style={{ color: c.text }}>{formatFecha(fecha)}</span>
+                <span className="text-[10px]" style={{ color: c.textMuted }}>{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
                 {pendientesDia > 0 && (
                   <span className="text-[9px] font-semibold text-amber-400/80 tabular-nums">
                     {pendientesDia} pend.
@@ -218,7 +215,7 @@ export function ValidacionPagos() {
                   </span>
                 )}
               </div>
-              <span className="text-xs font-black text-gray-400 tabular-nums font-mono">
+              <span className="text-xs font-black tabular-nums font-mono" style={{ color: c.textSecondary }}>
                 S/ {totalMonto.toFixed(2)}
               </span>
             </div>
@@ -240,14 +237,15 @@ export function ValidacionPagos() {
                       transition={{ delay: idx * 0.02 }}
                       className="rounded-2xl overflow-hidden"
                       style={{
-                        background: G04,
+                        background: c.g04,
                         border: `1px solid ${pago.estado === 'Pendiente' ? 'rgba(245,158,11,0.25)' : pago.estado === 'Confirmado' ? 'rgba(16,185,129,0.20)' : 'rgba(239,68,68,0.20)'}`,
                       }}
                     >
                       {/* Card header */}
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : pago.id)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 transition-all hover:bg-white/[0.02]"
+                        className="w-full flex items-center justify-between px-4 py-3.5 transition-all"
+                        style={{ background: 'transparent' }}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -256,7 +254,7 @@ export function ValidacionPagos() {
                           </div>
                           <div className="text-left">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-white">{pago.clienteNombre}</span>
+                              <span className="text-sm font-bold" style={{ color: c.text }}>{pago.clienteNombre}</span>
                               {pago.estado === 'Pendiente' && (
                                 <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-0.5">
                                   <Clock className="w-2.5 h-2.5" /> Pendiente
@@ -273,20 +271,20 @@ export function ValidacionPagos() {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
+                            <div className="flex items-center gap-3 text-[10px] mt-0.5" style={{ color: c.textMuted }}>
                               <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
                               <span>{pago.hora.slice(0, 5)}</span>
                               {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
-                                <span className="text-gray-600">{pago.fechasCubiertas.length} día{pago.fechasCubiertas.length > 1 ? 's' : ''}</span>
+                                <span style={{ color: c.textMuted }}>{pago.fechasCubiertas.length} día{pago.fechasCubiertas.length > 1 ? 's' : ''}</span>
                               )}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-black text-white tabular-nums font-mono">
+                          <span className="text-base font-black tabular-nums font-mono" style={{ color: c.text }}>
                             S/ {pago.monto.toFixed(2)}
                           </span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-500" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-500" />}
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" style={{ color: c.textMuted }} /> : <ChevronDown className="w-3.5 h-3.5" style={{ color: c.textMuted }} />}
                         </div>
                       </button>
 
@@ -299,27 +297,27 @@ export function ValidacionPagos() {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${G10}` }}>
+                            <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${c.g10}` }}>
                               <div className="pt-3 grid grid-cols-2 gap-3">
-                                <div className="rounded-xl p-3 space-y-2" style={{ background: G06, border: `1px solid ${G10}` }}>
+                                <div className="rounded-xl p-3 space-y-2" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
                                   <div className="flex justify-between text-[10px]">
-                                    <span className="text-gray-500">Método</span>
+                                    <span style={{ color: c.textMuted }}>Método</span>
                                     <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
                                   </div>
                                   <div className="flex justify-between text-[10px]">
-                                    <span className="text-gray-500">Monto</span>
-                                    <span className="text-white font-black font-mono">S/ {pago.monto.toFixed(2)}</span>
+                                    <span style={{ color: c.textMuted }}>Monto</span>
+                                    <span className="font-black font-mono" style={{ color: c.text }}>S/ {pago.monto.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-[10px]">
-                                    <span className="text-gray-500">Hora</span>
-                                    <span className="text-gray-300">{pago.hora.slice(0, 5)}</span>
+                                    <span style={{ color: c.textMuted }}>Hora</span>
+                                    <span style={{ color: c.textSecondary }}>{pago.hora.slice(0, 5)}</span>
                                   </div>
                                   {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
                                     <div className="text-[10px]">
-                                      <span className="text-gray-500">Días cubiertos:</span>
+                                      <span style={{ color: c.textMuted }}>Días cubiertos:</span>
                                       <div className="flex flex-wrap gap-1 mt-1">
                                         {pago.fechasCubiertas.map(fc => (
-                                          <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 font-mono">
+                                          <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded-md font-mono" style={{ background: c.g04, color: c.textSecondary }}>
                                             {formatFecha(fc)}
                                           </span>
                                         ))}
@@ -327,17 +325,17 @@ export function ValidacionPagos() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="rounded-xl p-3" style={{ background: G06, border: `1px solid ${G10}` }}>
-                                  <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">Observaciones</p>
-                                  <p className="text-xs text-gray-300 leading-relaxed">
-                                    {pago.observaciones || <span className="text-gray-600 italic">Sin observaciones</span>}
+                                <div className="rounded-xl p-3" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
+                                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: c.textMuted }}>Observaciones</p>
+                                  <p className="text-xs leading-relaxed" style={{ color: c.textSecondary }}>
+                                    {pago.observaciones || <span className="italic" style={{ color: c.textMuted }}>Sin observaciones</span>}
                                   </p>
                                 </div>
                               </div>
 
                               {pago.foto && (
                                 <div className="rounded-xl overflow-hidden cursor-pointer group relative"
-                                  style={{ border: `1px solid ${G15}` }}
+                                  style={{ border: `1px solid ${c.g15}` }}
                                   onClick={() => setPreviewFoto(pago.foto || null)}
                                 >
                                   <img src={pago.foto} alt="Comprobante" className="w-full max-h-48 object-cover" />
@@ -392,8 +390,8 @@ export function ValidacionPagos() {
 
         {pagosFiltrados.length === 0 && (
           <div className="text-center py-16">
-            <DollarSign className="w-12 h-12 mx-auto mb-3 text-gray-700" />
-            <p className="text-gray-500 text-sm">
+            <DollarSign className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
+            <p className="text-sm" style={{ color: c.textMuted }}>
               {filtro === 'pendientes'
                 ? 'No hay pagos pendientes de validación'
                 : filtro === 'confirmados'
@@ -412,7 +410,7 @@ export function ValidacionPagos() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.85)' }}
+            style={{ background: c.bgModalOverlay }}
             onClick={() => setConfirmDialog(null)}
           >
             <motion.div
@@ -422,9 +420,9 @@ export function ValidacionPagos() {
               onClick={e => e.stopPropagation()}
               className="w-full max-w-sm rounded-2xl p-6 space-y-5"
               style={{
-                background: 'linear-gradient(160deg, #0a0a0a, #111)',
+                background: c.bgModal,
                 border: `2px solid ${confirmDialog.accion === 'confirmar' ? 'rgba(16,185,129,0.30)' : 'rgba(239,68,68,0.30)'}`,
-                boxShadow: `0 20px 40px rgba(0,0,0,0.8)`,
+                boxShadow: c.shadowLg,
               }}
             >
               <div className="text-center">
@@ -437,10 +435,10 @@ export function ValidacionPagos() {
                     ? <CheckCircle className="w-7 h-7 text-emerald-400" />
                     : <AlertTriangle className="w-7 h-7 text-red-400" />}
                 </div>
-                <h4 className="text-white font-bold text-sm mb-1">
+                <h4 className="font-bold text-sm mb-1" style={{ color: c.text }}>
                   {confirmDialog.accion === 'confirmar' ? '¿Validar este pago?' : '¿Rechazar este pago?'}
                 </h4>
-                <p className="text-gray-400 text-xs">
+                <p className="text-xs" style={{ color: c.textSecondary }}>
                   {confirmDialog.accion === 'confirmar'
                     ? 'Confirma que se recibió el dinero correctamente.'
                     : 'El pago será marcado como rechazado y el cliente deberá volver a registrarlo.'
@@ -448,17 +446,17 @@ export function ValidacionPagos() {
                 </p>
               </div>
 
-              <div className="rounded-xl p-3 space-y-1.5" style={{ background: G06, border: `1px solid ${G10}` }}>
+              <div className="rounded-xl p-3 space-y-1.5" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-gray-500">Cliente</span>
-                  <span className="text-white font-bold">{confirmDialog.pago.clienteNombre}</span>
+                  <span style={{ color: c.textMuted }}>Cliente</span>
+                  <span className="font-bold" style={{ color: c.text }}>{confirmDialog.pago.clienteNombre}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-gray-500">Monto</span>
-                  <span className="text-white font-black font-mono">S/ {confirmDialog.pago.monto.toFixed(2)}</span>
+                  <span style={{ color: c.textMuted }}>Monto</span>
+                  <span className="font-black font-mono" style={{ color: c.text }}>S/ {confirmDialog.pago.monto.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-gray-500">Método</span>
+                  <span style={{ color: c.textMuted }}>Método</span>
                   <span className="font-bold" style={{ color: METODO_CONFIG[confirmDialog.pago.metodo]?.color || '#999' }}>
                     {METODO_CONFIG[confirmDialog.pago.metodo]?.label || confirmDialog.pago.metodo}
                   </span>
@@ -468,8 +466,8 @@ export function ValidacionPagos() {
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   onClick={() => setConfirmDialog(null)}
-                  className="py-2.5 rounded-xl font-bold text-xs transition-all hover:bg-white/10 text-gray-400"
-                  style={{ background: G08, border: `1px solid ${G15}` }}
+                  className="py-2.5 rounded-xl font-bold text-xs transition-all"
+                  style={{ color: c.textSecondary, background: c.g08, border: `1px solid ${c.g15}` }}
                 >
                   Cancelar
                 </button>
@@ -504,7 +502,7 @@ export function ValidacionPagos() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[80] flex items-center justify-center p-4 cursor-pointer"
-            style={{ background: 'rgba(0,0,0,0.90)' }}
+            style={{ background: c.bgModalOverlay }}
             onClick={() => setPreviewFoto(null)}
           >
             <motion.img
@@ -514,7 +512,7 @@ export function ValidacionPagos() {
               src={previewFoto}
               alt="Comprobante"
               className="max-w-full max-h-[85vh] rounded-xl object-contain"
-              style={{ border: `2px solid ${G20}` }}
+              style={{ border: `2px solid ${c.g20}` }}
             />
           </motion.div>
         )}

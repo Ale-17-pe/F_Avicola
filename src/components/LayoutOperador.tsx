@@ -14,9 +14,12 @@ import {
   UserCircle,
   Wrench,
   ShoppingCart,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme, t } from "../contexts/ThemeContext";
 import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
@@ -29,6 +32,8 @@ export function LayoutOperador() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const c = t(isDark);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -104,7 +109,7 @@ export function LayoutOperador() {
       {/* Logo */}
       <div
         className="p-4 sm:p-6 border-b flex-shrink-0"
-        style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+        style={{ borderColor: c.borderGold }}
       >
         <div className="flex items-center gap-3">
           <img
@@ -121,7 +126,7 @@ export function LayoutOperador() {
                 <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                 <span style={{ color: "#ccaa00" }}>JOSSY</span>
               </h1>
-              <p className="text-xs text-white hidden sm:block">
+              <p className="text-xs hidden sm:block" style={{ color: c.text }}>
                 Panel de Operador
               </p>
             </div>
@@ -144,7 +149,7 @@ export function LayoutOperador() {
                 background: isActive(item.path)
                   ? "linear-gradient(to right, #0d4a24, #ccaa00)"
                   : "transparent",
-                color: isActive(item.path) ? "#ffffff" : "#9ca3af",
+                color: isActive(item.path) ? "#ffffff" : c.inactiveNav,
               }}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
@@ -161,7 +166,7 @@ export function LayoutOperador() {
       {/* User Section */}
       <div
         className="p-3 sm:p-4 border-t space-y-2 flex-shrink-0"
-        style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+        style={{ borderColor: c.borderGold }}
       >
         {/* User Info - Solo cuando el sidebar está expandido */}
         {(isSidebarOpen || isMobileSidebarOpen) && user && (
@@ -179,10 +184,10 @@ export function LayoutOperador() {
                 <Wrench className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium truncate" style={{ color: c.text }}>
                   {user.nombre} {user.apellido}
                 </p>
-                <p className="text-xs text-gray-400 capitalize truncate">
+                <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>
                   {user.rol}
                 </p>
               </div>
@@ -239,7 +244,9 @@ export function LayoutOperador() {
     <div
       className="min-h-screen flex"
       style={{
-        background: "#000000",
+        background: c.bgPage,
+        color: c.text,
+        transition: 'background 0.25s ease, color 0.25s ease',
       }}
     >
       {/* Desktop Sidebar - visible en lg y up */}
@@ -248,8 +255,8 @@ export function LayoutOperador() {
           isSidebarOpen ? "w-[280px]" : "w-[80px]"
         }`}
         style={{
-          background: "rgba(0, 0, 0, 0.6)",
-          borderColor: "rgba(204, 170, 0, 0.2)",
+          background: c.bgSidebarAlt,
+          borderColor: c.borderGold,
         }}
       >
         <SidebarContent />
@@ -259,14 +266,15 @@ export function LayoutOperador() {
       {isMobileSidebarOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm"
+            style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.3)' }}
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <aside
             className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r"
             style={{
-              background: "rgba(0, 0, 0, 0.95)",
-              borderColor: "rgba(204, 170, 0, 0.2)",
+              background: c.bgSidebarMobile,
+              borderColor: c.borderGold,
               ...slideInStyle,
             }}
           >
@@ -287,8 +295,8 @@ export function LayoutOperador() {
             isSidebarOpen ? "lg:left-[280px]" : "lg:left-[80px]"
           } left-0`}
           style={{
-            background: "rgba(0, 0, 0, 0.6)",
-            borderColor: "rgba(204, 170, 0, 0.2)",
+            background: c.bgSidebarAlt,
+            borderColor: c.borderGold,
           }}
         >
           <div className="px-3 sm:px-5 lg:px-6">
@@ -315,7 +323,7 @@ export function LayoutOperador() {
 
               {/* Título de Página Dinámico */}
               <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold tracking-tight" style={{ color: c.text }}>
                   <span className="text-amber-400 lg:hidden mr-2">|</span>
                   {currentTitle}
                 </h2>
@@ -344,13 +352,23 @@ export function LayoutOperador() {
 
                 {/* Info usuario - visible en md y up (tablet landscape) */}
                 <div className="hidden md:block text-right">
-                  <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[150px]">
+                  <p className="text-xs sm:text-sm font-medium truncate max-w-[150px]" style={{ color: c.text }}>
                     {user?.nombre} {user?.apellido}
                   </p>
-                  <p className="text-xs text-gray-400 capitalize truncate">
+                  <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>
                     {user?.rol}
                   </p>
                 </div>
+
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                  style={{ background: c.g10, color: '#ccaa00' }}
+                  title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                >
+                  {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </button>
 
                 {/* Avatar */}
                 <div

@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Camera, X, Lock
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -125,7 +126,7 @@ const SkeletonView = () => (
     </div>
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
       {[...Array(5)].map((_,i) => (
-        <div key={i} className="rounded-xl p-3 space-y-2" style={{ background:'rgba(0,0,0,0.3)', border:`1px solid ${G15}` }}>
+        <div key={i} className="rounded-xl p-3 space-y-2" style={{ background:G08, border:`1px solid ${G15}` }}>
           <div className="flex justify-between"><Shimmer className="h-2.5 w-16" /><Shimmer className="h-4 w-4 rounded" /></div>
           <Shimmer className="h-6 w-20" />
         </div>
@@ -158,6 +159,8 @@ const SkeletonView = () => (
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export function DashboardSecretaria() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const context = useApp();
   const { costosClientes, presentaciones, clientes, tiposAve, contenedores } = context;
   const pedidosConfirmados = context.pedidosConfirmados || [];
@@ -583,7 +586,7 @@ export function DashboardSecretaria() {
     const cancel = () => { setLocal(value.toFixed(2)); setEditing(false); };
 
     if (locked) return (
-      <span className="text-xs tabular-nums" style={{color:'#4b5563',fontFamily:'ui-monospace,monospace'}}>
+      <span className="text-xs tabular-nums" style={{color:c.textMuted,fontFamily:'ui-monospace,monospace'}}>
         {prefix}{value.toFixed(2)}
       </span>
     );
@@ -592,7 +595,7 @@ export function DashboardSecretaria() {
         onChange={e=>setLocal(e.target.value)}
         onKeyDown={e=>{ if(e.key==='Enter') commit(); if(e.key==='Escape') cancel(); }}
         onBlur={commit} autoFocus
-        style={{ background:'rgba(20,17,5,0.9)', border:`1px solid ${GOLD}`, color, width:'100%', padding:'3px 6px', borderRadius:6, textAlign:'right', fontSize:12, fontFamily:'ui-monospace,monospace', outline:'none' }}
+        style={{ background:c.bgModal, border:`1px solid ${GOLD}`, color, width:'100%', padding:'3px 6px', borderRadius:6, textAlign:'right', fontSize:12, fontFamily:'ui-monospace,monospace', outline:'none' }}
       />
     );
     return (
@@ -633,21 +636,21 @@ export function DashboardSecretaria() {
         initial={{opacity:0,y:-8,scale:0.96}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-8,scale:0.96}}
         transition={{duration:0.18}}
         className="absolute top-full mt-2 z-50 rounded-xl overflow-hidden shadow-2xl"
-        style={{background:'rgba(12,10,3,0.98)', border:`1px solid ${G30}`, minWidth:260, right:0}}>
+        style={{background:c.bgModal, border:`1px solid ${G30}`, minWidth:260, right:0}}>
         {/* cal header */}
         <div className="flex items-center justify-between px-4 py-3" style={{borderBottom:`1px solid ${G15}`}}>
           <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-gray-400" />
+            <ChevronLeft className="w-4 h-4" style={{color:c.textSecondary}} />
           </button>
           <span className="text-sm font-bold capitalize" style={{color:GOLD}}>{monthName}</span>
           <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4" style={{color:c.textSecondary}} />
           </button>
         </div>
         {/* day names */}
         <div className="grid grid-cols-7 px-3 pt-2 pb-1">
           {['D','L','M','X','J','V','S'].map(d=>(
-            <div key={d} className="text-center text-[10px] font-bold text-gray-600 py-1">{d}</div>
+            <div key={d} className="text-center text-[10px] font-bold py-1" style={{color:c.textMuted}}>{d}</div>
           ))}
         </div>
         {/* days */}
@@ -668,7 +671,7 @@ export function DashboardSecretaria() {
                     ? {background:G15, color:GOLD, border:`1px solid ${G30}`}
                     : isFuture
                       ? {color:'#2d2d2d', cursor:'not-allowed'}
-                      : {color:'#9ca3af', cursor:'pointer'}
+                      : {color:c.textSecondary, cursor:'pointer'}
                 }
                 onMouseEnter={e=>{ if(!isSelected&&!isFuture) (e.target as HTMLElement).style.background=G10; }}
                 onMouseLeave={e=>{ if(!isSelected&&!isFuture) (e.target as HTMLElement).style.background='transparent'; }}
@@ -714,8 +717,8 @@ export function DashboardSecretaria() {
             <DollarSign className="w-5 h-5" style={{color:GOLD}} />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-none">Cartera de Cobro</h1>
-            <p className="text-gray-500 text-xs mt-0.5">Registro diario de pesajes y cobros</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-none" style={{color:c.text}}>Cartera de Cobro</h1>
+            <p className="text-xs mt-0.5" style={{color:c.textMuted}}>Registro diario de pesajes y cobros</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -737,7 +740,7 @@ export function DashboardSecretaria() {
         <button 
           onClick={() => setStatsCollapsed(!statsCollapsed)}
           className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:text-amber-400"
-          style={{ color: 'rgba(156,163,175,0.7)' }}
+          style={{ color: c.textMuted }}
         >
           {statsCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           Estadísticas {statsCollapsed ? '(expandir)' : ''}
@@ -763,11 +766,11 @@ export function DashboardSecretaria() {
             initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{delay:0.08+i*0.06}}
             whileHover={{y:-2,transition:{duration:0.12}}}
             className="rounded-xl p-3 relative overflow-hidden"
-            style={{background:'rgba(0,0,0,0.35)', border:`1px solid ${m.border}`}}>
+            style={{background:c.bgCard, border:`1px solid ${m.border}`}}>
             <div className="absolute top-0 left-0 right-0 h-[2px]"
               style={{background:`linear-gradient(90deg,transparent,${m.col}50,transparent)`}} />
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">{m.label}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider" style={{color:c.textMuted}}>{m.label}</p>
               <m.icon className="w-3.5 h-3.5" style={{color:m.col}} />
             </div>
             <p className="text-lg md:text-xl font-bold tabular-nums" style={{color:m.col}}>{m.value}</p>
@@ -782,11 +785,11 @@ export function DashboardSecretaria() {
       {/* CONTROLS */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{color:c.textMuted}} />
           <input type="text" placeholder="Buscar cliente, tipo..."
             value={busqueda} onChange={e=>setBusqueda(e.target.value)}
-            className="pl-9 pr-4 py-2 rounded-xl text-xs text-white placeholder-gray-600 outline-none w-56"
-            style={{background:'rgba(0,0,0,0.4)', border:`1px solid ${G15}`}}
+            className="pl-9 pr-4 py-2 rounded-xl text-xs placeholder-gray-600 outline-none w-56"
+            style={{background:c.bgCardAlt, border:`1px solid ${G15}`, color:c.text}}
             onFocus={e=>(e.target.style.borderColor=G30)}
             onBlur={e=>(e.target.style.borderColor=G15)}
           />
@@ -817,10 +820,10 @@ export function DashboardSecretaria() {
           <span className="text-sm font-bold" style={{color:GOLD}}>
             {esHoy ? '● HOY' : fmtDate(fechaSeleccionada)}
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs" style={{color:c.textMuted}}>
             {!esHoy && fechaSeleccionada}
           </span>
-          <ChevronDown className="w-3 h-3 text-gray-500 ml-1" style={{transform:showCal?'rotate(180deg)':'', transition:'transform 0.2s'}} />
+          <ChevronDown className="w-3 h-3 ml-1" style={{color:c.textMuted, transform:showCal?'rotate(180deg)':'', transition:'transform 0.2s'}} />
         </button>
 
         {/* flecha derecha — día siguiente (bloqueado si es hoy o futuro) */}
@@ -835,7 +838,7 @@ export function DashboardSecretaria() {
 
         {/* stat pills a la derecha */}
         <div className="flex items-center gap-3 px-4 border-l" style={{borderColor:G15}}>
-          <span className="text-xs text-gray-500">{filasCartera.length} registros</span>
+          <span className="text-xs" style={{color:c.textMuted}}>{filasCartera.length} registros</span>
           <span className="text-xs font-semibold" style={{color:COL.pedido}}>
             {filasCartera.filter(f=>f.confirmado).length} ✓
           </span>
@@ -848,8 +851,8 @@ export function DashboardSecretaria() {
             value={fechaSeleccionada}
             max={hoyStr()}
             onChange={e=>{ if(e.target.value) setFechaSeleccionada(e.target.value); }}
-            className="px-2 py-1.5 rounded-lg text-[11px] text-white outline-none cursor-pointer"
-            style={{background:'rgba(0,0,0,0.4)', border:`1px solid ${G15}`}}
+            className="px-2 py-1.5 rounded-lg text-[11px] outline-none cursor-pointer"
+            style={{background:c.bgCardAlt, border:`1px solid ${G15}`, color:c.text}}
             title="Ir a fecha específica"
           />
         </div>
@@ -863,15 +866,15 @@ export function DashboardSecretaria() {
       {/* TABLE */}
       <motion.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{delay:0.2}}
         className="rounded-xl overflow-hidden"
-        style={{background:'rgba(0,0,0,0.3)', border:`1px solid ${G20}`, boxShadow:`0 0 30px ${G04}`}}>
+        style={{background:c.bgCard, border:`1px solid ${G20}`, boxShadow:c.shadowMd}}>
 
         {/* table bar */}
         <div className="px-4 py-2.5 border-b flex items-center justify-between"
-          style={{background:`linear-gradient(to right,${G06},rgba(0,0,0,0.3))`, borderColor:G15}}>
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+          style={{background:`linear-gradient(to right,${G06},${c.bgCard})`, borderColor:G15}}>
+          <h2 className="text-sm font-bold flex items-center gap-2" style={{color:c.text}}>
             <FileSpreadsheet className="w-4 h-4" style={{color:GOLD}} />
             Cartera de Cobro
-            <span className="text-xs font-normal text-gray-500">— Detalle diario</span>
+            <span className="text-xs font-normal" style={{color:c.textMuted}}>— Detalle diario</span>
           </h2>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
             style={{background:G10, border:`1px solid ${G30}`}}>
@@ -885,14 +888,14 @@ export function DashboardSecretaria() {
             <motion.div animate={{rotate:360}} transition={{duration:1.1,repeat:Infinity,ease:'linear'}}
               className="w-9 h-9 rounded-full border-4"
               style={{borderColor:G20, borderTopColor:GOLD}} />
-            <p className="text-gray-500 text-sm">Cargando...</p>
+            <p className="text-sm" style={{color:c.textMuted}}>Cargando...</p>
           </div>
         ) : filasOrdenadas.length===0 ? (
           <div className="py-16 text-center">
             <motion.div animate={{y:[0,-6,0]}} transition={{duration:2.5,repeat:Infinity}}>
-              <FileSpreadsheet className="w-14 h-14 mx-auto mb-3 text-gray-700" />
+              <FileSpreadsheet className="w-14 h-14 mx-auto mb-3" style={{color:c.textMuted}} />
             </motion.div>
-            <p className="text-gray-400 mb-1">No hay registros para este día</p>
+            <p className="mb-1" style={{color:c.textSecondary}}>No hay registros para este día</p>
             <button onClick={refrescar}
               className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105"
               style={{background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.25)', color:'#3b82f6'}}>
@@ -969,10 +972,10 @@ export function DashboardSecretaria() {
 
                         {/* CLIENTE — solo nombre + pedidoId, sin avatar */}
                         <td className="px-2 py-2 whitespace-nowrap">
-                          <span className="text-white font-semibold text-xs block truncate max-w-[120px]" title={fila.cliente}>
+                          <span className="font-semibold text-xs block truncate max-w-[120px]" style={{color:c.text}} title={fila.cliente}>
                             {fila.cliente}
                           </span>
-                          <span className="text-[9px] text-gray-600 font-mono">#{fila.pedidoId.slice(-5)}</span>
+                          <span className="text-[9px] font-mono" style={{color:c.textMuted}}>#{fila.pedidoId.slice(-5)}</span>
                         </td>
 
                         {/* TIPO — solo el nombre, sin variedad en paréntesis redundante */}
@@ -988,14 +991,14 @@ export function DashboardSecretaria() {
                               Vivo
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-400">{fila.presentacion}</span>
+                            <span className="text-[10px]" style={{color:c.textSecondary}}>{fila.presentacion}</span>
                           )}
                         </td>
 
                         {/* CANTIDAD */}
                         <td className="px-2 py-2 text-right whitespace-nowrap">
-                          <span className="text-white font-bold text-xs tabular-nums">{fila.cantidad}</span>
-                          <div className="text-[9px] text-gray-600">{fila.cantidadLabel}</div>
+                          <span className="font-bold text-xs tabular-nums" style={{color:c.text}}>{fila.cantidad}</span>
+                          <div className="text-[9px]" style={{color:c.textMuted}}>{fila.cantidadLabel}</div>
                         </td>
 
                         {/* P. PEDIDO */}
@@ -1117,7 +1120,7 @@ export function DashboardSecretaria() {
 
                         {/* CONDUCTOR */}
                         <td className="px-2 py-2 whitespace-nowrap">
-                          <span className="text-white text-[10px] truncate block max-w-[90px]">{fila.conductor}</span>
+                          <span className="text-[10px] truncate block max-w-[90px]" style={{color:c.text}}>{fila.conductor}</span>
                         </td>
 
                         {/* ACCIONES */}
@@ -1157,7 +1160,7 @@ export function DashboardSecretaria() {
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.contenedor}}>{tot('pesoContenedor').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.bruto}}>{tot('pesoBruto').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.repesada}}>{tot('repesada').toFixed(2)}</span></td>
-                  <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums text-white">{tot('merma').toFixed(2)}</span></td>
+                  <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:c.text}}>{tot('merma').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.devolucion}}>{tot('devolucionPeso').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.adicion}}>{tot('adicionPeso').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right">
@@ -1186,11 +1189,11 @@ export function DashboardSecretaria() {
         {confirmModal.open && (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{background:'rgba(0,0,0,0.88)', backdropFilter:'blur(10px)'}}
+            style={{background:c.bgModalOverlay, backdropFilter:'blur(10px)'}}
             onClick={()=>setConfirmModal({open:false,filaId:null,cliente:''})}>
             <motion.div initial={{scale:0.92,y:12}} animate={{scale:1,y:0}} exit={{scale:0.92,y:12}}
               className="rounded-2xl w-full max-w-sm"
-              style={{background:'rgba(10,9,5,0.98)', border:`1px solid ${G30}`, boxShadow:`0 20px 50px -12px ${G10}`}}
+              style={{background:c.bgModal, border:`1px solid ${G30}`, boxShadow:c.shadowLg}}
               onClick={e=>e.stopPropagation()}>
               <div className="p-6">
                 <motion.div initial={{scale:0}} animate={{scale:1}} transition={{type:'spring',stiffness:220,delay:0.06}}
@@ -1198,8 +1201,8 @@ export function DashboardSecretaria() {
                   style={{background:G08, border:`2px solid ${G30}`}}>
                   <AlertTriangle className="w-6 h-6" style={{color:GOLD}} />
                 </motion.div>
-                <h3 className="text-lg font-bold text-white text-center mb-2">¿Confirmar liquidación?</h3>
-                <p className="text-gray-400 text-sm text-center mb-4">
+                <h3 className="text-lg font-bold text-center mb-2" style={{color:c.text}}>¿Confirmar liquidación?</h3>
+                <p className="text-sm text-center mb-4" style={{color:c.textSecondary}}>
                   Emitir boleta para <span className="font-bold" style={{color:GOLD}}>{confirmModal.cliente}</span>
                 </p>
                 <div className="mb-5 p-2.5 rounded-xl text-center"
@@ -1210,8 +1213,8 @@ export function DashboardSecretaria() {
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button onClick={()=>setConfirmModal({open:false,filaId:null,cliente:''})}
-                    className="py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/5 transition-all"
-                    style={{border:'1px solid rgba(255,255,255,0.10)'}}>
+                    className="py-2.5 rounded-xl text-sm font-semibold hover:bg-white/5 transition-all"
+                    style={{border:'1px solid ' + c.border, color:c.textSecondary}}>
                     Cancelar
                   </button>
                   <button onClick={ejecutarConfirm}
@@ -1235,11 +1238,11 @@ export function DashboardSecretaria() {
           return (
             <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              style={{background:'rgba(0,0,0,0.88)', backdropFilter:'blur(10px)'}}
+              style={{background:c.bgModalOverlay, backdropFilter:'blur(10px)'}}
               onClick={() => setRecalcModal({open:false, filaId:null, lines:[]})}>
               <motion.div initial={{scale:0.92,y:12}} animate={{scale:1,y:0}} exit={{scale:0.92,y:12}}
                 className="rounded-2xl w-full max-w-lg"
-                style={{background:'rgba(10,9,5,0.98)', border:`1px solid ${G30}`, boxShadow:`0 20px 50px -12px ${G10}`}}
+                style={{background:c.bgModal, border:`1px solid ${G30}`, boxShadow:c.shadowLg}}
                 onClick={e => e.stopPropagation()}>
                 <div className="p-5">
                   {/* Header */}
@@ -1249,8 +1252,8 @@ export function DashboardSecretaria() {
                       <Package className="w-5 h-5" style={{color:COL.contenedor}} />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">Recalcular Contenedores</h3>
-                      <p className="text-[10px] text-gray-500">{filaActual?.cliente} — {filaActual?.tipo}</p>
+                      <h3 className="text-base font-bold" style={{color:c.text}}>Recalcular Contenedores</h3>
+                      <p className="text-[10px]" style={{color:c.textMuted}}>{filaActual?.cliente} — {filaActual?.tipo}</p>
                     </div>
                   </div>
 
@@ -1258,12 +1261,12 @@ export function DashboardSecretaria() {
                   <div className="mb-4 p-3 rounded-xl flex items-center justify-between"
                     style={{background:G04, border:`1px solid ${G10}`}}>
                     <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Peso original</p>
-                      <p className="text-sm font-bold text-white tabular-nums">{pesoOriginal.toFixed(2)} kg</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:c.textMuted}}>Peso original</p>
+                      <p className="text-sm font-bold tabular-nums" style={{color:c.text}}>{pesoOriginal.toFixed(2)} kg</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Contenedores</p>
-                      <p className="text-sm font-bold text-white tabular-nums">{filaActual?.cantidadContenedores ?? 0}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:c.textMuted}}>Contenedores</p>
+                      <p className="text-sm font-bold tabular-nums" style={{color:c.text}}>{filaActual?.cantidadContenedores ?? 0}</p>
                     </div>
                   </div>
 
@@ -1277,7 +1280,7 @@ export function DashboardSecretaria() {
                           value={line.tipoContenedor}
                           onChange={e => recalcUpdateLine(idx, 'tipoContenedor', e.target.value)}
                           className="flex-1 text-xs font-semibold rounded-lg px-2 py-1.5"
-                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:'white', outline:'none'}}>
+                          style={{background:c.bgInput, border:`1px solid ${G20}`, color:c.text, outline:'none'}}>
                           {opcionesContenedor.map(o => (
                             <option key={o.tipo} value={o.tipo}>{o.tipo} ({o.peso} kg)</option>
                           ))}
@@ -1287,7 +1290,7 @@ export function DashboardSecretaria() {
                           value={line.pesoUnit}
                           onChange={e => recalcUpdateLine(idx, 'pesoUnit', parseFloat(e.target.value) || 0)}
                           className="w-16 text-xs font-mono text-center rounded-lg px-1 py-1.5"
-                          style={{background:'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color:COL.contenedor, outline:'none'}}
+                          style={{background:c.bgInput, border:`1px solid ${G20}`, color:COL.contenedor, outline:'none'}}
                           title="Peso unitario (kg)" />
                         {/* Cantidad */}
                         <input type="number" min="0"
@@ -1295,7 +1298,7 @@ export function DashboardSecretaria() {
                           onChange={e => recalcUpdateLine(idx, 'cantidad', parseInt(e.target.value) || 0)}
                           disabled={idx === 0}
                           className="w-14 text-xs font-mono text-center rounded-lg px-1 py-1.5"
-                          style={{background: idx === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.5)', border:`1px solid ${G20}`, color: idx === 0 ? '#9ca3af' : 'white', outline:'none', cursor: idx === 0 ? 'not-allowed' : 'text'}}
+                          style={{background: idx === 0 ? c.bgCard : c.bgInput, border:`1px solid ${G20}`, color: idx === 0 ? c.textSecondary : c.text, outline:'none', cursor: idx === 0 ? 'not-allowed' : 'text'}}
                           title={idx === 0 ? 'Auto-calculado (restante)' : 'Cantidad'} />
                         {/* Subtotal */}
                         <span className="text-[10px] font-mono w-16 text-right tabular-nums" style={{color:COL.contenedor}}>
@@ -1326,16 +1329,16 @@ export function DashboardSecretaria() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:COL.contenedor}}>Nuevo peso total</p>
-                        <p className="text-lg font-black tabular-nums text-white">{recalcNuevoPesoTotal.toFixed(2)} <span className="text-xs font-normal text-gray-500">kg</span></p>
+                        <p className="text-lg font-black tabular-nums" style={{color:c.text}}>{recalcNuevoPesoTotal.toFixed(2)} <span className="text-xs font-normal" style={{color:c.textMuted}}>kg</span></p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Diferencia</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:c.textMuted}}>Diferencia</p>
                         <p className={`text-sm font-bold tabular-nums ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-green-400' : 'text-gray-400'}`}>
                           {diff > 0 ? '+' : ''}{diff.toFixed(2)} kg
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total cont.</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:c.textMuted}}>Total cont.</p>
                         <p className={`text-sm font-bold tabular-nums ${recalcNuevaCantTotal === (filaActual?.cantidadContenedores ?? 0) ? 'text-green-400' : 'text-red-400'}`}>
                           {recalcNuevaCantTotal} / {filaActual?.cantidadContenedores ?? 0}
                         </p>
@@ -1346,8 +1349,8 @@ export function DashboardSecretaria() {
                   {/* Actions */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <button onClick={() => setRecalcModal({open:false, filaId:null, lines:[]})}
-                      className="py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/5 transition-all"
-                      style={{border:'1px solid rgba(255,255,255,0.10)'}}>
+                      className="py-2.5 rounded-xl text-sm font-semibold hover:bg-white/5 transition-all"
+                      style={{border:'1px solid ' + c.border, color:c.textSecondary}}>
                       Cancelar
                     </button>
                     <button onClick={aplicarRecalc}
@@ -1367,11 +1370,11 @@ export function DashboardSecretaria() {
         {fotosModal.open && (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{background:'rgba(0,0,0,0.88)', backdropFilter:'blur(10px)'}}
+            style={{background:c.bgModalOverlay, backdropFilter:'blur(10px)'}}
             onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}>
             <motion.div initial={{scale:0.92,y:12}} animate={{scale:1,y:0}} exit={{scale:0.92,y:12}}
               className="rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
-              style={{background:'rgba(10,9,5,0.98)', border:`1px solid ${G30}`, boxShadow:`0 20px 50px -12px ${G10}`}}
+              style={{background:c.bgModal, border:`1px solid ${G30}`, boxShadow:c.shadowLg}}
               onClick={e => e.stopPropagation()}>
               <div className="p-5 space-y-4">
                 {/* Header */}
@@ -1382,27 +1385,28 @@ export function DashboardSecretaria() {
                       <Camera className="w-4 h-4" style={{color:GOLD}} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">{fotosModal.titulo}</h3>
-                      <p className="text-[10px] text-gray-500">{fotosModal.fotos.length} foto{fotosModal.fotos.length !== 1 ? 's' : ''} de evidencia</p>
+                      <h3 className="text-sm font-bold" style={{color:c.text}}>{fotosModal.titulo}</h3>
+                      <p className="text-[10px]" style={{color:c.textMuted}}>{fotosModal.fotos.length} foto{fotosModal.fotos.length !== 1 ? 's' : ''} de evidencia</p>
                     </div>
                   </div>
                   <button onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}
                     className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
-                    <X className="w-4 h-4 text-gray-500" />
+                    <X className="w-4 h-4" style={{color:c.textMuted}} />
                   </button>
                 </div>
 
                 {/* Grid de fotos */}
                 <div className={`grid gap-3 ${fotosModal.fotos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {fotosModal.fotos.map((foto, idx) => (
-                    <div key={idx} className="rounded-xl overflow-hidden border border-gray-700/50 group cursor-pointer"
+                    <div key={idx} className="rounded-xl overflow-hidden group cursor-pointer"
+                      style={{border:'1px solid ' + c.borderSubtle}}
                       onClick={() => window.open(foto.url, '_blank')}>
-                      <div className="aspect-square bg-gray-900 relative">
+                      <div className="aspect-square relative" style={{background:c.bgCardAlt}}>
                         <img src={foto.url} alt={`Evidencia ${idx + 1}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x400?text=Sin+imagen'; }} />
                         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                          <p className="text-[10px] text-gray-300 font-mono">
+                          <p className="text-[10px] font-mono" style={{color:c.textSecondary}}>
                             {new Date(foto.fecha).toLocaleString('es-PE', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}
                           </p>
                         </div>
@@ -1413,8 +1417,8 @@ export function DashboardSecretaria() {
 
                 {/* Cerrar */}
                 <button onClick={() => setFotosModal({open:false, titulo:'', fotos:[]})}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-white/5 transition-all"
-                  style={{border:'1px solid rgba(255,255,255,0.10)'}}>
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold hover:bg-white/5 transition-all"
+                  style={{border:'1px solid ' + c.border, color:c.textSecondary}}>
                   Cerrar
                 </button>
               </div>

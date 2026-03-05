@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { useApp } from '../contexts/AppContext';
 import { Factory, Clock, Monitor, Layers, Package, Users, Truck, Box, Hash, User as UserIcon, AlertCircle, CheckCircle, Calendar, ChevronRight, Play, Pause } from 'lucide-react';
 import logo from '../assets/AvicolaLogo.png';
@@ -8,6 +9,8 @@ export function PantallaProduccion() {
   const [horaActual, setHoraActual] = useState(new Date());
   const [produccionActiva, setProduccionActiva] = useState(true);
   const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   useEffect(() => {
     document.title = "Cola de Producción | Avícola Jossy";
@@ -33,8 +36,8 @@ export function PantallaProduccion() {
 
   // Forzar fondo negro
   useEffect(() => {
-    document.body.style.backgroundColor = '#000000';
-    document.body.style.backgroundImage = 'radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.3) 0%, rgba(0, 0, 0, 1) 70%)';
+    document.body.style.backgroundColor = isDark ? '#000000' : '#f3f4f6';
+    document.body.style.backgroundImage = isDark ? 'radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.3) 0%, rgba(0, 0, 0, 1) 70%)' : 'none';
     return () => {
       document.body.style.backgroundColor = '';
       document.body.style.backgroundImage = '';
@@ -119,17 +122,17 @@ export function PantallaProduccion() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black text-gray-300 font-sans overflow-hidden p-4 md:p-6">
+    <div className="fixed inset-0 font-sans overflow-hidden p-4 md:p-6" style={{ backgroundColor: c.bgPage, color: c.textSecondary }}>
       {/* Header mejorado */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-4">
-              <div className="p-1 bg-black border border-amber-500/30 rounded-xl shadow-lg overflow-hidden flex items-center justify-center w-14 h-14 md:w-20 md:h-20">
+              <div className="p-1 rounded-xl overflow-hidden flex items-center justify-center w-14 h-14 md:w-20 md:h-20" style={{ backgroundColor: c.bgPage, border: `1px solid ${c.borderGold}`, boxShadow: c.shadowSm }}>
                 <img src={logo} alt="Avícola Rocío" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight" style={{ color: c.text }}>
                 PEDIDOS EN PRODUCCIÓN
                 </h1>
                
@@ -142,7 +145,7 @@ export function PantallaProduccion() {
             <div className="text-right">
               <div className="flex items-center justify-end gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-amber-400" />
-                <div className="text-sm md:text-base text-gray-300 font-semibold tracking-wide">
+                <div className="text-sm md:text-base font-semibold tracking-wide" style={{ color: c.textSecondary }}>
                   {formatearFecha(horaActual)}
                 </div>
               </div>
@@ -151,14 +154,14 @@ export function PantallaProduccion() {
                   <div className="relative">
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-500/5 pointer-events-none"></div>
                   </div>
-                  <div className="h-20 w-px bg-gradient-to-b from-transparent via-gray-800 to-transparent mx-4"></div>
+                  <div className="h-20 w-px mx-4" style={{ background: `linear-gradient(to bottom, transparent, ${c.border}, transparent)` }}></div>
                 </div>
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="text-right">
-                    <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white font-mono tracking-tighter leading-none">
+                    <div className="text-3xl md:text-4xl lg:text-5xl font-bold font-mono tracking-tighter leading-none" style={{ color: c.text }}>
                       {formatearHora(horaActual)}
                     </div>
-                    <div className="text-xs md:text-sm text-gray-400 mt-1 flex items-center justify-end gap-2">
+                    <div className="text-xs md:text-sm mt-1 flex items-center justify-end gap-2" style={{ color: c.textMuted }}>
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-lg"></div>
                       </div>
@@ -174,7 +177,7 @@ export function PantallaProduccion() {
       {/* Lista de Pedidos */}
       <div className="mb-6 md:mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: c.text }}>
             <div className="p-2 bg-gradient-to-br from-blue-900/30 to-blue-900/10 rounded-lg border border-blue-700/30">
               <Layers className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
             </div>
@@ -182,22 +185,22 @@ export function PantallaProduccion() {
             </h2>
         </div>
         
-        <div className="bg-gradient-to-b from-gray-900/20 to-black border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="rounded-2xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}`, boxShadow: c.shadowLg }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gradient-to-r from-gray-900/80 to-black border-b border-gray-800">
+                <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.border}` }}>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-white uppercase tracking-wider">Cliente</div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: c.text }}>Cliente</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-white uppercase tracking-wider">Producto</div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: c.text }}>Producto</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Variedad</div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Variedad</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Cantidad</div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Cantidad</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-center">
                     <div className="text-xs font-bold text-blue-400 uppercase tracking-wider">Machos</div>
@@ -206,7 +209,7 @@ export function PantallaProduccion() {
                     <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">Hembras</div>
                   </th>
                   <th className="px-4 md:px-6 py-3 md:py-4 text-left">
-                    <div className="text-xs font-bold text-white-400 uppercase tracking-wider">Presentación</div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Presentación</div>
                   </th>
                 </tr>
               </thead>
@@ -214,15 +217,15 @@ export function PantallaProduccion() {
                 {pedidosEnProduccion.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="text-white-500 flex flex-col items-center max-w-md mx-auto">
+                      <div className="flex flex-col items-center max-w-md mx-auto" style={{ color: c.textMuted }}>
                         <div className="relative mb-4">
-                          <Monitor className="w-20 h-20 text-gray-800" /> 
+                          <Monitor className="w-20 h-20" style={{ color: c.border }} /> 
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <AlertCircle className="w-10 h-10 text-gray-700" />
+                            <AlertCircle className="w-10 h-10" style={{ color: c.textMuted }} />
                           </div>
                         </div>
-                        <h3 className="text-xl font-bold text-white-700 mb-2">SIN PEDIDOS EN PRODUCCIÓN</h3>
-                        <p className="text-white-600 text-center">
+                        <h3 className="text-xl font-bold mb-2" style={{ color: c.textMuted }}>SIN PEDIDOS EN PRODUCCIÓN</h3>
+                        <p className="text-center" style={{ color: c.textMuted }}>
                           La línea de producción está esperando nuevas órdenes.
                         </p>
                       </div>
@@ -238,13 +241,15 @@ export function PantallaProduccion() {
                     return (
                       <tr 
                         key={pedido.id}
-                        className={`border-b border-gray-800/30 transition-all duration-300 ${
+                        className={`transition-all duration-300 ${
                           esPrimero 
                             ? 'bg-gradient-to-r from-amber-900/20 via-amber-900/10 to-transparent border-l-4 border-l-amber-500' 
-                            : idx % 2 === 0 
-                              ? 'bg-gray-900/5 hover:bg-gray-900/20' 
-                              : 'bg-black/30 hover:bg-gray-900/10'
+                            : ''
                         }`}
+                        style={{
+                          borderBottom: `1px solid ${c.borderSubtle}`,
+                          ...(!esPrimero && { background: idx % 2 === 0 ? c.bgCard : c.bgCardAlt }),
+                        }}
                       >
                         {/* Cliente */}
                         <td className="px-4 md:px-6 py-3 md:py-4">
@@ -256,11 +261,11 @@ export function PantallaProduccion() {
                               </div>
                             )}
                             <div>
-                              <div className="text-white font-bold text-base md:text-lg uppercase tracking-tight">
+                              <div className="font-bold text-base md:text-lg uppercase tracking-tight" style={{ color: c.text }}>
                                 {pedido.cliente}
                               </div>
                               {pedido.numeroCliente && (
-                                <div className="text-xs text-gray-500 font-mono tracking-wider">
+                                <div className="text-xs font-mono tracking-wider" style={{ color: c.textMuted }}>
                                   #{pedido.numeroCliente}
                                 </div>
                               )}
@@ -286,7 +291,7 @@ export function PantallaProduccion() {
                               {variedad}
                             </div>
                           ) : (
-                            <span className="text-gray-500 text-sm">—</span>
+                            <span className="text-sm" style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         
@@ -299,7 +304,7 @@ export function PantallaProduccion() {
                               const jabas = pedido.cantidadJabas || (infoGenero ? infoGenero.machos + infoGenero.hembras : pedido.cantidad);
                               return (
                                 <div className="flex flex-col">
-                                  <div className="text-white font-black text-2xl md:text-3xl tabular-nums">
+                                  <div className="font-black text-2xl md:text-3xl tabular-nums" style={{ color: c.text }}>
                                     {jabas.toLocaleString()}
                                   </div>
                                   <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mt-1">
@@ -310,10 +315,10 @@ export function PantallaProduccion() {
                             }
                             return (
                               <div className="flex flex-col">
-                                <div className="text-white font-black text-2xl md:text-3xl tabular-nums">
+                                <div className="font-black text-2xl md:text-3xl tabular-nums" style={{ color: c.text }}>
                                   {pedido.cantidad.toLocaleString()}
                                 </div>
-                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                                <div className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: c.textMuted }}>
                                   unidades
                                 </div>
                               </div>
@@ -337,7 +342,7 @@ export function PantallaProduccion() {
                               </div>
                             </div>
                           ) : (
-                            <span className="text-gray-500">—</span>
+                            <span style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         
@@ -357,7 +362,7 @@ export function PantallaProduccion() {
                               </div>
                             </div>
                           ) : (
-                            <span className="text-gray-500">—</span>
+                            <span style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         

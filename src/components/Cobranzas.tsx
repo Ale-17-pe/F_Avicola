@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Plus, Edit2, Trash2, Search, User, Bike, Phone, MapPin, Calendar, CheckCircle, QrCode, X } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface Moto {
   placa: string;
@@ -32,6 +33,9 @@ interface CodigoQR {
 }
 
 export function Cobranzas() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   const [trabajadores, setTrabajadores] = useState<TrabajadorCobranza[]>([
     {
       id: '1',
@@ -313,10 +317,10 @@ export function Cobranzas() {
               style={{
                 background: activeTab === 'trabajadores' 
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'trabajadores' ? 'white' : '#9ca3af',
+                  : c.g10,
+                color: activeTab === 'trabajadores' ? c.text : c.textSecondary,
                 boxShadow: activeTab === 'trabajadores' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-                border: activeTab === 'trabajadores' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+                border: activeTab === 'trabajadores' ? 'none' : `1px solid ${c.border}`
               }}
             >
               <Users className="w-4 h-4 flex-shrink-0" />
@@ -328,10 +332,10 @@ export function Cobranzas() {
               style={{
                 background: activeTab === 'qr' 
                   ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'qr' ? 'white' : '#9ca3af',
+                  : c.g10,
+                color: activeTab === 'qr' ? c.text : c.textSecondary,
                 boxShadow: activeTab === 'qr' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none',
-                border: activeTab === 'qr' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'
+                border: activeTab === 'qr' ? 'none' : `1px solid ${c.border}`
               }}
             >
               <QrCode className="w-4 h-4 flex-shrink-0" />
@@ -341,12 +345,12 @@ export function Cobranzas() {
         </div>
 
         {/* Desktop Tabs */}
-        <div className="hidden sm:flex border-b" style={{ borderColor: 'rgba(204, 170, 0, 0.3)' }}>
+        <div className="hidden sm:flex border-b" style={{ borderColor: c.borderGold }}>
           <button
             onClick={() => setActiveTab('trabajadores')}
             className="px-4 sm:px-6 py-2 sm:py-3 font-bold transition-all flex items-center gap-1 sm:gap-2 relative group"
             style={{
-              color: activeTab === 'trabajadores' ? '#ccaa00' : '#9ca3af',
+              color: activeTab === 'trabajadores' ? '#ccaa00' : c.textSecondary,
               borderBottom: activeTab === 'trabajadores' ? '3px solid #ccaa00' : '3px solid transparent'
             }}
           >
@@ -361,7 +365,7 @@ export function Cobranzas() {
             onClick={() => setActiveTab('qr')}
             className="px-4 sm:px-6 py-2 sm:py-3 font-bold transition-all flex items-center gap-1 sm:gap-2 relative group"
             style={{
-              color: activeTab === 'qr' ? '#ccaa00' : '#9ca3af',
+              color: activeTab === 'qr' ? '#ccaa00' : c.textSecondary,
               borderBottom: activeTab === 'qr' ? '3px solid #ccaa00' : '3px solid transparent'
             }}
           >
@@ -381,23 +385,23 @@ export function Cobranzas() {
           {/* Métricas */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(204, 170, 0, 0.3)'
+              background: c.bgCard,
+              border: `1px solid ${c.borderGold}`
             }}>
               <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <p className="text-gray-400 text-xs sm:text-sm font-medium">Total</p>
+                <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Total</p>
                 <Users className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ccaa00' }} />
               </div>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{totalTrabajadores}</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1">Registrados</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold" style={{ color: c.text }}>{totalTrabajadores}</p>
+              <p className="text-xs sm:text-sm mt-1" style={{ color: c.textSecondary }}>Registrados</p>
             </div>
 
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: c.bgCard,
               border: '1px solid rgba(34, 197, 94, 0.3)'
             }}>
               <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <p className="text-gray-400 text-xs sm:text-sm font-medium">Activos</p>
+                <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Activos</p>
                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
               </div>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold" style={{ color: '#22c55e' }}>{trabajadoresActivos}</p>
@@ -405,31 +409,32 @@ export function Cobranzas() {
             </div>
 
             <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: c.bgCard,
               border: '1px solid rgba(156, 163, 175, 0.3)'
             }}>
               <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <p className="text-gray-400 text-xs sm:text-sm font-medium">Inactivos</p>
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Inactivos</p>
+                <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: c.textSecondary }} />
               </div>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-400">{trabajadoresInactivos}</p>
-              <p className="text-xs sm:text-sm text-gray-500">Fuera de servicio</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold" style={{ color: c.textSecondary }}>{trabajadoresInactivos}</p>
+              <p className="text-xs sm:text-sm" style={{ color: c.textMuted }}>Fuera de servicio</p>
             </div>
           </div>
 
           {/* Barra de Acciones */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5" style={{ color: c.textSecondary }} />
               <input
                 type="text"
                 placeholder="Buscar por nombre, DNI o placa..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                 style={{
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(204, 170, 0, 0.3)'
+                  background: c.bgCard,
+                  border: `1px solid ${c.borderGold}`,
+                  color: c.text
                 }}
               />
             </div>
@@ -455,15 +460,15 @@ export function Cobranzas() {
                 key={trabajador.id}
                 className="backdrop-blur-xl rounded-xl overflow-hidden"
                 style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(204, 170, 0, 0.3)',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+                  background: c.bgCardAlt,
+                  border: `1px solid ${c.borderGold}`,
+                  boxShadow: c.shadowMd
                 }}
               >
                 {/* Header con Estado */}
                 <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{
-                  background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.3))',
-                  borderColor: 'rgba(204, 170, 0, 0.2)'
+                  background: `linear-gradient(135deg, rgba(204, 170, 0, 0.15), ${c.bgCard})`,
+                  borderColor: c.borderGold
                 }}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -477,10 +482,10 @@ export function Cobranzas() {
                         <User className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-black" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-white font-bold text-sm sm:text-base md:text-lg truncate">
+                        <h3 className="font-bold text-sm sm:text-base md:text-lg truncate" style={{ color: c.text }}>
                           {trabajador.nombre} {trabajador.apellidos}
                         </h3>
-                        <p className="text-xs text-gray-400">DNI: {trabajador.dni}</p>
+                        <p className="text-xs" style={{ color: c.textSecondary }}>DNI: {trabajador.dni}</p>
                       </div>
                     </div>
                     <span 
@@ -507,24 +512,24 @@ export function Cobranzas() {
                     <p className="text-xs font-bold mb-2 sm:mb-3" style={{ color: '#ccaa00' }}>INFORMACIÓN PERSONAL</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                       <div className="flex items-start gap-1 sm:gap-2">
-                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" style={{ color: c.textSecondary }} />
                         <div>
-                          <p className="text-xs text-gray-400">Teléfono</p>
-                          <p className="text-white font-medium text-sm sm:text-base">{trabajador.telefono}</p>
+                          <p className="text-xs" style={{ color: c.textSecondary }}>Teléfono</p>
+                          <p className="font-medium text-sm sm:text-base" style={{ color: c.text }}>{trabajador.telefono}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-1 sm:gap-2">
-                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" style={{ color: c.textSecondary }} />
                         <div>
-                          <p className="text-xs text-gray-400">Fecha</p>
-                          <p className="text-white font-medium text-sm sm:text-base">{trabajador.fechaContratacion}</p>
+                          <p className="text-xs" style={{ color: c.textSecondary }}>Fecha</p>
+                          <p className="font-medium text-sm sm:text-base" style={{ color: c.text }}>{trabajador.fechaContratacion}</p>
                         </div>
                       </div>
                       <div className="col-span-1 sm:col-span-2 flex items-start gap-1 sm:gap-2">
-                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" style={{ color: c.textSecondary }} />
                         <div className="min-w-0">
-                          <p className="text-xs text-gray-400">Dirección</p>
-                          <p className="text-white font-medium text-sm sm:text-base truncate">{trabajador.direccion}</p>
+                          <p className="text-xs" style={{ color: c.textSecondary }}>Dirección</p>
+                          <p className="font-medium text-sm sm:text-base truncate" style={{ color: c.text }}>{trabajador.direccion}</p>
                         </div>
                       </div>
                     </div>
@@ -534,7 +539,7 @@ export function Cobranzas() {
                   <div 
                     className="p-3 sm:p-4 rounded-lg"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(0, 0, 0, 0.3))',
+                      background: `linear-gradient(135deg, rgba(59, 130, 246, 0.15), ${c.bgCard})`,
                       border: '1px solid rgba(59, 130, 246, 0.3)'
                     }}
                   >
@@ -544,22 +549,22 @@ export function Cobranzas() {
                     </p>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <div>
-                        <p className="text-xs text-gray-400">Placa</p>
-                        <p className="text-white font-bold text-base sm:text-lg md:text-xl">{trabajador.moto.placa}</p>
+                        <p className="text-xs" style={{ color: c.textSecondary }}>Placa</p>
+                        <p className="font-bold text-base sm:text-lg md:text-xl" style={{ color: c.text }}>{trabajador.moto.placa}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400">Marca / Modelo</p>
-                        <p className="text-white font-medium text-sm sm:text-base truncate">
+                        <p className="text-xs" style={{ color: c.textSecondary }}>Marca / Modelo</p>
+                        <p className="font-medium text-sm sm:text-base truncate" style={{ color: c.text }}>
                           {trabajador.moto.marca} {trabajador.moto.modelo}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400">Año</p>
-                        <p className="text-white font-medium text-sm sm:text-base">{trabajador.moto.año}</p>
+                        <p className="text-xs" style={{ color: c.textSecondary }}>Año</p>
+                        <p className="font-medium text-sm sm:text-base" style={{ color: c.text }}>{trabajador.moto.año}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400">Color</p>
-                        <p className="text-white font-medium text-sm sm:text-base">{trabajador.moto.color}</p>
+                        <p className="text-xs" style={{ color: c.textSecondary }}>Color</p>
+                        <p className="font-medium text-sm sm:text-base" style={{ color: c.text }}>{trabajador.moto.color}</p>
                       </div>
                     </div>
                   </div>
@@ -598,11 +603,11 @@ export function Cobranzas() {
 
           {trabajadoresFiltrados.length === 0 && (
             <div className="text-center py-8 sm:py-12 backdrop-blur-xl rounded-xl" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(204, 170, 0, 0.3)'
+              background: c.bgCard,
+              border: `1px solid ${c.borderGold}`
             }}>
-              <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-600" />
-              <p className="text-gray-400 text-sm sm:text-base">No se encontraron trabajadores</p>
+              <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4" style={{ color: c.textMuted }} />
+              <p className="text-sm sm:text-base" style={{ color: c.textSecondary }}>No se encontraron trabajadores</p>
             </div>
           )}
         </>
@@ -614,8 +619,8 @@ export function Cobranzas() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">Gestión de Códigos QR</h2>
-              <p className="text-xs sm:text-sm text-gray-400">Administra códigos QR para pagos digitales</p>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>Gestión de Códigos QR</h2>
+              <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Administra códigos QR para pagos digitales</p>
             </div>
             <button
               onClick={() => setIsQRFormOpen(true)}
@@ -638,16 +643,16 @@ export function Cobranzas() {
                 key={qr.id}
                 className="backdrop-blur-xl rounded-xl overflow-hidden"
                 style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
+                  background: c.bgCardAlt,
                   border: `1px solid ${qr.metodo === 'Yape' ? 'rgba(138, 43, 226, 0.3)' : 'rgba(0, 191, 255, 0.3)'}`,
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+                  boxShadow: c.shadowMd
                 }}
               >
                 {/* Header */}
                 <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{
                   background: qr.metodo === 'Yape' 
-                    ? 'linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(0, 0, 0, 0.3))' 
-                    : 'linear-gradient(135deg, rgba(0, 191, 255, 0.15), rgba(0, 0, 0, 0.3))',
+                    ? `linear-gradient(135deg, rgba(138, 43, 226, 0.15), ${c.bgCard})` 
+                    : `linear-gradient(135deg, rgba(0, 191, 255, 0.15), ${c.bgCard})`,
                   borderColor: qr.metodo === 'Yape' ? 'rgba(138, 43, 226, 0.2)' : 'rgba(0, 191, 255, 0.2)'
                 }}>
                   <div className="flex items-center justify-between">
@@ -664,8 +669,8 @@ export function Cobranzas() {
                         <QrCode className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-white font-bold text-sm sm:text-base md:text-lg truncate">{qr.metodo}</h3>
-                        <p className="text-xs text-gray-400 truncate">{qr.nombreTitular}</p>
+                        <h3 className="font-bold text-sm sm:text-base md:text-lg truncate" style={{ color: c.text }}>{qr.metodo}</h3>
+                        <p className="text-xs truncate" style={{ color: c.textSecondary }}>{qr.nombreTitular}</p>
                       </div>
                     </div>
                     <button
@@ -703,13 +708,13 @@ export function Cobranzas() {
                   <div className="space-y-1 sm:space-y-2">
                     {qr.telefono && (
                       <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-white truncate">{qr.telefono}</span>
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: c.textSecondary }} />
+                        <span className="truncate" style={{ color: c.text }}>{qr.telefono}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-400 truncate">Registrado: {qr.fechaRegistro}</span>
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: c.textSecondary }} />
+                      <span className="truncate" style={{ color: c.textSecondary }}>Registrado: {qr.fechaRegistro}</span>
                     </div>
                   </div>
 
@@ -747,11 +752,11 @@ export function Cobranzas() {
 
           {codigosQR.length === 0 && (
             <div className="text-center py-8 sm:py-12 backdrop-blur-xl rounded-xl" style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(204, 170, 0, 0.3)'
+              background: c.bgCard,
+              border: `1px solid ${c.borderGold}`
             }}>
-              <QrCode className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-600" />
-              <p className="text-gray-400 text-sm sm:text-base">No hay códigos QR registrados</p>
+              <QrCode className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4" style={{ color: c.textMuted }} />
+              <p className="text-sm sm:text-base" style={{ color: c.textSecondary }}>No hay códigos QR registrados</p>
             </div>
           )}
         </>
@@ -759,19 +764,19 @@ export function Cobranzas() {
 
       {/* Modal de Formulario de Trabajadores */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-2xl rounded-xl sm:rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-              border: '2px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.1)'
+              background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
+              border: `2px solid ${c.borderGold}`,
+              boxShadow: c.shadowLg
             }}
           >
             {/* Header */}
             <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5 border-b" style={{
-              background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))',
-              borderColor: 'rgba(204, 170, 0, 0.2)'
+              background: `linear-gradient(135deg, rgba(204, 170, 0, 0.15), ${c.bgCardAlt})`,
+              borderColor: c.borderGold
             }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -788,7 +793,7 @@ export function Cobranzas() {
                       <Plus className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-black" />
                     )}
                   </div>
-                  <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-white truncate">
+                  <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold truncate" style={{ color: c.text }}>
                     {editingTrabajador ? 'Editar Trabajador' : 'Nuevo Trabajador'}
                   </h2>
                 </div>
@@ -806,8 +811,8 @@ export function Cobranzas() {
             <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
               {/* Información Personal */}
               <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(204, 170, 0, 0.3)'
+                background: c.bgCard,
+                border: `1px solid ${c.borderGold}`
               }}>
                 <h3 className="text-sm sm:text-base md:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2" style={{ color: '#ccaa00' }}>
                   <User className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -823,10 +828,11 @@ export function Cobranzas() {
                       required
                       value={formData.nombre}
                       onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="Ej: Carlos"
                     />
@@ -840,10 +846,11 @@ export function Cobranzas() {
                       required
                       value={formData.apellidos}
                       onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="Ej: Méndez Vargas"
                     />
@@ -859,10 +866,11 @@ export function Cobranzas() {
                       maxLength={8}
                       value={formData.dni}
                       onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="12345678"
                     />
@@ -878,10 +886,11 @@ export function Cobranzas() {
                       maxLength={9}
                       value={formData.telefono}
                       onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="987654321"
                     />
@@ -895,10 +904,11 @@ export function Cobranzas() {
                       required
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="Ej: Av. Los Pinos 123, Lima"
                     />
@@ -912,10 +922,11 @@ export function Cobranzas() {
                       required
                       value={formData.fechaContratacion}
                       onChange={(e) => setFormData({ ...formData, fechaContratacion: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                     />
                   </div>
@@ -924,7 +935,7 @@ export function Cobranzas() {
 
               {/* Información de la Moto */}
               <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                background: 'rgba(0, 0, 0, 0.3)',
+                background: c.bgCard,
                 border: '1px solid rgba(59, 130, 246, 0.3)'
               }}>
                 <h3 className="text-sm sm:text-base md:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2" style={{ color: '#3b82f6' }}>
@@ -941,10 +952,11 @@ export function Cobranzas() {
                       required
                       value={formData.placa}
                       onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 uppercase"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 uppercase"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                        color: c.text
                       }}
                       placeholder="ABC-123"
                       maxLength={7}
@@ -959,10 +971,11 @@ export function Cobranzas() {
                       required
                       value={formData.marca}
                       onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                        color: c.text
                       }}
                       placeholder="Ej: Honda"
                     />
@@ -976,10 +989,11 @@ export function Cobranzas() {
                       required
                       value={formData.modelo}
                       onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                        color: c.text
                       }}
                       placeholder="Ej: Wave 110"
                     />
@@ -995,10 +1009,11 @@ export function Cobranzas() {
                       max="2025"
                       value={formData.año}
                       onChange={(e) => setFormData({ ...formData, año: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                        color: c.text
                       }}
                       placeholder="2023"
                     />
@@ -1012,10 +1027,11 @@ export function Cobranzas() {
                       required
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                        color: c.text
                       }}
                       placeholder="Ej: Rojo"
                     />
@@ -1030,9 +1046,9 @@ export function Cobranzas() {
                   onClick={resetForm}
                   className="w-full sm:flex-1 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-bold transition-all hover:scale-105"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#ffffff',
-                    border: '1.5px solid rgba(255, 255, 255, 0.2)'
+                    background: c.g04,
+                    color: c.text,
+                    border: `1.5px solid ${c.border}`
                   }}
                 >
                   Cancelar
@@ -1066,19 +1082,19 @@ export function Cobranzas() {
 
       {/* Modal de Formulario de QR */}
       {isQRFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-2xl rounded-xl sm:rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-lg max-h-[90vh] overflow-y-auto mx-2 sm:mx-4"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-              border: '2px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.1)'
+              background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
+              border: `2px solid ${c.borderGold}`,
+              boxShadow: c.shadowLg
             }}
           >
             {/* Header */}
             <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b" style={{
-              background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))',
-              borderColor: 'rgba(204, 170, 0, 0.2)'
+              background: `linear-gradient(135deg, rgba(204, 170, 0, 0.15), ${c.bgCardAlt})`,
+              borderColor: c.borderGold
             }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -1091,7 +1107,7 @@ export function Cobranzas() {
                   >
                     <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
                   </div>
-                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-white truncate">
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold truncate" style={{ color: c.text }}>
                     {editingQR ? 'Editar QR' : 'Agregar QR'}
                   </h2>
                 </div>
@@ -1108,8 +1124,8 @@ export function Cobranzas() {
             {/* Formulario */}
             <form onSubmit={handleQRSubmit} className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
               <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(204, 170, 0, 0.3)'
+                background: c.bgCard,
+                border: `1px solid ${c.borderGold}`
               }}>
                 <div className="space-y-3 sm:space-y-4">
                   <div>
@@ -1120,10 +1136,11 @@ export function Cobranzas() {
                       required
                       value={qrFormData.metodo}
                       onChange={(e) => setQRFormData({ ...qrFormData, metodo: e.target.value as 'Yape' | 'Plin' })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                     >
                       <option value="Yape" className="bg-gray-800">Yape</option>
@@ -1140,10 +1157,11 @@ export function Cobranzas() {
                       required
                       value={qrFormData.nombreTitular}
                       onChange={(e) => setQRFormData({ ...qrFormData, nombreTitular: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="Ej: Avícola Jossy SAC"
                     />
@@ -1159,10 +1177,11 @@ export function Cobranzas() {
                       maxLength={9}
                       value={qrFormData.telefono}
                       onChange={(e) => setQRFormData({ ...qrFormData, telefono: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="987654321"
                     />
@@ -1177,14 +1196,15 @@ export function Cobranzas() {
                       required
                       value={qrFormData.imagenQR}
                       onChange={(e) => setQRFormData({ ...qrFormData, imagenQR: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1.5px solid rgba(204, 170, 0, 0.3)'
+                        background: c.bgInput,
+                        border: `1.5px solid ${c.borderGold}`,
+                        color: c.text
                       }}
                       placeholder="https://ejemplo.com/mi-qr.png"
                     />
-                    <p className="text-xs text-gray-400 mt-1 sm:mt-2">
+                    <p className="text-xs mt-1 sm:mt-2" style={{ color: c.textSecondary }}>
                       Sube la imagen a un servicio de alojamiento y pega la URL aquí
                     </p>
                   </div>
@@ -1215,9 +1235,9 @@ export function Cobranzas() {
                   onClick={resetQRForm}
                   className="w-full sm:flex-1 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-bold transition-all hover:scale-105"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#ffffff',
-                    border: '1.5px solid rgba(255, 255, 255, 0.2)'
+                    background: c.g04,
+                    color: c.text,
+                    border: `1.5px solid ${c.border}`
                   }}
                 >
                   Cancelar

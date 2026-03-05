@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, Download, ChevronDown, ChevronUp, Package, Users, ShoppingCart, DollarSign, Truck, TrendingUp, UserCheck, Calendar } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface Modulo {
   id: string;
@@ -20,6 +21,8 @@ interface Submodulo {
 
 export function Informes() {
   const { empleados, clientes, tiposAve, costosClientes } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const [moduloExpandido, setModuloExpandido] = useState<string | null>(null);
 
   // Función para convertir datos a CSV
@@ -248,11 +251,11 @@ export function Informes() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-white flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl flex items-center gap-3" style={{ color: c.text }}>
             <FileText className="w-8 h-8 text-amber-400" />
             Informes
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1" style={{ color: c.textSecondary }}>
             Descarga reportes de todos los módulos del sistema
           </p>
         </div>
@@ -277,53 +280,55 @@ export function Informes() {
         {modulos.map((modulo) => (
           <div
             key={modulo.id}
-            className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl overflow-hidden"
+            className="rounded-xl overflow-hidden"
+            style={{ background: c.bgCard, border: `1px solid ${c.border}` }}
           >
             {/* Header del Módulo */}
             <button
               onClick={() => toggleModulo(modulo.id)}
-              className="w-full px-5 py-4 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
+              className="w-full px-5 py-4 flex items-center justify-between transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className={`bg-gradient-to-r ${modulo.color} p-3 rounded-lg text-white`}>
                   {modulo.icono}
                 </div>
                 <div className="text-left">
-                  <h3 className="text-white text-lg">{modulo.nombre}</h3>
-                  <p className="text-gray-400 text-sm">
+                  <h3 className="text-lg" style={{ color: c.text }}>{modulo.nombre}</h3>
+                  <p className="text-sm" style={{ color: c.textSecondary }}>
                     {modulo.submodulos.length} {modulo.submodulos.length === 1 ? 'reporte' : 'reportes'} disponibles
                   </p>
                 </div>
               </div>
               {moduloExpandido === modulo.id ? (
-                <ChevronUp className="w-5 h-5 text-gray-400" />
+                <ChevronUp className="w-5 h-5" style={{ color: c.textSecondary }} />
               ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400" />
+                <ChevronDown className="w-5 h-5" style={{ color: c.textSecondary }} />
               )}
             </button>
 
             {/* Submódulos */}
             {moduloExpandido === modulo.id && (
-              <div className="border-t border-zinc-700 bg-zinc-900/50">
+              <div className="border-t" style={{ borderColor: c.border, background: c.bgCardAlt }}>
                 {modulo.submodulos.map((submodulo) => (
                   <div
                     key={submodulo.id}
-                    className="px-5 py-4 border-b border-zinc-800 last:border-b-0 hover:bg-zinc-800/30 transition-colors"
+                    className="px-5 py-4 border-b last:border-b-0 transition-colors"
+                    style={{ borderColor: c.borderSubtle }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <h4 className="text-white mb-1">{submodulo.nombre}</h4>
-                        <p className="text-gray-400 text-sm mb-3">
+                        <h4 className="mb-1" style={{ color: c.text }}>{submodulo.nombre}</h4>
+                        <p className="text-sm mb-3" style={{ color: c.textSecondary }}>
                           {submodulo.descripcion}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          <span className="text-xs text-gray-500 bg-zinc-800 px-2 py-1 rounded">
+                          <span className="text-xs px-2 py-1 rounded" style={{ color: c.textMuted, background: c.g06 }}>
                             {submodulo.generarDatos().length} registros
                           </span>
-                          <span className="text-xs text-gray-500 bg-zinc-800 px-2 py-1 rounded">
+                          <span className="text-xs px-2 py-1 rounded" style={{ color: c.textMuted, background: c.g06 }}>
                             {submodulo.columnas.length} columnas
                           </span>
-                          <span className="text-xs text-gray-500 bg-zinc-800 px-2 py-1 rounded">
+                          <span className="text-xs px-2 py-1 rounded" style={{ color: c.textMuted, background: c.g06 }}>
                             Formato CSV
                           </span>
                         </div>
@@ -345,8 +350,8 @@ export function Informes() {
       </div>
 
       {/* Estadísticas Generales */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-6">
-        <h3 className="text-white mb-4 flex items-center gap-2">
+      <div className="rounded-xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+        <h3 className="mb-4 flex items-center gap-2" style={{ color: c.text }}>
           <TrendingUp className="w-5 h-5 text-amber-400" />
           Resumen de Datos Disponibles
         </h3>
@@ -361,8 +366,8 @@ export function Informes() {
                 <div className={`bg-gradient-to-r ${modulo.color} p-2 rounded-lg text-white inline-flex mb-2`}>
                   {modulo.icono}
                 </div>
-                <p className="text-2xl text-white mb-1">{totalRegistros}</p>
-                <p className="text-gray-400 text-sm">{modulo.nombre}</p>
+                <p className="text-2xl mb-1" style={{ color: c.text }}>{totalRegistros}</p>
+                <p className="text-sm" style={{ color: c.textSecondary }}>{modulo.nombre}</p>
               </div>
             );
           })}

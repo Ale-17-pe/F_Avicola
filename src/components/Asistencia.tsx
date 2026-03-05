@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, Clock, UserCheck, Users, CheckCircle, XCircle, Search, ScanLine, ChevronLeft, ChevronRight, User, AlertCircle } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface RegistroAsistencia {
   id: string;
@@ -57,6 +58,7 @@ const hoy = new Date().toISOString().split('T')[0];
 
 export function Asistencia() {
   const { empleados } = useApp();
+  const { isDark } = useTheme(); const c = t(isDark);
   
   const [registrosAsistencia, setRegistrosAsistencia] = useState<RegistroAsistencia[]>(() => {
     // Generar datos históricos al iniciar
@@ -218,11 +220,11 @@ export function Asistencia() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-white flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl flex items-center gap-3" style={{ color: c.text }}>
             <UserCheck className="w-8 h-8 text-amber-400" />
             Asistencia
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1" style={{ color: c.textSecondary }}>
             Control de asistencia de empleados
           </p>
         </div>
@@ -236,12 +238,13 @@ export function Asistencia() {
       </div>
 
       {/* Navegación de Fechas */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => cambiarFecha(-1)}
-              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-gray-300"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: c.textSecondary }}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -249,7 +252,7 @@ export function Asistencia() {
             <div className="text-center px-4">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <Calendar className="w-5 h-5 text-amber-400" />
-                <h2 className="text-xl text-white capitalize">
+                <h2 className="text-xl capitalize" style={{ color: c.text }}>
                   {formatearFecha(fechaSeleccionada)}
                 </h2>
               </div>
@@ -265,7 +268,8 @@ export function Asistencia() {
             
             <button
               onClick={() => cambiarFecha(1)}
-              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-gray-300"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: c.textSecondary }}
               disabled={fechaSeleccionada >= hoy}
             >
               <ChevronRight className={`w-5 h-5 ${fechaSeleccionada >= hoy ? 'opacity-30' : ''}`} />
@@ -274,13 +278,14 @@ export function Asistencia() {
 
           {/* Selector rápido de fecha */}
           <div className="flex items-center gap-2">
-            <label className="text-gray-400 text-sm whitespace-nowrap">Ir a fecha:</label>
+            <label className="text-sm whitespace-nowrap" style={{ color: c.textSecondary }}>Ir a fecha:</label>
             <input
               type="date"
               value={fechaSeleccionada}
               onChange={(e) => setFechaSeleccionada(e.target.value)}
               max={hoy}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              className="rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
             />
           </div>
         </div>
@@ -288,11 +293,11 @@ export function Asistencia() {
 
       {/* Métricas del Día */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Empleados</p>
-              <p className="text-3xl text-white mt-1">{totalEmpleados}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Total Empleados</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{totalEmpleados}</p>
             </div>
             <div className="bg-amber-500/20 p-3 rounded-lg">
               <Users className="w-8 h-8 text-amber-400" />
@@ -300,11 +305,11 @@ export function Asistencia() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Presentes</p>
-              <p className="text-3xl text-white mt-1">{presentes}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Presentes</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{presentes}</p>
             </div>
             <div className="bg-green-500/20 p-3 rounded-lg">
               <CheckCircle className="w-8 h-8 text-green-400" />
@@ -312,11 +317,11 @@ export function Asistencia() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Ausentes</p>
-              <p className="text-3xl text-white mt-1">{ausentes}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Ausentes</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{ausentes}</p>
             </div>
             <div className="bg-red-500/20 p-3 rounded-lg">
               <XCircle className="w-8 h-8 text-red-400" />
@@ -324,11 +329,11 @@ export function Asistencia() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Tardanzas</p>
-              <p className="text-3xl text-white mt-1">{tardanzas}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Tardanzas</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{tardanzas}</p>
             </div>
             <div className="bg-orange-500/20 p-3 rounded-lg">
               <Clock className="w-8 h-8 text-orange-400" />
@@ -338,18 +343,19 @@ export function Asistencia() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Búsqueda */}
           <div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: c.textSecondary }} />
               <input
                 type="text"
                 placeholder="Buscar empleado..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                className="w-full rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
               />
             </div>
           </div>
@@ -359,7 +365,8 @@ export function Asistencia() {
             <select
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
             >
               <option value="all">Todos los estados</option>
               <option value="Presente">Presentes</option>
@@ -371,14 +378,14 @@ export function Asistencia() {
 
       {/* Empleados Ausentes (solo si hay ausentes hoy) */}
       {fechaSeleccionada === hoy && empleadosAusentes.length > 0 && (
-        <div className="bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-500/30 rounded-xl p-5">
-          <h3 className="text-white flex items-center gap-2 mb-3">
+        <div className="rounded-xl p-5" style={{ background: isDark ? 'rgba(127,29,29,0.15)' : 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)' }}>
+          <h3 className="flex items-center gap-2 mb-3" style={{ color: c.text }}>
             <XCircle className="w-5 h-5 text-red-400" />
             Empleados sin Registro de Entrada ({empleadosAusentes.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {empleadosAusentes.map(emp => (
-              <div key={emp.id} className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-3 flex items-center gap-3">
+              <div key={emp.id} className="rounded-lg p-3 flex items-center gap-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                 {emp.foto ? (
                   <img 
                     src={emp.foto} 
@@ -386,12 +393,12 @@ export function Asistencia() {
                     className="w-10 h-10 rounded-full object-cover border-2 border-red-500/30"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-500" />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: c.bgInput, border: `2px solid ${c.border}` }}>
+                    <User className="w-5 h-5" style={{ color: c.textMuted }} />
                   </div>
                 )}
                 <div className="flex-1">
-                  <p className="text-white text-sm">{emp.nombre} {emp.apellidos}</p>
+                  <p className="text-sm" style={{ color: c.text }}>{emp.nombre} {emp.apellidos}</p>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${getCargoColor(emp.cargo)}`}>
                     {emp.cargo}
                   </span>
@@ -403,29 +410,29 @@ export function Asistencia() {
       )}
 
       {/* Lista de Asistencia */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         {/* Desktop View */}
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-zinc-800/50 border-b border-zinc-700">
+            <thead style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.border}` }}>
               <tr>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Empleado</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Cargo</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Hora Entrada</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Hora Salida</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Estado</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Empleado</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Cargo</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Hora Entrada</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Hora Salida</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {registrosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center" style={{ color: c.textMuted }}>
                     No hay registros de asistencia para este día
                   </td>
                 </tr>
               ) : (
                 registrosFiltrados.map((registro) => (
-                  <tr key={registro.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <tr key={registro.id} className="transition-colors" style={{ borderBottom: `1px solid ${c.borderSubtle}` }}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {registro.empleadoFoto ? (
@@ -439,7 +446,7 @@ export function Asistencia() {
                             <UserCheck className="w-6 h-6 text-amber-400" />
                           </div>
                         )}
-                        <p className="text-white">{registro.empleadoNombre}</p>
+                        <p style={{ color: c.text }}>{registro.empleadoNombre}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -448,19 +455,19 @@ export function Asistencia() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Clock className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                        <Clock className="w-4 h-4" style={{ color: c.textMuted }} />
                         {registro.horaEntrada}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       {registro.horaSalida ? (
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Clock className="w-4 h-4 text-gray-500" />
+                        <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                          <Clock className="w-4 h-4" style={{ color: c.textMuted }} />
                           {registro.horaSalida}
                         </div>
                       ) : (
-                        <span className="text-gray-500 text-sm">Pendiente</span>
+                        <span className="text-sm" style={{ color: c.textMuted }}>Pendiente</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -487,12 +494,12 @@ export function Asistencia() {
         {/* Mobile/Tablet View */}
         <div className="lg:hidden divide-y divide-zinc-800">
           {registrosFiltrados.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center" style={{ color: c.textMuted }}>
               No hay registros de asistencia para este día
             </div>
           ) : (
             registrosFiltrados.map((registro) => (
-              <div key={registro.id} className="p-5 hover:bg-zinc-800/30 transition-colors">
+              <div key={registro.id} className="p-5 transition-colors" style={{ borderBottom: `1px solid ${c.borderSubtle}` }}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {registro.empleadoFoto ? (
@@ -507,7 +514,7 @@ export function Asistencia() {
                       </div>
                     )}
                     <div>
-                      <p className="text-white">{registro.empleadoNombre}</p>
+                      <p style={{ color: c.text }}>{registro.empleadoNombre}</p>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border mt-1 ${getCargoColor(registro.empleadoCargo)}`}>
                         {registro.empleadoCargo}
                       </span>
@@ -529,21 +536,21 @@ export function Asistencia() {
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-500 mb-1">Entrada</p>
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Clock className="w-4 h-4 text-gray-500" />
+                    <p className="mb-1" style={{ color: c.textMuted }}>Entrada</p>
+                    <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                      <Clock className="w-4 h-4" style={{ color: c.textMuted }} />
                       {registro.horaEntrada}
                     </div>
                   </div>
                   <div>
-                    <p className="text-gray-500 mb-1">Salida</p>
+                    <p className="mb-1" style={{ color: c.textMuted }}>Salida</p>
                     {registro.horaSalida ? (
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Clock className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                        <Clock className="w-4 h-4" style={{ color: c.textMuted }} />
                         {registro.horaSalida}
                       </div>
                     ) : (
-                      <span className="text-gray-500 text-sm">Pendiente</span>
+                      <span className="text-sm" style={{ color: c.textMuted }}>Pendiente</span>
                     )}
                   </div>
                 </div>

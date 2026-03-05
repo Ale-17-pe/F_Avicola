@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, TrendingUp, Package, DollarSign } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface Proveedor {
   id: string;
@@ -10,6 +11,9 @@ interface Proveedor {
 }
 
 export function Proveedores() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   const [proveedores, setProveedores] = useState<Proveedor[]>([
     {
       id: '1',
@@ -94,8 +98,8 @@ export function Proveedores() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Proveedores</h1>
-          <p className="text-gray-400">Gestión de proveedores de la avícola</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: c.text }}>Proveedores</h1>
+          <p style={{ color: c.textSecondary }}>Gestión de proveedores de la avícola</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
@@ -113,65 +117,66 @@ export function Proveedores() {
       {/* Métricas Clave */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(34, 197, 94, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Total Proveedores</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Total Proveedores</p>
             <TrendingUp className="w-5 h-5" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{proveedores.length}</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{proveedores.length}</p>
           <p className="text-sm" style={{ color: '#22c55e' }}>Activos en el sistema</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(204, 170, 0, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Total Aves Suministradas</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Total Aves Suministradas</p>
             <Package className="w-5 h-5" style={{ color: '#ccaa00' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">7,548</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>7,548</p>
           <p className="text-sm" style={{ color: '#ccaa00' }}>En el último mes</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(59, 130, 246, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Valor Total Compras</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Valor Total Compras</p>
             <DollarSign className="w-5 h-5" style={{ color: '#3b82f6' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">S/ 264,150</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>S/ 264,150</p>
           <p className="text-sm" style={{ color: '#3b82f6' }}>En el último mes</p>
         </div>
       </div>
 
       {/* Lista de Proveedores con Buscador Integrado */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
         {/* Buscador dentro del contenedor de la tabla */}
-        <div className="p-4 border-b" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
+        <div className="p-4 border-b" style={{ borderColor: c.borderGold }}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: c.textSecondary }} />
             <input
               type="text"
               placeholder="Buscar por nombre, RUC o teléfono..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-lg text-white placeholder-gray-400"
+              className="w-full pl-12 pr-4 py-3 rounded-lg placeholder-gray-400"
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                color: c.text,
+                background: c.bgInput,
+                border: `1px solid ${c.border}`
               }}
             />
           </div>
           {searchTerm && (
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm mt-2" style={{ color: c.textSecondary }}>
               {filteredProveedores.length} resultado{filteredProveedores.length !== 1 ? 's' : ''} encontrado{filteredProveedores.length !== 1 ? 's' : ''}
             </p>
           )}
@@ -181,7 +186,7 @@ export function Proveedores() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
+              <tr style={{ background: c.bgTableHeader, borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Nombre</th>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>RUC</th>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Dirección</th>
@@ -194,12 +199,12 @@ export function Proveedores() {
                 <tr 
                   key={proveedor.id}
                   className="border-b transition-colors hover:bg-white/5"
-                  style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                  style={{ borderColor: c.borderSubtle }}
                 >
-                  <td className="px-6 py-4 text-white font-medium">{proveedor.nombre}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.ruc}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.direccion}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.telefono}</td>
+                  <td className="px-6 py-4 font-medium" style={{ color: c.text }}>{proveedor.nombre}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.ruc}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.direccion}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.telefono}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -232,32 +237,32 @@ export function Proveedores() {
 
         {filteredProveedores.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400">No se encontraron proveedores</p>
+            <p style={{ color: c.textSecondary }}>No se encontraron proveedores</p>
           </div>
         )}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.8)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-xl rounded-2xl w-full max-w-md p-6"
             style={{
-              background: 'rgba(0, 0, 0, 0.6)',
+              background: c.bgModal,
               border: '1px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              boxShadow: c.shadowLg
             }}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-2xl font-bold" style={{ color: c.text }}>
                 {editingProveedor ? 'Editar Proveedor' : 'Nuevo Proveedor'}
               </h2>
               <button
                 onClick={handleCloseModal}
                 className="p-2 rounded-lg transition-all hover:scale-110"
-                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                style={{ background: c.g10 }}
               >
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5" style={{ color: c.textSecondary }} />
               </button>
             </div>
 
@@ -271,10 +276,11 @@ export function Proveedores() {
                   required
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                   placeholder="Ingrese el nombre"
                 />
@@ -289,10 +295,11 @@ export function Proveedores() {
                   required
                   value={formData.ruc}
                   onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                   placeholder="20123456789"
                   maxLength={11}
@@ -308,10 +315,11 @@ export function Proveedores() {
                   required
                   value={formData.direccion}
                   onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                   placeholder="Av. Principal 123"
                 />
@@ -326,10 +334,11 @@ export function Proveedores() {
                   required
                   value={formData.telefono}
                   onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                   placeholder="987654321"
                   maxLength={9}
@@ -342,9 +351,9 @@ export function Proveedores() {
                   onClick={handleCloseModal}
                   className="flex-1 px-4 py-3 rounded-lg font-bold transition-all hover:scale-105"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                    background: c.g10,
+                    color: c.text,
+                    border: `1px solid ${c.g20}`
                   }}
                 >
                   Cancelar

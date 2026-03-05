@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DollarSign, CheckCircle, User, Calendar, Package, CreditCard, Banknote, Eye, X, Camera, Search } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface PagoDigital {
   metodo: 'BCP' | 'Transferencia' | 'Yape' | 'Plin' | 'Otro';
@@ -31,6 +32,8 @@ interface PedidoCompletado {
 }
 
 export function Ingresos() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const [pedidosCompletados] = useState<PedidoCompletado[]>([
     {
       id: '1',
@@ -244,18 +247,18 @@ export function Ingresos() {
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
       {/* Selector de Fecha */}
       <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-        background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))',
-        border: '2px solid rgba(204, 170, 0, 0.4)',
-        boxShadow: '0 8px 32px rgba(204, 170, 0, 0.3)'
+        background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(255, 255, 255, 0.9))',
+        border: `2px solid ${c.borderGold}`,
+        boxShadow: c.shadowLg
       }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1 flex items-center gap-2" style={{ color: c.text }}>
               <Calendar className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#ccaa00' }} />
               <span className="hidden xs:inline">Filtro de Ingresos por Fecha</span>
               <span className="xs:hidden">Filtro por Fecha</span>
             </h2>
-            <p className="text-gray-300 text-xs sm:text-sm font-medium">
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>
               Visualiza todos los ingresos, métricas y rendimiento del día seleccionado
             </p>
           </div>
@@ -265,11 +268,12 @@ export function Ingresos() {
               type="date"
               value={fechaSeleccionada}
               onChange={(e) => setFechaSeleccionada(e.target.value)}
-              className="px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-white font-bold text-sm sm:text-lg w-full sm:w-auto"
+              className="px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-bold text-sm sm:text-lg w-full sm:w-auto"
               style={{
-                background: 'rgba(0, 0, 0, 0.5)',
-                border: '2px solid rgba(204, 170, 0, 0.6)',
-                boxShadow: '0 4px 15px rgba(204, 170, 0, 0.2)'
+                background: c.bgCardAlt,
+                border: `2px solid ${c.borderGold}`,
+                boxShadow: c.shadowMd,
+                color: c.text
               }}
             />
           </div>
@@ -279,70 +283,70 @@ export function Ingresos() {
       {/* Dashboard de Métricas del Día */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))',
-          border: '1px solid rgba(204, 170, 0, 0.3)',
-          boxShadow: '0 8px 32px rgba(204, 170, 0, 0.2)'
+          background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(255, 255, 255, 0.9))',
+          border: `1px solid ${c.borderGold}`,
+          boxShadow: c.shadowMd
         }}>
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Total del Día</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Total del Día</p>
             <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#ccaa00' }} />
           </div>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#ccaa00' }}>
             S/ {totalIngresosDia.toFixed(2)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{totalPedidosDia} pedidos</p>
+          <p className="text-xs mt-1" style={{ color: c.textSecondary }}>{totalPedidosDia} pedidos</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(59, 130, 246, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Pagos Digitales</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Pagos Digitales</p>
             <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
           </div>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#3b82f6' }}>
             {cantidadPagosDigitales}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Transacciones digitales</p>
+          <p className="text-xs mt-1" style={{ color: c.textMuted }}>Transacciones digitales</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(251, 146, 60, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Pagos Físicos</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Pagos Físicos</p>
             <Banknote className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#fb923c' }} />
           </div>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#fb923c' }}>
             {cantidadPagosFisicos}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Pagos en la avícola</p>
+          <p className="text-xs mt-1" style={{ color: c.textMuted }}>Pagos en la avícola</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(34, 197, 94, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <p className="text-xs sm:text-sm text-gray-400 font-medium">Trabajadores</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Trabajadores</p>
             <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
           </div>
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: '#22c55e' }}>
             {Object.keys(cobranzasPorTrabajador).length}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Activos hoy</p>
+          <p className="text-xs mt-1" style={{ color: c.textMuted }}>Activos hoy</p>
         </div>
       </div>
 
       {/* Rendimiento por Trabajador del Día */}
       {Object.keys(cobranzasPorTrabajador).length > 0 && (
         <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(204, 170, 0, 0.3)'
+          background: c.bgCard,
+          border: `1px solid ${c.borderGold}`
         }}>
-          <h3 className="text-base sm:text-lg md:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2" style={{ color: c.text }}>
             <User className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: '#ccaa00' }} />
             <span className="hidden xs:inline">Rendimiento por Trabajador del Día</span>
             <span className="xs:hidden">Rendimiento por Trabajador</span>
@@ -353,22 +357,22 @@ export function Ingresos() {
                 key={trabajador}
                 className="p-3 sm:p-4 rounded-lg"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(0, 0, 0, 0.2))',
-                  border: '1px solid rgba(204, 170, 0, 0.2)'
+                  background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(0, 0, 0, 0.2))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(255, 255, 255, 0.5))',
+                  border: `1px solid ${c.borderGold}`
                 }}
               >
-                <p className="text-xs text-gray-400 mb-1">Trabajador</p>
-                <p className="text-white font-bold text-sm sm:text-base mb-2 sm:mb-3 truncate">{trabajador}</p>
+                <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Trabajador</p>
+                <p className="font-bold text-sm sm:text-base mb-2 sm:mb-3 truncate" style={{ color: c.text }}>{trabajador}</p>
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <p className="text-xs text-gray-400">Total Recaudado</p>
+                    <p className="text-xs" style={{ color: c.textSecondary }}>Total Recaudado</p>
                     <p className="text-sm sm:text-base md:text-lg font-bold" style={{ color: '#ccaa00' }}>
                       S/ {data.total.toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Pedidos</p>
-                    <p className="text-sm sm:text-base md:text-lg font-bold text-white">{data.cantidad}</p>
+                    <p className="text-xs" style={{ color: c.textSecondary }}>Pedidos</p>
+                    <p className="text-sm sm:text-base md:text-lg font-bold" style={{ color: c.text }}>{data.cantidad}</p>
                   </div>
                 </div>
               </div>
@@ -395,10 +399,11 @@ export function Ingresos() {
                 placeholder="Buscar cliente..."
                 value={searchCliente}
                 onChange={(e) => setSearchCliente(e.target.value)}
-                className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 font-medium"
+                className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 font-medium"
                 style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(204, 170, 0, 0.3)'
+                  background: c.bgCardAlt,
+                  border: `1px solid ${c.borderGold}`,
+                  color: c.text
                 }}
               />
             </div>
@@ -418,20 +423,20 @@ export function Ingresos() {
                   key={pedido.id}
                   className="backdrop-blur-xl rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
                   style={{
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    border: '1px solid rgba(204, 170, 0, 0.3)',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+                    background: c.bgCardAlt,
+                    border: `1px solid ${c.borderGold}`,
+                    boxShadow: c.shadowMd
                   }}
                 >
                   {/* Header del Panel */}
                   <div className="p-3 sm:p-4 border-b" style={{
-                    background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.3))',
-                    borderColor: 'rgba(204, 170, 0, 0.2)'
+                    background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.3))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(255, 255, 255, 0.8))',
+                    borderColor: c.borderGold
                   }}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-400 mb-1">Cliente</p>
-                        <p className="text-white font-bold text-base sm:text-lg truncate">{pedido.cliente}</p>
+                        <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Cliente</p>
+                        <p className="font-bold text-base sm:text-lg truncate" style={{ color: c.text }}>{pedido.cliente}</p>
                       </div>
                       <div 
                         className="px-2 py-1 rounded-full text-xs font-bold flex-shrink-0"
@@ -444,7 +449,7 @@ export function Ingresos() {
                         {metodoPago?.substring(0, 4)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 sm:gap-2 text-xs" style={{ color: c.textSecondary }}>
                       <Calendar className="w-3 h-3" />
                       <span>{pedido.horaPago}</span>
                     </div>
@@ -454,21 +459,21 @@ export function Ingresos() {
                   <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                     {/* Detalle del Pedido */}
                     <div>
-                      <p className="text-xs text-gray-400 mb-1 sm:mb-2">Detalle del Pedido</p>
+                      <p className="text-xs mb-1 sm:mb-2" style={{ color: c.textSecondary }}>Detalle del Pedido</p>
                       <div className="flex items-center gap-1 sm:gap-2 mb-1">
                         <Package className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: '#ccaa00' }} />
-                        <p className="text-white font-medium text-sm sm:text-base truncate">
+                        <p className="font-medium text-sm sm:text-base truncate" style={{ color: c.text }}>
                           {pedido.tipoAve} - {pedido.presentacion}
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm">
                         <div>
-                          <p className="text-gray-400 text-xs">Cantidad</p>
-                          <p className="text-white font-bold">{pedido.cantidad} aves</p>
+                          <p className="text-xs" style={{ color: c.textSecondary }}>Cantidad</p>
+                          <p className="font-bold" style={{ color: c.text }}>{pedido.cantidad} aves</p>
                         </div>
                         <div>
-                          <p className="text-gray-400 text-xs">Peso Total</p>
-                          <p className="text-white font-bold">{pedido.pesoTotal.toFixed(2)} kg</p>
+                          <p className="text-xs" style={{ color: c.textSecondary }}>Peso Total</p>
+                          <p className="font-bold" style={{ color: c.text }}>{pedido.pesoTotal.toFixed(2)} kg</p>
                         </div>
                       </div>
                     </div>
@@ -477,11 +482,11 @@ export function Ingresos() {
                     <div 
                       className="p-2 sm:p-3 rounded-lg"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))',
-                        border: '1px solid rgba(204, 170, 0, 0.3)'
+                        background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.2), rgba(0, 0, 0, 0.3))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(255, 255, 255, 0.5))',
+                        border: `1px solid ${c.borderGold}`
                       }}
                     >
-                      <p className="text-xs text-gray-400 mb-1">Monto Total</p>
+                      <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Monto Total</p>
                       <p className="text-xl sm:text-2xl md:text-3xl font-bold" style={{ color: '#ccaa00' }}>
                         S/ {pedido.montoTotal.toFixed(2)}
                       </p>
@@ -494,8 +499,8 @@ export function Ingresos() {
                     }}>
                       <User className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: '#22c55e' }} />
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-400 truncate">Cobrador</p>
-                        <p className="text-white font-medium text-xs sm:text-sm truncate">{pedido.trabajadorCobranza}</p>
+                        <p className="text-xs truncate" style={{ color: c.textSecondary }}>Cobrador</p>
+                        <p className="font-medium text-xs sm:text-sm truncate" style={{ color: c.text }}>{pedido.trabajadorCobranza}</p>
                       </div>
                     </div>
 
@@ -514,7 +519,7 @@ export function Ingresos() {
                             Comprobante Digital
                           </p>
                         </div>
-                        <p className="text-white text-xs sm:text-sm truncate">Comprobante disponible</p>
+                        <p className="text-xs sm:text-sm truncate" style={{ color: c.text }}>Comprobante disponible</p>
                       </div>
                     )}
 
@@ -533,7 +538,7 @@ export function Ingresos() {
                             Pago Presencial
                           </p>
                         </div>
-                        <p className="text-white text-xs sm:text-sm truncate">Pago en la avícola</p>
+                        <p className="text-xs sm:text-sm truncate" style={{ color: c.text }}>Pago en la avícola</p>
                       </div>
                     )}
 
@@ -557,12 +562,12 @@ export function Ingresos() {
           </div>
         ) : (
           <div className="text-center py-8 sm:py-12 backdrop-blur-xl rounded-xl" style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(204, 170, 0, 0.3)'
+            background: c.bgCard,
+            border: `1px solid ${c.borderGold}`
           }}>
             <Calendar className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-600" />
-            <p className="text-gray-400 text-sm sm:text-lg">No hay pedidos registrados para esta fecha</p>
-            <p className="text-gray-500 text-xs sm:text-sm mt-2">Selecciona otra fecha para ver los ingresos</p>
+            <p className="text-sm sm:text-lg" style={{ color: c.textSecondary }}>No hay pedidos registrados para esta fecha</p>
+            <p className="text-xs sm:text-sm mt-2" style={{ color: c.textMuted }}>Selecciona otra fecha para ver los ingresos</p>
           </div>
         )}
       </div>

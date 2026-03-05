@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { Scale, Package, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 
 // ===================== PANTALLA DISPLAY DE PESAJE =====================
@@ -35,6 +36,8 @@ export function PesajeDisplay() {
   const [hora, setHora] = useState('');
 
   const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // Reloj en tiempo real
   useEffect(() => {
@@ -114,13 +117,13 @@ export function PesajeDisplay() {
     <div
       className="min-h-screen flex flex-col"
       style={{
-        background: 'linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #050505 100%)',
+        background: isDark ? 'linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #050505 100%)' : c.bgPage,
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
       }}
     >
       {/* ===== HEADER MINIMALISTA ===== */}
       <div className="flex items-center justify-between px-8 py-4"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: `1px solid ${c.borderSubtle}` }}
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -138,7 +141,7 @@ export function PesajeDisplay() {
 
         <div className="flex items-center gap-4">
           {/* Hora */}
-          <span className="text-xl font-mono font-bold text-gray-400">{hora}</span>
+          <span className="text-xl font-mono font-bold" style={{ color: c.textSecondary }}>{hora}</span>
 
           {/* Estado conexión */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
@@ -164,7 +167,7 @@ export function PesajeDisplay() {
           /* ===== TICKET EMITIDO ===== */
           <div className="text-center animate-pulse">
             <CheckCircle className="w-24 h-24 mx-auto mb-6" style={{ color: '#22c55e' }} />
-            <h2 className="text-4xl font-extrabold text-white mb-2">Ticket Emitido</h2>
+            <h2 className="text-4xl font-extrabold mb-2" style={{ color: c.text }}>Ticket Emitido</h2>
             <p className="text-2xl font-mono font-bold" style={{ color: '#ccaa00' }}>{ultimoTicket}</p>
             <p className="text-xl font-mono mt-4" style={{ color: '#22c55e' }}>
               Peso Total: {pesoTotal.toFixed(2)} Kg
@@ -176,15 +179,15 @@ export function PesajeDisplay() {
             {/* Info del pedido */}
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl mb-4"
-                style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid rgba(204,170,0,0.2)' }}
+                style={{ background: isDark ? 'rgba(204,170,0,0.08)' : 'rgba(204,170,0,0.06)', border: `1px solid ${c.borderGold}` }}
               >
                 <Package className="w-5 h-5" style={{ color: '#ccaa00' }} />
-                <span className="text-lg font-bold text-white">{pedidoInfo.cliente}</span>
-                <span className="text-sm text-gray-400">•</span>
+                <span className="text-lg font-bold" style={{ color: c.text }}>{pedidoInfo.cliente}</span>
+                <span className="text-sm" style={{ color: c.textMuted }}>•</span>
                 <span className="text-sm" style={{ color: '#22c55e' }}>{pedidoInfo.tipoAve}</span>
-                <span className="text-sm text-gray-400">•</span>
-                <span className="text-sm text-gray-400">{pedidoInfo.cantidad} unids.</span>
-                <span className="text-sm text-gray-400">•</span>
+                <span className="text-sm" style={{ color: c.textMuted }}>•</span>
+                <span className="text-sm" style={{ color: c.textMuted }}>{pedidoInfo.cantidad} unids.</span>
+                <span className="text-sm" style={{ color: c.textMuted }}>•</span>
                 <span className="text-sm" style={{ color: '#3b82f6' }}>{pedidoInfo.presentacion}</span>
               </div>
 
@@ -206,11 +209,11 @@ export function PesajeDisplay() {
               style={{
                 background: todosCompletados
                   ? 'rgba(34,197,94,0.05)'
-                  : 'rgba(0,0,0,0.3)',
+                  : c.bgCard,
                 border: `3px solid ${todosCompletados ? 'rgba(34,197,94,0.4)' : estable ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
                 boxShadow: todosCompletados
                   ? '0 0 60px rgba(34,197,94,0.1), inset 0 0 60px rgba(34,197,94,0.03)'
-                  : '0 0 60px rgba(0,0,0,0.3), inset 0 0 60px rgba(0,0,0,0.1)',
+                  : c.shadowLg,
               }}
             >
               {todosCompletados ? (
@@ -225,7 +228,7 @@ export function PesajeDisplay() {
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">
+                  <p className="text-sm uppercase tracking-widest mb-2" style={{ color: c.textMuted }}>
                     {estable ? 'Peso Estable' : 'Leyendo peso...'}
                   </p>
                   <p
@@ -234,7 +237,7 @@ export function PesajeDisplay() {
                       fontSize: '140px',
                       color: pesoActual > 0
                         ? (estable ? '#22c55e' : '#f59e0b')
-                        : '#333',
+                        : c.textMuted,
                       textShadow: pesoActual > 0
                         ? `0 0 40px ${estable ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`
                         : 'none',
@@ -267,12 +270,12 @@ export function PesajeDisplay() {
                           ? '#22c55e'
                           : i + 1 === bloqueActual && !todosCompletados
                           ? 'rgba(204,170,0,0.5)'
-                          : 'rgba(255,255,255,0.06)',
+                          : c.g04,
                         boxShadow: registrado ? '0 0 8px rgba(34,197,94,0.4)' : 'none',
                       }}
                     />
                     <span className="text-[10px] font-mono" style={{
-                      color: registrado ? '#22c55e' : '#666',
+                      color: registrado ? '#22c55e' : c.textMuted,
                     }}>
                       {registrado ? `${registrado.peso.toFixed(1)}` : `B${i + 1}`}
                     </span>
@@ -284,11 +287,11 @@ export function PesajeDisplay() {
             {/* Peso acumulado */}
             {bloquesRegistrados.length > 0 && (
               <div className="text-center">
-                <span className="text-sm text-gray-500">Peso acumulado: </span>
+                <span className="text-sm" style={{ color: c.textMuted }}>Peso acumulado: </span>
                 <span className="text-lg font-bold font-mono" style={{ color: '#22c55e' }}>
                   {pesoTotal.toFixed(2)} Kg
                 </span>
-                <span className="text-sm text-gray-600 ml-2">
+                <span className="text-sm ml-2" style={{ color: c.textMuted }}>
                   ({bloquesRegistrados.length} de {totalBloques} bloques)
                 </span>
               </div>
@@ -298,8 +301,8 @@ export function PesajeDisplay() {
           /* ===== ESPERANDO ===== */
           <div className="text-center">
             <Scale className="w-28 h-28 mx-auto mb-6" style={{ color: '#22c55e15' }} />
-            <h2 className="text-3xl font-bold text-gray-600 mb-2">Esperando pedido</h2>
-            <p className="text-gray-700 text-lg">
+            <h2 className="text-3xl font-bold mb-2" style={{ color: c.textMuted }}>Esperando pedido</h2>
+            <p className="text-lg" style={{ color: c.textMuted }}>
               Seleccione un pedido en la pantalla del operador
             </p>
           </div>
@@ -308,12 +311,12 @@ export function PesajeDisplay() {
 
       {/* ===== FOOTER ===== */}
       <div className="px-8 py-3 flex items-center justify-between"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderTop: `1px solid ${c.borderSubtle}` }}
       >
-        <span className="text-xs text-gray-700">
+        <span className="text-xs" style={{ color: c.textMuted }}>
           {new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </span>
-        <span className="text-xs text-gray-700 tracking-widest uppercase">
+        <span className="text-xs tracking-widest uppercase" style={{ color: c.textMuted }}>
           Avícola Jossy — Sistema de Gestión
         </span>
       </div>

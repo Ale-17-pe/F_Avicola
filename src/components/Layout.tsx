@@ -23,8 +23,11 @@ import {
   Menu,
   X,
   PackageOpen,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useTheme, t } from "../contexts/ThemeContext";
 import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
@@ -37,6 +40,8 @@ interface MenuItem {
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
+  const c = t(isDark);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(
     ["Inventario"]
   );
@@ -214,7 +219,7 @@ export function Layout() {
     <div className="flex flex-col h-full">
       {/* Header móvil */}
       {isMobile && (
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}>
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: c.borderGold }}>
           <div className="flex items-center gap-3">
             <img
               src={logoImage}
@@ -229,7 +234,7 @@ export function Layout() {
                 <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                 <span style={{ color: "#ccaa00" }}>JOSSY</span>
               </h1>
-              <p className="text-xs text-gray-400">Sistema de Gestión</p>
+              <p className="text-xs" style={{ color: c.textSecondary }}>Sistema de Gestión</p>
             </div>
           </div>
           <button
@@ -246,7 +251,7 @@ export function Layout() {
       {!isMobile && (
         <div
           className="p-3 sm:p-4 border-b"
-          style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+          style={{ borderColor: c.borderGold }}
         >
           <div className="flex items-center gap-3">
             <img
@@ -263,7 +268,7 @@ export function Layout() {
                   <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                   <span style={{ color: "#ccaa00" }}>JOSSY</span>
                 </h1>
-                <p className="text-xs text-gray-400 hidden sm:block truncate">
+                <p className="text-xs hidden sm:block truncate" style={{ color: c.textSecondary }}>
                   Sistema de Gestión
                 </p>
               </div>
@@ -295,7 +300,7 @@ export function Layout() {
                       : "transparent",
                     color: isActive(item.path)
                       ? "#ffffff"
-                      : "#9ca3af",
+                      : c.inactiveNav,
                   }}
                   title={!isSidebarOpen && !isMobile ? item.label : ""}
                 >
@@ -319,7 +324,7 @@ export function Layout() {
                     background: groupActive
                       ? "rgba(34, 197, 94, 0.1)"
                       : "transparent",
-                    color: groupActive ? "#22c55e" : "#9ca3af",
+                    color: groupActive ? "#22c55e" : c.inactiveNav,
                   }}
                   title={!isSidebarOpen && !isMobile ? item.label : ""}
                 >
@@ -355,7 +360,7 @@ export function Layout() {
                   <div
                     className={`ml-${!isSidebarOpen && !isMobile ? "0" : "3 sm:ml-4"} mt-1 space-y-1 ${!isSidebarOpen && !isMobile ? "" : "border-l pl-3 sm:pl-4"}`}
                     style={{
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: c.border,
                     }}
                   >
                     {item.children!.map((child) => {
@@ -372,7 +377,7 @@ export function Layout() {
                               : "transparent",
                             color: isActive(child.path)
                               ? "#ffffff"
-                              : "#9ca3af",
+                              : c.inactiveNav,
                           }}
                           title={!isSidebarOpen && !isMobile ? child.label : ""}
                         >
@@ -395,7 +400,7 @@ export function Layout() {
       {/* User Section */}
       <div
         className={`p-2 sm:p-3 lg:p-4 border-t ${!isSidebarOpen && !isMobile ? "flex justify-center" : ""}`}
-        style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+        style={{ borderColor: c.borderGold }}
       >
         <button
           onClick={handleLogout}
@@ -422,16 +427,18 @@ export function Layout() {
     <div
       className="min-h-screen flex"
       style={{
-        background: "#000000",
+        background: c.bgPage,
+        color: c.text,
+        transition: 'background 0.25s ease, color 0.25s ease',
       }}
     >
       {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:flex flex-col backdrop-blur-xl border-r transition-all duration-300 fixed left-0 top-0 bottom-0 z-40 ${isSidebarOpen ? "w-[220px] xl:w-[280px]" : "w-[70px] xl:w-[80px]"}`}
         style={{
-          background: "rgba(0, 0, 0, 0.8)",
-          borderColor: "rgba(204, 170, 0, 0.2)",
-          boxShadow: "4px 0 20px rgba(0, 0, 0, 0.5)",
+          background: c.bgSidebar,
+          borderColor: c.borderGold,
+          boxShadow: c.shadowSidebar,
         }}
       >
         <SidebarContent isMobile={false} />
@@ -442,14 +449,15 @@ export function Layout() {
         <>
           <div
             className="lg:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm animate-fade-in"
+            style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.3)' }}
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <aside
             className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r animate-slide-in"
             style={{
-              background: "rgba(0, 0, 0, 0.95)",
-              borderColor: "rgba(204, 170, 0, 0.2)",
-              boxShadow: "4px 0 20px rgba(0, 0, 0, 0.8)",
+              background: c.bgSidebarMobile,
+              borderColor: c.borderGold,
+              boxShadow: c.shadowSidebar,
             }}
           >
             <SidebarContent isMobile={true} />
@@ -465,9 +473,9 @@ export function Layout() {
         <header
           className={`backdrop-blur-xl border-b fixed top-0 z-30 transition-all duration-300 ${isSidebarOpen ? "lg:left-[220px] xl:left-[280px]" : "lg:left-[70px] xl:left-[80px]"} left-0 right-0`}
           style={{
-            background: "rgba(0, 0, 0, 0.8)",
-            borderColor: "rgba(204, 170, 0, 0.2)",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+            background: c.bgHeader,
+            borderColor: c.borderGold,
+            boxShadow: c.shadowHeader,
           }}
         >
           <div className="px-3 sm:px-4 lg:px-6">
@@ -505,7 +513,7 @@ export function Layout() {
 
               {/* Título de Página Dinámico */}
               <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold tracking-tight" style={{ color: c.text }}>
                   <span className="text-amber-400 lg:hidden mr-2">|</span>
                   {currentTitle}
                 </h2>
@@ -513,11 +521,20 @@ export function Layout() {
 
               {/* User Info */}
               <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                  style={{ background: c.g10, color: '#ccaa00' }}
+                  title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                >
+                  {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </button>
                 <div className="text-right hidden sm:block min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-white truncate">
+                  <p className="text-xs sm:text-sm font-medium truncate" style={{ color: c.text }}>
                     Usuario Admin
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
+                  <p className="text-xs truncate" style={{ color: c.textSecondary }}>
                     Administrador
                   </p>
                 </div>
@@ -543,9 +560,9 @@ export function Layout() {
         {/* Mobile Bottom Navigation (Opcional) */}
         {isMobile && (
           <div className="lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t p-2 z-30" style={{
-            background: "rgba(0, 0, 0, 0.9)",
-            borderColor: "rgba(204, 170, 0, 0.2)",
-            boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.5)"
+            background: c.bgSidebar,
+            borderColor: c.borderGold,
+            boxShadow: c.shadowHeader
           }}>
             <div className="flex justify-around">
               <button
@@ -559,7 +576,7 @@ export function Layout() {
               <Link
                 to="/dashboard"
                 className="flex flex-col items-center p-2 rounded-lg transition-colors"
-                style={{ color: location.pathname === "/dashboard" ? "#22c55e" : "#9ca3af" }}
+                style={{ color: location.pathname === "/dashboard" ? "#22c55e" : c.inactiveNav }}
               >
                 <LayoutDashboard className="w-5 h-5" />
                 <span className="text-xs mt-1">Inicio</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Truck, Package, Plus, Edit2, Trash2, X, MapPin, Clock, CheckCircle, Eye, User, Search, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface Zona {
   id: string;
@@ -27,6 +28,8 @@ const ZONAS_DEFAULT: Zona[] = [
 
 export function Envios() {
   const { pedidosConfirmados } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // Zonas CRUD state
   const [zonas, setZonas] = useState<Zona[]>(() => {
@@ -135,7 +138,7 @@ export function Envios() {
       case 'Pendiente':
         return { bg: 'rgba(245,158,11,0.2)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' };
       default:
-        return { bg: 'rgba(255,255,255,0.1)', color: '#fff', border: 'rgba(255,255,255,0.2)' };
+        return { bg: c.g10, color: c.text, border: c.g20 };
     }
   };
 
@@ -149,8 +152,8 @@ export function Envios() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Envíos y Zonas</h1>
-          <p className="text-xs sm:text-sm text-gray-400">Control de distribución por zonas — {hoy}</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>Envíos y Zonas</h1>
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Control de distribución por zonas — {hoy}</p>
         </div>
         <button
           onClick={() => handleOpenZonaModal()}
@@ -169,37 +172,37 @@ export function Envios() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)'
+          background: c.bgCard, border: '1px solid ' + c.g20
         }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm text-gray-400">Total Pedidos</p>
-            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Total Pedidos</p>
+            <Package className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: c.textSecondary }} />
           </div>
-          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-white">{totalPedidos}</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: c.text }}>{totalPedidos}</p>
         </div>
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.3)'
+          background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)'
         }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm text-gray-400">Pendientes</p>
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Pendientes</p>
             <Clock className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#f59e0b' }} />
           </div>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#f59e0b' }}>{pedidosPendientes}</p>
         </div>
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.3)'
+          background: c.bgCard, border: '1px solid rgba(59,130,246,0.3)'
         }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm text-gray-400">En Curso</p>
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>En Curso</p>
             <Truck className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
           </div>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#3b82f6' }}>{pedidosEnCurso}</p>
         </div>
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.3)'
+          background: c.bgCard, border: '1px solid rgba(34,197,94,0.3)'
         }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm text-gray-400">Entregados</p>
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Entregados</p>
             <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
           </div>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#22c55e' }}>{pedidosEntregados}</p>
@@ -208,7 +211,7 @@ export function Envios() {
 
       {/* Búsqueda */}
       <div className="backdrop-blur-xl rounded-xl p-3" style={{
-        background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)'
+        background: c.bgCard, border: '1px solid ' + c.border
       }}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -217,8 +220,8 @@ export function Envios() {
             placeholder="Buscar zona..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+            style={{ background: c.bgInput, border: '1px solid ' + c.border, color: c.text }}
           />
         </div>
       </div>
@@ -231,7 +234,7 @@ export function Envios() {
 
           return (
             <div key={zona.id} className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-              background: 'rgba(0,0,0,0.3)', border: `1px solid ${zona.color}40`
+              background: c.bgCard, border: `1px solid ${zona.color}40`
             }}>
               {/* Zona Header */}
               <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between" style={{
@@ -243,14 +246,14 @@ export function Envios() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base sm:text-lg font-bold text-white">{zona.nombre}</h3>
+                      <h3 className="text-base sm:text-lg font-bold" style={{ color: c.text }}>{zona.nombre}</h3>
                       <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{
                         background: `${zona.color}30`, color: zona.color
                       }}>
                         {pedidosZona.length} pedidos
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 truncate">{zona.descripcion}</p>
+                    <p className="text-xs truncate" style={{ color: c.textSecondary }}>{zona.descripcion}</p>
                   </div>
                   {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
                 </div>
@@ -276,11 +279,11 @@ export function Envios() {
               {isExpanded && (
                 <div>
                   {pedidosZona.length > 0 ? (
-                    <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="divide-y" style={{ borderColor: c.borderSubtle }}>
                       {pedidosZona.map((pedido) => {
                         const est = estadoStyle(pedido.estado);
                         return (
-                          <div key={pedido.id} className="px-4 sm:px-6 py-3 flex items-center justify-between hover:bg-white/5 transition-colors">
+                          <div key={pedido.id} className="px-4 sm:px-6 py-3 flex items-center justify-between transition-colors">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{
                                 background: `linear-gradient(135deg, ${zona.color}, ${zona.color}90)`
@@ -288,9 +291,9 @@ export function Envios() {
                                 <Package className="w-4 h-4 text-white" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium text-sm truncate">{pedido.cliente}</p>
+                                <p className="font-medium text-sm truncate" style={{ color: c.text }}>{pedido.cliente}</p>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs text-gray-400">{pedido.tipoAve} — {pedido.presentacion} — {pedido.cantidad} unids</span>
+                                  <span className="text-xs" style={{ color: c.textSecondary }}>{pedido.tipoAve} — {pedido.presentacion} — {pedido.cantidad} unids</span>
                                   {pedido.conductor && (
                                     <span className="text-xs flex items-center gap-1" style={{ color: zona.color }}>
                                       <User className="w-3 h-3" />{pedido.conductor}
@@ -320,7 +323,7 @@ export function Envios() {
                   ) : (
                     <div className="text-center py-6">
                       <Package className="w-10 h-10 mx-auto mb-2" style={{ color: zona.color, opacity: 0.3 }} />
-                      <p className="text-gray-500 text-sm">No hay pedidos para esta zona hoy</p>
+                      <p className="text-sm" style={{ color: c.textMuted }}>No hay pedidos para esta zona hoy</p>
                     </div>
                   )}
                 </div>
@@ -332,33 +335,33 @@ export function Envios() {
         {/* Pedidos sin zona */}
         {pedidosSinZona.length > 0 && (
           <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)'
+            background: c.bgCard, border: '1px solid ' + c.g20
           }}>
             <div className="px-4 sm:px-6 py-3 sm:py-4" style={{
-              background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)'
+              background: c.bgInput, borderBottom: '1px solid ' + c.border
             }}>
-              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2" style={{ color: c.text }}>
                 <MapPin className="w-5 h-5 text-gray-400" />
                 Sin Zona Asignada
                 <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{
-                  background: 'rgba(255,255,255,0.15)', color: '#fff'
+                  background: c.g15, color: c.text
                 }}>
                   {pedidosSinZona.length}
                 </span>
               </h3>
             </div>
-            <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+            <div className="divide-y" style={{ borderColor: c.borderSubtle }}>
               {pedidosSinZona.map((pedido) => {
                 const est = estadoStyle(pedido.estado);
                 return (
-                  <div key={pedido.id} className="px-4 sm:px-6 py-3 flex items-center justify-between hover:bg-white/5 transition-colors">
+                  <div key={pedido.id} className="px-4 sm:px-6 py-3 flex items-center justify-between transition-colors">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                        <Package className="w-4 h-4 text-gray-400" />
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: c.g10 }}>
+                        <Package className="w-4 h-4" style={{ color: c.textSecondary }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">{pedido.cliente}</p>
-                        <span className="text-xs text-gray-400">{pedido.tipoAve} — {pedido.presentacion} — {pedido.cantidad} unids</span>
+                        <p className="font-medium text-sm truncate" style={{ color: c.text }}>{pedido.cliente}</p>
+                        <span className="text-xs" style={{ color: c.textSecondary }}>{pedido.tipoAve} — {pedido.presentacion} — {pedido.cantidad} unids</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
@@ -370,7 +373,7 @@ export function Envios() {
                       <button
                         onClick={() => handleVerPedido(pedido)}
                         className="p-1.5 rounded-lg transition-all hover:scale-110"
-                        style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                        style={{ background: c.g10, border: '1px solid ' + c.g20 }}
                       >
                         <Eye className="w-3.5 h-3.5 text-gray-400" />
                       </button>
@@ -385,28 +388,30 @@ export function Envios() {
         {/* Sin pedidos */}
         {totalPedidos === 0 && (
           <div className="text-center py-12 backdrop-blur-xl rounded-xl" style={{
-            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)'
+            background: c.bgCard, border: '1px solid ' + c.border
           }}>
-            <Truck className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-            <p className="text-gray-400 text-base">No hay pedidos para hoy</p>
-            <p className="text-gray-500 text-sm mt-1">Los pedidos confirmados aparecerán aquí agrupados por zona</p>
+            <Truck className="w-16 h-16 mx-auto mb-4" style={{ color: c.textMuted }} />
+            <p className="text-base" style={{ color: c.textSecondary }}>No hay pedidos para hoy</p>
+            <p className="text-sm mt-1" style={{ color: c.textMuted }}>Los pedidos confirmados aparecerán aquí agrupados por zona</p>
           </div>
         )}
       </div>
 
       {/* Modal CRUD Zona */}
       {isZonaModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={handleCloseZonaModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }} onClick={handleCloseZonaModal}>
           <div
             className="backdrop-blur-2xl rounded-2xl w-full max-w-md p-6"
             style={{
-              background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(13,74,36,0.3) 50%, rgba(0,0,0,0.7) 100%)',
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(13,74,36,0.3) 50%, rgba(0,0,0,0.7) 100%)'
+                : '#ffffff',
               border: '2px solid rgba(204,170,0,0.3)',
-              boxShadow: '0 30px 60px -12px rgba(0,0,0,0.8)'
+              boxShadow: c.shadowLg
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6 pb-4 border-b" style={{ borderColor: 'rgba(204,170,0,0.2)' }}>
+            <div className="flex items-center justify-between mb-6 pb-4 border-b" style={{ borderColor: c.borderGold }}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
                   background: 'linear-gradient(135deg, #ccaa00, #b8941e)',
@@ -415,8 +420,8 @@ export function Envios() {
                   <MapPin className="w-6 h-6 text-black" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">{editingZona ? 'Editar Zona' : 'Nueva Zona'}</h2>
-                  <p className="text-xs text-gray-400">Configure la zona de entrega</p>
+                  <h2 className="text-xl font-bold" style={{ color: c.text }}>{editingZona ? 'Editar Zona' : 'Nueva Zona'}</h2>
+                  <p className="text-xs" style={{ color: c.textSecondary }}>Configure la zona de entrega</p>
                 </div>
               </div>
               <button onClick={handleCloseZonaModal} className="p-2 rounded-xl transition-all hover:scale-110" style={{
@@ -434,8 +439,8 @@ export function Envios() {
                   required
                   value={zonaForm.nombre}
                   onChange={(e) => setZonaForm({ ...zonaForm, nombre: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(204,170,0,0.3)' }}
+                  className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
                   placeholder="Ej: Zona 7"
                 />
               </div>
@@ -446,8 +451,8 @@ export function Envios() {
                   required
                   value={zonaForm.descripcion}
                   onChange={(e) => setZonaForm({ ...zonaForm, descripcion: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(204,170,0,0.3)' }}
+                  className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
                   placeholder="Ej: Canto Grande, Huaycán"
                 />
               </div>
@@ -472,7 +477,7 @@ export function Envios() {
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleCloseZonaModal}
                   className="flex-1 px-4 py-2.5 rounded-lg font-bold transition-all hover:scale-105 text-sm"
-                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
+                  style={{ background: c.g10, border: '1px solid ' + c.g20, color: c.text }}
                 >Cancelar</button>
                 <button type="submit"
                   className="flex-1 px-4 py-2.5 rounded-lg font-bold transition-all hover:scale-105 text-sm flex items-center justify-center gap-2"
@@ -493,13 +498,15 @@ export function Envios() {
 
       {/* Modal Detalle Pedido */}
       {isDetailModalOpen && selectedPedido && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setIsDetailModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }} onClick={() => setIsDetailModalOpen(false)}>
           <div
             className="backdrop-blur-2xl rounded-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto"
             style={{
-              background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(13,74,36,0.3) 50%, rgba(0,0,0,0.7) 100%)',
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(13,74,36,0.3) 50%, rgba(0,0,0,0.7) 100%)'
+                : '#ffffff',
               border: '2px solid rgba(204,170,0,0.3)',
-              boxShadow: '0 30px 60px -12px rgba(0,0,0,0.8)'
+              boxShadow: c.shadowLg
             }}
             onClick={(e) => e.stopPropagation()}
           >

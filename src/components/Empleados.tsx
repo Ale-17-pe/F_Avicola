@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, User, Phone, MapPin, Calendar, CheckCircle, Coffee, Users, Briefcase, FileText, Shield, UserCheck, Upload, X } from 'lucide-react';
 import { useApp, Empleado } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 export function Empleados() {
   const { empleados, addEmpleado, updateEmpleado, deleteEmpleado } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCargo, setFilterCargo] = useState<string>('all');
@@ -189,11 +192,11 @@ export function Empleados() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-white flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl flex items-center gap-3" style={{ color: c.text }}>
             <Users className="w-8 h-8 text-amber-400" />
             Empleados
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1" style={{ color: c.textSecondary }}>
             Gestión de personal de Avícola Jossy
           </p>
         </div>
@@ -208,11 +211,11 @@ export function Empleados() {
 
       {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Empleados</p>
-              <p className="text-3xl text-white mt-1">{totalEmpleados}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Total Empleados</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{totalEmpleados}</p>
             </div>
             <div className="bg-amber-500/20 p-3 rounded-lg">
               <Users className="w-8 h-8 text-amber-400" />
@@ -220,11 +223,11 @@ export function Empleados() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Activos</p>
-              <p className="text-3xl text-white mt-1">{empleadosActivos}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Activos</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{empleadosActivos}</p>
             </div>
             <div className="bg-green-500/20 p-3 rounded-lg">
               <CheckCircle className="w-8 h-8 text-green-400" />
@@ -232,11 +235,11 @@ export function Empleados() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+        <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">En Descanso</p>
-              <p className="text-3xl text-white mt-1">{empleadosDescanso}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>En Descanso</p>
+              <p className="text-3xl mt-1" style={{ color: c.text }}>{empleadosDescanso}</p>
             </div>
             <div className="bg-orange-500/20 p-3 rounded-lg">
               <Coffee className="w-8 h-8 text-orange-400" />
@@ -246,8 +249,8 @@ export function Empleados() {
       </div>
 
       {/* Distribución por Cargo */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
-        <h3 className="text-lg text-white mb-4 flex items-center gap-2">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+        <h3 className="text-lg mb-4 flex items-center gap-2" style={{ color: c.text }}>
           <Briefcase className="w-5 h-5 text-amber-400" />
           Distribución por Cargo
         </h3>
@@ -257,7 +260,7 @@ export function Empleados() {
               <FileText className="w-4 h-4" />
               Secretaria
             </div>
-            <p className="text-2xl text-white">{distribucionCargos['Secretaria']}</p>
+            <p className="text-2xl" style={{ color: c.text }}>{distribucionCargos['Secretaria']}</p>
           </div>
           
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-center">
@@ -265,7 +268,7 @@ export function Empleados() {
               <Briefcase className="w-4 h-4" />
               Producción
             </div>
-            <p className="text-2xl text-white">{distribucionCargos['Producción']}</p>
+            <p className="text-2xl" style={{ color: c.text }}>{distribucionCargos['Producción']}</p>
           </div>
           
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
@@ -273,7 +276,7 @@ export function Empleados() {
               <UserCheck className="w-4 h-4" />
               Pesaje
             </div>
-            <p className="text-2xl text-white">{distribucionCargos['Pesaje']}</p>
+            <p className="text-2xl" style={{ color: c.text }}>{distribucionCargos['Pesaje']}</p>
           </div>
           
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
@@ -281,7 +284,7 @@ export function Empleados() {
               <Shield className="w-4 h-4" />
               Seguridad
             </div>
-            <p className="text-2xl text-white">{distribucionCargos['Seguridad']}</p>
+            <p className="text-2xl" style={{ color: c.text }}>{distribucionCargos['Seguridad']}</p>
           </div>
           
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 text-center">
@@ -289,13 +292,13 @@ export function Empleados() {
               <User className="w-4 h-4" />
               Operadora
             </div>
-            <p className="text-2xl text-white">{distribucionCargos['Operadora']}</p>
+            <p className="text-2xl" style={{ color: c.text }}>{distribucionCargos['Operadora']}</p>
           </div>
         </div>
       </div>
 
       {/* Filtros y Búsqueda */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-5">
+      <div className="rounded-xl p-5" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Búsqueda */}
           <div className="lg:col-span-2">
@@ -306,7 +309,8 @@ export function Empleados() {
                 placeholder="Buscar por nombre, DNI o teléfono..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                className="w-full rounded-lg pl-10 pr-4 py-2.5 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
               />
             </div>
           </div>
@@ -316,7 +320,8 @@ export function Empleados() {
             <select
               value={filterCargo}
               onChange={(e) => setFilterCargo(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
             >
               <option value="all">Todos los cargos</option>
               <option value="Secretaria">Secretaria</option>
@@ -332,7 +337,8 @@ export function Empleados() {
             <select
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
             >
               <option value="all">Todos los estados</option>
               <option value="Activo">Activos</option>
@@ -343,20 +349,20 @@ export function Empleados() {
       </div>
 
       {/* Lista de Empleados */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         {/* Desktop View */}
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-zinc-800/50 border-b border-zinc-700">
+            <thead style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.border}` }}>
               <tr>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Empleado</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">DNI</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Contacto</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Cargo</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Fecha Contratación</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Salario</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Estado</th>
-                <th className="text-left px-6 py-4 text-gray-400 text-sm">Acciones</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Empleado</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>DNI</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Contacto</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Cargo</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Fecha Contratación</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Salario</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Estado</th>
+                <th className="text-left px-6 py-4 text-sm" style={{ color: c.textSecondary }}>Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
@@ -383,20 +389,20 @@ export function Empleados() {
                           </div>
                         )}
                         <div>
-                          <p className="text-white">{empleado.nombre} {empleado.apellidos}</p>
+                          <p style={{ color: c.text }}>{empleado.nombre} {empleado.apellidos}</p>
                           {empleado.email && (
-                            <p className="text-gray-500 text-sm">{empleado.email}</p>
+                            <p className="text-sm" style={{ color: c.textMuted }}>{empleado.email}</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-300">{empleado.dni}</td>
+                    <td className="px-6 py-4" style={{ color: c.textSecondary }}>{empleado.dni}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Phone className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                        <Phone className="w-4 h-4" style={{ color: c.textMuted }} />
                         {empleado.telefono}
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                      <div className="flex items-center gap-2 text-sm mt-1" style={{ color: c.textMuted }}>
                         <MapPin className="w-3 h-3" />
                         {empleado.direccion}
                       </div>
@@ -408,12 +414,12 @@ export function Empleados() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Calendar className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2" style={{ color: c.textSecondary }}>
+                        <Calendar className="w-4 h-4" style={{ color: c.textMuted }} />
                         {new Date(empleado.fechaContratacion).toLocaleDateString('es-PE')}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-white">
+                    <td className="px-6 py-4" style={{ color: c.text }}>
                       S/ {empleado.salario.toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
@@ -481,8 +487,8 @@ export function Empleados() {
                       </div>
                     )}
                     <div>
-                      <p className="text-white">{empleado.nombre} {empleado.apellidos}</p>
-                      <p className="text-gray-500 text-sm">DNI: {empleado.dni}</p>
+                      <p style={{ color: c.text }}>{empleado.nombre} {empleado.apellidos}</p>
+                      <p className="text-sm" style={{ color: c.textMuted }}>DNI: {empleado.dni}</p>
                     </div>
                   </div>
                   <button
@@ -508,31 +514,31 @@ export function Empleados() {
                     {empleado.cargo}
                   </span>
                   
-                  <div className="flex items-center gap-2 text-gray-300 text-sm">
-                    <Phone className="w-4 h-4 text-gray-500" />
+                  <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
+                    <Phone className="w-4 h-4" style={{ color: c.textMuted }} />
                     {empleado.telefono}
                   </div>
 
                   {empleado.email && (
-                    <div className="text-gray-500 text-sm">{empleado.email}</div>
+                    <div className="text-sm" style={{ color: c.textMuted }}>{empleado.email}</div>
                   )}
 
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                  <div className="flex items-center gap-2 text-sm" style={{ color: c.textMuted }}>
                     <MapPin className="w-4 h-4" />
                     {empleado.direccion}
                   </div>
 
-                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                     <Calendar className="w-4 h-4" />
                     Contratado: {new Date(empleado.fechaContratacion).toLocaleDateString('es-PE')}
                   </div>
 
-                  <div className="text-white">
+                  <div style={{ color: c.text }}>
                     Salario: S/ {empleado.salario.toFixed(2)}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-3 border-t border-zinc-800">
+                <div className="flex items-center gap-2 pt-3 border-t" style={{ borderColor: c.border }}>
                   <button
                     onClick={() => handleOpenModal(empleado)}
                     className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors border border-blue-500/30"
@@ -556,17 +562,17 @@ export function Empleados() {
 
       {/* Modal de Formulario */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ background: c.bgModalOverlay }}>
+          <div className="rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
             {/* Header del Modal */}
-            <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-700 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl text-white flex items-center gap-2">
+            <div className="sticky top-0 backdrop-blur-sm px-6 py-4 flex items-center justify-between" style={{ background: c.bgModal, borderBottom: `1px solid ${c.border}` }}>
+              <h2 className="text-xl flex items-center gap-2" style={{ color: c.text }}>
                 <User className="w-6 h-6 text-amber-400" />
                 {editingEmpleado ? 'Editar Empleado' : 'Nuevo Empleado'}
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-zinc-800 rounded-lg"
+                className="transition-colors p-1 rounded-lg" style={{ color: c.textSecondary }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -576,7 +582,7 @@ export function Empleados() {
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {/* Foto */}
               <div className="space-y-4">
-                <h3 className="text-white flex items-center gap-2 pb-2 border-b border-zinc-700">
+                <h3 className="flex items-center gap-2 pb-2 border-b" style={{ color: c.text, borderColor: c.border }}>
                   <Upload className="w-5 h-5 text-amber-400" />
                   Fotografía
                 </h3>
@@ -589,20 +595,21 @@ export function Empleados() {
                       className="w-24 h-24 rounded-full object-cover border-2 border-amber-500/30"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center">
-                      <User className="w-12 h-12 text-gray-500" />
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: c.bgInput, border: `2px solid ${c.border}` }}>
+                      <User className="w-12 h-12" style={{ color: c.textMuted }} />
                     </div>
                   )}
                   
                   <div className="flex-1">
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       URL de la Foto
                     </label>
                     <input
                       type="url"
                       value={formData.foto}
                       onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="https://ejemplo.com/foto.jpg"
                     />
                   </div>
@@ -611,14 +618,14 @@ export function Empleados() {
 
               {/* Información Personal */}
               <div className="space-y-4">
-                <h3 className="text-white flex items-center gap-2 pb-2 border-b border-zinc-700">
+                <h3 className="flex items-center gap-2 pb-2 border-b" style={{ color: c.text, borderColor: c.border }}>
                   <User className="w-5 h-5 text-amber-400" />
                   Información Personal
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Nombre <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -626,13 +633,14 @@ export function Empleados() {
                       required
                       value={formData.nombre}
                       onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="Ej: Juan"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Apellidos <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -640,13 +648,14 @@ export function Empleados() {
                       required
                       value={formData.apellidos}
                       onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="Ej: Pérez García"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       DNI <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -654,14 +663,15 @@ export function Empleados() {
                       required
                       value={formData.dni}
                       onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="12345678"
                       maxLength={8}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Teléfono <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -669,26 +679,28 @@ export function Empleados() {
                       required
                       value={formData.telefono}
                       onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="987654321"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Email
                     </label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="empleado@avicolajossy.com"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Dirección <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -696,7 +708,8 @@ export function Empleados() {
                       required
                       value={formData.direccion}
                       onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="Av. Principal 123, Lima"
                     />
                   </div>
@@ -705,21 +718,22 @@ export function Empleados() {
 
               {/* Información Laboral */}
               <div className="space-y-4">
-                <h3 className="text-white flex items-center gap-2 pb-2 border-b border-zinc-700">
+                <h3 className="flex items-center gap-2 pb-2 border-b" style={{ color: c.text, borderColor: c.border }}>
                   <Briefcase className="w-5 h-5 text-amber-400" />
                   Información Laboral
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Cargo <span className="text-red-500">*</span>
                     </label>
                     <select
                       required
                       value={formData.cargo}
                       onChange={(e) => setFormData({ ...formData, cargo: e.target.value as Empleado['cargo'] })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     >
                       <option value="Secretaria">Secretaria</option>
                       <option value="Producción">Producción</option>
@@ -730,7 +744,7 @@ export function Empleados() {
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Fecha de Contratación <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -738,12 +752,13 @@ export function Empleados() {
                       required
                       value={formData.fechaContratacion}
                       onChange={(e) => setFormData({ ...formData, fechaContratacion: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-gray-400 text-sm mb-2">
+                    <label className="block text-sm mb-2" style={{ color: c.textSecondary }}>
                       Salario Mensual (S/) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -753,7 +768,8 @@ export function Empleados() {
                       min="0"
                       value={formData.salario}
                       onChange={(e) => setFormData({ ...formData, salario: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="w-full rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                       placeholder="1200.00"
                     />
                   </div>
@@ -765,7 +781,7 @@ export function Empleados() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-3 rounded-lg transition-colors border border-zinc-700"
+                  className="flex-1 px-6 py-3 rounded-lg transition-colors" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   Cancelar
                 </button>

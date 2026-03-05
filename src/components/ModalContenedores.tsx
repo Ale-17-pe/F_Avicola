@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Package, Scale, Box, Check } from 'lucide-react';
 import type { Contenedor } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface ModalContenedoresProps {
   isOpen: boolean;
@@ -20,6 +21,9 @@ export function ModalContenedores({
     tipo: '',
     peso: ''
   });
+
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   if (!isOpen) return null;
 
@@ -68,21 +72,21 @@ export function ModalContenedores({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: c.bgModalOverlay }}>
       <div 
         className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl w-full max-w-6xl max-h-[95vh] overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-          border: '2px solid rgba(204, 170, 0, 0.3)',
-          boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 100px rgba(204, 170, 0, 0.1)'
+          background: c.bgModal,
+          border: `2px solid ${c.borderGold}`,
+          boxShadow: c.shadowLg
         }}
       >
         {/* Header Mejorado */}
         <div 
           className="px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 border-b"
           style={{
-            background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))',
-            borderColor: 'rgba(204, 170, 0, 0.2)'
+            background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.4))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(255, 255, 255, 0.95))',
+            borderColor: c.borderGold
           }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -97,8 +101,8 @@ export function ModalContenedores({
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-black" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold text-white mb-0.5 sm:mb-1 truncate">Gestión de Contenedores</h2>
-                <p className="text-xs sm:text-sm text-gray-300 hidden sm:block">Configure el peso de cada tipo de contenedor para cálculos precisos</p>
+                <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-0.5 sm:mb-1 truncate" style={{ color: c.text }}>Gestión de Contenedores</h2>
+                <p className="text-xs sm:text-sm hidden sm:block" style={{ color: c.textSecondary }}>Configure el peso de cada tipo de contenedor para cálculos precisos</p>
               </div>
             </div>
             <button
@@ -122,9 +126,9 @@ export function ModalContenedores({
               <div 
                 className="backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 h-full"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))',
-                  border: '1px solid rgba(204, 170, 0, 0.25)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+                  background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.4))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.06), rgba(255, 255, 255, 0.95))',
+                  border: `1px solid ${c.borderGold}`,
+                  boxShadow: c.shadowMd
                 }}
               >
                 {/* Título del Formulario */}
@@ -166,11 +170,12 @@ export function ModalContenedores({
                       required
                       value={formData.tipo}
                       onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
+                      className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        background: c.bgInput,
                         border: '1.5px solid rgba(204, 170, 0, 0.3)',
                         outlineColor: '#ccaa00',
+                        color: c.text,
                       }}
                       placeholder="Ej: Jabas Nuevas, Bandeja Amarilla"
                     />
@@ -192,11 +197,12 @@ export function ModalContenedores({
                         step="0.01"
                         value={formData.peso}
                         onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-                        className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
+                        className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
+                          background: c.bgInput,
                           border: '1.5px solid rgba(204, 170, 0, 0.3)',
                           outlineColor: '#ccaa00',
+                          color: c.text,
                         }}
                         placeholder="Ej: 2.5, 3.5, 0.05"
                       />
@@ -207,7 +213,7 @@ export function ModalContenedores({
                         KG
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                    <p className="text-xs mt-2 flex items-center gap-2" style={{ color: c.textSecondary }}>
                       <span>💡</span>
                       <span>Peso unitario del contenedor vacío</span>
                     </p>
@@ -228,23 +234,23 @@ export function ModalContenedores({
                       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
                         <div 
                           className="p-2 sm:p-3 rounded-lg"
-                          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+                          style={{ background: c.bgCard }}
                         >
-                          <p className="text-xs text-gray-400 mb-1">Peso Unitario</p>
+                          <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Peso Unitario</p>
                           <p className="text-xl sm:text-2xl font-bold" style={{ color: '#ccaa00' }}>
                             {parseFloat(formData.peso).toFixed(2)}
                           </p>
-                          <p className="text-xs text-gray-500">kilogramos</p>
+                          <p className="text-xs" style={{ color: c.textMuted }}>kilogramos</p>
                         </div>
                         <div 
                           className="p-2 sm:p-3 rounded-lg"
-                          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+                          style={{ background: c.bgCard }}
                         >
-                          <p className="text-xs text-gray-400 mb-1">10 Unidades</p>
-                          <p className="text-xl sm:text-2xl font-bold text-white">
+                          <p className="text-xs mb-1" style={{ color: c.textSecondary }}>10 Unidades</p>
+                          <p className="text-xl sm:text-2xl font-bold" style={{ color: c.text }}>
                             {(10 * parseFloat(formData.peso)).toFixed(2)}
                           </p>
-                          <p className="text-xs text-gray-500">kilogramos</p>
+                          <p className="text-xs" style={{ color: c.textMuted }}>kilogramos</p>
                         </div>
                       </div>
                       <div className="mt-2 sm:mt-3 p-2 rounded-lg text-center" style={{ background: 'rgba(204, 170, 0, 0.1)' }}>
@@ -289,9 +295,9 @@ export function ModalContenedores({
                         onClick={handleCancelarEdicion}
                         className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium transition-all hover:scale-[1.02]"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          color: '#ffffff',
-                          border: '1.5px solid rgba(255, 255, 255, 0.2)'
+                          background: c.g06,
+                          color: c.text,
+                          border: `1.5px solid ${c.g20}`
                         }}
                       >
                         Cancelar Edición
@@ -307,13 +313,13 @@ export function ModalContenedores({
               <div 
                 className="backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6"
                 style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+                  background: c.bgCardAlt,
+                  border: `1px solid ${c.border}`,
+                  boxShadow: c.shadowMd
                 }}
               >
                 <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold flex items-center gap-2" style={{ color: c.text }}>
                     <Package className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#ccaa00' }} />
                     <span className="hidden sm:inline">Contenedores Registrados</span>
                     <span className="sm:hidden">Registrados</span>
@@ -330,7 +336,7 @@ export function ModalContenedores({
                   {contenedores.length === 0 && (
                     <div 
                       className="text-center py-8 sm:py-12 lg:py-16 rounded-lg sm:rounded-xl"
-                      style={{ background: 'rgba(255, 255, 255, 0.02)' }}
+                      style={{ background: c.g04 }}
                     >
                       <div 
                         className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4"
@@ -338,8 +344,8 @@ export function ModalContenedores({
                       >
                         <Package className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#ccaa00', opacity: 0.5 }} />
                       </div>
-                      <p className="text-sm sm:text-base text-gray-400 font-medium mb-1 sm:mb-2">No hay contenedores registrados</p>
-                      <p className="text-xs text-gray-500">Agrega tu primer contenedor usando el formulario</p>
+                      <p className="text-sm sm:text-base font-medium mb-1 sm:mb-2" style={{ color: c.textSecondary }}>No hay contenedores registrados</p>
+                      <p className="text-xs" style={{ color: c.textMuted }}>Agrega tu primer contenedor usando el formulario</p>
                     </div>
                   )}
 
@@ -348,9 +354,9 @@ export function ModalContenedores({
                       key={contenedor.id}
                       className="group p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl transition-all hover:scale-[1.01]"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(0, 0, 0, 0.3))',
-                        border: '1.5px solid rgba(204, 170, 0, 0.25)',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+                        background: isDark ? 'linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(0, 0, 0, 0.3))' : 'linear-gradient(135deg, rgba(204, 170, 0, 0.06), rgba(255, 255, 255, 0.9))',
+                        border: `1.5px solid ${c.borderGold}`,
+                        boxShadow: c.shadowSm
                       }}
                     >
                       <div className="flex items-center justify-between gap-2 sm:gap-3">
@@ -370,14 +376,14 @@ export function ModalContenedores({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
                               <Box className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" style={{ color: '#ccaa00' }} />
-                              <p className="font-bold text-white text-sm sm:text-base lg:text-lg truncate">{contenedor.tipo}</p>
+                              <p className="font-bold text-sm sm:text-base lg:text-lg truncate" style={{ color: c.text }}>{contenedor.tipo}</p>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2">
-                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
+                              <Scale className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" style={{ color: c.textSecondary }} />
                               <span className="text-xs sm:text-sm font-bold" style={{ color: '#ccaa00' }}>
                                 {contenedor.peso.toFixed(2)} kg
                               </span>
-                              <span className="text-xs text-gray-400 hidden sm:inline">por unidad</span>
+                              <span className="text-xs hidden sm:inline" style={{ color: c.textSecondary }}>por unidad</span>
                             </div>
                           </div>
                         </div>
@@ -420,11 +426,11 @@ export function ModalContenedores({
         <div 
           className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 border-t flex flex-col sm:flex-row justify-between items-center gap-3"
           style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            borderColor: 'rgba(204, 170, 0, 0.2)'
+            background: c.bgCardAlt,
+            borderColor: c.borderGold
           }}
         >
-          <p className="text-xs sm:text-sm text-gray-400">
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>
             Total de contenedores: <span className="font-bold" style={{ color: '#ccaa00' }}>{contenedores.length}</span>
           </p>
           <button

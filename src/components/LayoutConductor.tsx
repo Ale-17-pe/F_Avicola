@@ -5,14 +5,19 @@ import {
 import {
   LogOut,
   Truck,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme, t } from '../contexts/ThemeContext';
 import logoImage from "../assets/AvicolaLogo.png";
 
 export function LayoutConductor() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const c = t(isDark);
 
   const handleLogout = () => {
     logout();
@@ -28,18 +33,19 @@ export function LayoutConductor() {
     style.textContent = `
       .custom-scrollbar::-webkit-scrollbar { width: 4px; }
       .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(204, 170, 0, 0.2); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: ${c.borderGold}; border-radius: 10px; }
     `;
     document.head.appendChild(style);
+    document.body.style.backgroundColor = isDark ? '#000000' : '#f3f4f6';
     return () => { document.head.removeChild(style); };
-  }, []);
+  }, [isDark, c.borderGold]);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#000000" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: c.bgPage, color: c.text, transition: 'background 0.25s ease, color 0.25s ease' }}>
       {/* Header compacto sin sidebar */}
       <header
         className="backdrop-blur-xl border-b sticky top-0 z-30"
-        style={{ background: "rgba(0, 0, 0, 0.8)", borderColor: "rgba(204, 170, 0, 0.15)" }}
+        style={{ background: c.bgHeader, borderColor: c.borderGold, boxShadow: c.shadowHeader }}
       >
         <div className="px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
@@ -56,7 +62,7 @@ export function LayoutConductor() {
                   <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                   <span style={{ color: "#ccaa00" }}>JOSSY</span>
                 </h1>
-                <p className="text-[10px] text-gray-500 hidden sm:block">Panel de Entregas</p>
+                <p className="text-[10px] hidden sm:block" style={{ color: c.textSecondary }}>Panel de Entregas</p>
               </div>
             </div>
 
@@ -68,13 +74,22 @@ export function LayoutConductor() {
               </div>
 
               {user && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.04)" }}>
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: c.g04 }}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #22c55e, #166534)" }}>
                     <Truck className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <span className="text-xs font-medium text-white">{user.nombre} {user.apellido}</span>
+                  <span className="text-xs font-medium" style={{ color: c.text }}>{user.nombre} {user.apellido}</span>
                 </div>
               )}
+
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                style={{ background: c.g10, color: '#ccaa00' }}
+                title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+              </button>
 
               <button
                 onClick={handleLogout}

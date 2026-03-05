@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, ShoppingCart, Calendar, Bird, Phone, MapPin, FileText } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 interface Proveedor {
@@ -29,6 +30,7 @@ interface Pedido {
 
 export function ProveedoresConPedidos() {
   const { tiposAve } = useApp();
+  const { isDark } = useTheme(); const c = t(isDark);
   
   const [proveedores] = useState<Proveedor[]>([
     {
@@ -198,8 +200,8 @@ export function ProveedoresConPedidos() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Gestión de Proveedores</h1>
-          <p className="text-gray-400">Registro de pedidos de abastecimiento</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: c.text }}>Gestión de Proveedores</h1>
+          <p style={{ color: c.textSecondary }}>Registro de pedidos de abastecimiento</p>
         </div>
         <button
           onClick={() => handleOpenPedidoModal()}
@@ -218,52 +220,52 @@ export function ProveedoresConPedidos() {
       {/* Métricas Clave */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(34, 197, 94, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Total Proveedores</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Total Proveedores</p>
             <Phone className="w-5 h-5" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{stats.totalProveedores}</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.totalProveedores}</p>
           <p className="text-sm" style={{ color: '#22c55e' }}>Activos en el sistema</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(204, 170, 0, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Pedidos Registrados</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Pedidos Registrados</p>
             <FileText className="w-5 h-5" style={{ color: '#ccaa00' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{stats.pedidosPendientes}</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.pedidosPendientes}</p>
           <p className="text-sm" style={{ color: '#ccaa00' }}>Total de pedidos</p>
         </div>
 
         <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: 'rgba(0, 0, 0, 0.3)',
+          background: c.bgCard,
           border: '1px solid rgba(59, 130, 246, 0.3)'
         }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-400 text-sm font-medium">Último Pedido</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Último Pedido</p>
             <Calendar className="w-5 h-5" style={{ color: '#3b82f6' }} />
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{stats.ultimoPedido}</p>
+          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.ultimoPedido}</p>
           <p className="text-sm" style={{ color: '#3b82f6' }}>Fecha de ingreso</p>
         </div>
       </div>
 
       {/* Lista de Proveedores */}
       <div className="backdrop-blur-xl rounded-xl p-6" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
-        <h2 className="text-xl font-bold text-white mb-4">Proveedores Registrados</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: c.text }}>Proveedores Registrados</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
                 <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Nombre</th>
                 <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>RUC</th>
                 <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Contacto</th>
@@ -275,14 +277,14 @@ export function ProveedoresConPedidos() {
               {proveedores.map((proveedor) => (
                 <tr 
                   key={proveedor.id}
-                  className="border-b transition-colors hover:bg-white/5"
-                  style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                  className="border-b transition-colors"
+                  style={{ borderColor: c.borderSubtle }}
                 >
-                  <td className="px-6 py-4 text-white font-medium">{proveedor.nombre}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.ruc}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.contacto || '-'}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.telefono}</td>
-                  <td className="px-6 py-4 text-gray-300">{proveedor.direccion}</td>
+                  <td className="px-6 py-4 font-medium" style={{ color: c.text }}>{proveedor.nombre}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.ruc}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.contacto || '-'}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.telefono}</td>
+                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.direccion}</td>
                 </tr>
               ))}
             </tbody>
@@ -292,38 +294,40 @@ export function ProveedoresConPedidos() {
 
       {/* Pedidos */}
       <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
-        <div className="p-4 border-b" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
-          <h2 className="text-xl font-bold text-white mb-4">Historial de Pedidos</h2>
+        <div className="p-4 border-b" style={{ borderColor: c.borderGold }}>
+          <h2 className="text-xl font-bold mb-4" style={{ color: c.text }}>Historial de Pedidos</h2>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: c.textSecondary }} />
               <input
                 type="text"
                 placeholder="Buscar por proveedor o tipo de ave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg text-white placeholder-gray-400"
+                className="w-full pl-12 pr-4 py-3 rounded-lg"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                  background: c.bgInput,
+                  border: `1px solid ${c.border}`,
+                  color: c.text
                 }}
               />
             </div>
             <select
               value={filterProveedor}
               onChange={(e) => setFilterProveedor(e.target.value)}
-              className="px-4 py-3 rounded-lg text-white"
+              className="px-4 py-3 rounded-lg"
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: c.bgInput,
+                border: `1px solid ${c.border}`,
+                color: c.text
               }}
             >
-              <option value="all" style={{ background: '#1a1a1a' }}>Todos los proveedores</option>
+              <option value="all" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Todos los proveedores</option>
               {proveedores.map((proveedor) => (
-                <option key={proveedor.id} value={proveedor.id} style={{ background: '#1a1a1a' }}>
+                <option key={proveedor.id} value={proveedor.id} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
                   {proveedor.nombre}
                 </option>
               ))}
@@ -334,7 +338,7 @@ export function ProveedoresConPedidos() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.4)', borderBottom: '1px solid rgba(204, 170, 0, 0.3)' }}>
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Proveedor</th>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Tipo de Ave</th>
                 <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Detalle</th>
@@ -349,10 +353,10 @@ export function ProveedoresConPedidos() {
                 return (
                   <tr 
                     key={pedido.id}
-                    className="border-b transition-colors hover:bg-white/5"
-                    style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}
+                    className="border-b transition-colors"
+                    style={{ borderColor: c.borderSubtle }}
                   >
-                    <td className="px-6 py-4 text-white">{pedido.proveedorNombre}</td>
+                    <td className="px-6 py-4" style={{ color: c.text }}>{pedido.proveedorNombre}</td>
                     <td className="px-6 py-4">
                       <span 
                         className="px-2 py-1 rounded-full text-xs font-medium"
@@ -365,7 +369,7 @@ export function ProveedoresConPedidos() {
                         {pedido.tipoAve}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-300 text-sm">
+                    <td className="px-6 py-4 text-sm" style={{ color: c.textSecondary }}>
                       {pedido.variedad && <div className="mb-1">{pedido.variedad}</div>}
                       <div className="text-xs space-x-2">
                         <span style={{ color: '#3b82f6' }}>Javas {pedido.cantidadJavas}</span>
@@ -373,8 +377,8 @@ export function ProveedoresConPedidos() {
                         <span style={{ color: '#ec4899' }}>Aves/Java {pedido.avesPorJava}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-white font-bold">{pedido.cantidad}</td>
-                    <td className="px-6 py-4 text-gray-300 text-sm">
+                    <td className="px-6 py-4 font-bold" style={{ color: c.text }}>{pedido.cantidad}</td>
+                    <td className="px-6 py-4 text-sm" style={{ color: c.textSecondary }}>
                       <div>{pedido.fechaIngreso}</div>
                       <div className="text-xs">{pedido.horaIngreso}</div>
                     </td>
@@ -412,14 +416,14 @@ export function ProveedoresConPedidos() {
 
       {/* Modal Nuevo Pedido */}
       {isPedidoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
           <div className="backdrop-blur-2xl rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden" style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)',
-            border: '2px solid rgba(204, 170, 0, 0.3)',
-            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8)'
+            background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
+            border: `2px solid ${c.borderGold}`,
+            boxShadow: c.shadowLg
           }}>
             {/* Header */}
-            <div className="p-6 border-b" style={{ borderColor: 'rgba(204, 170, 0, 0.2)' }}>
+            <div className="p-6 border-b" style={{ borderColor: c.borderGold }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div 
@@ -432,10 +436,10 @@ export function ProveedoresConPedidos() {
                     <ShoppingCart className="w-6 h-6 text-black" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">
+                    <h2 className="text-xl font-bold" style={{ color: c.text }}>
                       {editingPedido ? 'Editar Pedido' : 'Nuevo Pedido de Abastecimiento'}
                     </h2>
-                    <p className="text-sm text-gray-300">Registro de aves del proveedor</p>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>Registro de aves del proveedor</p>
                   </div>
                 </div>
                 <button
@@ -456,20 +460,21 @@ export function ProveedoresConPedidos() {
               <form onSubmit={handleSubmitPedido} className="space-y-6">
                 {/* Proveedor */}
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white">Proveedor *</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Proveedor *</label>
                   <select
                     required
                     value={pedidoFormData.proveedorId}
                     onChange={(e) => setPedidoFormData({ ...pedidoFormData, proveedorId: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg text-white"
+                    className="w-full px-4 py-3 rounded-lg"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                      background: c.bgInput,
+                      border: `1px solid ${c.border}`,
+                      color: c.text
                     }}
                   >
-                    <option value="" style={{ background: '#1a1a1a' }}>Seleccionar proveedor</option>
+                    <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Seleccionar proveedor</option>
                     {proveedores.map((proveedor) => (
-                      <option key={proveedor.id} value={proveedor.id} style={{ background: '#1a1a1a' }}>
+                      <option key={proveedor.id} value={proveedor.id} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
                         {proveedor.nombre}
                       </option>
                     ))}
@@ -478,19 +483,20 @@ export function ProveedoresConPedidos() {
 
                 {/* Tipo de Ave */}
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white">Tipo de Ave *</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Tipo de Ave *</label>
                   <select
                     required
                     value={pedidoFormData.tipoAve}
                     onChange={(e) => setPedidoFormData({ ...pedidoFormData, tipoAve: e.target.value, variedad: undefined })}
-                    className="w-full px-4 py-3 rounded-lg text-white"
+                    className="w-full px-4 py-3 rounded-lg"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                      background: c.bgInput,
+                      border: `1px solid ${c.border}`,
+                      color: c.text
                     }}
                   >
                     {tiposAve.map((tipo) => (
-                      <option key={tipo.id} value={tipo.nombre} style={{ background: '#1a1a1a' }}>
+                      <option key={tipo.id} value={tipo.nombre} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
                         {tipo.nombre}
                       </option>
                     ))}
@@ -500,20 +506,21 @@ export function ProveedoresConPedidos() {
                 {/* Variedad (si aplica) */}
                 {tipoAveSeleccionado?.tieneVariedad && tipoAveSeleccionado.variedades && (
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">Variedad *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Variedad *</label>
                     <select
                       required
                       value={pedidoFormData.variedad || ''}
                       onChange={(e) => setPedidoFormData({ ...pedidoFormData, variedad: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg text-white"
+                      className="w-full px-4 py-3 rounded-lg"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        background: c.bgInput,
+                        border: `1px solid ${c.border}`,
+                        color: c.text
                       }}
                     >
-                      <option value="" style={{ background: '#1a1a1a' }}>Seleccionar variedad</option>
+                      <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Seleccionar variedad</option>
                       {tipoAveSeleccionado.variedades.map((variedad) => (
-                        <option key={variedad} value={variedad} style={{ background: '#1a1a1a' }}>
+                        <option key={variedad} value={variedad} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
                           {variedad}
                         </option>
                       ))}
@@ -524,33 +531,35 @@ export function ProveedoresConPedidos() {
                 {/* Cantidad de Javas y Aves por Java */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">Cantidad de Javas *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad de Javas *</label>
                     <input
                       type="number"
                       required
                       min="1"
                       value={pedidoFormData.cantidadJavas}
                       onChange={(e) => setPedidoFormData({ ...pedidoFormData, cantidadJavas: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg text-white"
+                      className="w-full px-4 py-3 rounded-lg"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        background: c.bgInput,
+                        border: `1px solid ${c.border}`,
+                        color: c.text
                       }}
                       placeholder="0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">Aves por Java *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Aves por Java *</label>
                     <input
                       type="number"
                       required
                       min="1"
                       value={pedidoFormData.avesPorJava}
                       onChange={(e) => setPedidoFormData({ ...pedidoFormData, avesPorJava: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg text-white"
+                      className="w-full px-4 py-3 rounded-lg"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        background: c.bgInput,
+                        border: `1px solid ${c.border}`,
+                        color: c.text
                       }}
                       placeholder="0"
                     />
@@ -560,7 +569,7 @@ export function ProveedoresConPedidos() {
                 {/* Total calculado */}
                 {pedidoFormData.cantidadJavas && pedidoFormData.avesPorJava && (
                   <div className="p-4 rounded-lg" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-                    <p className="text-sm text-gray-300">Total de aves:</p>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>Total de aves:</p>
                     <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
                       {parseInt(pedidoFormData.cantidadJavas) * parseInt(pedidoFormData.avesPorJava)} aves
                     </p>
@@ -571,7 +580,7 @@ export function ProveedoresConPedidos() {
                 {tipoAveSeleccionado?.tieneSexo && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white">Cantidad Machos</label>
+                      <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad Machos</label>
                       <input
                         type="number"
                         min="0"
@@ -593,25 +602,27 @@ export function ProveedoresConPedidos() {
                             cantidadHembras: hembras
                           });
                         }}
-                        className="w-full px-4 py-3 rounded-lg text-white"
+                        className="w-full px-4 py-3 rounded-lg"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                          background: c.bgInput,
+                          border: `1px solid ${c.border}`,
+                          color: c.text
                         }}
                         placeholder="0"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white">Cantidad Hembras</label>
+                      <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad Hembras</label>
                       <input
                         type="number"
                         min="0"
                         value={pedidoFormData.cantidadHembras}
                         onChange={(e) => setPedidoFormData({ ...pedidoFormData, cantidadHembras: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg text-white"
+                        className="w-full px-4 py-3 rounded-lg"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                          background: c.bgInput,
+                          border: `1px solid ${c.border}`,
+                          color: c.text
                         }}
                         placeholder="0"
                       />
@@ -622,30 +633,32 @@ export function ProveedoresConPedidos() {
                 {/* Fecha y Hora */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">Fecha de Ingreso *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Fecha de Ingreso *</label>
                     <input
                       type="date"
                       required
                       value={pedidoFormData.fechaIngreso}
                       onChange={(e) => setPedidoFormData({ ...pedidoFormData, fechaIngreso: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg text-white"
+                      className="w-full px-4 py-3 rounded-lg"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        background: c.bgInput,
+                        border: `1px solid ${c.border}`,
+                        color: c.text
                       }}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-white">Hora de Ingreso *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Hora de Ingreso *</label>
                     <input
                       type="time"
                       required
                       value={pedidoFormData.horaIngreso}
                       onChange={(e) => setPedidoFormData({ ...pedidoFormData, horaIngreso: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg text-white"
+                      className="w-full px-4 py-3 rounded-lg"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        background: c.bgInput,
+                        border: `1px solid ${c.border}`,
+                        color: c.text
                       }}
                     />
                   </div>

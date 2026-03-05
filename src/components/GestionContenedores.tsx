@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Package, Settings, Scale, Box, Layers, ArrowUpDown, Edit3, Trash2, AlertCircle, TrendingUp, Weight, BarChart3, X, Check, History } from 'lucide-react';
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 // Interfaz para el contenedor
@@ -13,6 +14,8 @@ interface Contenedor {
 
 export function GestionContenedores() {
   const { contenedores, setContenedores, pedidosConfirmados } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const [isContenedoresModalOpen, setIsContenedoresModalOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editTipo, setEditTipo] = useState('');
@@ -107,7 +110,7 @@ export function GestionContenedores() {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 p-2 sm:p-4 bg-black min-h-screen">
+    <div className="space-y-5 sm:space-y-6 p-2 sm:p-4 min-h-screen" style={{ background: c.bgPage }}>
       {/* Header con degradado mejorado */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/20 via-transparent to-transparent pointer-events-none" />
@@ -117,11 +120,11 @@ export function GestionContenedores() {
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-900/30 to-amber-950/30 border border-amber-700/30 shadow-lg shadow-amber-900/20">
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight" style={{ color: c.text }}>
                 Gestión de Contenedores
               </h1>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 ml-1">
+            <p className="text-xs sm:text-sm ml-1" style={{ color: c.textMuted }}>
               Registro y control de tipos de contenedores disponibles
             </p>
           </div>
@@ -149,14 +152,14 @@ export function GestionContenedores() {
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.12), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(204, 170, 0, 0.12), ${c.bgCardAlt})`,
             border: '1px solid rgba(204, 170, 0, 0.3)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            boxShadow: c.shadowLg
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Tipos Registrados</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Tipos Registrados</p>
             <div
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               style={{ background: 'rgba(204, 170, 0, 0.15)', border: '1px solid rgba(204, 170, 0, 0.25)' }}
@@ -167,21 +170,21 @@ export function GestionContenedores() {
           <p className="text-2xl sm:text-3xl font-bold text-amber-400">
             {totalContenedores}
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">contenedores configurados</p>
+          <p className="text-[10px] sm:text-xs mt-1" style={{ color: c.textMuted }}>contenedores configurados</p>
         </div>
 
         {/* Peso Promedio */}
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(59, 130, 246, 0.1), ${c.bgCardAlt})`,
             border: '1px solid rgba(59, 130, 246, 0.25)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            boxShadow: c.shadowLg
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Peso Promedio</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Peso Promedio</p>
             <div
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               style={{ background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.25)' }}
@@ -192,21 +195,21 @@ export function GestionContenedores() {
           <p className="text-2xl sm:text-3xl font-bold text-blue-400">
             {pesoPromedio.toFixed(2)}
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">kg por unidad</p>
+          <p className="text-[10px] sm:text-xs mt-1" style={{ color: c.textMuted }}>kg por unidad</p>
         </div>
 
         {/* Rango de Pesos */}
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(34, 197, 94, 0.1), ${c.bgCardAlt})`,
             border: '1px solid rgba(34, 197, 94, 0.25)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            boxShadow: c.shadowLg
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Rango de Pesos</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Rango de Pesos</p>
             <div
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               style={{ background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.25)' }}
@@ -217,21 +220,21 @@ export function GestionContenedores() {
           <p className="text-2xl sm:text-3xl font-bold text-green-400">
             {pesoMin.toFixed(2)} – {pesoMax.toFixed(2)}
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">kg (mín – máx)</p>
+          <p className="text-[10px] sm:text-xs mt-1" style={{ color: c.textMuted }}>kg (mín – máx)</p>
         </div>
 
         {/* Peso Total Flota */}
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(168, 85, 247, 0.1), ${c.bgCardAlt})`,
             border: '1px solid rgba(168, 85, 247, 0.25)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            boxShadow: c.shadowLg
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Peso Total</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Peso Total</p>
             <div
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.25)' }}
@@ -242,21 +245,21 @@ export function GestionContenedores() {
           <p className="text-2xl sm:text-3xl font-bold text-purple-400">
             {pesoTotalFlota.toFixed(2)}
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">kg acumulado</p>
+          <p className="text-[10px] sm:text-xs mt-1" style={{ color: c.textMuted }}>kg acumulado</p>
         </div>
 
         {/* Jabas Usadas Hoy */}
         <div
           className="group relative backdrop-blur-xl rounded-xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(251, 191, 36, 0.1), ${c.bgCardAlt})`,
             border: '1px solid rgba(251, 191, 36, 0.25)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            boxShadow: c.shadowLg
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">Jabas Usadas (Hoy)</p>
+            <p className="text-xs sm:text-sm font-medium" style={{ color: c.textSecondary }}>Jabas Usadas (Hoy)</p>
             <div
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.25)' }}
@@ -278,7 +281,7 @@ export function GestionContenedores() {
               .reduce((acc: number, p: any) => acc + (p.cantidadTotalContenedores || 0), 0)
             }
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">unidades en circulación</p>
+          <p className="text-[10px] sm:text-xs mt-1" style={{ color: c.textMuted }}>unidades en circulación</p>
         </div>
       </div>
 
@@ -289,49 +292,49 @@ export function GestionContenedores() {
           <div
             className="backdrop-blur-xl rounded-xl p-4"
             style={{
-              background: 'rgba(0, 0, 0, 0.4)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: c.bgCardAlt,
+              border: `1px solid ${c.borderSubtle}`,
             }}
           >
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="w-4 h-4 text-amber-400" />
-              <p className="text-xs text-gray-300">Desviación Estándar</p>
+              <p className="text-xs" style={{ color: c.textSecondary }}>Desviación Estándar</p>
             </div>
-            <p className="text-lg font-bold text-white">
+            <p className="text-lg font-bold" style={{ color: c.text }}>
               {desviacionEstandar.toFixed(3)} kg
             </p>
-            <p className="text-[10px] text-gray-500">variabilidad del peso</p>
+            <p className="text-[10px]" style={{ color: c.textMuted }}>variabilidad del peso</p>
           </div>
 
           {/* Mediana */}
           <div
             className="backdrop-blur-xl rounded-xl p-4"
             style={{
-              background: 'rgba(0, 0, 0, 0.4)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: c.bgCardAlt,
+              border: `1px solid ${c.borderSubtle}`,
             }}
           >
             <div className="flex items-center gap-3 mb-2">
               <BarChart3 className="w-4 h-4 text-blue-400" />
-              <p className="text-xs text-gray-300">Mediana</p>
+              <p className="text-xs" style={{ color: c.textSecondary }}>Mediana</p>
             </div>
-            <p className="text-lg font-bold text-white">
+            <p className="text-lg font-bold" style={{ color: c.text }}>
               {mediana.toFixed(2)} kg
             </p>
-            <p className="text-[10px] text-gray-500">valor central</p>
+            <p className="text-[10px]" style={{ color: c.textMuted }}>valor central</p>
           </div>
 
           {/* Distribución */}
           <div
             className="backdrop-blur-xl rounded-xl p-4"
             style={{
-              background: 'rgba(0, 0, 0, 0.4)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: c.bgCardAlt,
+              border: `1px solid ${c.borderSubtle}`,
             }}
           >
             <div className="flex items-center gap-3 mb-2">
               <Weight className="w-4 h-4 text-purple-400" />
-              <p className="text-xs text-gray-300">Distribución</p>
+              <p className="text-xs" style={{ color: c.textSecondary }}>Distribución</p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-green-400">L:{distribucion.livianos}</span>
@@ -340,23 +343,25 @@ export function GestionContenedores() {
               <span className="text-gray-500">|</span>
               <span className="text-red-400">P:{distribucion.pesados}</span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">liviano &lt;2kg | medio 2-5kg | pesado &gt;5kg</p>
+            <p className="text-[10px] mt-1" style={{ color: c.textMuted }}>liviano &lt;2kg | medio 2-5kg | pesado &gt;5kg</p>
           </div>
         </div>
       )}
 
       {/* Tabla de Contenedores Registrados — Desktop Mejorada */}
       <div
-        className="hidden md:block backdrop-blur-xl rounded-xl overflow-hidden border border-amber-800/30 shadow-2xl shadow-amber-900/10"
+        className="hidden md:block backdrop-blur-xl rounded-xl overflow-hidden shadow-2xl shadow-amber-900/10"
         style={{
-          background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9))',
+          background: c.bgCard,
+          border: `1px solid ${c.borderGold}`,
         }}
       >
         {/* Encabezado de sección mejorado */}
         <div
-          className="px-6 py-4 flex items-center justify-between border-b border-amber-800/30"
+          className="px-6 py-4 flex items-center justify-between"
           style={{
-            background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.15), rgba(0, 0, 0, 0.6))',
+            background: `linear-gradient(135deg, rgba(204, 170, 0, 0.15), ${c.bgCardAlt})`,
+            borderBottom: `1px solid ${c.borderGold}`,
           }}
         >
           <div className="flex items-center gap-3">
@@ -370,13 +375,13 @@ export function GestionContenedores() {
               <Package className="w-5 h-5 text-black" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <h3 className="text-base font-bold flex items-center gap-2" style={{ color: c.text }}>
                 Contenedores Registrados
                 <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-400 border border-amber-700/30">
                   {totalContenedores} {totalContenedores === 1 ? 'tipo' : 'tipos'}
                 </span>
               </h3>
-              <p className="text-xs text-gray-500">Detalle de tipos y pesos configurados</p>
+              <p className="text-xs" style={{ color: c.textMuted }}>Detalle de tipos y pesos configurados</p>
             </div>
           </div>
         </div>
@@ -384,7 +389,7 @@ export function GestionContenedores() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-black/50 border-b border-amber-800/20">
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">#</th>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Tipo de Contenedor</th>
                 <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Peso Unitario</th>
@@ -399,7 +404,7 @@ export function GestionContenedores() {
                 <tr
                   key={contenedor.id}
                   className="transition-all duration-200 hover:bg-amber-900/10"
-                  style={{ borderBottom: '1px solid rgba(204, 170, 0, 0.06)' }}
+                  style={{ borderBottom: `1px solid ${c.borderSubtle}` }}
                 >
                   <td className="px-6 py-4">
                     <div
@@ -422,7 +427,8 @@ export function GestionContenedores() {
                           type="text"
                           value={editTipo}
                           onChange={(e) => setEditTipo(e.target.value)}
-                          className="w-full bg-black/60 border border-amber-600/50 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                          className="w-full border border-amber-600/50 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
+                          style={{ background: c.bgInput, color: c.text }}
                           placeholder="Tipo de contenedor"
                           autoFocus
                         />
@@ -434,17 +440,18 @@ export function GestionContenedores() {
                           min="0"
                           value={editPeso}
                           onChange={(e) => setEditPeso(e.target.value)}
-                          className="w-full bg-black/60 border border-amber-600/50 rounded-lg px-3 py-1.5 text-white text-sm text-right focus:outline-none focus:border-amber-400"
+                          className="w-full border border-amber-600/50 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:border-amber-400"
+                          style={{ background: c.bgInput, color: c.text }}
                           placeholder="0.00"
                         />
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(parseFloat(editPeso || '0') * 10).toFixed(2)} kg
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(parseFloat(editPeso || '0') * 50).toFixed(2)} kg
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(parseFloat(editPeso || '0') * 100).toFixed(2)} kg
                       </td>
                       <td className="px-6 py-4">
@@ -472,7 +479,7 @@ export function GestionContenedores() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Box className="w-4 h-4 flex-shrink-0 text-amber-500/70" />
-                          <span className="text-white font-medium text-sm">{contenedor.tipo}</span>
+                          <span className="font-medium text-sm" style={{ color: c.text }}>{contenedor.tipo}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -480,13 +487,13 @@ export function GestionContenedores() {
                           {contenedor.peso.toFixed(2)} kg
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(contenedor.peso * 10).toFixed(2)} kg
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(contenedor.peso * 50).toFixed(2)} kg
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-300 text-sm">
+                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
                         {(contenedor.peso * 100).toFixed(2)} kg
                       </td>
                       <td className="px-6 py-4">
@@ -535,7 +542,7 @@ export function GestionContenedores() {
             {/* Footer con totales mejorado */}
             {contenedores.length > 0 && (
               <tfoot>
-                <tr className="bg-gradient-to-r from-amber-950/30 to-black/90 border-t-2 border-amber-700/30">
+                <tr style={{ background: `linear-gradient(to right, rgba(120,83,9,0.15), ${c.bgCard})`, borderTop: `2px solid ${c.borderGold}` }}>
                   <td className="px-6 py-4" colSpan={2}>
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
                       Totales acumulados
@@ -547,17 +554,17 @@ export function GestionContenedores() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-gray-300 font-medium text-sm">
+                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
                       {(pesoTotalFlota * 10).toFixed(2)} kg
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-gray-300 font-medium text-sm">
+                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
                       {(pesoTotalFlota * 50).toFixed(2)} kg
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-gray-300 font-medium text-sm">
+                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
                       {(pesoTotalFlota * 100).toFixed(2)} kg
                     </span>
                   </td>
@@ -576,8 +583,8 @@ export function GestionContenedores() {
             >
               <AlertCircle className="w-8 h-8 text-amber-600/50" />
             </div>
-            <p className="text-gray-300 text-base font-medium mb-2">No hay contenedores registrados</p>
-            <p className="text-gray-500 text-sm">Haz clic en "Gestionar Contenedores" para agregar el primero</p>
+            <p className="text-base font-medium mb-2" style={{ color: c.textSecondary }}>No hay contenedores registrados</p>
+            <p className="text-sm" style={{ color: c.textMuted }}>Haz clic en "Gestionar Contenedores" para agregar el primero</p>
           </div>
         )}
       </div>
@@ -585,7 +592,7 @@ export function GestionContenedores() {
       {/* Cards de Contenedores — Mobile Mejoradas */}
       <div className="md:hidden space-y-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: c.text }}>
             <Package className="w-4 h-4 text-amber-400" />
             Contenedores Registrados
           </h3>
@@ -599,9 +606,9 @@ export function GestionContenedores() {
             key={contenedor.id}
             className="group relative backdrop-blur-xl rounded-xl p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(204, 170, 0, 0.08), rgba(0, 0, 0, 0.7))',
-              border: '1px solid rgba(204, 170, 0, 0.2)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+              background: `linear-gradient(135deg, rgba(204, 170, 0, 0.08), ${c.bgCard})`,
+              border: `1px solid ${c.borderGold}`,
+              boxShadow: c.shadowMd
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -613,7 +620,8 @@ export function GestionContenedores() {
                   type="text"
                   value={editTipo}
                   onChange={(e) => setEditTipo(e.target.value)}
-                  className="w-full bg-black/60 border border-amber-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full border border-amber-600/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400"
+                  style={{ background: c.bgInput, color: c.text }}
                   placeholder="Tipo de contenedor"
                   autoFocus
                 />
@@ -623,7 +631,8 @@ export function GestionContenedores() {
                   min="0"
                   value={editPeso}
                   onChange={(e) => setEditPeso(e.target.value)}
-                  className="w-full bg-black/60 border border-amber-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full border border-amber-600/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400"
+                  style={{ background: c.bgInput, color: c.text }}
                   placeholder="Peso (kg)"
                 />
                 <div className="flex items-center justify-end gap-2 mt-2">
@@ -657,7 +666,7 @@ export function GestionContenedores() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-white font-bold text-sm truncate">{contenedor.tipo}</p>
+                      <p className="font-bold text-sm truncate" style={{ color: c.text }}>{contenedor.tipo}</p>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => iniciarEdicion(contenedor)}
@@ -698,20 +707,20 @@ export function GestionContenedores() {
 
                 {/* Datos calculados con diseño mejorado */}
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="p-2.5 rounded-lg text-center bg-black/40 border border-amber-800/20">
-                    <p className="text-[10px] text-gray-400 mb-1">×10</p>
-                    <p className="text-white text-xs font-bold">{(contenedor.peso * 10).toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-500">kg</p>
+                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
+                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×10</p>
+                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 10).toFixed(2)}</p>
+                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
                   </div>
-                  <div className="p-2.5 rounded-lg text-center bg-black/40 border border-amber-800/20">
-                    <p className="text-[10px] text-gray-400 mb-1">×50</p>
-                    <p className="text-white text-xs font-bold">{(contenedor.peso * 50).toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-500">kg</p>
+                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
+                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×50</p>
+                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 50).toFixed(2)}</p>
+                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
                   </div>
-                  <div className="p-2.5 rounded-lg text-center bg-black/40 border border-amber-800/20">
-                    <p className="text-[10px] text-gray-400 mb-1">×100</p>
-                    <p className="text-white text-xs font-bold">{(contenedor.peso * 100).toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-500">kg</p>
+                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
+                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×100</p>
+                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 100).toFixed(2)}</p>
+                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
                   </div>
                 </div>
               </>
@@ -721,33 +730,34 @@ export function GestionContenedores() {
 
         {contenedores.length === 0 && (
           <div
-            className="text-center py-12 backdrop-blur-xl rounded-xl border border-amber-800/20"
+            className="text-center py-12 backdrop-blur-xl rounded-xl"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7))',
+              background: c.bgCard,
+              border: `1px solid ${c.borderGold}`,
             }}
           >
             <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-600/40" />
-            <p className="text-gray-300 text-sm font-medium">No hay contenedores registrados</p>
-            <p className="text-gray-500 text-xs mt-1">Toca "Gestionar" para agregar</p>
+            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>No hay contenedores registrados</p>
+            <p className="text-xs mt-1" style={{ color: c.textMuted }}>Toca "Gestionar" para agregar</p>
           </div>
         )}
       </div>
 
       {/* Uso Reciente de Contenedores (Log de Pesajes) */}
       <div 
-        className="backdrop-blur-xl rounded-xl overflow-hidden border border-amber-800/30 shadow-2xl shadow-amber-900/10"
-        style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9))' }}
+        className="backdrop-blur-xl rounded-xl overflow-hidden shadow-2xl shadow-amber-900/10"
+        style={{ background: c.bgCard, border: `1px solid ${c.borderGold}` }}
       >
-        <div className="px-6 py-4 flex items-center justify-between border-b border-amber-800/30"
-          style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(0, 0, 0, 0.6))' }}>
+        <div className="px-6 py-4 flex items-center justify-between"
+          style={{ background: `linear-gradient(135deg, rgba(59, 130, 246, 0.15), ${c.bgCardAlt})`, borderBottom: `1px solid ${c.borderGold}` }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', boxShadow: '0 4px 15px rgba(59,130,246,0.4)' }}>
               <History className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Uso Reciente de Contenedores</h3>
-              <p className="text-xs text-gray-500">Últimos pesajes registrados en el sistema</p>
+              <h3 className="text-base font-bold" style={{ color: c.text }}>Uso Reciente de Contenedores</h3>
+              <p className="text-xs" style={{ color: c.textMuted }}>Últimos pesajes registrados en el sistema</p>
             </div>
           </div>
         </div>
@@ -755,7 +765,7 @@ export function GestionContenedores() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-black/50 border-b border-amber-800/20">
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Fecha/Hora</th>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Cliente</th>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Contenedor</th>
@@ -774,13 +784,13 @@ export function GestionContenedores() {
                 })
                 .slice(0, 10)
                 .map((pedido) => (
-                  <tr key={pedido.id} className="transition-all duration-200 hover:bg-white/5 border-b border-white/5">
+                  <tr key={pedido.id} className="transition-all duration-200" style={{ borderBottom: `1px solid ${c.borderSubtle}` }}>
                     <td className="px-6 py-4">
-                      <div className="text-white text-xs font-medium">{pedido.fechaPesaje || pedido.fecha}</div>
-                      <div className="text-[10px] text-gray-500">{pedido.horaPesaje || pedido.hora}</div>
+                      <div className="text-xs font-medium" style={{ color: c.text }}>{pedido.fechaPesaje || pedido.fecha}</div>
+                      <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.horaPesaje || pedido.hora}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-white font-semibold text-sm truncate max-w-[150px]">{pedido.cliente}</div>
+                      <div className="font-semibold text-sm truncate max-w-[150px]" style={{ color: c.text }}>{pedido.cliente}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -789,7 +799,7 @@ export function GestionContenedores() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-white font-bold text-sm">{pedido.cantidadTotalContenedores || '—'}</span>
+                      <span className="font-bold text-sm" style={{ color: c.text }}>{pedido.cantidadTotalContenedores || '—'}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-red-400 font-mono text-sm font-bold">
@@ -805,7 +815,7 @@ export function GestionContenedores() {
                 ))}
               {pedidosConfirmados.filter(p => (p.ticketEmitido || p.estado === 'En Pesaje') && p.contenedor !== 'Por definir en pesaje').length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-gray-500 italic text-sm">
+                  <td colSpan={6} className="px-6 py-10 text-center italic text-sm" style={{ color: c.textMuted }}>
                     No hay registros de uso de contenedores aún
                   </td>
                 </tr>
