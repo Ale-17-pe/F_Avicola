@@ -19,6 +19,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useApp, TipoAve, Presentacion } from "../contexts/AppContext";
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from "sonner";
 
 // Paleta de colores preseleccionados para tipos
@@ -50,6 +51,8 @@ export function AvesSimplificado() {
     updatePresentacion,
     deletePresentacion
   } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // Mostrar todos los productos (Ave + Otro)
 
@@ -352,11 +355,11 @@ export function AvesSimplificado() {
     <div className="min-h-screen p-4 md:p-6" style={{}}>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3" style={{ color: c.text }}>
           <Package className="w-8 h-8 text-amber-400" />
           Gestión de Productos
         </h1>
-        <p className="text-gray-300">
+        <p style={{ color: c.textSecondary }}>
           Configuración completa de tipos de productos, presentaciones y mermas
         </p>
       </div>
@@ -366,8 +369,8 @@ export function AvesSimplificado() {
         <div className="bg-gradient-to-r from-green-900/30 to-green-800/20 border border-green-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Tipos de Productos</p>
-              <p className="text-2xl font-bold text-white">{tiposAve.length}</p>
+              <p className="text-sm" style={{ color: c.textSecondary }}>Tipos de Productos</p>
+              <p className="text-2xl font-bold" style={{ color: c.text }}>{tiposAve.length}</p>
             </div>
             <Package className="w-8 h-8 text-green-400" />
           </div>
@@ -375,8 +378,8 @@ export function AvesSimplificado() {
         <div className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Presentaciones</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm" style={{ color: c.textSecondary }}>Presentaciones</p>
+              <p className="text-2xl font-bold" style={{ color: c.text }}>
                 {presentaciones.length}
               </p>
             </div>
@@ -386,8 +389,8 @@ export function AvesSimplificado() {
         <div className="bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-800/30 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Tipos Únicos</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm" style={{ color: c.textSecondary }}>Tipos Únicos</p>
+              <p className="text-2xl font-bold" style={{ color: c.text }}>
                 {[...new Set(presentaciones.map((p) => p.tipoAve))].length}
               </p>
             </div>
@@ -448,8 +451,8 @@ export function AvesSimplificado() {
       {/* Tipos de Aves Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Tipos de Productos</h2>
-          <span className="text-sm text-gray-400 bg-black/30 px-3 py-1 rounded-lg">
+          <h2 className="text-xl font-bold" style={{ color: c.text }}>Tipos de Productos</h2>
+          <span className="text-sm px-3 py-1 rounded-lg" style={{ color: c.textSecondary, background: c.bgCardAlt }}>
             {tiposAve.length} registros
           </span>
         </div>
@@ -458,10 +461,11 @@ export function AvesSimplificado() {
           {tiposAve.map((tipo) => (
             <div
               key={tipo.id}
-              className="group relative bg-gradient-to-br from-black/40 to-black/20 rounded-xl p-4 border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+              className="group relative rounded-xl p-4 border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
               style={{
                 borderColor: `${tipo.color}30`,
                 boxShadow: `0 4px 20px ${tipo.color}10`,
+                background: c.bgCard,
               }}
               onClick={() => handleEditTipo(tipo)}
             >

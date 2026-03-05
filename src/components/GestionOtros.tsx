@@ -12,6 +12,7 @@ import {
     ChevronUp,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useTheme, t } from "../contexts/ThemeContext";
 
 interface TipoAve {
     id: string;
@@ -32,6 +33,8 @@ interface Presentacion {
 
 export function GestionOtros() {
     const { tiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+    const { isDark } = useTheme();
+    const c = t(isDark);
 
     // Filter types for 'Otro' category
     const tiposOtros = tiposAve.filter(t => t.categoria === 'Otro');
@@ -216,14 +219,14 @@ export function GestionOtros() {
     };
 
     return (
-        <div className="min-h-screen p-4 md:p-6">
+        <div className="min-h-screen p-4 md:p-6" style={{ background: c.bgPage }}>
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3" style={{ color: c.text }}>
                     <Egg className="w-8 h-8 text-amber-400" />
                     Gestión de Otros Productos
                 </h1>
-                <p className="text-gray-300">
+                <p style={{ color: c.textSecondary }}>
                     Configuración de otros productos (Huevos, etc.) y sus presentaciones
                 </p>
             </div>
@@ -233,8 +236,8 @@ export function GestionOtros() {
                 <div className="bg-gradient-to-r from-green-900/30 to-green-800/20 border border-green-800/30 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-300">Tipos de Productos</p>
-                            <p className="text-2xl font-bold text-white">{tiposOtros.length}</p>
+                            <p className="text-sm" style={{ color: c.textSecondary }}>Tipos de Productos</p>
+                            <p className="text-2xl font-bold" style={{ color: c.text }}>{tiposOtros.length}</p>
                         </div>
                         <Egg className="w-8 h-8 text-green-400" />
                     </div>
@@ -242,8 +245,8 @@ export function GestionOtros() {
                 <div className="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-800/30 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-300">Presentaciones</p>
-                            <p className="text-2xl font-bold text-white">
+                            <p className="text-sm" style={{ color: c.textSecondary }}>Presentaciones</p>
+                            <p className="text-2xl font-bold" style={{ color: c.text }}>
                                 {presentaciones.length}
                             </p>
                         </div>
@@ -253,8 +256,8 @@ export function GestionOtros() {
                 <div className="bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-800/30 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-300">Tipos Únicos</p>
-                            <p className="text-2xl font-bold text-white">
+                            <p className="text-sm" style={{ color: c.textSecondary }}>Tipos Únicos</p>
+                            <p className="text-2xl font-bold" style={{ color: c.text }}>
                                 {[...new Set(presentaciones.map((p) => p.tipoAve))].length}
                             </p>
                         </div>
@@ -296,8 +299,8 @@ export function GestionOtros() {
             {/* Tipos List */}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-white">Tipos de Productos</h2>
-                    <span className="text-sm text-gray-400 bg-black/30 px-3 py-1 rounded-lg">
+                    <h2 className="text-xl font-bold" style={{ color: c.text }}>Tipos de Productos</h2>
+                    <span className="text-sm px-3 py-1 rounded-lg" style={{ color: c.textSecondary, background: c.bgCardAlt }}>    
                         {tiposOtros.length} registros
                     </span>
                 </div>
@@ -306,8 +309,9 @@ export function GestionOtros() {
                     {tiposOtros.map((tipo) => (
                         <div
                             key={tipo.id}
-                            className="group relative bg-gradient-to-br from-black/40 to-black/20 rounded-xl p-4 border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+                            className="group relative rounded-xl p-4 border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
                             style={{
+                                background: c.bgCard,
                                 borderColor: `${tipo.color}30`,
                                 boxShadow: `0 4px 20px ${tipo.color}10`,
                             }}
@@ -345,11 +349,11 @@ export function GestionOtros() {
                                     <Egg className="w-6 h-6" style={{ color: tipo.color }} />
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg">
+                                    <h3 className="font-bold text-lg" style={{ color: c.text }}>
                                         {tipo.nombre}
                                     </h3>
                                     <div className="flex gap-2 mt-1">
-                                        <span className="px-2 py-0.5 rounded text-xs bg-black/40 text-gray-300">
+                                        <span className="px-2 py-0.5 rounded text-xs" style={{ background: c.bgCardAlt, color: c.textSecondary }}>
                                             {tipo.tieneVariedad ? "Con Variedad" : "Simple"}
                                         </span>
                                     </div>
@@ -357,8 +361,8 @@ export function GestionOtros() {
                             </div>
 
                             {tipo.tieneVariedad && tipo.variedades && (
-                                <div className="mt-3 pt-3 border-t border-white/10">
-                                    <p className="text-xs text-gray-400 mb-2">Variedades:</p>
+                                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${c.border}` }}>
+                                    <p className="text-xs mb-2" style={{ color: c.textSecondary }}>Variedades:</p>
                                     <div className="flex flex-wrap gap-1">
                                         {tipo.variedades.slice(0, 3).map((v, idx) => (
                                             <span
@@ -374,7 +378,7 @@ export function GestionOtros() {
                                             </span>
                                         ))}
                                         {tipo.variedades.length > 3 && (
-                                            <span className="px-2 py-1 rounded text-xs bg-black/40 text-gray-400">
+                                            <span className="px-2 py-1 rounded text-xs" style={{ background: c.bgCardAlt, color: c.textSecondary }}>
                                                 +{tipo.variedades.length - 3}
                                             </span>
                                         )}
@@ -390,10 +394,10 @@ export function GestionOtros() {
             <div>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 className="text-xl font-bold" style={{ color: c.text }}>
                             Presentaciones Comerciales
                         </h2>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm mt-1" style={{ color: c.textSecondary }}>
                             Configuración de presentaciones y jabas
                         </p>
                     </div>
@@ -408,9 +412,9 @@ export function GestionOtros() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10 pr-4 py-2 rounded-lg text-sm w-full sm:w-64"
                                 style={{
-                                    background: "rgba(0, 0, 0, 0.4)",
-                                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                                    color: "white",
+                                    background: c.bgInput,
+                                    border: `1px solid ${c.border}`,
+                                    color: c.text,
                                 }}
                             />
                         </div>
@@ -420,9 +424,9 @@ export function GestionOtros() {
                             onChange={(e) => setFiltroPresentacionTipo(e.target.value)}
                             className="px-4 py-2 rounded-lg text-sm"
                             style={{
-                                background: "rgba(0, 0, 0, 0.4)",
-                                border: "1px solid rgba(255, 255, 255, 0.1)",
-                                color: "white",
+                                background: c.bgInput,
+                                border: `1px solid ${c.border}`,
+                                color: c.text,
                             }}
                         >
                             <option value="all">Todos los tipos</option>
@@ -444,7 +448,8 @@ export function GestionOtros() {
                         <div key={tipo} className="mb-4">
                             <button
                                 onClick={() => toggleType(tipo)}
-                                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-black/20 to-transparent rounded-xl border border-white/5 hover:bg-white/5 transition-all group"
+                                className="w-full flex items-center justify-between p-4 rounded-xl border transition-all group"
+                                style={{ background: c.bgCard, borderColor: c.borderSubtle }}
                             >
                                 <div className="flex items-center gap-3">
                                     {tipoInfo && (
@@ -462,8 +467,8 @@ export function GestionOtros() {
                                         </div>
                                     )}
                                     <div className="text-left">
-                                        <h3 className="text-lg font-semibold text-white">{tipo}</h3>
-                                        <p className="text-sm text-gray-400">
+                                        <h3 className="text-lg font-semibold" style={{ color: c.text }}>{tipo}</h3>
+                                        <p className="text-sm" style={{ color: c.textSecondary }}>
                                             {presList.length} presentaciones
                                         </p>
                                     </div>
@@ -480,15 +485,15 @@ export function GestionOtros() {
                                     {presList.map((pres) => (
                                         <div
                                             key={pres.id}
-                                            className="group bg-gradient-to-br from-black/30 to-black/20 rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
-                                            style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                                            className="group rounded-xl p-4 border hover:border-amber-500/30 transition-all duration-300"
+                                            style={{ background: c.bgCard, borderColor: c.border }}
                                         >
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h4 className="text-white font-medium">
+                                                    <h4 className="font-medium" style={{ color: c.text }}>
                                                         {pres.nombre}
                                                     </h4>
-                                                    <p className="text-sm text-gray-400">Presentación</p>
+                                                    <p className="text-sm" style={{ color: c.textSecondary }}>Presentación</p>
                                                 </div>
                                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
@@ -527,23 +532,21 @@ export function GestionOtros() {
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{
-                        background:
-                            "radial-gradient(circle at center, rgba(13, 74, 36, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%)",
+                        background: c.bgModalOverlay,
                     }}
                 >
                     <div
                         className="relative w-full max-w-md rounded-2xl overflow-hidden"
                         style={{
-                            background:
-                                "linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(13, 74, 36, 0.3) 100%)",
-                            border: "1px solid rgba(204, 170, 0, 0.2)",
-                            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+                            background: c.bgModal,
+                            border: `1px solid ${c.borderGold}`,
+                            boxShadow: c.shadowLg,
                         }}
                     >
                         {/* Header */}
                         <div
                             className="p-6 border-b"
-                            style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+                            style={{ borderColor: c.borderGold }}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -553,7 +556,7 @@ export function GestionOtros() {
                                     >
                                         <Egg className="w-6 h-6 text-amber-400" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-white">
+                                    <h3 className="text-xl font-bold" style={{ color: c.text }}>
                                         {editingTipo ? "Editar Tipo" : "Nuevo Tipo"}
                                     </h3>
                                 </div>
@@ -580,7 +583,7 @@ export function GestionOtros() {
                         {/* Form */}
                         <form onSubmit={handleSubmitTipo} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-white">
+                                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>
                                     Nombre del Producto *
                                 </label>
                                 <input
@@ -593,10 +596,11 @@ export function GestionOtros() {
                                             nombre: e.target.value,
                                         })
                                     }
-                                    className="w-full px-4 py-3 rounded-xl text-white transition-all focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
+                                    className="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
                                     style={{
-                                        background: "rgba(255, 255, 255, 0.05)",
-                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        background: c.bgInput,
+                                        border: `1px solid ${c.border}`,
+                                        color: c.text,
                                     }}
                                     placeholder="Ej: Huevos, Otros"
                                     autoFocus
@@ -604,7 +608,7 @@ export function GestionOtros() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-3 text-white">
+                                <label className="block text-sm font-medium mb-3" style={{ color: c.text }}>
                                     Color Identificador
                                 </label>
                                 <div className="flex items-center gap-4">
@@ -629,10 +633,11 @@ export function GestionOtros() {
                                                     color: e.target.value,
                                                 })
                                             }
-                                            className="w-full px-4 py-3 rounded-xl text-white"
+                                            className="w-full px-4 py-3 rounded-xl"
                                             style={{
-                                                background: "rgba(255, 255, 255, 0.05)",
-                                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                                background: c.bgInput,
+                                                border: `1px solid ${c.border}`,
+                                                color: c.text,
                                             }}
                                             placeholder="#eab308"
                                         />
@@ -641,17 +646,17 @@ export function GestionOtros() {
                             </div>
 
                             <div className="space-y-3">
-                                <div className="text-sm font-medium text-white mb-2">
+                                <div className="text-sm font-medium mb-2" style={{ color: c.text }}>
                                     Características
                                 </div>
 
                                 <label
-                                    className="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all hover:bg-white/5"
+                                    className="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all"
                                     style={{
                                         background: nuevoTipoForm.tieneVariedad
                                             ? "rgba(168, 85, 247, 0.1)"
-                                            : "rgba(255, 255, 255, 0.05)",
-                                        border: `1px solid ${nuevoTipoForm.tieneVariedad ? "rgba(168, 85, 247, 0.3)" : "rgba(255, 255, 255, 0.1)"}`,
+                                            : c.bgInput,
+                                        border: `1px solid ${nuevoTipoForm.tieneVariedad ? "rgba(168, 85, 247, 0.3)" : c.border}`,
                                     }}
                                 >
                                     <input
@@ -666,10 +671,10 @@ export function GestionOtros() {
                                         className="w-5 h-5 cursor-pointer"
                                     />
                                     <div>
-                                        <div className="font-medium text-white">
+                                        <div className="font-medium" style={{ color: c.text }}>
                                             Tiene variedades
                                         </div>
-                                        <div className="text-sm text-gray-400">
+                                        <div className="text-sm" style={{ color: c.textSecondary }}>
                                             Diferentes variedades (e.g. Color, Tamaño)
                                         </div>
                                     </div>
@@ -678,7 +683,7 @@ export function GestionOtros() {
 
                             {nuevoTipoForm.tieneVariedad && (
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-white">
+                                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>
                                         Variedades (separadas por comas)
                                     </label>
                                     <input
@@ -690,10 +695,11 @@ export function GestionOtros() {
                                                 variedades: e.target.value,
                                             })
                                         }
-                                        className="w-full px-4 py-3 rounded-xl text-white"
+                                        className="w-full px-4 py-3 rounded-xl"
                                         style={{
-                                            background: "rgba(255, 255, 255, 0.05)",
-                                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                                            background: c.bgInput,
+                                            border: `1px solid ${c.border}`,
+                                            color: c.text,
                                         }}
                                         placeholder="Ej: Rosado, Pardo, Blanco"
                                     />
@@ -722,23 +728,21 @@ export function GestionOtros() {
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{
-                        background:
-                            "radial-gradient(circle at center, rgba(13, 74, 36, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%)",
+                        background: c.bgModalOverlay,
                     }}
                 >
                     <div
                         className="relative w-full max-w-md rounded-2xl overflow-hidden"
                         style={{
-                            background:
-                                "linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(13, 74, 36, 0.3) 100%)",
-                            border: "1px solid rgba(204, 170, 0, 0.2)",
-                            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+                            background: c.bgModal,
+                            border: `1px solid ${c.borderGold}`,
+                            boxShadow: c.shadowLg,
                         }}
                     >
                         {/* Header */}
                         <div
                             className="p-6 border-b"
-                            style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+                            style={{ borderColor: c.borderGold }}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -748,7 +752,7 @@ export function GestionOtros() {
                                     >
                                         <PackageOpen className="w-6 h-6 text-amber-400" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-white">
+                                    <h3 className="text-xl font-bold" style={{ color: c.text }}>
                                         {editingPresentacion ? "Editar Presentación" : "Nueva Presentación"}
                                     </h3>
                                 </div>
@@ -773,7 +777,7 @@ export function GestionOtros() {
                         {/* Form */}
                         <form onSubmit={handleSubmitPresentacion} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-white">
+                                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>
                                     Tipo de Producto
                                 </label>
                                 <select
@@ -784,10 +788,11 @@ export function GestionOtros() {
                                             tipoAve: e.target.value,
                                         })
                                     }
-                                    className="w-full px-4 py-3 rounded-xl text-white"
+                                    className="w-full px-4 py-3 rounded-xl"
                                     style={{
-                                        background: "rgba(255, 255, 255, 0.05)",
-                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        background: c.bgInput,
+                                        border: `1px solid ${c.border}`,
+                                        color: c.text,
                                     }}
                                 >
                                     {tiposOtros.map((tipo) => (
@@ -799,7 +804,7 @@ export function GestionOtros() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-white">
+                                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>
                                     Nombre de Presentación
                                 </label>
                                 <input
@@ -812,10 +817,11 @@ export function GestionOtros() {
                                             nombre: e.target.value,
                                         })
                                     }
-                                    className="w-full px-4 py-3 rounded-xl text-white transition-all focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
+                                    className="w-full px-4 py-3 rounded-xl transition-all focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
                                     style={{
-                                        background: "rgba(255, 255, 255, 0.05)",
-                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        background: c.bgInput,
+                                        border: `1px solid ${c.border}`,
+                                        color: c.text,
                                     }}
                                     placeholder="Ej: Jaba 360, Cartón 30"
                                 />

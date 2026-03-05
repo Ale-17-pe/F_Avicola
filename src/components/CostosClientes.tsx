@@ -17,6 +17,7 @@ import {
   Square,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from "sonner";
 
 // ============ TIPOS ============
@@ -43,6 +44,9 @@ interface PrecioCliente {
 }
 
 export function CostosClientes() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   const {
     clientes,
     tiposAve,
@@ -562,14 +566,14 @@ export function CostosClientes() {
       <div
         className="backdrop-blur-xl rounded-xl overflow-hidden"
         style={{
-          background: "rgba(0, 0, 0, 0.4)",
+          background: c.bgCardAlt,
           border: "1px solid rgba(204, 170, 0, 0.3)",
         }}
       >
         <div
           className="px-4 sm:px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           style={{
-            borderColor: "rgba(204, 170, 0, 0.2)",
+            borderColor: c.borderGold,
             background: "linear-gradient(135deg, rgba(204, 170, 0, 0.1), rgba(0, 0, 0, 0.5))",
           }}
         >
@@ -581,8 +585,8 @@ export function CostosClientes() {
               <DollarSign className="w-5 h-5 text-black" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white">Costos Generales</h2>
-              <p className="text-xs text-gray-400">
+              <h2 className="text-lg sm:text-xl font-bold" style={{ color: c.text }}>Costos Generales</h2>
+              <p className="text-xs" style={{ color: c.textSecondary }}>
                 Tabla de precios base por tipo de ave y presentacion
               </p>
             </div>
@@ -609,8 +613,8 @@ export function CostosClientes() {
           <table className="w-full" style={{ minWidth: "650px" }}>
             <thead>
               <tr
-                className="bg-black/40 border-b"
-                style={{ borderColor: "rgba(204, 170, 0, 0.15)" }}
+                className="border-b"
+                style={{ background: c.bgTableHeader, borderColor: "rgba(204, 170, 0, 0.15)" }}
               >
                 <th className="px-3 py-3 text-center w-10">
                   <button
@@ -645,8 +649,8 @@ export function CostosClientes() {
               {preciosGenerales.map((fila, idx) => (
                 <tr
                   key={`${fila.tipoAveId}_${fila.variedad}`}
-                  className={`border-b transition-colors hover:bg-white/5 ${fila.selected ? "bg-amber-500/10" : ""}`}
-                  style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+                  className={`border-b transition-colors ${fila.selected ? "bg-amber-500/10" : ""}`}
+                  style={{ borderColor: c.borderSubtle }}
                 >
                   <td className="px-3 py-3 text-center">
                     <button
@@ -671,11 +675,11 @@ export function CostosClientes() {
                       >
                         <Bird className="w-3.5 h-3.5" style={{ color: fila.color }} />
                       </div>
-                      <span className="text-white font-bold text-sm">{fila.tipoAveNombre}</span>
+                      <span className="font-bold text-sm" style={{ color: c.text }}>{fila.tipoAveNombre}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-gray-300 text-sm">{fila.variedad}</span>
+                    <span className="text-sm" style={{ color: c.textSecondary }}>{fila.variedad}</span>
                   </td>
                   {(["precioVivo", "precioPelado", "precioDestripado"] as const).map((field) => {
                     const cellKey = `${idx}_${field}`;
@@ -695,7 +699,8 @@ export function CostosClientes() {
                                 if (e.key === "Escape") setEditingGeneralCell(null);
                               }}
                               autoFocus
-                              className="w-24 px-2 py-1 rounded-lg text-sm text-right text-white bg-gray-800 border border-amber-500/50 focus:outline-none focus:border-amber-400"
+                              className="w-24 px-2 py-1 rounded-lg text-sm text-right bg-gray-800 border border-amber-500/50 focus:outline-none focus:border-amber-400"
+                              style={{ color: c.text }}
                             />
                             <button
                               onClick={() => handleSaveGeneralCell(idx, field)}
@@ -706,7 +711,8 @@ export function CostosClientes() {
                           </div>
                         ) : (
                           <span
-                            className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${fila[field] > 0 ? "text-white" : "text-gray-600"}`}
+                            className="cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums"
+                            style={{ color: fila[field] > 0 ? c.text : c.textMuted }}
                             onClick={() => handleEditGeneralCell(idx, field)}
                             title="Clic para editar"
                           >
@@ -724,8 +730,8 @@ export function CostosClientes() {
 
         {preciosGenerales.length === 0 && (
           <div className="text-center py-8">
-            <Bird className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <p className="text-gray-400 text-sm">No hay aves activas registradas</p>
+            <Bird className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
+            <p className="text-sm" style={{ color: c.textSecondary }}>No hay aves activas registradas</p>
           </div>
         )}
 
@@ -772,32 +778,34 @@ export function CostosClientes() {
       <div
         className="backdrop-blur-xl rounded-xl p-3 sm:p-4"
         style={{
-          background: "rgba(0, 0, 0, 0.3)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          background: c.bgCard,
+          border: "1px solid " + c.border,
         }}
       >
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textSecondary }} />
             <input
               type="text"
               placeholder="Buscar cliente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
               style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: c.bgInput,
+                border: "1px solid " + c.border,
+                color: c.text,
               }}
             />
           </div>
           <select
             value={filterTipoAve}
             onChange={(e) => setFilterTipoAve(e.target.value)}
-            className="px-3 py-2.5 rounded-lg text-sm text-white"
+            className="px-3 py-2.5 rounded-lg text-sm"
             style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              background: c.bgInput,
+              border: "1px solid " + c.border,
+              color: c.text,
             }}
           >
             <option value="all">Todos los tipos</option>
@@ -813,10 +821,11 @@ export function CostosClientes() {
               placeholder="Precio min"
               value={filterPrecioMin}
               onChange={(e) => setFilterPrecioMin(e.target.value)}
-              className="w-28 px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-500"
+              className="w-28 px-3 py-2.5 rounded-lg text-sm placeholder-gray-500"
               style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: c.bgInput,
+                border: "1px solid " + c.border,
+                color: c.text,
               }}
             />
             <input
@@ -824,10 +833,11 @@ export function CostosClientes() {
               placeholder="Precio max"
               value={filterPrecioMax}
               onChange={(e) => setFilterPrecioMax(e.target.value)}
-              className="w-28 px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-500"
+              className="w-28 px-3 py-2.5 rounded-lg text-sm placeholder-gray-500"
               style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: c.bgInput,
+                border: "1px solid " + c.border,
+                color: c.text,
               }}
             />
           </div>
@@ -836,7 +846,7 @@ export function CostosClientes() {
         {/* Boton seleccionar todos los clientes */}
         <div
           className="mt-3 flex items-center gap-3 pt-3 border-t"
-          style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+          style={{ borderColor: c.borderSubtle }}
         >
           <button
             onClick={toggleSelectAllClientes}
@@ -845,8 +855,8 @@ export function CostosClientes() {
               background:
                 selectedClientes.size === filteredClientes.length && filteredClientes.length > 0
                   ? "rgba(204, 170, 0, 0.2)"
-                  : "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(204, 170, 0, 0.2)",
+                  : c.bgInput,
+              border: "1px solid " + c.borderGold,
               color: "#ccaa00",
             }}
           >
@@ -872,10 +882,10 @@ export function CostosClientes() {
               key={cliente.id}
               className={`backdrop-blur-xl rounded-xl overflow-hidden transition-all ${isSelected ? "ring-2 ring-amber-500/50" : ""}`}
               style={{
-                background: "rgba(0, 0, 0, 0.3)",
+                background: c.bgCard,
                 border: isSelected
                   ? "1px solid rgba(204, 170, 0, 0.5)"
-                  : "1px solid rgba(204, 170, 0, 0.2)",
+                  : "1px solid " + c.borderGold,
               }}
             >
               {/* Header del Cliente */}
@@ -904,13 +914,13 @@ export function CostosClientes() {
                       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: "linear-gradient(135deg, #ccaa00, #b8941e)" }}
                     >
-                      <User className="w-5 h-5 text-white" />
+                      <User className="w-5 h-5" style={{ color: c.text }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                      <h3 className="text-base sm:text-lg font-bold truncate" style={{ color: c.text }}>
                         {cliente.nombre}
                       </h3>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs" style={{ color: c.textSecondary }}>
                         {preciosCliente.length}{" "}
                         {preciosCliente.length === 1 ? "producto" : "productos"} configurados
                       </p>
@@ -937,14 +947,14 @@ export function CostosClientes() {
                       onClick={() => toggleClientExpansion(cliente.id)}
                       className="p-2 rounded-lg transition-all hover:scale-105"
                       style={{
-                        background: "rgba(255, 255, 255, 0.1)",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        background: c.g10,
+                        border: "1px solid " + c.g20,
                       }}
                     >
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-gray-400" />
+                        <ChevronUp className="w-4 h-4" style={{ color: c.textSecondary }} />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                        <ChevronDown className="w-4 h-4" style={{ color: c.textSecondary }} />
                       )}
                     </button>
                   </div>
@@ -955,15 +965,15 @@ export function CostosClientes() {
                 {isExpanded && (
                   <div
                     className="mx-4 sm:mx-5 mb-4 sm:mb-5 pt-4 border-t"
-                    style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                    style={{ borderColor: c.border }}
                   >
                     {preciosCliente.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full" style={{ minWidth: "500px" }}>
                           <thead>
                             <tr
-                              className="bg-black/30 border-b"
-                              style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+                              className="border-b"
+                              style={{ background: c.bgTableHeader, borderColor: c.borderSubtle }}
                             >
                               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
                                 Producto
@@ -987,8 +997,8 @@ export function CostosClientes() {
                             {preciosCliente.map((precio) => (
                               <tr
                                 key={precio.id}
-                                className="border-b hover:bg-white/5 transition-colors"
-                                style={{ borderColor: "rgba(255, 255, 255, 0.03)" }}
+                                className="border-b transition-colors"
+                                style={{ borderColor: c.g03 }}
                               >
                                 <td className="px-3 py-2.5">
                                   <div className="flex items-center gap-2">
@@ -1004,12 +1014,12 @@ export function CostosClientes() {
                                         style={{ color: precio.color }}
                                       />
                                     </div>
-                                    <span className="text-white font-medium text-sm">
+                                    <span className="font-medium text-sm" style={{ color: c.text }}>
                                       {precio.tipoAveNombre}
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-2.5 text-gray-300 text-sm">
+                                <td className="px-3 py-2.5 text-sm" style={{ color: c.textSecondary }}>
                                   {precio.variedad}
                                 </td>
                                 {(
@@ -1036,7 +1046,8 @@ export function CostosClientes() {
                                                 setEditingClientCell(null);
                                             }}
                                             autoFocus
-                                            className="w-20 px-2 py-1 rounded text-sm text-right text-white bg-gray-800 border border-amber-500/50 focus:outline-none"
+                                            className="w-20 px-2 py-1 rounded text-sm text-right bg-gray-800 border border-amber-500/50 focus:outline-none"
+                                            style={{ color: c.text }}
                                           />
                                           <button
                                             onClick={() =>
@@ -1049,7 +1060,8 @@ export function CostosClientes() {
                                         </div>
                                       ) : (
                                         <span
-                                          className={`cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${precio[field] > 0 ? "text-white" : "text-gray-600"}`}
+                                          className="cursor-pointer hover:bg-amber-500/10 px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums"
+                                          style={{ color: precio[field] > 0 ? c.text : c.textMuted }}
                                           onClick={() =>
                                             handleEditClientCell(
                                               precio.id,
@@ -1085,8 +1097,8 @@ export function CostosClientes() {
                       </div>
                     ) : (
                       <div className="text-center py-6">
-                        <Bird className="w-10 h-10 mx-auto mb-2 text-gray-600" />
-                        <p className="text-gray-400 text-sm">Sin precios configurados</p>
+                        <Bird className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
+                        <p className="text-sm" style={{ color: c.textSecondary }}>Sin precios configurados</p>
                         <button
                           onClick={() => {
                             handleOpenGestionModal(cliente.id);
@@ -1112,8 +1124,8 @@ export function CostosClientes() {
 
       {filteredClientes.length === 0 && (
         <div className="text-center py-12">
-          <User className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No se encontraron clientes</p>
+          <User className="w-16 h-16 mx-auto mb-4" style={{ color: c.textMuted }} />
+          <p style={{ color: c.textSecondary }}>No se encontraron clientes</p>
         </div>
       )}
 
@@ -1121,7 +1133,7 @@ export function CostosClientes() {
       {isGestionModalOpen && clienteSeleccionado && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
-          style={{ background: "rgba(0, 0, 0, 0.85)" }}
+          style={{ background: c.bgModalOverlay }}
           onClick={handleCloseGestionModal}
         >
           <div
@@ -1130,14 +1142,14 @@ export function CostosClientes() {
               background:
                 "linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)",
               border: "2px solid rgba(204, 170, 0, 0.3)",
-              boxShadow: "0 30px 60px rgba(0, 0, 0, 0.8)",
+              boxShadow: c.shadowLg,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div
               className="flex items-center justify-between mb-5 pb-4 border-b"
-              style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}
+              style={{ borderColor: c.borderGold }}
             >
               <div className="flex items-center gap-3">
                 <div
@@ -1147,8 +1159,8 @@ export function CostosClientes() {
                   <Settings className="w-6 h-6 text-black" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Asignar Precios</h2>
-                  <p className="text-sm text-gray-400">{clienteSeleccionado.nombre}</p>
+                  <h2 className="text-xl font-bold" style={{ color: c.text }}>Asignar Precios</h2>
+                  <p className="text-sm" style={{ color: c.textSecondary }}>{clienteSeleccionado.nombre}</p>
                 </div>
               </div>
               <button
@@ -1163,7 +1175,7 @@ export function CostosClientes() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm mb-4" style={{ color: c.textSecondary }}>
               Asigne precios por Kg para cada tipo de ave y presentacion. Solo aparecen aves{" "}
               <span className="text-green-400 font-bold">Activas</span>. Los precios existentes
               se pre-cargan automaticamente.
@@ -1174,8 +1186,8 @@ export function CostosClientes() {
               <table className="w-full" style={{ minWidth: "550px" }}>
                 <thead>
                   <tr
-                    className="bg-black/30 border-b"
-                    style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                    className="border-b"
+                    style={{ background: c.bgTableHeader, borderColor: c.border }}
                   >
                     <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-amber-400">
                       Producto
@@ -1204,8 +1216,8 @@ export function CostosClientes() {
                     return (
                       <tr
                         key={key}
-                        className="border-b hover:bg-white/5"
-                        style={{ borderColor: "rgba(255, 255, 255, 0.03)" }}
+                        className="border-b"
+                        style={{ borderColor: c.g03 }}
                       >
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2">
@@ -1218,10 +1230,10 @@ export function CostosClientes() {
                             >
                               <Bird className="w-3.5 h-3.5" style={{ color: tipo.color }} />
                             </div>
-                            <span className="text-white font-medium text-sm">{tipo.nombre}</span>
+                            <span className="font-medium text-sm" style={{ color: c.text }}>{tipo.nombre}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-gray-300 text-sm">{variedad}</td>
+                        <td className="px-3 py-2.5 text-sm" style={{ color: c.textSecondary }}>{variedad}</td>
                         {(["vivo", "pelado", "destripado"] as const).map((campo) => (
                           <td key={campo} className="px-3 py-2.5 text-right">
                             <input
@@ -1235,10 +1247,11 @@ export function CostosClientes() {
                                   [key]: { ...prev[key], [campo]: e.target.value },
                                 }));
                               }}
-                              className="w-24 px-2 py-1.5 rounded-lg text-sm text-right text-white placeholder-gray-500"
+                              className="w-24 px-2 py-1.5 rounded-lg text-sm text-right placeholder-gray-500"
                               style={{
-                                background: "rgba(255, 255, 255, 0.08)",
+                                background: c.g08,
                                 border: `1px solid ${tipo.color}30`,
+                                color: c.text,
                               }}
                               placeholder="0.00"
                             />
@@ -1260,9 +1273,9 @@ export function CostosClientes() {
                 onClick={handleCloseGestionModal}
                 className="flex-1 px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-105 text-sm"
                 style={{
-                  background: "rgba(255, 255, 255, 0.1)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#fff",
+                  background: c.g10,
+                  border: "1px solid " + c.g20,
+                  color: c.text,
                 }}
               >
                 Cancelar
@@ -1337,6 +1350,9 @@ function DraggableAjusteMasivo({
   ajusteMonto: string; setAjusteMonto: (v: string) => void;
   handleAjusteMasivo: () => void;
 }) {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -1422,8 +1438,8 @@ function DraggableAjusteMasivo({
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Ajuste Masivo</h2>
-              <p className="text-[10px] text-gray-500">Arrastra para mover</p>
+              <h2 className="text-base font-bold" style={{ color: c.text }}>Ajuste Masivo</h2>
+              <p className="text-[10px]" style={{ color: c.textMuted }}>Arrastra para mover</p>
             </div>
           </div>
           <button
@@ -1437,46 +1453,46 @@ function DraggableAjusteMasivo({
 
         {selectedClientes.size === 0 ? (
           <div className="text-center py-6">
-            <Users className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <p className="text-gray-400 text-sm">Primero seleccione clientes en la lista</p>
+            <Users className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
+            <p className="text-sm" style={{ color: c.textSecondary }}>Primero seleccione clientes en la lista</p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-purple-300">
-              Ajustar precios de <span className="font-bold text-white">{selectedClientes.size}</span> cliente(s)
+              Ajustar precios de <span className="font-bold" style={{ color: c.text }}>{selectedClientes.size}</span> cliente(s)
             </p>
 
             {/* Filtros */}
             <div className="space-y-2 p-2.5 rounded-xl" style={{ background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.15)" }}>
               <p className="text-[9px] font-bold text-purple-300 uppercase tracking-wider">Aplicar a:</p>
               <div>
-                <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Tipo de Ave</label>
+                <label className="block text-[10px] font-bold mb-0.5" style={{ color: c.textSecondary }}>Tipo de Ave</label>
                 <select value={ajusteFilterTipoAve}
                   onChange={e => { setAjusteFilterTipoAve(e.target.value); setAjusteFilterVariedad("all"); }}
-                  className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs"
+                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}>
                   <option value="all">Todos los tipos</option>
                   {avesActivas.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                 </select>
               </div>
               {ajusteFilterTipoAve !== "all" && ajusteVariedadesDisponibles.length > 1 && (
                 <div>
-                  <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Variedad</label>
+                  <label className="block text-[10px] font-bold mb-0.5" style={{ color: c.textSecondary }}>Variedad</label>
                   <select value={ajusteFilterVariedad}
                     onChange={e => setAjusteFilterVariedad(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
-                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs"
+                    style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}>
                     <option value="all">Todas las variedades</option>
                     {ajusteVariedadesDisponibles.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-bold mb-0.5 text-gray-400">Presentación</label>
+                <label className="block text-[10px] font-bold mb-0.5" style={{ color: c.textSecondary }}>Presentación</label>
                 <select value={ajusteFilterPresentacion}
                   onChange={e => setAjusteFilterPresentacion(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg text-xs text-white"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs"
+                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}>
                   <option value="all">Todas</option>
                   <option value="Vivo">Vivo</option>
                   <option value="Pelado">Pelado</option>
@@ -1490,8 +1506,8 @@ function DraggableAjusteMasivo({
               <button onClick={() => setAjusteTipo("subir")}
                 className={`flex-1 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 ${ajusteTipo === "subir" ? "ring-1 ring-green-500" : ""}`}
                 style={{
-                  background: ajusteTipo === "subir" ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.05)",
-                  border: ajusteTipo === "subir" ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                  background: ajusteTipo === "subir" ? "rgba(34,197,94,0.2)" : c.bgInput,
+                  border: ajusteTipo === "subir" ? "1px solid rgba(34,197,94,0.4)" : "1px solid " + c.border,
                   color: ajusteTipo === "subir" ? "#22c55e" : "#888",
                 }}>
                 <TrendingUp className="w-3.5 h-3.5" /> Subir
@@ -1499,8 +1515,8 @@ function DraggableAjusteMasivo({
               <button onClick={() => setAjusteTipo("bajar")}
                 className={`flex-1 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 ${ajusteTipo === "bajar" ? "ring-1 ring-red-500" : ""}`}
                 style={{
-                  background: ajusteTipo === "bajar" ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)",
-                  border: ajusteTipo === "bajar" ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                  background: ajusteTipo === "bajar" ? "rgba(239,68,68,0.2)" : c.bgInput,
+                  border: ajusteTipo === "bajar" ? "1px solid rgba(239,68,68,0.4)" : "1px solid " + c.border,
                   color: ajusteTipo === "bajar" ? "#ef4444" : "#888",
                 }}>
                 <TrendingDown className="w-3.5 h-3.5" /> Bajar
@@ -1512,8 +1528,8 @@ function DraggableAjusteMasivo({
               <button onClick={() => setAjusteMetodo("porcentaje")}
                 className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
                 style={{
-                  background: ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.2)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  background: ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.2)" : c.bgInput,
+                  border: `1px solid ${ajusteMetodo === "porcentaje" ? "rgba(168,85,247,0.4)" : c.border}`,
                   color: ajusteMetodo === "porcentaje" ? "#c084fc" : "#888",
                 }}>
                 Porcentaje %
@@ -1521,8 +1537,8 @@ function DraggableAjusteMasivo({
               <button onClick={() => setAjusteMetodo("monto")}
                 className="flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
                 style={{
-                  background: ajusteMetodo === "monto" ? "rgba(168,85,247,0.2)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  background: ajusteMetodo === "monto" ? "rgba(168,85,247,0.2)" : c.bgInput,
+                  border: `1px solid ${ajusteMetodo === "monto" ? "rgba(168,85,247,0.4)" : c.border}`,
                   color: ajusteMetodo === "monto" ? "#c084fc" : "#888",
                 }}>
                 Monto fijo S/
@@ -1532,20 +1548,20 @@ function DraggableAjusteMasivo({
             {/* Input */}
             {ajusteMetodo === "porcentaje" ? (
               <div>
-                <label className="block text-[10px] font-bold mb-1 text-gray-400">Porcentaje (%)</label>
+                <label className="block text-[10px] font-bold mb-1" style={{ color: c.textSecondary }}>Porcentaje (%)</label>
                 <input type="number" step="0.1" min="0" value={ajustePorcentaje}
                   onChange={e => setAjustePorcentaje(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm font-bold text-center"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-center"
+                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}
                   placeholder="Ej: 5" />
               </div>
             ) : (
               <div>
-                <label className="block text-[10px] font-bold mb-1 text-gray-400">Monto (S/)</label>
+                <label className="block text-[10px] font-bold mb-1" style={{ color: c.textSecondary }}>Monto (S/)</label>
                 <input type="number" step="0.01" min="0" value={ajusteMonto}
                   onChange={e => setAjusteMonto(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm font-bold text-center"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-center"
+                  style={{ background: c.g08, border: "1px solid rgba(168,85,247,0.3)", color: c.text }}
                   placeholder="Ej: 0.50" />
               </div>
             )}
@@ -1554,7 +1570,7 @@ function DraggableAjusteMasivo({
             <div className="flex gap-2 pt-1">
               <button onClick={onClose}
                 className="flex-1 px-3 py-2 rounded-xl font-bold text-xs"
-                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}>
+                style={{ background: c.g10, border: "1px solid " + c.g20, color: c.text }}>
                 Cancelar
               </button>
               <button onClick={handleAjusteMasivo}

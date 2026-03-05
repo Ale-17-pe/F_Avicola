@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Bird, Settings, X } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface TipoAve {
   id: string;
@@ -11,6 +12,9 @@ interface TipoAve {
 }
 
 export function Configuracion() {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   const [tiposAve, setTiposAve] = useState<TipoAve[]>([
     {
       id: '1',
@@ -117,20 +121,20 @@ export function Configuracion() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Configuración</h1>
-          <p className="text-gray-400">Gestión de tipos de aves y configuración del sistema</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: c.text }}>Configuración</h1>
+          <p style={{ color: c.textSecondary }}>Gestión de tipos de aves y configuración del sistema</p>
         </div>
       </div>
 
       {/* Sección: Tipos de Aves */}
       <div className="backdrop-blur-xl rounded-xl p-6" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        background: c.bgCard,
+        border: `1px solid ${c.border}`
       }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Bird className="w-6 h-6" style={{ color: '#ccaa00' }} />
-            <h2 className="text-xl font-bold text-white">Tipos de Aves</h2>
+            <h2 className="text-xl font-bold" style={{ color: c.text }}>Tipos de Aves</h2>
           </div>
           <button
             onClick={() => handleOpenModal()}
@@ -161,7 +165,7 @@ export function Configuracion() {
                     className="w-3 h-3 rounded-full"
                     style={{ background: tipo.color }}
                   />
-                  <h3 className="font-bold text-white text-lg">{tipo.nombre}</h3>
+                  <h3 className="font-bold text-lg" style={{ color: c.text }}>{tipo.nombre}</h3>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -189,20 +193,20 @@ export function Configuracion() {
               
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400">Diferencia por sexo:</span>
+                  <span style={{ color: c.textSecondary }}>Diferencia por sexo:</span>
                   <span className={tipo.tieneSexo ? 'text-green-400' : 'text-gray-500'}>
                     {tipo.tieneSexo ? '✓ Sí' : '✗ No'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400">Tiene variedades:</span>
+                  <span style={{ color: c.textSecondary }}>Tiene variedades:</span>
                   <span className={tipo.tieneVariedad ? 'text-green-400' : 'text-gray-500'}>
                     {tipo.tieneVariedad ? '✓ Sí' : '✗ No'}
                   </span>
                 </div>
                 {tipo.tieneVariedad && tipo.variedades && (
-                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <p className="text-gray-400 text-xs mb-1">Variedades:</p>
+                  <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${c.border}` }}>
+                    <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Variedades:</p>
                     <div className="flex flex-wrap gap-1">
                       {tipo.variedades.map((variedad, idx) => (
                         <span
@@ -228,25 +232,25 @@ export function Configuracion() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.8)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
           <div 
             className="backdrop-blur-xl rounded-2xl w-full max-w-lg p-6"
             style={{
-              background: 'rgba(0, 0, 0, 0.6)',
+              background: c.bgModal,
               border: '1px solid rgba(204, 170, 0, 0.3)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              boxShadow: c.shadowLg
             }}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-2xl font-bold" style={{ color: c.text }}>
                 {editingTipo ? 'Editar Tipo de Ave' : 'Nuevo Tipo de Ave'}
               </h2>
               <button
                 onClick={handleCloseModal}
                 className="p-2 rounded-lg transition-all hover:scale-110"
-                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                style={{ background: c.g10 }}
               >
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5" style={{ color: c.textSecondary }} />
               </button>
             </div>
 
@@ -260,10 +264,11 @@ export function Configuracion() {
                   required
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                   placeholder="Ej: Codorniz, Ganso, etc."
                 />
@@ -282,7 +287,7 @@ export function Configuracion() {
                       className="w-10 h-10 rounded-lg transition-all hover:scale-110"
                       style={{
                         background: color,
-                        border: formData.color === color ? '3px solid white' : '1px solid rgba(255, 255, 255, 0.2)',
+                        border: formData.color === color ? '3px solid white' : `1px solid ${c.g20}`,
                         boxShadow: formData.color === color ? '0 0 0 2px rgba(204, 170, 0, 0.5)' : 'none'
                       }}
                     />
@@ -294,15 +299,15 @@ export function Configuracion() {
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   className="w-full h-10 rounded-lg cursor-pointer"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                   }}
                 />
               </div>
 
               <div className="flex items-center gap-3 p-3 rounded-lg" style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: c.g03,
+                border: `1px solid ${c.border}`
               }}>
                 <input
                   type="checkbox"
@@ -316,14 +321,14 @@ export function Configuracion() {
                   className="w-5 h-5 rounded cursor-pointer"
                   style={{ accentColor: '#ccaa00' }}
                 />
-                <label htmlFor="tieneSexo" className="text-white cursor-pointer flex-1">
+                <label htmlFor="tieneSexo" className="cursor-pointer flex-1" style={{ color: c.text }}>
                   Diferenciar por sexo (Macho/Hembra)
                 </label>
               </div>
 
               <div className="flex items-center gap-3 p-3 rounded-lg" style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: c.g03,
+                border: `1px solid ${c.border}`
               }}>
                 <input
                   type="checkbox"
@@ -337,7 +342,7 @@ export function Configuracion() {
                   className="w-5 h-5 rounded cursor-pointer"
                   style={{ accentColor: '#ccaa00' }}
                 />
-                <label htmlFor="tieneVariedad" className="text-white cursor-pointer flex-1">
+                <label htmlFor="tieneVariedad" className="cursor-pointer flex-1" style={{ color: c.text }}>
                   Tiene variedades
                 </label>
               </div>
@@ -351,14 +356,15 @@ export function Configuracion() {
                     type="text"
                     value={formData.variedades}
                     onChange={(e) => setFormData({ ...formData, variedades: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-400"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                  className="w-full px-4 py-3 rounded-lg placeholder-gray-400"
+                  style={{
+                    color: c.text,
+                    background: c.bgInput,
+                    border: `1px solid ${c.border}`
                     }}
                     placeholder="Ej: Rojas, Blancas, Doble Pechuga"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Separa las variedades con comas</p>
+                  <p className="text-xs mt-1" style={{ color: c.textSecondary }}>Separa las variedades con comas</p>
                 </div>
               )}
 
@@ -368,9 +374,9 @@ export function Configuracion() {
                   onClick={handleCloseModal}
                   className="flex-1 px-4 py-3 rounded-lg font-bold transition-all hover:scale-105"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                    background: c.g10,
+                    color: c.text,
+                    border: `1px solid ${c.g20}`
                   }}
                 >
                   Cancelar

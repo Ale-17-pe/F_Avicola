@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle, X
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModalPago } from './ModalPago';
 
@@ -30,13 +31,6 @@ interface PagosDia {
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const GOLD   = '#ccaa00';
-const G04    = 'rgba(255,255,255,0.04)';
-const G06    = 'rgba(255,255,255,0.06)';
-const G08    = 'rgba(255,255,255,0.08)';
-const G10    = 'rgba(255,255,255,0.10)';
-const G15    = 'rgba(255,255,255,0.15)';
-const G20    = 'rgba(255,255,255,0.20)';
-const G30    = 'rgba(255,255,255,0.30)';
 
 const COL = {
   tipo:       '#a78bfa',
@@ -104,6 +98,18 @@ const formatFecha = (fecha: string) => {
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export function GestionCobranza() {
   const { clientes, pedidosConfirmados, pagos } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
+  // ─── DESIGN TOKENS (theme-aware) ─────────────────────────────────
+  const G04 = c.g04;
+  const G06 = c.g06;
+  const G08 = c.g08;
+  const G10 = c.g10;
+  const G15 = c.g15;
+  const G20 = c.g20;
+  const G30 = c.g30;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -230,22 +236,22 @@ export function GestionCobranza() {
               <Wallet className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Gestión de Cobranza</h2>
-              <p className="text-xs text-gray-500">{clientesConPedidos.length} clientes con pedidos</p>
+              <h2 className="text-lg font-bold" style={{ color: c.text }}>Gestión de Cobranza</h2>
+              <p className="text-xs" style={{ color: c.textMuted }}>{clientesConPedidos.length} clientes con pedidos</p>
             </div>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
           <input
             type="text"
             placeholder="Buscar cliente por nombre o zona..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-white placeholder-gray-600 outline-none transition-all"
-            style={{ background: G06, border: `1px solid ${G15}` }}
+            className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
+            style={{ background: G06, border: `1px solid ${G15}`, color: c.text }}
             onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
             onBlur={e => (e.target.style.borderColor = G15)}
           />
@@ -297,8 +303,8 @@ export function GestionCobranza() {
                         <User className="w-5 h-5 text-gray-400 group-hover:text-emerald-400 transition-colors" />
                       </div>
                       <div>
-                        <h3 className="text-white font-bold text-sm">{cliente.nombre}</h3>
-                        <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
+                        <h3 className="font-bold text-sm" style={{ color: c.text }}>{cliente.nombre}</h3>
+                        <div className="flex items-center gap-3 text-[11px] mt-0.5" style={{ color: c.textMuted }}>
                           <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {cliente.zona || '—'}</span>
                           {diasPendientes > 0 && (
                             <span className="flex items-center gap-1 text-amber-500">
@@ -312,12 +318,12 @@ export function GestionCobranza() {
                     <div className="text-right">
                       {totalPendiente > 0 ? (
                         <>
-                          <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Pendiente</p>
+                          <p className="text-[9px] uppercase tracking-wider font-bold" style={{ color: c.textMuted }}>Pendiente</p>
                           <p className="text-lg font-black text-red-400">S/ {totalPendiente.toFixed(2)}</p>
                         </>
                       ) : (
                         <>
-                          <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Estado</p>
+                          <p className="text-[9px] uppercase tracking-wider font-bold" style={{ color: c.textMuted }}>Estado</p>
                           <p className="text-sm font-bold text-emerald-400">Al día</p>
                         </>
                       )}
@@ -330,8 +336,8 @@ export function GestionCobranza() {
 
           {clientesConPedidos.length === 0 && (
             <div className="text-center py-16">
-              <Package className="w-12 h-12 mx-auto mb-3 text-gray-700" />
-              <p className="text-gray-500 text-sm">No hay clientes con pedidos</p>
+              <Package className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
+              <p className="text-sm" style={{ color: c.textMuted }}>No hay clientes con pedidos</p>
             </div>
           )}
         </div>
@@ -348,11 +354,11 @@ export function GestionCobranza() {
           <button onClick={() => setSelectedCliente(null)}
             className="p-2 rounded-xl transition-all hover:scale-105"
             style={{ background: G08, border: `1px solid ${G15}` }}>
-            <ArrowLeft className="w-4 h-4 text-gray-400" />
+            <ArrowLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
           </button>
           <div>
-            <h2 className="text-lg font-bold text-white">{selectedCliente}</h2>
-            <div className="flex items-center gap-3 text-[11px] text-gray-500">
+            <h2 className="text-lg font-bold" style={{ color: c.text }}>{selectedCliente}</h2>
+            <div className="flex items-center gap-3 text-[11px]" style={{ color: c.textMuted }}>
               {clienteObj && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {clienteObj.zona || '—'}</span>}
               {clienteObj?.telefono && <span>{clienteObj.telefono}</span>}
             </div>
@@ -363,31 +369,31 @@ export function GestionCobranza() {
       {/* Date range filter */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Calendar className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Desde</span>
+          <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Desde</span>
           <input
             type="date"
             value={fechaDesde}
             onChange={e => setFechaDesde(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
-            style={{ background: G08, border: `1px solid ${G15}` }}
+            className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
+            style={{ background: G08, border: `1px solid ${G15}`, color: c.text }}
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hasta</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Hasta</span>
           <input
             type="date"
             value={fechaHasta}
             onChange={e => setFechaHasta(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg text-xs text-white outline-none"
-            style={{ background: G08, border: `1px solid ${G15}` }}
+            className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
+            style={{ background: G08, border: `1px solid ${G15}`, color: c.text }}
           />
         </div>
         {(fechaDesde || fechaHasta) && (
           <button
             onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
-            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-colors"
-            style={{ background: G08, border: `1px solid ${G15}` }}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors"
+            style={{ background: G08, border: `1px solid ${G15}`, color: c.textSecondary }}
           >
             <X className="w-3 h-3 inline mr-1" />Limpiar
           </button>
@@ -409,7 +415,7 @@ export function GestionCobranza() {
             style={{
               background: filtroPago === f.key ? f.color + '20' : G06,
               border: `1px solid ${filtroPago === f.key ? f.color + '50' : G15}`,
-              color: filtroPago === f.key ? f.color : '#666',
+              color: filtroPago === f.key ? f.color : c.textMuted,
             }}
           >
             {f.label}
@@ -420,9 +426,9 @@ export function GestionCobranza() {
       {/* No data */}
       {!clienteData || clienteData.fechas.length === 0 ? (
         <div className="text-center py-20">
-          <Lock className="w-12 h-12 mx-auto mb-3 text-gray-700" />
-          <p className="text-gray-500 text-sm">No hay pedidos liquidados para este cliente</p>
-          <p className="text-gray-600 text-[10px] mt-1">Los pedidos aparecerán aquí cuando sean liquidados en Cartera de Cobro</p>
+          <Lock className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
+          <p className="text-sm" style={{ color: c.textMuted }}>No hay pedidos liquidados para este cliente</p>
+          <p className="text-[10px] mt-1" style={{ color: c.textMuted }}>Los pedidos aparecerán aquí cuando sean liquidados en Cartera de Cobro</p>
         </div>
       ) : (
         <>
@@ -525,6 +531,16 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
   restante: number;
   onPagar: () => void;
 }) {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+  const G04 = c.g04;
+  const G06 = c.g06;
+  const G08 = c.g08;
+  const G10 = c.g10;
+  const G15 = c.g15;
+  const G20 = c.g20;
+  const G30 = c.g30;
+
   const [collapsed, setCollapsed] = useState(true);
   const totalConSaldo = restante + saldoAnterior;
 
@@ -557,9 +573,9 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
         style={{ borderBottom: collapsed ? 'none' : `1px solid ${G10}` }}
       >
         <div className="flex items-center gap-2.5">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-bold text-white">{formatFecha(fecha)}</span>
-          <span className="text-[10px] text-gray-500 font-mono">{filas.length} pedido{filas.length > 1 ? 's' : ''}</span>
+          <Calendar className="w-4 h-4" style={{ color: c.textMuted }} />
+          <span className="text-sm font-bold" style={{ color: c.text }}>{formatFecha(fecha)}</span>
+          <span className="text-[10px] font-mono" style={{ color: c.textMuted }}>{filas.length} pedido{filas.length > 1 ? 's' : ''}</span>
           {esPagado && (
             <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
@@ -583,7 +599,7 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
           <span className="text-sm font-black tabular-nums" style={{ color: esPagado ? '#10b981' : esPendiente ? '#f59e0b' : esParcial ? '#f97316' : COL.total }}>
             S/ {restante.toFixed(2)}
           </span>
-          {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronUp className="w-3.5 h-3.5 text-gray-500" />}
+          {collapsed ? <ChevronDown className="w-3.5 h-3.5" style={{ color: c.textMuted }} /> : <ChevronUp className="w-3.5 h-3.5" style={{ color: c.textMuted }} />}
         </div>
       </button>
 
@@ -620,14 +636,14 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                         <span className="text-xs font-semibold truncate block" style={{ color: COL.tipo }}>{fila.tipo}</span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="text-xs text-gray-400 truncate block">{fila.presentacion}</span>
+                        <span className="text-xs truncate block" style={{ color: c.textSecondary }}>{fila.presentacion}</span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-white font-bold text-xs tabular-nums">{fila.cantidad}</span>
-                        <span className="text-[9px] text-gray-600 ml-0.5">{fila.cantidadLabel}</span>
+                        <span className="font-bold text-xs tabular-nums" style={{ color: c.text }}>{fila.cantidad}</span>
+                        <span className="text-[9px] ml-0.5" style={{ color: c.textMuted }}>{fila.cantidadLabel}</span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: fila.devolucionPeso > 0 ? COL.devolucion : '#4b5563' }}>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: fila.devolucionPeso > 0 ? COL.devolucion : c.textMuted }}>
                           {fila.devolucionPeso.toFixed(2)}
                         </span>
                       </td>
@@ -638,7 +654,7 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-xs tabular-nums font-mono text-gray-300">{fila.precio.toFixed(2)}</span>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: c.textSecondary }}>{fila.precio.toFixed(2)}</span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <span className="font-black text-xs tabular-nums font-mono" style={{ color: COL.total }}>
@@ -663,10 +679,10 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                   {/* Saldo anterior */}
                   <tr style={{ background: G06 }}>
                     <td colSpan={6} className="px-3 py-2 text-right">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Saldo anterior</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Saldo anterior</span>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <span className={`text-xs font-bold tabular-nums ${saldoAnterior > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                      <span className="text-xs font-bold tabular-nums" style={{ color: saldoAnterior > 0 ? '#f87171' : c.textMuted }}>
                         S/ {saldoAnterior.toFixed(2)}
                       </span>
                     </td>

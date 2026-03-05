@@ -13,10 +13,13 @@ import {
   RotateCcw,
   UserCircle,
   History,
-  ShoppingCart
+  ShoppingCart,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme, t } from '../contexts/ThemeContext';
 import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
@@ -29,6 +32,8 @@ export function LayoutCobranza() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const c = t(isDark);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -105,7 +110,7 @@ export function LayoutCobranza() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 sm:p-6 border-b shrink-0" style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}>
+      <div className="p-4 sm:p-6 border-b shrink-0" style={{ borderColor: c.borderGold }}>
         <div className="flex items-center gap-3">
           <img
             src={logoImage}
@@ -119,7 +124,7 @@ export function LayoutCobranza() {
                 <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
                 <span style={{ color: "#ccaa00" }}>JOSSY</span>
               </h1>
-              <p className="text-xs text-white hidden sm:block">Panel de Cobranza</p>
+              <p className="text-xs hidden sm:block" style={{ color: c.text }}>Panel de Cobranza</p>
             </div>
           )}
         </div>
@@ -139,7 +144,7 @@ export function LayoutCobranza() {
                 background: isActive(item.path)
                   ? "linear-gradient(to right, #0d4a24, #ccaa00)"
                   : "transparent",
-                color: isActive(item.path) ? "#ffffff" : "#9ca3af",
+                color: isActive(item.path) ? "#ffffff" : c.inactiveNav,
               }}
             >
               <Icon className="w-5 h-5 shrink-0" />
@@ -154,7 +159,7 @@ export function LayoutCobranza() {
       </nav>
 
       {/* User Section */}
-      <div className="p-3 sm:p-4 border-t space-y-2 shrink-0" style={{ borderColor: "rgba(204, 170, 0, 0.2)" }}>
+      <div className="p-3 sm:p-4 border-t space-y-2 shrink-0" style={{ borderColor: c.borderGold }}>
         {(isSidebarOpen || isMobileSidebarOpen) && user && (
           <div className="px-3 py-2 rounded-lg" style={{ background: "rgba(204, 170, 0, 0.1)" }}>
             <div className="flex items-center gap-3">
@@ -165,10 +170,10 @@ export function LayoutCobranza() {
                 <Wallet className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium truncate" style={{ color: c.text }}>
                   {user.nombre} {user.apellido}
                 </p>
-                <p className="text-xs text-gray-400 capitalize truncate">{user.rol}</p>
+                <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>{user.rol}</p>
               </div>
             </div>
           </div>
@@ -189,20 +194,20 @@ export function LayoutCobranza() {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#000000" }}>
+    <div className="min-h-screen flex" style={{ background: c.bgPage, color: c.text, transition: 'background 0.25s ease, color 0.25s ease' }}>
       <aside
         className={`hidden lg:flex flex-col backdrop-blur-xl border-r transition-all duration-300 fixed left-0 top-0 bottom-0 z-40 ${isSidebarOpen ? "w-[280px]" : "w-[80px]"}`}
-        style={{ background: "rgba(0, 0, 0, 0.6)", borderColor: "rgba(204, 170, 0, 0.2)" }}
+        style={{ background: c.bgSidebarAlt, borderColor: c.borderGold }}
       >
         <SidebarContent />
       </aside>
 
       {isMobileSidebarOpen && (
         <>
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} />
+          <div className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.3)' }} />
           <aside
             className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r"
-            style={{ background: "rgba(0, 0, 0, 0.95)", borderColor: "rgba(204, 170, 0, 0.2)", ...slideInStyle }}
+            style={{ background: c.bgSidebarMobile, borderColor: c.borderGold, ...slideInStyle }}
           >
             <SidebarContent />
           </aside>
@@ -212,7 +217,7 @@ export function LayoutCobranza() {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
         <header
           className={`backdrop-blur-xl border-b fixed top-0 z-30 right-0 transition-all duration-300 ${isSidebarOpen ? "lg:left-[280px]" : "lg:left-[80px]"} left-0`}
-          style={{ background: "rgba(0, 0, 0, 0.6)", borderColor: "rgba(204, 170, 0, 0.2)" }}
+          style={{ background: c.bgSidebarAlt, borderColor: c.borderGold }}
         >
           <div className="px-3 sm:px-5 lg:px-6">
             <div className="flex items-center justify-between h-14 sm:h-16">
@@ -234,7 +239,7 @@ export function LayoutCobranza() {
 
               {/* Título de Página Dinámico */}
               <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold tracking-tight" style={{ color: c.text }}>
                   <span className="text-amber-400 lg:hidden mr-2">|</span>
                   {currentTitle}
                 </h2>
@@ -247,9 +252,17 @@ export function LayoutCobranza() {
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-xs font-medium" style={{ color: "#34d399" }}>En Cobranza</span>
                 </div>
+                <button
+                  onClick={toggleTheme}
+                  className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                  style={{ background: c.g10, color: '#ccaa00' }}
+                  title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                >
+                  {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </button>
                 <div className="hidden md:block text-right">
-                  <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[150px]">{user?.nombre} {user?.apellido}</p>
-                  <p className="text-xs text-gray-400 capitalize truncate">{user?.rol}</p>
+                  <p className="text-xs sm:text-sm font-medium truncate max-w-[150px]" style={{ color: c.text }}>{user?.nombre} {user?.apellido}</p>
+                  <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>{user?.rol}</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #22c55e, #166534)" }}>
                   <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" />

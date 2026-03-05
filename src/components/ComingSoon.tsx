@@ -1,4 +1,5 @@
 import { Construction } from 'lucide-react';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface ComingSoonProps {
   title: string;
@@ -7,11 +8,14 @@ interface ComingSoonProps {
 }
 
 export function ComingSoon({ title, description, icon: Icon }: ComingSoonProps) {
+  const { isDark } = useTheme();
+  const c = t(isDark);
+
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="backdrop-blur-xl rounded-2xl p-12 text-center max-w-md" style={{
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '1px solid rgba(204, 170, 0, 0.3)'
+        background: c.bgCard,
+        border: `1px solid ${c.borderGold}`
       }}>
         <div 
           className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6"
@@ -27,10 +31,10 @@ export function ComingSoon({ title, description, icon: Icon }: ComingSoonProps) 
           )}
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-3">{title}</h2>
+        <h2 className="text-2xl font-bold mb-3" style={{ color: c.text }}>{title}</h2>
         
         {description && (
-          <p className="text-gray-400 mb-6">{description}</p>
+          <p className="mb-6" style={{ color: c.textSecondary }}>{description}</p>
         )}
 
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg" style={{

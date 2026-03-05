@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Bird, PackageOpen } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 
 interface TipoAve {
   id: string;
@@ -21,6 +22,8 @@ interface Presentacion {
 
 export function AvesSecretaria() {
   const { tiposAve, addTipoAve, updateTipoAve, deleteTipoAve } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
   
   const [isAddTipoModalOpen, setIsAddTipoModalOpen] = useState(false);
   const [editingTipo, setEditingTipo] = useState<TipoAve | null>(null);
@@ -159,8 +162,8 @@ export function AvesSecretaria() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Gestión de Aves</h1>
-          <p className="text-sm text-gray-400">Tipos de aves y presentaciones de la avícola</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: c.text }}>Gestión de Aves</h1>
+          <p className="text-sm" style={{ color: c.textSecondary }}>Tipos de aves y presentaciones de la avícola</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
@@ -191,14 +194,14 @@ export function AvesSecretaria() {
       </div>
 
       {/* Tipos de Aves Section */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Tipos de Aves</h2>
+      <div className="rounded-xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+        <h2 className="text-xl font-bold mb-4" style={{ color: c.text }}>Tipos de Aves</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tiposAve.map((tipo) => (
             <div
               key={tipo.id}
-              className="bg-zinc-800/50 border rounded-lg p-4 hover:bg-zinc-800/70 transition-all"
-              style={{ borderColor: `${tipo.color}40` }}
+              className="border rounded-lg p-4 transition-all"
+              style={{ borderColor: `${tipo.color}40`, background: c.bgCardAlt }}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -209,8 +212,8 @@ export function AvesSecretaria() {
                     <Bird className="w-5 h-5" style={{ color: tipo.color }} />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold">{tipo.nombre}</h3>
-                    <p className="text-xs text-gray-400">
+                    <h3 className="font-bold" style={{ color: c.text }}>{tipo.nombre}</h3>
+                    <p className="text-xs" style={{ color: c.textSecondary }}>
                       {tipo.tieneSexo ? 'Con sexo' : tipo.tieneVariedad ? 'Con variedad' : 'Simple'}
                     </p>
                   </div>
@@ -233,7 +236,7 @@ export function AvesSecretaria() {
               
               {tipo.tieneVariedad && tipo.variedades && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-400 mb-1">Variedades:</p>
+                  <p className="text-xs mb-1" style={{ color: c.textSecondary }}>Variedades:</p>
                   <div className="flex flex-wrap gap-1">
                     {tipo.variedades.map((v, idx) => (
                       <span
@@ -253,13 +256,14 @@ export function AvesSecretaria() {
       </div>
 
       {/* Presentaciones Section */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+      <div className="rounded-xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Presentaciones</h2>
+          <h2 className="text-xl font-bold" style={{ color: c.text }}>Presentaciones</h2>
           <select
             value={filtroPresentacionTipo}
             onChange={(e) => setFiltroPresentacionTipo(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm"
+            className="px-4 py-2 rounded-lg text-sm"
+            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
           >
             <option value="all">Todas</option>
             {tiposAve.map((tipo) => (
@@ -271,7 +275,7 @@ export function AvesSecretaria() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-zinc-800/50 border-b border-zinc-700">
+              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.border}` }}>
                 <th className="text-left px-4 py-3 text-amber-400 font-bold text-sm">Tipo de Ave</th>
                 <th className="text-left px-4 py-3 text-amber-400 font-bold text-sm">Presentación</th>
                 <th className="text-right px-4 py-3 text-amber-400 font-bold text-sm">Merma (kg)</th>
@@ -281,9 +285,9 @@ export function AvesSecretaria() {
             </thead>
             <tbody>
               {presentacionesFiltradas.map((pres) => (
-                <tr key={pres.id} className="border-b border-zinc-800 hover:bg-zinc-800/30 transition-colors">
-                  <td className="px-4 py-3 text-white">{pres.tipoAve}</td>
-                  <td className="px-4 py-3 text-white">{pres.nombre}</td>
+                <tr key={pres.id} className="transition-colors" style={{ borderBottom: `1px solid ${c.borderSubtle}` }}>
+                  <td className="px-4 py-3" style={{ color: c.text }}>{pres.tipoAve}</td>
+                  <td className="px-4 py-3" style={{ color: c.text }}>{pres.nombre}</td>
                   <td className="px-4 py-3 text-right text-green-400 font-medium">{pres.mermaKg.toFixed(2)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-1 rounded text-xs ${pres.esVariable ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400'}`}>
@@ -324,10 +328,10 @@ export function AvesSecretaria() {
 
       {/* Modal Agregar Tipo */}
       {isAddTipoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
+          <div className="rounded-xl w-full max-w-md p-6" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold" style={{ color: c.text }}>
                 {editingTipo ? 'Editar Tipo de Ave' : 'Nuevo Tipo de Ave'}
               </h3>
               <button
@@ -344,19 +348,20 @@ export function AvesSecretaria() {
 
             <form onSubmit={handleSubmitTipo} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Nombre *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Nombre *</label>
                 <input
                   type="text"
                   required
                   value={nuevoTipoForm.nombre}
                   onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, nombre: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                  className="w-full px-3 py-2.5 rounded-lg"
+                  style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                   placeholder="Ej: Codorniz, Ganso"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Color</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Color</label>
                 <div className="flex gap-2">
                   <input
                     type="color"
@@ -368,7 +373,8 @@ export function AvesSecretaria() {
                     type="text"
                     value={nuevoTipoForm.color}
                     onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, color: e.target.value })}
-                    className="flex-1 px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                    className="flex-1 px-3 py-2.5 rounded-lg"
+                    style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     placeholder="#22c55e"
                   />
                 </div>
@@ -383,7 +389,7 @@ export function AvesSecretaria() {
                     onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, tieneSexo: e.target.checked, tieneVariedad: e.target.checked ? false : nuevoTipoForm.tieneVariedad })}
                     className="w-5 h-5 cursor-pointer"
                   />
-                  <label htmlFor="tieneSexo" className="text-sm text-white cursor-pointer">
+                  <label htmlFor="tieneSexo" className="text-sm cursor-pointer" style={{ color: c.text }}>
                     Tiene sexo (Macho/Hembra)
                   </label>
                 </div>
@@ -396,7 +402,7 @@ export function AvesSecretaria() {
                     onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, tieneVariedad: e.target.checked, tieneSexo: e.target.checked ? false : nuevoTipoForm.tieneSexo })}
                     className="w-5 h-5 cursor-pointer"
                   />
-                  <label htmlFor="tieneVariedad" className="text-sm text-white cursor-pointer">
+                  <label htmlFor="tieneVariedad" className="text-sm cursor-pointer" style={{ color: c.text }}>
                     Tiene variedades
                   </label>
                 </div>
@@ -404,12 +410,13 @@ export function AvesSecretaria() {
 
               {nuevoTipoForm.tieneVariedad && (
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-white">Variedades (separadas por comas)</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Variedades (separadas por comas)</label>
                   <input
                     type="text"
                     value={nuevoTipoForm.variedades}
                     onChange={(e) => setNuevoTipoForm({ ...nuevoTipoForm, variedades: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                    className="w-full px-3 py-2.5 rounded-lg"
+                    style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     placeholder="Ej: Roja, Blanca, Negra"
                   />
                 </div>
@@ -432,10 +439,10 @@ export function AvesSecretaria() {
 
       {/* Modal Agregar Presentación */}
       {isPresentacionesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.85)' }}>
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
+          <div className="rounded-xl w-full max-w-md p-6" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold" style={{ color: c.text }}>
                 {editingPresentacion ? 'Editar Presentación' : 'Nueva Presentación'}
               </h3>
               <button
@@ -452,11 +459,12 @@ export function AvesSecretaria() {
 
             <form onSubmit={handleSubmitPresentacion} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Tipo de Ave *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Tipo de Ave *</label>
                 <select
                   value={nuevaPresentacionForm.tipoAve}
                   onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, tipoAve: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                  className="w-full px-3 py-2.5 rounded-lg"
+                  style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                   required
                 >
                   {tiposAve.map((tipo) => (
@@ -466,26 +474,28 @@ export function AvesSecretaria() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Nombre de Presentación *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Nombre de Presentación *</label>
                 <input
                   type="text"
                   required
                   value={nuevaPresentacionForm.nombre}
                   onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, nombre: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                  className="w-full px-3 py-2.5 rounded-lg"
+                  style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                   placeholder="Ej: Vivo, Pelado, Destripado"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Merma (kg) *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Merma (kg) *</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={nuevaPresentacionForm.mermaKg}
                   onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, mermaKg: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white"
+                  className="w-full px-3 py-2.5 rounded-lg"
+                  style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                   placeholder="0.00"
                 />
               </div>
@@ -498,7 +508,7 @@ export function AvesSecretaria() {
                   onChange={(e) => setNuevaPresentacionForm({ ...nuevaPresentacionForm, esVariable: e.target.checked })}
                   className="w-5 h-5 cursor-pointer"
                 />
-                <label htmlFor="esVariable" className="text-sm text-white cursor-pointer">
+                  <label htmlFor="esVariable" className="text-sm cursor-pointer" style={{ color: c.text }}>
                   Merma variable (puede cambiar)
                 </label>
               </div>

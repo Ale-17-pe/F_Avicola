@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { Search, Filter, Package, ListOrdered, User, Tag, Edit2, Trash2, Plus, X, Truck, Box, Users, Layers, History, Calendar, Merge, Check, AlertCircle, Save, RotateCcw, Eye, Weight, CheckCircle, User as UserIcon, Truck as TruckIcon, Wrench } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner'
 
 // Interfaces (se mantienen igual)
@@ -152,6 +153,8 @@ const extraerInfoGenero = (tipoAve: string): { machos: number; hembras: number }
 
 export function ListaPedidos() {
   const { pedidosConfirmados, tiposAve, presentaciones, contenedores, clientes, updatePedidoConfirmado, removePedidoConfirmado, addPedidoConfirmado } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
   // Estados principales
   const [searchTerm, setSearchTerm] = useState('');
@@ -1438,29 +1441,29 @@ export function ListaPedidos() {
   const tiposAveParaFiltro = Array.from(new Set(pedidosLista.map(p => p.tipoAve)));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+    <div className="min-h-screen" style={{ background: c.bgPage }}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br rounded-xl shadow-lg shadow-amber-500/10">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3" style={{ color: c.text }}>
+              <div className="p-3 rounded-xl shadow-lg shadow-amber-500/10" style={{ background: c.bgCardAlt }}>
                 <ListOrdered className="w-6 h-6 text-amber-400" />
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                <div className="text-white tracking-tight drop-shadow-lg">Lista de Pedidos</div>
+                <div className="tracking-tight drop-shadow-lg" style={{ color: c.text }}>Lista de Pedidos</div>
               </div>
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-green-500 shadow-lg shadow-green-500/50"></div>
                 <span className="font-medium">{clientesUnicos.length} Clientes</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-300">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50"></div>
                 <span className="font-medium">{pendientes} Pendientes</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-300">
+              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
                 <div className="w-2 h-2 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50"></div>
                 <span className="font-medium">{enPesaje} En pesaje</span>
               </div>
@@ -1474,19 +1477,19 @@ export function ListaPedidos() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-xl px-4 py-2 flex items-center gap-3 shadow-xl">
+            <div className="border rounded-xl px-4 py-2 flex items-center gap-3 shadow-xl" style={{ background: c.bgCardAlt, borderColor: c.border }}>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Pendientes</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Pendientes</div>
                 <div className="text-2xl font-bold text-amber-400 drop-shadow-lg">{pendientes}</div>
               </div>
-              <div className="h-8 w-px bg-gray-700"></div>
+              <div className="h-8 w-px" style={{ background: c.border }}></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Producción</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Producción</div>
                 <div className="text-2xl font-bold text-blue-400 drop-shadow-lg">{enProduccion}</div>
               </div>
-              <div className="h-8 w-px bg-gray-700"></div>
+              <div className="h-8 w-px" style={{ background: c.border }}></div>
               <div className="text-center">
-                <div className="text-sm text-gray-400">Pesaje</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>Pesaje</div>
                 <div className="text-2xl font-bold text-purple-400 drop-shadow-lg">{enPesaje}</div>
               </div>
             </div>
@@ -1528,7 +1531,7 @@ export function ListaPedidos() {
         </div>
 
         {/* Filtros */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-5 mb-8 shadow-2xl">
+        <div className="border rounded-2xl p-5 mb-8 shadow-2xl" style={{ background: c.bgCardAlt, borderColor: c.border }}>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-amber-400" />
@@ -1537,7 +1540,8 @@ export function ListaPedidos() {
                 placeholder="Buscar cliente, número, ave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-black/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                className="w-full pl-10 pr-4 py-3 border rounded-xl placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
               />
             </div>
 
@@ -1546,11 +1550,12 @@ export function ListaPedidos() {
               <select
                 value={filterCliente}
                 onChange={(e) => setFilterCliente(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/50 border border-gray-700 rounded-xl text-white appearance-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 shadow-inner"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 shadow-inner"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-gray-900">Todos los clientes</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los clientes</option>
                 {clientesParaFiltro.map(cliente => (
-                  <option key={cliente} value={cliente} className="bg-gray-900">
+                  <option key={cliente} value={cliente} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
                     {cliente}
                   </option>
                 ))}
@@ -1562,11 +1567,12 @@ export function ListaPedidos() {
               <select
                 value={filterTipoAve}
                 onChange={(e) => setFilterTipoAve(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/50 border border-gray-700 rounded-xl text-white appearance-none focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-gray-900">Todos los tipos</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los tipos</option>
                 {tiposAveParaFiltro.map(tipo => (
-                  <option key={tipo} value={tipo} className="bg-gray-900">
+                  <option key={tipo} value={tipo} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
                     {tipo}
                   </option>
                 ))}
@@ -1578,16 +1584,17 @@ export function ListaPedidos() {
               <select
                 value={filterEstado}
                 onChange={(e) => setFilterEstado(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-black/50 border border-gray-700 rounded-xl text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-inner"
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-inner"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
               >
-                <option value="all" className="bg-gray-900">Todos</option>
-                <option value="Pendiente" className="bg-gray-900">Pendiente</option>
-                <option value="En Producción" className="bg-gray-900">En Producción</option>
-                <option value="Completado" className="bg-gray-900">Completado</option>
-                <option value="Completado con alerta" className="bg-gray-900">Completado con alerta</option>
-                <option value="Devolución" className="bg-gray-900">Devolución</option>
-                <option value="Confirmado con Adición" className="bg-gray-900">Confirmado con Adición</option>
-                <option value="Cancelado" className="bg-gray-900">Cancelado</option>
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos</option>
+                <option value="Pendiente" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Pendiente</option>
+                <option value="En Producción" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>En Producción</option>
+                <option value="Completado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Completado</option>
+                <option value="Completado con alerta" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Completado con alerta</option>
+                <option value="Devolución" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Devolución</option>
+                <option value="Confirmado con Adición" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Confirmado con Adición</option>
+                <option value="Cancelado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Cancelado</option>
               </select>
             </div>
           </div>
@@ -1602,7 +1609,7 @@ export function ListaPedidos() {
               <div className="p-2 bg-green-900/30 rounded-lg border border-green-500/30">
                 <Merge className="w-5 h-5 text-green-400" />
               </div>
-              <h2 className="text-xl font-bold text-white drop-shadow-lg">Pedidos similares detectados</h2>
+              <h2 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Pedidos similares detectados</h2>
             </div>
             <button
               onClick={consolidarPedidosAutomaticamente}
@@ -1615,33 +1622,33 @@ export function ListaPedidos() {
 
           <div className="space-y-3">
             {consolidacionesSugeridas.map((sugerencia, index) => (
-              <div key={sugerencia.clave} className="bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700 rounded-xl p-4 shadow-xl">
+              <div key={sugerencia.clave} className="border rounded-xl p-4 shadow-xl" style={{ background: c.bgCard, borderColor: c.border }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-green-900/30 border border-green-500/30 flex items-center justify-center">
                       <span className="text-sm font-bold text-green-400">{sugerencia.pedidos.length}</span>
                     </div>
                     <div>
-                      <div className="text-white font-medium drop-shadow">{sugerencia.pedidos[0].cliente}</div>
-                      <div className="text-xs text-gray-300">
+                      <div className="font-medium drop-shadow" style={{ color: c.text }}>{sugerencia.pedidos[0].cliente}</div>
+                      <div className="text-xs" style={{ color: c.textSecondary }}>
                         {sugerencia.pedidos[0].tipoAve} • {sugerencia.pedidos[0].presentacion} • {sugerencia.pedidos[0].contenedor}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-400">Total si se consolida</div>
+                    <div className="text-sm" style={{ color: c.textSecondary }}>Total si se consolida</div>
                     <div className="text-green-400 font-bold text-xl drop-shadow-lg">{sugerencia.totalCantidad} aves</div>
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-gray-700">
-                  <div className="text-xs text-gray-400 mb-1">Pedidos individuales:</div>
+                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${c.border}` }}>
+                  <div className="text-xs mb-1" style={{ color: c.textSecondary }}>Pedidos individuales:</div>
                   <div className="flex flex-wrap gap-2">
                     {sugerencia.pedidos.map(pedido => (
-                      <div key={pedido.id} className="px-2 py-1 bg-black/50 border border-gray-700 rounded text-xs">
+                      <div key={pedido.id} className="px-2 py-1 border rounded text-xs" style={{ background: c.bgCardAlt, borderColor: c.border }}>
                         <span className="text-blue-400 font-medium">{pedido.numeroPedido}</span>
-                        <span className="text-gray-500 mx-1">•</span>
-                        <span className="text-white font-medium">{pedido.cantidad} aves</span>
+                        <span className="mx-1" style={{ color: c.textMuted }}>•</span>
+                        <span className="font-medium" style={{ color: c.text }}>{pedido.cantidad} aves</span>
                       </div>
                     ))}
                   </div>
@@ -1717,26 +1724,27 @@ export function ListaPedidos() {
                     }}>
                       {editandoMultiple && (
                         <th className="px-6 py-4 text-left w-12">
-                          <div className="text-xs font-semibold text-white uppercase tracking-wider">#</div>
+                          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: c.text }}>#</div>
                         </th>
                       )}
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Orden</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Pedido</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Acciones</div></th>
                     </tr>
                   </thead>
                   <tbody>
                     {seccion.datos.map((pedido) => (
                       <tr
                         key={pedido.id}
-                        className={`border-b border-gray-700/50 hover:bg-white/5 transition-colors duration-200 ${pedido.estado === 'Cancelado' ? 'opacity-60' : ''
+                        className={`border-b hover:bg-white/5 transition-colors duration-200 ${pedido.estado === 'Cancelado' ? 'opacity-60' : ''
                           } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/20' : ''}`}
+                        style={{ borderColor: c.borderSubtle }}
                       >
                         {editandoMultiple && (
                           <td className="px-6 py-4">
@@ -1769,8 +1777,8 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1">
-                            <div className="font-mono font-bold text-white drop-shadow">{pedido.numeroPedido}</div>
-                            <div className="text-xs text-gray-400">{pedido.fecha} {pedido.hora}</div>
+                            <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{pedido.numeroPedido}</div>
+                            <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.fecha} {pedido.hora}</div>
                             {pedido.esSubPedido && vistaGrupos && (
                               <div className="text-xs text-green-400 flex items-center gap-1">
                                 <Merge className="w-3 h-3" />
@@ -1780,8 +1788,8 @@ export function ListaPedidos() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-white font-medium drop-shadow">{pedido.cliente}</div>
-                          <div className="text-xs text-gray-400">Cliente {pedido.numeroCliente}</div>
+                          <div className="font-medium drop-shadow" style={{ color: c.text }}>{pedido.cliente}</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>Cliente {pedido.numeroCliente}</div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1.5">
@@ -1797,7 +1805,7 @@ export function ListaPedidos() {
                             ) : (
                               <div className="text-[10px] text-gray-500 italic">Estándar</div>
                             )}
-                            <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-white' : 'text-gray-400'}`}>
+                            <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? '' : ''}`} style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
                               {pedido.presentacion}
                             </div>
                           </div>
@@ -1812,16 +1820,16 @@ export function ListaPedidos() {
                                 const upj = inlineEditData.unidadesPorJaba || 0;
                                 return (
                                   <div>
-                                    <div className="text-white font-bold text-lg drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                    <div className="font-bold text-lg drop-shadow" style={{ color: c.text }}>{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
                                     <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-[10px] text-gray-500">×</span>
+                                      <span className="text-[10px]" style={{ color: c.textMuted }}>×</span>
                                       <input type="number" min="1" value={upj || ''} placeholder="u/j"
                                         onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
                                         onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                         className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
-                                      <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{jabas * upj || '—'}</span> aves</span>
+                                      <span className="text-[10px]" style={{ color: c.textMuted }}>= <span className="text-green-400 font-bold">{jabas * upj || '—'}</span> aves</span>
                                     </div>
-                                    <div className="text-[9px] text-gray-500 italic mt-0.5">auto (♂+♀)</div>
+                                    <div className="text-[9px] italic mt-0.5" style={{ color: c.textMuted }}>auto (♂+♀)</div>
                                   </div>
                                 );
                               } else if (esVivoRow) {
@@ -1832,15 +1840,15 @@ export function ListaPedidos() {
                                     <input type="number" min="1" value={inlineEditData.cantidad || ''}
                                       onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
                                       onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
-                                      className="w-20 px-2 py-1.5 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center text-base font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
+                                      className="w-20 px-2 py-1.5 bg-amber-900/30 border border-amber-500/40 rounded-lg text-center text-base font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" style={{ color: c.text }} autoFocus />
                                     <div className="text-[9px] text-amber-400 mt-0.5">jabas</div>
                                     <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-[10px] text-gray-500">×</span>
+                                      <span className="text-[10px]" style={{ color: c.textMuted }}>×</span>
                                       <input type="number" min="1" value={upj || ''} placeholder="u/j"
                                         onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
                                         onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
                                         className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
-                                      <span className="text-[10px] text-gray-500">= <span className="text-green-400 font-bold">{(inlineEditData.cantidad || 0) * upj || '—'}</span> aves</span>
+                                      <span className="text-[10px]" style={{ color: c.textMuted }}>= <span className="text-green-400 font-bold">{(inlineEditData.cantidad || 0) * upj || '—'}</span> aves</span>
                                     </div>
                                   </div>
                                 );

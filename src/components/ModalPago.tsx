@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp, Pago } from '../contexts/AppContext';
+import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
 // ─── TYPES ────────────────────────────────────────────────────────
@@ -24,12 +25,6 @@ interface ModalPagoProps {
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────
 const GOLD = '#ccaa00';
-const G04 = 'rgba(255,255,255,0.04)';
-const G06 = 'rgba(255,255,255,0.06)';
-const G08 = 'rgba(255,255,255,0.08)';
-const G10 = 'rgba(255,255,255,0.10)';
-const G15 = 'rgba(255,255,255,0.15)';
-const G20 = 'rgba(255,255,255,0.20)';
 
 // ─── DIGITAL SUB-METHODS CONFIG ───────────────────────────────────
 const DIGITAL_METHODS: {
@@ -49,6 +44,8 @@ const DIGITAL_METHODS: {
 
 // ─── COMPONENT ────────────────────────────────────────────────────
 export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fechasCubiertas, onPagoRegistrado }: ModalPagoProps) {
+  const { isDark } = useTheme();
+  const c = t(isDark);
   const { addPago, pagos } = useApp();
 
   const [paso, setPaso] = useState<Paso>('metodo');
@@ -201,7 +198,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3"
-      style={{ background: 'rgba(0,0,0,0.85)' }}
+      style={{ background: c.bgModalOverlay }}
       onClick={(e) => e.target === e.currentTarget && paso !== 'esperando' && paso !== 'completado' && handleClose()}
     >
       <motion.div
@@ -210,9 +207,9 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
         exit={{ opacity: 0, scale: 0.95 }}
         className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl"
         style={{
-          background: 'linear-gradient(160deg, #0a0a0a, #111)',
+          background: c.bgModal,
           border: '2px solid rgba(16,185,129,0.30)',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.8), 0 0 80px rgba(16,185,129,0.08)',
+          boxShadow: c.shadowLg,
         }}
       >
         {/* Hidden file input for camera/gallery */}
@@ -227,7 +224,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
 
         {/* ─── HEADER ─────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: `1px solid ${G10}` }}>
+          style={{ borderBottom: `1px solid ${c.g10}` }}>
           <div className="flex items-center gap-3">
             {paso !== 'metodo' && paso !== 'esperando' && paso !== 'completado' && (
               <button onClick={() => {
@@ -236,12 +233,12 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 else if (paso === 'digital-sub') { setPaso('metodo'); setMetodoSeleccionado(null); }
                 else if (paso === 'efectivo') { setPaso('metodo'); setMetodoSeleccionado(null); }
               }}
-                className="p-1.5 rounded-lg transition-all hover:bg-white/10">
-                <ChevronLeft className="w-4 h-4 text-gray-400" />
+                className="p-1.5 rounded-lg transition-all">
+                <ChevronLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
               </button>
             )}
             <div>
-              <h3 className="text-white font-bold text-sm">
+              <h3 className="font-bold text-sm" style={{ color: c.text }}>
                 {paso === 'metodo' && 'Método de Pago'}
                 {paso === 'efectivo' && 'Pago en Efectivo'}
                 {paso === 'digital-sub' && 'Pago Digital'}
@@ -250,25 +247,25 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 {paso === 'esperando' && 'Pago Registrado'}
                 {paso === 'completado' && 'Pago Completado'}
               </h3>
-              <p className="text-[10px] text-gray-500">{clienteNombre}</p>
+              <p className="text-[10px]" style={{ color: c.textMuted }}>{clienteNombre}</p>
             </div>
           </div>
           {paso !== 'esperando' && paso !== 'completado' && (
             <button onClick={handleClose}
-              className="p-2 rounded-lg transition-all hover:bg-white/10">
-              <X className="w-4 h-4 text-gray-400" />
+              className="p-2 rounded-lg transition-all">
+              <X className="w-4 h-4" style={{ color: c.textSecondary }} />
             </button>
           )}
         </div>
 
         {/* ─── MONTO DISPLAY ──────────────────────────────────────── */}
         {paso !== 'esperando' && paso !== 'completado' && (
-          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${G06}` }}>
-            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2 text-center">Monto a pagar</p>
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${c.g06}` }}>
+            <p className="text-[10px] uppercase tracking-widest font-bold mb-2 text-center" style={{ color: c.textMuted }}>Monto a pagar</p>
             {montoManual && paso === 'metodo' ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-xl font-black text-gray-400">S/</span>
+                  <span className="text-xl font-black" style={{ color: c.textSecondary }}>S/</span>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -276,31 +273,31 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                     onChange={e => handleMontoInputChange(e.target.value)}
                     placeholder="0.00"
                     autoFocus
-                    className="text-2xl font-black text-white bg-transparent outline-none w-32 text-center tabular-nums font-mono"
-                    style={{ borderBottom: '2px solid #10b981' }}
+                    className="text-2xl font-black bg-transparent outline-none w-32 text-center tabular-nums font-mono"
+                    style={{ color: c.text, borderBottom: '2px solid #10b981' }}
                   />
                   <button
                     onClick={() => { setMontoManual(false); setMontoAPagar(monto); setMontoInput(''); }}
-                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all hover:bg-white/10 flex items-center gap-1"
-                    style={{ background: G08, border: `1px solid ${G15}`, color: '#999' }}
+                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                    style={{ background: c.g08, border: `1px solid ${c.g15}`, color: c.textMuted }}
                   >
                     Restaurar
                   </button>
                 </div>
-                <p className="text-[10px] text-gray-600 text-center">
+                <p className="text-[10px] text-center" style={{ color: c.textMuted }}>
                   Máximo: S/ {monto.toFixed(2)}
                 </p>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-3">
-                <p className="text-3xl font-black text-white tabular-nums font-mono">
+                <p className="text-3xl font-black tabular-nums font-mono" style={{ color: c.text }}>
                   S/ {montoAPagar.toFixed(2)}
                 </p>
                 {paso === 'metodo' && (
                   <button
                     onClick={() => { setMontoManual(true); setMontoInput(''); setMontoAPagar(0); }}
-                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all hover:bg-white/10"
-                    style={{ background: G08, border: `1px solid ${G20}`, color: '#999' }}
+                    className="text-[9px] px-2.5 py-1.5 rounded-lg transition-all"
+                    style={{ background: c.g08, border: `1px solid ${c.g20}`, color: c.textMuted }}
                   >
                     Limpiar
                   </button>
@@ -328,7 +325,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               exit={{ opacity: 0, x: -20 }}
               className="p-5 space-y-3"
             >
-              <p className="text-xs text-gray-400 text-center font-bold uppercase tracking-wider mb-4">
+              <p className="text-xs text-center font-bold uppercase tracking-wider mb-4" style={{ color: c.textSecondary }}>
                 Seleccione el método de pago
               </p>
 
@@ -336,17 +333,17 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               <button
                 onClick={() => { setMetodoSeleccionado('Efectivo'); setPaso('efectivo'); }}
                 className="w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:scale-[1.02] group"
-                style={{ background: G06, border: `1px solid ${G15}` }}
+                style={{ background: c.g06, border: `1px solid ${c.g15}` }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = G15; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = c.g15; }}
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
                   <Banknote className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-white font-bold text-sm">Efectivo</p>
-                  <p className="text-[10px] text-gray-500">Pago en efectivo con confirmación inmediata</p>
+                  <p className="font-bold text-sm" style={{ color: c.text }}>Efectivo</p>
+                  <p className="text-[10px]" style={{ color: c.textMuted }}>Pago en efectivo con confirmación inmediata</p>
                 </div>
               </button>
 
@@ -354,17 +351,17 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               <button
                 onClick={() => { setPaso('digital-sub'); }}
                 className="w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:scale-[1.02] group"
-                style={{ background: G06, border: `1px solid ${G15}` }}
+                style={{ background: c.g06, border: `1px solid ${c.g15}` }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = G15; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = c.g15; }}
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
                   <Smartphone className="w-6 h-6 text-violet-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-white font-bold text-sm">Digital</p>
-                  <p className="text-[10px] text-gray-500">Yape, Plin, BCP, Interbank, BBVA</p>
+                  <p className="font-bold text-sm" style={{ color: c.text }}>Digital</p>
+                  <p className="text-[10px]" style={{ color: c.textMuted }}>Yape, Plin, BCP, Interbank, BBVA</p>
                 </div>
               </button>
             </motion.div>
@@ -386,7 +383,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
 
               {/* Observaciones */}
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2 block">
+                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block" style={{ color: c.textMuted }}>
                   Observaciones (opcional)
                 </label>
                 <textarea
@@ -394,10 +391,10 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   onChange={e => setObservaciones(e.target.value)}
                   placeholder="Comentarios adicionales sobre el pago..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-600 outline-none resize-none transition-all"
-                  style={{ background: G06, border: `1px solid ${G15}` }}
+                  className="w-full px-4 py-3 rounded-xl text-sm placeholder-gray-600 outline-none resize-none transition-all"
+                  style={{ color: c.text, background: c.g06, border: `1px solid ${c.g15}` }}
                   onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
-                  onBlur={e => (e.target.style.borderColor = G15)}
+                  onBlur={e => (e.target.style.borderColor = c.g15)}
                 />
               </div>
 
@@ -427,7 +424,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               exit={{ opacity: 0, x: -20 }}
               className="p-5 space-y-3"
             >
-              <p className="text-xs text-gray-400 text-center font-bold uppercase tracking-wider mb-3">
+              <p className="text-xs text-center font-bold uppercase tracking-wider mb-3" style={{ color: c.textSecondary }}>
                 Seleccione la plataforma
               </p>
 
@@ -438,11 +435,11 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                     onClick={() => { setMetodoSeleccionado(m.id); setPaso('digital-detalle'); }}
                     className="p-3.5 rounded-xl flex flex-col items-center gap-2 transition-all hover:scale-[1.03]"
                     style={{
-                      background: G06,
-                      border: `2px solid ${G15}`,
+                      background: c.g06,
+                      border: `2px solid ${c.g15}`,
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = m.color + '80'; e.currentTarget.style.background = m.color + '15'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = G15; e.currentTarget.style.background = G06; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = c.g15; e.currentTarget.style.background = c.g06; }}
                   >
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                       style={{ background: m.color + '20', border: `1px solid ${m.color}40` }}>
@@ -453,7 +450,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                     <span className="text-xs font-black tracking-wider" style={{ color: m.color }}>
                       {m.label}
                     </span>
-                    <span className="text-[9px] text-gray-600">
+                    <span className="text-[9px]" style={{ color: c.textMuted }}>
                       {m.tipo === 'wallet' ? 'Billetera digital' : 'Transferencia'}
                     </span>
                   </button>
@@ -487,8 +484,8 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   onClick={handleCapturarFoto}
                   className="relative p-4 rounded-xl flex flex-col items-center gap-2 transition-all hover:scale-[1.02] overflow-hidden"
                   style={{
-                    background: fotoBase64 ? 'rgba(16,185,129,0.10)' : G06,
-                    border: `2px solid ${fotoBase64 ? 'rgba(16,185,129,0.40)' : G15}`,
+                    background: fotoBase64 ? 'rgba(16,185,129,0.10)' : c.g06,
+                    border: `2px solid ${fotoBase64 ? 'rgba(16,185,129,0.40)' : c.g15}`,
                   }}
                 >
                   {fotoBase64 ? (
@@ -502,7 +499,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                       <span className="text-[10px] font-bold text-amber-400 uppercase">Tomar Foto</span>
                     </>
                   )}
-                  <span className="text-[9px] text-gray-500">Comprobante *</span>
+                  <span className="text-[9px]" style={{ color: c.textMuted }}>Comprobante *</span>
                 </button>
 
                 {/* QR / CCI */}
@@ -510,13 +507,13 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   <button
                     onClick={() => copiarCCI(metodoDigitalInfo.cuentaNumero || '')}
                     className="p-4 rounded-xl flex flex-col items-center gap-2 transition-all hover:scale-[1.02]"
-                    style={{ background: G06, border: `2px solid ${G15}` }}
+                    style={{ background: c.g06, border: `2px solid ${c.g15}` }}
                   >
                     <Copy className="w-6 h-6" style={{ color: metodoDigitalInfo.color }} />
                     <span className="text-[10px] font-bold uppercase" style={{ color: metodoDigitalInfo.color }}>
                       Copiar {metodoDigitalInfo.cuentaLabel}
                     </span>
-                    <span className="text-[9px] text-gray-500 font-mono break-all text-center leading-tight">
+                    <span className="text-[9px] font-mono break-all text-center leading-tight" style={{ color: c.textMuted }}>
                       {metodoDigitalInfo.cuentaNumero}
                     </span>
                   </button>
@@ -524,13 +521,13 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   <button
                     onClick={() => toast.info('Muestre este QR al cliente para que realice el pago')}
                     className="p-4 rounded-xl flex flex-col items-center gap-2 transition-all hover:scale-[1.02]"
-                    style={{ background: G06, border: `2px solid ${G15}` }}
+                    style={{ background: c.g06, border: `2px solid ${c.g15}` }}
                   >
                     <QrCode className="w-6 h-6" style={{ color: metodoDigitalInfo.color }} />
                     <span className="text-[10px] font-bold uppercase" style={{ color: metodoDigitalInfo.color }}>
                       Mostrar QR
                     </span>
-                    <span className="text-[9px] text-gray-500">Código de pago</span>
+                    <span className="text-[9px]" style={{ color: c.textMuted }}>Código de pago</span>
                   </button>
                 )}
               </div>
@@ -538,24 +535,24 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               {/* Photo preview (compact) */}
               {fotoBase64 && (
                 <div className="flex items-center gap-3 rounded-xl p-2.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <img src={fotoBase64} alt="Comprobante" className="w-14 h-14 rounded-lg object-cover shrink-0" style={{ border: `1px solid ${G20}` }} />
+                  <img src={fotoBase64} alt="Comprobante" className="w-14 h-14 rounded-lg object-cover shrink-0" style={{ border: `1px solid ${c.g20}` }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 text-emerald-400">
                       <CheckCircle className="w-3.5 h-3.5 shrink-0" />
                       <span className="text-[10px] font-bold uppercase">Comprobante adjuntado</span>
                     </div>
-                    <p className="text-[9px] text-gray-500 mt-0.5">Toque para cambiar o ver</p>
+                    <p className="text-[9px] mt-0.5" style={{ color: c.textMuted }}>Toque para cambiar o ver</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => {
                       const win = window.open();
                       if (win) { win.document.write(`<img src="${fotoBase64}" style="max-width:100%"/>`); }
                     }}
-                      className="p-1.5 rounded-lg transition-all hover:bg-white/10" style={{ background: G08 }}>
-                      <Eye className="w-3.5 h-3.5 text-gray-400" />
+                      className="p-1.5 rounded-lg transition-all" style={{ background: c.g08 }}>
+                      <Eye className="w-3.5 h-3.5" style={{ color: c.textSecondary }} />
                     </button>
                     <button onClick={() => setFotoBase64(null)}
-                      className="p-1.5 rounded-lg transition-all hover:bg-red-900/30" style={{ background: G08 }}>
+                      className="p-1.5 rounded-lg transition-all hover:bg-red-900/30" style={{ background: c.g08 }}>
                       <Trash2 className="w-3.5 h-3.5 text-red-400" />
                     </button>
                   </div>
@@ -564,7 +561,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
 
               {/* Observaciones */}
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2 block">
+                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block" style={{ color: c.textMuted }}>
                   Observaciones (opcional)
                 </label>
                 <textarea
@@ -572,10 +569,10 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   onChange={e => setObservaciones(e.target.value)}
                   placeholder="Nro. de operación, notas..."
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-600 outline-none resize-none transition-all"
-                  style={{ background: G06, border: `1px solid ${G15}` }}
+                  className="w-full px-4 py-3 rounded-xl text-sm placeholder-gray-600 outline-none resize-none transition-all"
+                  style={{ color: c.text, background: c.g06, border: `1px solid ${c.g15}` }}
                   onFocus={e => (e.target.style.borderColor = metodoDigitalInfo.color + '80')}
-                  onBlur={e => (e.target.style.borderColor = G15)}
+                  onBlur={e => (e.target.style.borderColor = c.g15)}
                 />
               </div>
 
@@ -598,7 +595,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 style={{
                   background: puedeConfirmar
                     ? `linear-gradient(135deg, ${metodoDigitalInfo.color}, ${metodoDigitalInfo.color}cc)`
-                    : G08,
+                    : c.g08,
                   color: puedeConfirmar ? '#fff' : '#555',
                   boxShadow: puedeConfirmar ? `0 4px 20px ${metodoDigitalInfo.color}40` : 'none',
                   cursor: puedeConfirmar ? 'pointer' : 'not-allowed',
@@ -625,10 +622,10 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   style={{ background: 'rgba(245,158,11,0.12)', border: '2px solid rgba(245,158,11,0.30)' }}>
                   <AlertTriangle className="w-8 h-8 text-amber-400" />
                 </div>
-                <h4 className="text-white font-bold text-base mb-2">¿Confirmar el pago?</h4>
-                <p className="text-gray-400 text-xs">
-                  Se registrará un pago de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> para{' '}
-                  <strong className="text-white">{clienteNombre}</strong> mediante{' '}
+                <h4 className="font-bold text-base mb-2" style={{ color: c.text }}>¿Confirmar el pago?</h4>
+                <p className="text-xs" style={{ color: c.textSecondary }}>
+                  Se registrará un pago de <strong style={{ color: c.text }}>S/ {montoAPagar.toFixed(2)}</strong> para{' '}
+                  <strong style={{ color: c.text }}>{clienteNombre}</strong> mediante{' '}
                   <strong style={{ color: metodoSeleccionado === 'Efectivo' ? '#10b981' : metodoDigitalInfo?.color }}>
                     {metodoSeleccionado === 'Efectivo' ? 'Efectivo' : metodoDigitalInfo?.label}
                   </strong>.
@@ -636,42 +633,42 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               </div>
 
               {/* Summary card */}
-              <div className="rounded-xl p-4 space-y-2" style={{ background: G06, border: `1px solid ${G15}` }}>
+              <div className="rounded-xl p-4 space-y-2" style={{ background: c.g06, border: `1px solid ${c.g15}` }}>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Cliente</span>
-                  <span className="text-white font-bold">{clienteNombre}</span>
+                  <span style={{ color: c.textMuted }}>Cliente</span>
+                  <span className="font-bold" style={{ color: c.text }}>{clienteNombre}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Método</span>
+                  <span style={{ color: c.textMuted }}>Método</span>
                   <span className="font-bold" style={{ color: metodoSeleccionado === 'Efectivo' ? '#10b981' : metodoDigitalInfo?.color }}>
                     {metodoSeleccionado === 'Efectivo' ? 'Efectivo' : metodoDigitalInfo?.label}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Monto</span>
-                  <span className="text-white font-black font-mono tabular-nums">S/ {montoAPagar.toFixed(2)}</span>
+                  <span style={{ color: c.textMuted }}>Monto</span>
+                  <span className="font-black font-mono tabular-nums" style={{ color: c.text }}>S/ {montoAPagar.toFixed(2)}</span>
                 </div>
                 {montoAPagar < monto && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Saldo restante</span>
+                    <span style={{ color: c.textMuted }}>Saldo restante</span>
                     <span className="text-amber-400 font-bold font-mono tabular-nums">S/ {(monto - montoAPagar).toFixed(2)}</span>
                   </div>
                 )}
                 {observaciones.trim() && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Observaciones</span>
-                    <span className="text-gray-300 text-right max-w-[60%]">{observaciones.trim()}</span>
+                    <span style={{ color: c.textMuted }}>Observaciones</span>
+                    <span className="text-right max-w-[60%]" style={{ color: c.textSecondary }}>{observaciones.trim()}</span>
                   </div>
                 )}
                 {fotoBase64 && (
                   <div className="flex justify-between text-xs items-center">
-                    <span className="text-gray-500">Comprobante</span>
+                    <span style={{ color: c.textMuted }}>Comprobante</span>
                     <span className="text-emerald-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Adjuntado</span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Días cubiertos</span>
-                  <span className="text-gray-300">{fechasCubiertas.length} día{fechasCubiertas.length > 1 ? 's' : ''}</span>
+                  <span style={{ color: c.textMuted }}>Días cubiertos</span>
+                  <span style={{ color: c.textSecondary }}>{fechasCubiertas.length} día{fechasCubiertas.length > 1 ? 's' : ''}</span>
                 </div>
               </div>
 
@@ -680,7 +677,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 <button
                   onClick={() => setPaso(metodoSeleccionado === 'Efectivo' ? 'efectivo' : 'digital-detalle')}
                   className="py-3 rounded-xl font-bold text-xs transition-all hover:bg-white/10"
-                  style={{ background: G08, border: `1px solid ${G15}`, color: '#999' }}
+                  style={{ background: c.g08, border: `1px solid ${c.g15}`, color: c.textMuted }}
                 >
                   Cancelar
                 </button>
@@ -727,7 +724,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 </p>
               </div>
 
-              <div className="rounded-xl p-4 space-y-2" style={{ background: G06, border: `1px solid ${G15}` }}>
+              <div className="rounded-xl p-4 space-y-2" style={{ background: c.g06, border: `1px solid ${c.g15}` }}>
                 <div className="flex items-center gap-2 text-amber-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-xs font-bold">Esperando validación en tiempo real...</span>
