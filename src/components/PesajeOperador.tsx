@@ -737,7 +737,7 @@ export function PesajeOperador() {
           {faseOrden === 'pesando' && (
             <div className="rounded-2xl relative overflow-hidden"
               style={{
-                background: 'linear-gradient(160deg, #080808, #111)',
+                background: isDark ? 'linear-gradient(160deg, #080808, #111)' : c.bgCard,
                 border: modoManual ? '2px solid rgba(59,130,246,0.35)' : scale.stable ? '2px solid rgba(34,197,94,0.5)' : '2px solid rgba(245,158,11,0.4)',
                 boxShadow: modoManual ? '0 0 20px rgba(59,130,246,0.06)' : scale.stable ? '0 0 30px rgba(34,197,94,0.1)' : '0 0 20px rgba(245,158,11,0.06)',
               }}
@@ -780,8 +780,8 @@ export function PesajeOperador() {
                         onChange={(e) => setPesoManualInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
                         placeholder="0.00"
-                        className="w-full pl-16 pr-16 py-6 rounded-2xl text-white text-6xl md:text-7xl font-black font-mono text-center placeholder-gray-800 focus:ring-2 focus:ring-blue-500/30 transition-all"
-                        style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)' }}
+                        className="w-full pl-16 pr-16 py-6 rounded-2xl text-6xl md:text-7xl font-black font-mono text-center placeholder-gray-800 focus:ring-2 focus:ring-blue-500/30 transition-all"
+                        style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)', color: c.text }}
                         autoFocus
                       />
                       <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
@@ -820,8 +820,8 @@ export function PesajeOperador() {
                         value={jabasEnEstaPesada}
                         onChange={(e) => setJabasEnEstaPesada(e.target.value)}
                         placeholder={`1-${jabasRestantes}`}
-                        className="w-full mt-1 px-3 py-2 rounded-lg text-white text-xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }} />
+                        className="w-full mt-1 px-3 py-2 rounded-lg text-xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
+                        style={{ color: c.text, background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }} />
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-[10px]" style={{ color: c.textMuted }}>quedan</div>
@@ -852,14 +852,14 @@ export function PesajeOperador() {
                 return (
                   <div className="grid grid-cols-2 gap-3 px-6 pb-6">
                     <button onClick={sumarPesada} disabled={sumarDisabled}
-                      className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : c.g03, boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
+                      className="py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : (isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db'), color: sumarActive ? '#fff' : c.textMuted, boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
                       <Plus className="w-5 h-5" /> SUMAR
                       {sumarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}{jabasInput > 0 ? ` · ${jabasInput}j` : ''}</span>}
                     </button>
                     <button onClick={terminarPesaje} disabled={terminarDisabled}
-                      className="py-4 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : c.g03, boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
+                      className="py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : (isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db'), color: terminarActive ? '#fff' : c.textMuted, boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
                       <CheckCircle className="w-5 h-5" /> TERMINAR
                       {terminarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
                     </button>
@@ -880,7 +880,7 @@ export function PesajeOperador() {
           {/* ─────────── FASE: CONFIRMAR CONTENEDOR ─────────── */}
           {faseOrden === 'confirmando-contenedor' && (
             <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'linear-gradient(160deg, #080808, #111)', border: '2px solid rgba(245,158,11,0.35)' }}>
+              style={{ background: isDark ? 'linear-gradient(160deg, #080808, #111)' : c.bgCard, border: '2px solid rgba(245,158,11,0.35)' }}>
 
               <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid ' + c.g04 }}>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
@@ -888,7 +888,7 @@ export function PesajeOperador() {
                   <span className="text-xs font-bold text-green-400">PESAJE COMPLETADO</span>
                 </div>
                 <p className="text-4xl font-black font-mono tabular-nums" style={{ color: c.text }}>
-                  {pesoBrutoTotal.toFixed(2)} <span className="text-lg text-gray-500 font-light">kg bruto</span>
+                  {pesoBrutoTotal.toFixed(2)} <span className="text-lg font-light" style={{ color: c.textMuted }}>kg bruto</span>
                 </p>
                 <div className="flex justify-center gap-1.5 flex-wrap mt-2">
                   {pesadas.map(p => (
@@ -956,8 +956,8 @@ export function PesajeOperador() {
                         onChange={(e) => setCantidadContenedoresInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedorYAvanzar(); }}
                         placeholder="Ej: 5"
-                        className="w-full pl-12 pr-6 py-4 rounded-xl text-white text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }}
+                        className="w-full pl-12 pr-6 py-4 rounded-xl text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
+                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)', color: c.text }}
                         autoFocus
                       />
                     </div>
@@ -1151,7 +1151,7 @@ export function PesajeOperador() {
                     <h3 className="text-lg font-extrabold tracking-widest">
                       <span style={{ color: '#22c55e' }}>AVÍCOLA </span><span style={{ color: '#ccaa00' }}>JOSSY</span>
                     </h3>
-                    <p className="text-[9px] text-gray-500 tracking-[0.2em] mt-0.5 uppercase">Ticket de Despacho</p>
+                    <p className="text-[9px] tracking-[0.2em] mt-0.5 uppercase" style={{ color: c.textMuted }}>Ticket de Despacho</p>
                   </div>
 
                   {/* N° ticket */}
@@ -1174,7 +1174,7 @@ export function PesajeOperador() {
                         <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
                           {idx + 1}
                         </span>
-                        <span className="text-[9px] text-gray-500 uppercase tracking-[0.15em] font-bold">
+                        <span className="text-[9px] uppercase tracking-[0.15em] font-bold" style={{ color: c.textMuted }}>
                           {idx === 0 ? 'Pedido Principal' : `Sub-Pedido ${idx}`}
                         </span>
                       </div>
@@ -1188,7 +1188,7 @@ export function PesajeOperador() {
                           ['Cantidad', `${resultado.pedido.cantidad} unids.`],
                         ].map(([label, value]) => (
                           <div key={label} className="flex justify-between text-[11px]">
-                            <span className="text-gray-500">{label}</span>
+                            <span style={{ color: c.textMuted }}>{label}</span>
                             <span className="font-bold" style={{ color: c.text }}>{value}</span>
                           </div>
                         ))}
@@ -1200,19 +1200,19 @@ export function PesajeOperador() {
                         <table className="w-full text-[10px]">
                           <thead>
                             <tr>
-                              <th className="text-left text-gray-500 pb-1 font-semibold">Pesada</th>
-                              <th className="text-right text-gray-500 pb-1 font-semibold">Peso (kg)</th>
+                              <th className="text-left pb-1 font-semibold" style={{ color: c.textMuted }}>Pesada</th>
+                              <th className="text-right pb-1 font-semibold" style={{ color: c.textMuted }}>Peso (kg)</th>
                             </tr>
                           </thead>
                           <tbody>
                             {resultado.pesadas.map(p => (
                               <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                                <td className="py-0.5 text-gray-400">Pesada {p.numero}</td>
+                                <td className="py-0.5" style={{ color: c.textSecondary }}>Pesada {p.numero}</td>
                                 <td className="py-0.5 text-right font-mono font-bold" style={{ color: c.text }}>{p.peso.toFixed(2)}</td>
                               </tr>
                             ))}
                             <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)' }}>
-                              <td className="py-0.5 text-gray-300 font-bold text-[10px]">BRUTO</td>
+                              <td className="py-0.5 font-bold text-[10px]" style={{ color: c.textSecondary }}>BRUTO</td>
                               <td className="py-0.5 text-right font-mono font-black" style={{ color: c.text }}>{resultado.pesoBrutoTotal.toFixed(2)}</td>
                             </tr>
 
@@ -1230,8 +1230,8 @@ export function PesajeOperador() {
                         ['Peso Bruto Total', `${ticketVisible.totales.pesoBrutoTotal.toFixed(2)} kg`],
                       ].map(([label, value]) => (
                         <div key={label} className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">{label}</span>
-                          <span className="text-white font-black">{value}</span>
+                          <span style={{ color: c.textSecondary }}>{label}</span>
+                          <span className="font-black" style={{ color: c.text }}>{value}</span>
                         </div>
                       ))}
                     </div>
@@ -1246,14 +1246,14 @@ export function PesajeOperador() {
                       ['Zona', ticketVisible.zona],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between text-[11px]">
-                        <span className="text-gray-500">{label}</span>
-                        <span className="text-white font-bold">{value}</span>
+                        <span style={{ color: c.textMuted }}>{label}</span>
+                        <span className="font-bold" style={{ color: c.text }}>{value}</span>
                       </div>
                     ))}
                   </div>
 
                   <div className="text-center pt-1">
-                    <p className="text-[10px] text-gray-500">{ticketVisible.fechaEmision} — {ticketVisible.horaEmision}</p>
+                    <p className="text-[10px]" style={{ color: c.textMuted }}>{ticketVisible.fechaEmision} — {ticketVisible.horaEmision}</p>
                     <p className="text-[8px] text-gray-700 mt-1 tracking-[0.2em] uppercase">Avícola Jossy — Sistema de Gestión</p>
                   </div>
                 </div>
@@ -1267,8 +1267,8 @@ export function PesajeOperador() {
                 <Printer className="w-5 h-5" /> Imprimir Tickets
               </button>
               <button onClick={() => setTicketVisible(null)}
-                className="px-6 py-3.5 rounded-2xl font-bold text-gray-400 flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                className="px-6 py-3.5 rounded-2xl font-bold flex items-center justify-center"
+                style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', border: isDark ? '1px solid rgba(255,255,255,0.1)' : `1px solid ${c.border}`, color: c.textSecondary }}>
                 <X className="w-5 h-5" />
               </button>
             </div>

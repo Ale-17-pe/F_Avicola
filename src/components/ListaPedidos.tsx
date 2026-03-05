@@ -1500,10 +1500,11 @@ export function ListaPedidos() {
         <div className="flex flex-wrap gap-3 mb-4">
           <button
             onClick={() => setVistaGrupos(!vistaGrupos)}
-            className={`px-4 py-2 rounded-lg border flex items-center gap-2 transition-all duration-300 ${vistaGrupos
-              ? 'bg-gradient-to-r from-amber-900/30 to-amber-800/20 border-amber-500/30 text-amber-300 shadow-lg shadow-amber-500/20'
-              : 'bg-gradient-to-r from-blue-900/30 to-blue-800/20 border-blue-500/30 text-blue-300 shadow-lg shadow-blue-500/20'
-              }`}
+            className={`px-4 py-2 rounded-lg border flex items-center gap-2 transition-all duration-300`}
+            style={vistaGrupos
+              ? { background: isDark ? 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(120,53,15,0.2))' : 'linear-gradient(to right, rgba(245,158,11,0.12), rgba(245,158,11,0.06))', borderColor: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.3)', color: isDark ? '#fcd34d' : '#92400e' }
+              : { background: isDark ? 'linear-gradient(to right, rgba(30,58,138,0.3), rgba(30,58,138,0.2))' : 'linear-gradient(to right, rgba(59,130,246,0.12), rgba(59,130,246,0.06))', borderColor: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(37,99,235,0.3)', color: isDark ? '#93c5fd' : '#1d4ed8' }
+            }
           >
             <Layers className="w-4 h-4" />
             {vistaGrupos ? 'Vista Consolidada' : 'Vista Individual'}
@@ -1512,10 +1513,11 @@ export function ListaPedidos() {
           {consolidacionesSugeridas.length > 0 && (
             <button
               onClick={() => setMostrarSugerencias(!mostrarSugerencias)}
-              className={`px-4 py-2 rounded-lg border flex items-center gap-2 transition-all duration-300 ${mostrarSugerencias
-                ? 'bg-gradient-to-r from-green-900/40 to-green-800/30 border-green-500/40 text-green-300 shadow-lg shadow-green-500/30'
-                : 'bg-gradient-to-r from-green-900/30 to-green-800/20 border-green-500/30 text-green-300/80 shadow-lg shadow-green-500/20'
-                }`}
+              className={`px-4 py-2 rounded-lg border flex items-center gap-2 transition-all duration-300`}
+              style={mostrarSugerencias
+                ? { background: isDark ? 'linear-gradient(to right, rgba(20,83,45,0.4), rgba(20,83,45,0.3))' : 'linear-gradient(to right, rgba(34,197,94,0.15), rgba(34,197,94,0.08))', borderColor: isDark ? 'rgba(34,197,94,0.4)' : 'rgba(22,163,74,0.35)', color: isDark ? '#86efac' : '#166534' }
+                : { background: isDark ? 'linear-gradient(to right, rgba(20,83,45,0.3), rgba(20,83,45,0.2))' : 'linear-gradient(to right, rgba(34,197,94,0.1), rgba(34,197,94,0.05))', borderColor: isDark ? 'rgba(34,197,94,0.3)' : 'rgba(22,163,74,0.25)', color: isDark ? 'rgba(134,239,172,0.8)' : '#15803d' }
+              }
             >
               <Merge className="w-4 h-4" />
               Consolidaciones ({consolidacionesSugeridas.length})
@@ -1523,7 +1525,8 @@ export function ListaPedidos() {
           )}
           <button
             onClick={() => window.open('/pantalla-produccion', '_blank')}
-            className="px-4 py-2 bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-500/30 rounded-lg text-blue-300 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+            className="px-4 py-2 border rounded-lg flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+            style={{ background: isDark ? 'linear-gradient(to right, rgba(30,58,138,0.3), rgba(30,58,138,0.2))' : 'linear-gradient(to right, rgba(59,130,246,0.12), rgba(59,130,246,0.06))', borderColor: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(37,99,235,0.3)', color: isDark ? '#93c5fd' : '#1d4ed8' }}
           >
             <Eye className="w-4 h-4" />
             Pantalla Producción
@@ -1688,7 +1691,7 @@ export function ListaPedidos() {
       ].map((seccion) => (
         <div key={seccion.titulo} className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+            <h2 className="text-xl font-bold flex items-center gap-3 group cursor-default" style={{ color: c.text }}>
               <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl" style={{ 
                 background: `linear-gradient(135deg, ${seccion.color}20, ${seccion.color}08)`, 
                 border: `1px solid ${seccion.color}40`, 
@@ -1711,8 +1714,8 @@ export function ListaPedidos() {
           <div className={`bg-gradient-to-br ${seccion.gradientFrom} ${seccion.gradientTo} backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl`} style={{ boxShadow: `0 0 40px ${seccion.color}15` }}>
             {seccion.datos.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <div className="text-gray-600 text-lg mb-1">∅</div>
-                <div className="text-gray-400 text-sm">{seccion.emptyMsg}</div>
+                <div className="text-lg mb-1" style={{ color: c.textMuted }}>∅</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>{seccion.emptyMsg}</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1732,8 +1735,8 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>Macho</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Hembra</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Estado</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Acciones</div></th>
                     </tr>
@@ -1767,11 +1770,11 @@ export function ListaPedidos() {
                         <td className="px-6 py-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-lg ${
                             pedido.prioridadBase <= 3 
-                              ? 'bg-gradient-to-br from-white-900/40 to-blue-800/30 border border-red-500/40 text-white shadow-red-500/20' 
+                              ? 'bg-gradient-to-br from-red-900/40 to-red-800/30 border border-red-500/40 shadow-red-500/20' 
                               : pedido.prioridadBase <= 6 
-                                ? 'bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 border border-yellow-500/40 text-yellow-300 shadow-yellow-500/20' 
-                                : 'bg-gradient-to-br from-green-900/40 to-green-800/30 border border-green-500/40 text-green-300 shadow-green-500/20'
-                          }`}>
+                                ? 'bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 border border-yellow-500/40 shadow-yellow-500/20' 
+                                : 'bg-gradient-to-br from-green-900/40 to-green-800/30 border border-green-500/40 shadow-green-500/20'
+                          }`} style={{ color: pedido.prioridadBase <= 3 ? (isDark ? '#fca5a5' : '#dc2626') : pedido.prioridadBase <= 6 ? (isDark ? '#fde68a' : '#a16207') : (isDark ? '#86efac' : '#166534') }}>
                             {pedido.ordenProduccion}
                           </div>
                         </td>
@@ -1793,17 +1796,17 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1.5">
-                            <div className="text-emerald-300 font-bold uppercase tracking-tight drop-shadow">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                            <div className="font-bold uppercase tracking-tight drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
                             {pedido.variedad ? (
-                              <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider ${
-                                pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined 
-                                  ? 'text-white border-2 border-white/20 bg-white/10' 
-                                  : 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 text-amber-300 border border-amber-500/30'
-                              }`}>
+                              <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider`}
+                                style={pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined 
+                                  ? { color: isDark ? '#fff' : '#1a1a2e', border: isDark ? '2px solid rgba(255,255,255,0.2)' : '2px solid rgba(0,0,0,0.2)', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }
+                                  : { background: isDark ? 'linear-gradient(to right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', color: isDark ? '#fcd34d' : '#92400e', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }
+                                }>
                                 {pedido.variedad}
                               </div>
                             ) : (
-                              <div className="text-[10px] text-gray-500 italic">Estándar</div>
+                              <div className="text-[10px] italic" style={{ color: c.textMuted }}>Estándar</div>
                             )}
                             <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? '' : ''}`} style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
                               {pedido.presentacion}
@@ -1858,14 +1861,14 @@ export function ListaPedidos() {
                                   <input type="number" value={inlineEditData.cantidad}
                                     onChange={(e) => setInlineEditData(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
                                     onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
-                                    className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-white text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" autoFocus />
+                                    className="w-24 px-3 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" style={{ color: c.text }} autoFocus />
                                 );
                               } else {
                                 // No-vivo con sexo: auto M+H
                                 return (
                                   <div>
-                                    <div className="text-white font-bold text-lg drop-shadow">{inlineEditData.cantidad}</div>
-                                    <div className="text-[9px] text-gray-500 italic mt-0.5">auto (M+H)</div>
+                                    <div className="font-bold text-lg drop-shadow" style={{ color: c.text }}>{inlineEditData.cantidad}</div>
+                                    <div className="text-[9px] italic mt-0.5" style={{ color: c.textMuted }}>auto (M+H)</div>
                                   </div>
                                 );
                               }
@@ -1874,7 +1877,7 @@ export function ListaPedidos() {
                               return (
                                 <input type="number" value={formEdicion?.id === pedido.id ? formEdicion.cantidad : pedido.cantidad}
                                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, cantidad: parseInt(e.target.value) || 0 } : null)}
-                                  className="w-24 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-center focus:ring-2 focus:ring-blue-500" />
+                                  className="w-24 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-center focus:ring-2 focus:ring-blue-500" style={{ color: c.text }} />
                               );
                             }
                             // Vista normal
@@ -1884,7 +1887,7 @@ export function ListaPedidos() {
                               const totalAves = jabas * upj;
                               return (
                                 <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                                  <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                  <div className="font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors" style={{ color: c.text }}>{jabas} <span className="text-[10px]" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>jabas</span></div>
                                   {upj > 0 && (
                                     <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
                                       background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
@@ -1899,7 +1902,7 @@ export function ListaPedidos() {
                             }
                             return (
                               <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                                <div className="text-white font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors">{pedido.cantidad}</div>
+                                <div className="font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors" style={{ color: c.text }}>{pedido.cantidad}</div>
                                 {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
                               </div>
                             );
@@ -1919,12 +1922,13 @@ export function ListaPedidos() {
                               autoFocus
                             />
                           ) : pedido.cantidadMachos !== undefined ? (
-                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20 ${pedido.estado === 'Pendiente' ? 'cursor-pointer hover:border-blue-400/50' : ''}`}
+                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
+                              style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(30,58,138,0.4), rgba(30,64,175,0.3))' : 'rgba(219,234,254,0.8)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.4)' }}
                               onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                              <span className="text-blue-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadMachos}</span>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>{pedido.cantidadMachos}</span>
                             </div>
                           ) : (
-                            <span className="text-gray-500 font-mono">—</span>
+                            <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -1940,36 +1944,35 @@ export function ListaPedidos() {
                               className="w-20 px-2 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-amber-300 text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
                             />
                           ) : pedido.cantidadHembras !== undefined ? (
-                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20 ${pedido.estado === 'Pendiente' ? 'cursor-pointer hover:border-amber-400/50' : ''}`}
+                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
+                              style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }}
                               onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                              <span className="text-amber-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadHembras}</span>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>{pedido.cantidadHembras}</span>
                             </div>
                           ) : (
-                            <span className="text-gray-500 font-mono">—</span>
+                            <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
-                            pedido.estado === 'Pendiente' 
-                              ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 text-amber-300 shadow-amber-500/20' 
-                              : pedido.estado === 'En Producción' 
-                                ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 text-blue-300 shadow-blue-500/20' 
-                                : pedido.estado === 'Entregado' 
-                                  ? 'bg-gradient-to-r from-orange-900/40 to-orange-800/30 border border-orange-500/30 text-orange-300 shadow-orange-500/20' 
-                                  : pedido.estado === 'Completado' 
-                                    ? 'bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 text-green-300 shadow-green-500/20' 
-                                    : pedido.estado === 'Completado con alerta' 
-                                      ? 'bg-gradient-to-r from-yellow-900/40 to-yellow-800/30 border border-yellow-500/30 text-yellow-300 shadow-yellow-500/20' 
-                                      : pedido.estado === 'Devolución' 
-                                        ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 text-red-300 shadow-red-500/20' 
-                                        : pedido.estado === 'Confirmado con Adición' 
-                                          ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-800/30 border border-emerald-500/30 text-emerald-300 shadow-emerald-500/20' 
-                                          : pedido.estado === 'Cancelado' 
-                                            ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 text-red-300 shadow-red-500/20' 
-                                            : 'bg-gradient-to-r from-gray-900/40 to-gray-800/30 border border-gray-500/30 text-gray-300 shadow-gray-500/20'
-                          }`}>
-                            {pedido.estado}
-                          </div>
+                          {(() => {
+                            const estadoColors: Record<string, { bg: string; bgLight: string; border: string; text: string; textLight: string }> = {
+                              'Pendiente': { bg: 'rgba(120,53,15,0.4)', bgLight: 'rgba(254,243,199,0.8)', border: 'rgba(245,158,11,0.3)', text: '#fcd34d', textLight: '#92400e' },
+                              'En Producción': { bg: 'rgba(30,58,138,0.4)', bgLight: 'rgba(219,234,254,0.8)', border: 'rgba(59,130,246,0.3)', text: '#93c5fd', textLight: '#1d4ed8' },
+                              'Entregado': { bg: 'rgba(124,45,18,0.4)', bgLight: 'rgba(255,237,213,0.8)', border: 'rgba(249,115,22,0.3)', text: '#fdba74', textLight: '#c2410c' },
+                              'Completado': { bg: 'rgba(20,83,45,0.4)', bgLight: 'rgba(220,252,231,0.8)', border: 'rgba(34,197,94,0.3)', text: '#86efac', textLight: '#166534' },
+                              'Completado con alerta': { bg: 'rgba(113,63,18,0.4)', bgLight: 'rgba(254,249,195,0.8)', border: 'rgba(234,179,8,0.3)', text: '#fde68a', textLight: '#a16207' },
+                              'Devolución': { bg: 'rgba(127,29,29,0.4)', bgLight: 'rgba(254,226,226,0.8)', border: 'rgba(239,68,68,0.3)', text: '#fca5a5', textLight: '#dc2626' },
+                              'Confirmado con Adición': { bg: 'rgba(6,78,59,0.4)', bgLight: 'rgba(209,250,229,0.8)', border: 'rgba(16,185,129,0.3)', text: '#6ee7b7', textLight: '#065f46' },
+                              'Cancelado': { bg: 'rgba(127,29,29,0.4)', bgLight: 'rgba(254,226,226,0.8)', border: 'rgba(239,68,68,0.3)', text: '#fca5a5', textLight: '#dc2626' },
+                            };
+                            const colors = estadoColors[pedido.estado] || { bg: 'rgba(75,85,99,0.4)', bgLight: 'rgba(243,244,246,0.8)', border: 'rgba(107,114,128,0.3)', text: '#d1d5db', textLight: '#4b5563' };
+                            return (
+                              <div className="px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg"
+                                style={{ background: isDark ? colors.bg : colors.bgLight, border: `1px solid ${colors.border}`, color: isDark ? colors.text : colors.textLight }}>
+                                {pedido.estado}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5">
@@ -1987,7 +1990,7 @@ export function ListaPedidos() {
                                   className="p-2 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl" 
                                   title="Cancelar"
                                 >
-                                  <X className="w-4 h-4 text-gray-300" />
+                                  <X className="w-4 h-4" style={{ color: c.textSecondary }} />
                                 </button>
                                 <button 
                                   onClick={() => { cancelarEdicionInline(); abrirEdicionPedido(pedido); }} 
@@ -2024,7 +2027,7 @@ export function ListaPedidos() {
                                   className="p-2 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl" 
                                   title="Ver detalles"
                                 >
-                                  <Eye className="w-4 h-4 text-gray-300" />
+                                  <Eye className="w-4 h-4" style={{ color: c.textSecondary }} />
                                 </button>
                                 <button 
                                   onClick={() => abrirEdicionPedido(pedido)} 
@@ -2059,7 +2062,7 @@ export function ListaPedidos() {
       {/* ========== 3. PEDIDOS EN PESAJE ========== */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+          <h2 className="text-xl font-bold flex items-center gap-3 group cursor-default" style={{ color: c.text }}>
             <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl" style={{ 
               background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.08))', 
               border: '1px solid rgba(168,85,247,0.4)', 
@@ -2070,7 +2073,7 @@ export function ListaPedidos() {
             <span className="tracking-tight drop-shadow-lg">Pedidos en Pesaje</span>
           </h2>
           <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-300 font-medium">{pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0)} aves totales</div>
+            <div className="text-sm font-medium" style={{ color: c.textSecondary }}>{pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0)} aves totales</div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ 
               background: 'rgba(168,85,247,0.2)', 
               border: '1px solid rgba(168,85,247,0.4)',
@@ -2091,34 +2094,34 @@ export function ListaPedidos() {
                   borderBottom: '2px solid rgba(168,85,247,0.4)' 
                 }}>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">N° Pedido</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>N° Pedido</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Presentación</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Presentación</div>
                   </th>
                   <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>Macho</div>
                   </th>
                    <th className="px-6 py-4 text-center">
-                    <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Hembra</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Contenedor</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Estado</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Acciones</div>
                   </th>
                 </tr>
               </thead>
@@ -2126,7 +2129,7 @@ export function ListaPedidos() {
                 {pedidosPesaje.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-6 py-12 text-center">
-                      <div className="text-gray-400">
+                      <div style={{ color: c.textSecondary }}>
                         No hay pedidos en proceso de pesaje
                       </div>
                     </td>
@@ -2138,15 +2141,15 @@ export function ListaPedidos() {
                       className="border-b border-purple-700/30 hover:bg-purple-900/20 transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <div className="font-mono font-bold text-white drop-shadow">{pedido.numeroPedido}</div>
+                        <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{pedido.numeroPedido}</div>
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="text-white font-medium drop-shadow">{pedido.cliente}</div>
+                        <div className="font-medium drop-shadow" style={{ color: c.text }}>{pedido.cliente}</div>
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="text-emerald-300 font-medium drop-shadow">{pedido.tipoAve}</div>
+                        <div className="font-medium drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve}</div>
                       </td>
 
                       <td className="px-6 py-4">
@@ -2157,48 +2160,48 @@ export function ListaPedidos() {
                             const upj = pedido.unidadesPorJaba || 0;
                             return (
                               <>
-                                <div className="text-white font-bold drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
-                                {upj > 0 && <div className="text-xs text-green-400">× {upj} = {jabas * upj} aves</div>}
+                                <div className="font-bold drop-shadow" style={{ color: c.text }}>{jabas} <span className="text-[10px]" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>jabas</span></div>
+                                {upj > 0 && <div className="text-xs" style={{ color: isDark ? '#4ade80' : '#166534' }}>× {upj} = {jabas * upj} aves</div>}
                               </>
                             );
                           }
                           return (
                             <>
-                              <div className="text-white font-bold drop-shadow">{pedido.cantidad}</div>
-                              <div className="text-xs text-green-400">aves</div>
+                              <div className="font-bold drop-shadow" style={{ color: c.text }}>{pedido.cantidad}</div>
+                              <div className="text-xs" style={{ color: isDark ? '#4ade80' : '#166534' }}>aves</div>
                             </>
                           );
                         })()}
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="text-white">{pedido.presentacion}</div>
+                        <div style={{ color: c.text }}>{pedido.presentacion}</div>
                       </td>
 
                       <td className="px-6 py-4 text-center">
                         {pedido.cantidadMachos !== undefined ? (
-                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20">
-                            <span className="text-blue-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadMachos}</span>
+                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg" style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(30,58,138,0.4), rgba(30,64,175,0.3))' : 'rgba(219,234,254,0.8)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.4)' }}>
+                            <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>{pedido.cantidadMachos}</span>
                           </div>
                         ) : (
-                          <span className="text-gray-500 font-mono">—</span>
+                          <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                         )}
                       </td>
                        <td className="px-6 py-4 text-center">
                         {pedido.cantidadHembras !== undefined ? (
-                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20">
-                            <span className="text-amber-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadHembras}</span>
+                          <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg" style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }}>
+                            <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>{pedido.cantidadHembras}</span>
                           </div>
                         ) : (
-                          <span className="text-gray-500 font-mono">—</span>
+                          <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                         )}
                       </td>
 
                       <td className="px-6 py-4">
                          <div className="flex flex-col">
-                            <span className="text-sm text-white font-bold">{pedido.contenedor}</span>
+                            <span className="text-sm font-bold" style={{ color: c.text }}>{pedido.contenedor}</span>
                             {pedido.cantidadTotalContenedores && (
-                              <span className="text-[10px] text-white-500">{pedido.cantidadTotalContenedores} tandas</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidadTotalContenedores} tandas</span>
                             )}
                           </div>
                       </td>
@@ -2206,9 +2209,9 @@ export function ListaPedidos() {
                       <td className="px-6 py-4">
                         <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
                           pedido.estado === 'En Pesaje'
-                            ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-white shadow-purple-500/20'
-                            : 'bg-gradient-to-r from-gray-900/40 to-gray-800/30 border border-gray-500/30 text-gray-300 shadow-gray-500/20'
-                        }`}>
+                            ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 shadow-purple-500/20'
+                            : 'bg-gradient-to-r from-gray-900/40 to-gray-800/30 border border-gray-500/30 shadow-gray-500/20'
+                        }`} style={{ color: pedido.estado === 'En Pesaje' ? (isDark ? '#e9d5ff' : '#7c3aed') : (isDark ? '#d1d5db' : '#4b5563') }}>
                           {pedido.estado || 'En Pesaje'}
                         </div>
                       </td>
@@ -2262,7 +2265,7 @@ export function ListaPedidos() {
       ].map((seccion) => (
         <div key={seccion.titulo} className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-3 group cursor-default">
+            <h2 className="text-xl font-bold flex items-center gap-3 group cursor-default" style={{ color: c.text }}>
               <div className="p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl" style={{ 
                 background: `linear-gradient(135deg, ${seccion.color}20, ${seccion.color}08)`, 
                 border: `1px solid ${seccion.color}40`, 
@@ -2285,8 +2288,8 @@ export function ListaPedidos() {
           <div className={`bg-gradient-to-br ${seccion.gradientFrom} ${seccion.gradientTo} backdrop-blur-sm border ${seccion.borderColor} rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl`} style={{ boxShadow: `0 0 40px ${seccion.color}15` }}>
             {seccion.datos.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <div className="text-gray-600 text-lg mb-1">∅</div>
-                <div className="text-gray-400 text-sm">{seccion.emptyMsg}</div>
+                <div className="text-lg mb-1" style={{ color: c.textMuted }}>∅</div>
+                <div className="text-sm" style={{ color: c.textSecondary }}>{seccion.emptyMsg}</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -2296,17 +2299,17 @@ export function ListaPedidos() {
                       background: `linear-gradient(to right, ${seccion.color}20, transparent)`, 
                       borderBottom: `2px solid ${seccion.color}40` 
                     }}>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Orden</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Pedido</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cliente</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Producto</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Cantidad</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider drop-shadow">Macho</div></th>
-                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider drop-shadow">Hembra</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Contenedor</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Conductor</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Estado</div></th>
-                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold text-white uppercase tracking-wider drop-shadow">Acciones</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Orden</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Pedido</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>Macho</div></th>
+                      <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Hembra</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Contenedor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Conductor</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Estado</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Acciones</div></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2315,25 +2318,25 @@ export function ListaPedidos() {
                         <td className="px-6 py-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-lg ${
                             pedido.prioridadBase <= 3 
-                              ? 'bg-gradient-to-br from-red-900/40 to-red-800/30 border border-red-500/40 text-red-300 shadow-red-500/20' 
+                              ? 'bg-gradient-to-br from-red-900/40 to-red-800/30 border border-red-500/40 shadow-red-500/20' 
                               : pedido.prioridadBase <= 6 
-                                ? 'bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 border border-yellow-500/40 text-yellow-300 shadow-yellow-500/20' 
-                                : 'bg-gradient-to-br from-green-900/40 to-green-800/30 border border-green-500/40 text-green-300 shadow-green-500/20'
-                          }`}>
+                                ? 'bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 border border-yellow-500/40 shadow-yellow-500/20' 
+                                : 'bg-gradient-to-br from-green-900/40 to-green-800/30 border border-green-500/40 shadow-green-500/20'
+                          }`} style={{ color: pedido.prioridadBase <= 3 ? (isDark ? '#fca5a5' : '#dc2626') : pedido.prioridadBase <= 6 ? (isDark ? '#fde68a' : '#a16207') : (isDark ? '#86efac' : '#166534') }}>
                             {pedido.ordenProduccion}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-mono font-bold text-white drop-shadow">{pedido.numeroPedido}</div>
-                          <div className="text-xs text-gray-400">{pedido.fecha} {pedido.hora}</div>
+                          <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{pedido.numeroPedido}</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.fecha} {pedido.hora}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-white font-medium drop-shadow">{pedido.cliente}</div>
-                          <div className="text-xs text-gray-400">Cliente {pedido.numeroCliente}</div>
+                          <div className="font-medium drop-shadow" style={{ color: c.text }}>{pedido.cliente}</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>Cliente {pedido.numeroCliente}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-emerald-300 font-bold uppercase tracking-tight drop-shadow">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
-                          <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-white' : 'text-gray-400'}`}>
+                          <div className="font-bold uppercase tracking-tight drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                          <div className="text-xs font-semibold" style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
                             {pedido.presentacion}
                           </div>
                         </td>
@@ -2345,7 +2348,7 @@ export function ListaPedidos() {
                               const upj = pedido.unidadesPorJaba || 0;
                               return (
                                 <>
-                                  <div className="text-white font-bold text-lg drop-shadow">{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
+                                  <div className="font-bold text-lg drop-shadow" style={{ color: c.text }}>{jabas} <span className="text-[10px]" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>jabas</span></div>
                                   {upj > 0 && (
                                     <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
                                       background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
@@ -2358,40 +2361,40 @@ export function ListaPedidos() {
                               );
                             }
                             return (
-                              <div className="text-white font-bold text-lg drop-shadow">{pedido.cantidad}</div>
+                              <div className="font-bold text-lg drop-shadow" style={{ color: c.text }}>{pedido.cantidad}</div>
                             );
                           })()}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {pedido.cantidadMachos !== undefined ? (
-                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-800/30 border border-blue-500/30 shadow-lg shadow-blue-500/20">
-                              <span className="text-blue-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadMachos}</span>
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg" style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(30,58,138,0.4), rgba(30,64,175,0.3))' : 'rgba(219,234,254,0.8)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.4)' }}>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>{pedido.cantidadMachos}</span>
                             </div>
                           ) : (
-                            <span className="text-gray-500 font-mono">—</span>
+                            <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {pedido.cantidadHembras !== undefined ? (
-                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-amber-900/40 to-amber-800/30 border border-amber-500/30 shadow-lg shadow-amber-500/20">
-                              <span className="text-amber-300 font-black text-base tabular-nums drop-shadow">{pedido.cantidadHembras}</span>
+                            <div className="inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg" style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }}>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>{pedido.cantidadHembras}</span>
                             </div>
                           ) : (
-                            <span className="text-gray-500 font-mono">—</span>
+                            <span className="font-mono" style={{ color: c.textMuted }}>—</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-300 font-medium">{pedido.contenedor}</div>
+                          <div className="text-sm font-medium" style={{ color: c.textSecondary }}>{pedido.contenedor}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-gray-300 text-sm font-medium">{pedido.conductor || '—'}</span>
+                          <span className="text-sm font-medium" style={{ color: c.textSecondary }}>{pedido.conductor || '—'}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
-                            pedido.estado === 'En Despacho' 
-                              ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 text-blue-300 shadow-blue-500/20' 
-                              : 'bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 text-green-300 shadow-green-500/20'
-                          }`}>
+                          <div className="px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg"
+                            style={pedido.estado === 'En Despacho' 
+                              ? { background: isDark ? 'rgba(30,58,138,0.4)' : 'rgba(219,234,254,0.8)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.4)', color: isDark ? '#93c5fd' : '#1d4ed8' }
+                              : { background: isDark ? 'rgba(20,83,45,0.4)' : 'rgba(220,252,231,0.8)', border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.4)', color: isDark ? '#86efac' : '#166534' }
+                            }>
                             {pedido.estado === 'En Despacho' ? (
                               <span className="flex items-center gap-1.5">
                                  <TruckIcon className="w-3.5 h-3.5" />
@@ -2409,10 +2412,11 @@ export function ListaPedidos() {
                           <div className="flex items-center gap-1.5">
                             <button 
                               onClick={() => setMostrarDetallePedido(pedido)} 
-                              className="p-2 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl" 
+                              className="p-2 rounded-lg transition-all shadow-lg hover:shadow-xl" 
+                              style={{ background: isDark ? 'linear-gradient(to right, rgba(31,41,55,0.6), rgba(55,65,81,0.4))' : 'rgba(243,244,246,0.8)', border: isDark ? '1px solid rgb(75,85,99)' : '1px solid rgb(209,213,219)' }}
                               title="Ver detalles"
                             >
-                              <Eye className="w-4 h-4 text-gray-300" />
+                              <Eye className="w-4 h-4" style={{ color: c.textSecondary }} />
                             </button>
                            
                           </div>
@@ -2429,15 +2433,15 @@ export function ListaPedidos() {
 
       {/* Barra de edición múltiple */}
       {editandoMultiple && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-black border-t border-gray-700 p-4 shadow-2xl z-50">
+        <div className="fixed bottom-0 left-0 right-0 p-4 shadow-2xl z-50" style={{ background: isDark ? 'linear-gradient(to right, rgb(17,24,39), rgb(0,0,0))' : 'linear-gradient(to right, rgb(249,250,251), rgb(255,255,255))', borderTop: `1px solid ${isDark ? 'rgb(55,65,81)' : 'rgb(209,213,219)'}` }}>
           <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/30">
                 <Edit2 className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <div className="text-white font-medium drop-shadow">Editando {pedidosAEditar.length} pedidos</div>
-                <div className="text-xs text-gray-400">
+                <div className="font-medium drop-shadow" style={{ color: c.text }}>Editando {pedidosAEditar.length} pedidos</div>
+                <div className="text-xs" style={{ color: c.textSecondary }}>
                   Cambie las cantidades en la tabla y guarde los cambios
                 </div>
               </div>
@@ -2446,7 +2450,7 @@ export function ListaPedidos() {
             <div className="flex gap-3">
               <button
                 onClick={guardarEdicionMultiple}
-                className="px-4 py-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg text-white hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl flex items-center gap-2" style={{ color: c.text }}
               >
                 <Save className="w-4 h-4 text-blue-400" />
                 Guardar Cambios
@@ -2457,7 +2461,7 @@ export function ListaPedidos() {
                   setPedidosAEditar([]);
                   setCantidadesEditadas({});
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg text-gray-300 hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl"
+                className="px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-xl" style={{ background: isDark ? 'linear-gradient(to right, rgba(31,41,55,0.6), rgba(55,65,81,0.4))' : 'rgba(243,244,246,0.8)', border: isDark ? '1px solid rgb(75,85,99)' : '1px solid rgb(209,213,219)', color: c.textSecondary }}
               >
                 Cancelar
               </button>
@@ -2469,19 +2473,19 @@ export function ListaPedidos() {
       {/* Modal de Edición Múltiple */}
       {modoEdicion && clienteSeleccionado && modoEdicion !== 'NUEVO_SUB' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.95)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-white drop-shadow-lg">
+                  <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>
                     {modoEdicion === 'EDITAR' && `Editar Pedidos - ${clienteSeleccionado.cliente}`}
                     {modoEdicion === 'CANCELAR' && `Cancelar Pedidos - ${clienteSeleccionado.cliente}`}
                     {modoEdicion === 'AUMENTAR' && `Aumentar Pedidos - ${clienteSeleccionado.cliente}`}
                     {modoEdicion === 'CONSOLIDAR' && `Consolidar Pedidos - ${clienteSeleccionado.cliente}`}
                   </h3>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="text-sm mt-1" style={{ color: c.textSecondary }}>
                     Cliente: {clienteSeleccionado.numeroCliente} • {pedidosSeleccionados.length} pedidos seleccionados
                   </p>
                 </div>
@@ -2490,9 +2494,9 @@ export function ListaPedidos() {
                     setModoEdicion(null);
                     setClienteSeleccionado(null);
                   }}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2500,7 +2504,7 @@ export function ListaPedidos() {
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               {modoEdicion === 'CANCELAR' && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                     Motivo de Cancelación
                   </label>
                   <textarea
@@ -2508,7 +2512,7 @@ export function ListaPedidos() {
                     onChange={(e) => setMotivoCancelacion(e.target.value)}
                     placeholder="Ingrese el motivo para cancelar estos pedidos..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    className="w-full px-4 py-3 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                   />
                 </div>
               )}
@@ -2519,14 +2523,14 @@ export function ListaPedidos() {
                     <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/30">
                       <Merge className="w-5 h-5 text-blue-400" />
                     </div>
-                    <h4 className="text-white font-medium drop-shadow">Consolidar Pedidos Similares</h4>
+                    <h4 className="font-medium drop-shadow" style={{ color: c.text }}>Consolidar Pedidos Similares</h4>
                   </div>
-                  <p className="text-sm text-gray-300 mb-3">
+                  <p className="text-sm mb-3" style={{ color: c.textSecondary }}>
                     Los pedidos similares se sumarán en un solo pedido. Esto reduce duplicados.
                   </p>
                   <button
                     onClick={consolidarPedidosSeleccionados}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg text-white font-semibold hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg font-semibold hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" style={{ color: c.text }}
                   >
                     Consolidar {pedidosSeleccionados.length} Pedidos
                   </button>
@@ -2537,21 +2541,21 @@ export function ListaPedidos() {
                 {pedidosSeleccionados.map(pedido => (
                   <div
                     key={pedido.id}
-                    className="bg-gradient-to-r from-gray-900/80 to-gray-800/60 border border-gray-700 rounded-xl p-4 shadow-lg"
+                    className="rounded-xl p-4 shadow-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="space-y-1">
-                        <div className="font-mono font-bold text-white drop-shadow">{pedido.numeroPedido}</div>
-                        <div className="text-xs text-gray-400">
+                        <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{pedido.numeroPedido}</div>
+                        <div className="text-xs" style={{ color: c.textSecondary }}>
                           {pedido.tipoAve} • {pedido.presentacion} • {pedido.contenedor}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-300">
-                        Estado: <span className={`${
-                          pedido.estado === 'Pendiente' ? 'text-amber-400' :
-                          pedido.estado === 'En Producción' ? 'text-blue-400' :
-                          pedido.estado === 'Completado' ? 'text-green-400' : 'text-red-400'
-                        } font-medium drop-shadow`}>
+                      <div className="text-sm" style={{ color: c.textSecondary }}>
+                        Estado: <span className="font-medium drop-shadow" style={{ color: 
+                          pedido.estado === 'Pendiente' ? (isDark ? '#fbbf24' : '#b45309') :
+                          pedido.estado === 'En Producción' ? (isDark ? '#60a5fa' : '#1d4ed8') :
+                          pedido.estado === 'Completado' ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#f87171' : '#dc2626')
+                        }}>
                           {pedido.estado}
                         </span>
                       </div>
@@ -2559,8 +2563,8 @@ export function ListaPedidos() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm text-gray-400">Cantidad actual</div>
-                        <div className="text-white font-bold drop-shadow">{pedido.cantidad} aves</div>
+                        <div className="text-sm" style={{ color: c.textSecondary }}>Cantidad actual</div>
+                        <div className="font-bold drop-shadow" style={{ color: c.text }}>{pedido.cantidad} aves</div>
                         {pedido.cantidadJabas && pedido.unidadesPorJaba && (
                           <div className="text-[10px] mt-0.5 text-amber-400">
                             ({pedido.cantidadJabas} jabas × {pedido.unidadesPorJaba} c/u)
@@ -2570,7 +2574,7 @@ export function ListaPedidos() {
 
                       {(modoEdicion === 'EDITAR' || modoEdicion === 'AUMENTAR') && (
                         <div className="flex items-center gap-2">
-                          <div className="text-sm text-gray-400">Nueva cantidad:</div>
+                          <div className="text-sm" style={{ color: c.textSecondary }}>Nueva cantidad:</div>
                           <input
                             type="number"
                             value={cantidadesEditadas[pedido.id] || pedido.cantidad}
@@ -2579,7 +2583,7 @@ export function ListaPedidos() {
                               [pedido.id]: e.target.value
                             }))}
                             min={modoEdicion === 'AUMENTAR' ? pedido.cantidad + 1 : 1}
-                            className="w-24 px-3 py-1.5 bg-black/50 border border-gray-700 rounded-lg text-white text-center focus:ring-2 focus:ring-blue-500"
+                            className="w-24 px-3 py-1.5 rounded-lg text-center focus:ring-2 focus:ring-blue-500" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                           />
                         </div>
                       )}
@@ -2588,17 +2592,17 @@ export function ListaPedidos() {
                 ))}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-700">
+              <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${c.border}` }}>
                 <div className="flex gap-3">
                   <button
                     onClick={aplicarCambiosMultiples}
                     className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] shadow-lg hover:shadow-xl ${
                       modoEdicion === 'CANCELAR'
-                        ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 hover:from-red-900/50 hover:to-red-800/40 text-white'
+                        ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 hover:from-red-900/50 hover:to-red-800/40'
                         : modoEdicion === 'AUMENTAR'
-                          ? 'bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 hover:from-green-900/50 hover:to-green-800/40 text-white'
-                          : 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 hover:from-blue-900/50 hover:to-blue-800/40 text-white'
-                    }`}
+                          ? 'bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 hover:from-green-900/50 hover:to-green-800/40'
+                          : 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 hover:from-blue-900/50 hover:to-blue-800/40'
+                    }`} style={{ color: c.text }}
                   >
                     {modoEdicion === 'CANCELAR' ? 'Confirmar Cancelación' :
                      modoEdicion === 'AUMENTAR' ? 'Aplicar Aumentos' :
@@ -2609,7 +2613,7 @@ export function ListaPedidos() {
                       setModoEdicion(null);
                       setClienteSeleccionado(null);
                     }}
-                    className="px-4 py-3 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg text-white font-semibold hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl"
+                    className="px-4 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl" style={{ background: isDark ? 'linear-gradient(to right, rgba(31,41,55,0.6), rgba(55,65,81,0.4))' : 'rgba(243,244,246,0.8)', border: isDark ? '1px solid rgb(75,85,99)' : '1px solid rgb(209,213,219)', color: c.text }}
                   >
                     Cancelar
                   </button>
@@ -2623,18 +2627,18 @@ export function ListaPedidos() {
       {/* MODAL PARA NUEVO SUB-PEDIDO */}
       {modoEdicion === 'NUEVO_SUB' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.95)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-md shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-900/30 rounded-lg border border-green-500/30">
                     <Plus className="w-6 h-6 text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white drop-shadow-lg">Nuevo Pedido</h3>
-                    <p className="text-sm text-gray-400">Cliente: {nuevoSubPedido.cliente}</p>
+                    <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Nuevo Pedido</h3>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>Cliente: {nuevoSubPedido.cliente}</p>
                   </div>
                 </div>
                 <button
@@ -2652,29 +2656,29 @@ export function ListaPedidos() {
                       estado: 'Pendiente'
                     });
                   }}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Cantidad</label>
                 <input
                   type="number"
                   value={nuevoSubPedido.cantidad || ''}
                   onChange={(e) => setNuevoSubPedido(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
                   min="1"
-                  className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 />
               </div>
 
               <div className="pt-4">
                 <button
                   onClick={crearNuevoSubPedido}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-lg text-white font-semibold hover:from-green-900/50 hover:to-green-800/40 transition-all shadow-lg hover:shadow-xl"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-lg font-semibold hover:from-green-900/50 hover:to-green-800/40 transition-all shadow-lg hover:shadow-xl" style={{ color: c.text }}
                 >
                   Crear Nuevo Pedido
                 </button>
@@ -2689,16 +2693,16 @@ export function ListaPedidos() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
           background: 'rgba(0, 0, 0, 0.95)'
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-md shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/30">
                     <Wrench className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white drop-shadow-lg">Editar Pedido</h3>
-                    <p className="text-sm text-gray-400">{pedidoAEditar.numeroPedido}</p>
+                    <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Editar Pedido</h3>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>{pedidoAEditar.numeroPedido}</p>
                   </div>
                 </div>
                 <button
@@ -2706,31 +2710,31 @@ export function ListaPedidos() {
                     setPedidoAEditar(null);
                     setFormEdicion(null);
                   }}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Cantidad</label>
                 <input
                   type="number"
                   value={formEdicion.cantidad}
                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, cantidad: parseInt(e.target.value) || 0 } : null)}
                   min="1"
-                  className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Presentación</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Presentación</label>
                 <select
                   value={formEdicion.presentacion}
                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, presentacion: e.target.value } : null)}
-                  className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   <option value="">Seleccionar...</option>
                   {presentaciones?.map(pres => (
@@ -2740,11 +2744,11 @@ export function ListaPedidos() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Contenedor</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Contenedor</label>
                 <select
                   value={formEdicion.contenedor}
                   onChange={(e) => setFormEdicion(prev => prev ? { ...prev, contenedor: e.target.value } : null)}
-                  className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   <option value="">Seleccionar...</option>
                   {contenedores?.map(cont => (
@@ -2756,7 +2760,7 @@ export function ListaPedidos() {
               <div className="pt-4">
                 <button
                   onClick={guardarEdicionPedido}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg text-white font-semibold hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg font-semibold hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" style={{ color: c.text }}
                 >
                   Guardar Cambios
                 </button>
@@ -2769,25 +2773,25 @@ export function ListaPedidos() {
       {/* MODAL PARA INFORMACIÓN DEL CONDUCTOR */}
       {conductorSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.95)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-md shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/30">
                     <TruckIcon className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white drop-shadow-lg">Información del Conductor</h3>
-                    <p className="text-sm text-gray-400">Datos completos</p>
+                    <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Información del Conductor</h3>
+                    <p className="text-sm" style={{ color: c.textSecondary }}>Datos completos</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setConductorSeleccionado(null)}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2795,30 +2799,30 @@ export function ListaPedidos() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm font-medium text-gray-400 mb-1">Nombre</div>
-                  <div className="text-white font-medium drop-shadow">{conductorSeleccionado.nombre}</div>
+                  <div className="text-sm font-medium mb-1" style={{ color: c.textSecondary }}>Nombre</div>
+                  <div className="font-medium drop-shadow" style={{ color: c.text }}>{conductorSeleccionado.nombre}</div>
                 </div>
 
                 <div>
-                  <div className="text-sm font-medium text-gray-400 mb-1">Licencia</div>
-                  <div className="text-white font-mono">{conductorSeleccionado.licencia}</div>
+                  <div className="text-sm font-medium mb-1" style={{ color: c.textSecondary }}>Licencia</div>
+                  <div className="font-mono" style={{ color: c.text }}>{conductorSeleccionado.licencia}</div>
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-400 mb-1">Vehículo</div>
-                <div className="text-white font-medium drop-shadow">{conductorSeleccionado.vehiculo}</div>
+                <div className="text-sm font-medium mb-1" style={{ color: c.textSecondary }}>Vehículo</div>
+                <div className="font-medium drop-shadow" style={{ color: c.text }}>{conductorSeleccionado.vehiculo}</div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-400 mb-1">Zona Asignada</div>
-                <div className="text-blue-400 font-medium drop-shadow">{conductorSeleccionado.zonaAsignada}</div>
+                <div className="text-sm font-medium mb-1" style={{ color: c.textSecondary }}>Zona Asignada</div>
+                <div className="font-medium drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>{conductorSeleccionado.zonaAsignada}</div>
               </div>
 
               {conductorSeleccionado.telefono && (
                 <div>
-                  <div className="text-sm font-medium text-gray-400 mb-1">Teléfono</div>
-                  <div className="text-white">{conductorSeleccionado.telefono}</div>
+                  <div className="text-sm font-medium mb-1" style={{ color: c.textSecondary }}>Teléfono</div>
+                  <div style={{ color: c.text }}>{conductorSeleccionado.telefono}</div>
                 </div>
               )}
             </div>
@@ -2829,17 +2833,17 @@ export function ListaPedidos() {
       {/* Modal de Detalle del Pedido */}
       {mostrarDetallePedido && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
-          background: 'rgba(0, 0, 0, 0.95)'
+          background: c.bgModalOverlay
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white drop-shadow-lg">Detalles del Pedido</h3>
+                <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Detalles del Pedido</h3>
                 <button
                   onClick={() => setMostrarDetallePedido(null)}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2847,60 +2851,61 @@ export function ListaPedidos() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-gray-400">Número de Pedido</div>
-                  <div className="text-white font-mono font-bold drop-shadow">{mostrarDetallePedido.numeroPedido}</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Número de Pedido</div>
+                  <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{mostrarDetallePedido.numeroPedido}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Cliente</div>
-                  <div className="text-white font-medium drop-shadow">{mostrarDetallePedido.cliente}</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Cliente</div>
+                  <div className="font-medium drop-shadow" style={{ color: c.text }}>{mostrarDetallePedido.cliente}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Tipo de Ave</div>
-                  <div className="text-emerald-300 drop-shadow">{mostrarDetallePedido.tipoAve}</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Tipo de Ave</div>
+                  <div className="drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{mostrarDetallePedido.tipoAve}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Cantidad</div>
-                  <div className="text-white font-bold drop-shadow">{mostrarDetallePedido.cantidad} aves</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Cantidad</div>
+                  <div className="font-bold drop-shadow" style={{ color: c.text }}>{mostrarDetallePedido.cantidad} aves</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Presentación</div>
-                  <div className="text-white">{mostrarDetallePedido.presentacion}</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Presentación</div>
+                  <div style={{ color: c.text }}>{mostrarDetallePedido.presentacion}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Contenedor</div>
-                  <div className="text-white">{mostrarDetallePedido.contenedor}</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Contenedor</div>
+                  <div style={{ color: c.text }}>{mostrarDetallePedido.contenedor}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Merma Total</div>
-                  <div className="text-amber-400 drop-shadow">{mostrarDetallePedido.mermaTotal.toFixed(1)} kg</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Merma Total</div>
+                  <div className="drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>{mostrarDetallePedido.mermaTotal.toFixed(1)} kg</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Peso Total</div>
-                  <div className="text-green-400 drop-shadow">{mostrarDetallePedido.pesoTotalPedido.toFixed(1)} kg</div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Peso Total</div>
+                  <div className="drop-shadow" style={{ color: isDark ? '#4ade80' : '#166534' }}>{mostrarDetallePedido.pesoTotalPedido.toFixed(1)} kg</div>
                 </div>
                 <div className="col-span-2">
-                  <div className="text-xs text-gray-400">Estado</div>
-                  <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
-                    mostrarDetallePedido.estado === 'Pendiente'
-                      ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 text-amber-300 shadow-amber-500/20'
-                      : mostrarDetallePedido.estado === 'En Producción'
-                        ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 text-blue-300 shadow-blue-500/20'
-                        : mostrarDetallePedido.estado === 'En Pesaje'
-                          ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 text-purple-300 shadow-purple-500/20'
-                          : mostrarDetallePedido.estado === 'Entregado'
-                            ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-800/30 border border-emerald-500/30 text-emerald-300 shadow-emerald-500/20'
-                            : mostrarDetallePedido.estado === 'Completado'
-                              ? 'bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 text-green-300 shadow-green-500/20'
-                              : 'bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 text-red-300 shadow-red-500/20'
-                  }`}>
-                    {mostrarDetallePedido.estado}
-                  </div>
+                  <div className="text-xs" style={{ color: c.textSecondary }}>Estado</div>
+                  {(() => {
+                    const estadoColorMap: Record<string, { text: string; textLight: string }> = {
+                      'Pendiente': { text: '#fcd34d', textLight: '#92400e' },
+                      'En Producción': { text: '#93c5fd', textLight: '#1d4ed8' },
+                      'En Pesaje': { text: '#c4b5fd', textLight: '#7c3aed' },
+                      'Entregado': { text: '#6ee7b7', textLight: '#065f46' },
+                      'Completado': { text: '#86efac', textLight: '#166534' },
+                    };
+                    const colors = estadoColorMap[mostrarDetallePedido.estado] || { text: '#fca5a5', textLight: '#dc2626' };
+                    return (
+                      <div className="px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg"
+                        style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, color: isDark ? colors.text : colors.textLight }}>
+                        {mostrarDetallePedido.estado}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-700">
-                <div className="text-xs text-gray-400">Fecha y Hora</div>
-                <div className="text-white">{mostrarDetallePedido.fecha} {mostrarDetallePedido.hora}</div>
+              <div className="pt-4" style={{ borderTop: `1px solid ${c.border}` }}>
+                <div className="text-xs" style={{ color: c.textSecondary }}>Fecha y Hora</div>
+                <div style={{ color: c.text }}>{mostrarDetallePedido.fecha} {mostrarDetallePedido.hora}</div>
               </div>
             </div>
           </div>
@@ -2912,22 +2917,22 @@ export function ListaPedidos() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{
           background: 'rgba(0, 0, 0, 0.95)'
         }}>
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-gray-700">
+          <div className="rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
+            <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-amber-900/30 rounded-lg border border-amber-500/30">
                     <History className="w-6 h-6 text-amber-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-white drop-shadow-lg">Historial de Modificaciones</h3>
+                  <h3 className="text-xl font-bold drop-shadow-lg" style={{ color: c.text }}>Historial de Modificaciones</h3>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-400">{modificacionesHistorial.length} registros</span>
+                  <span className="text-sm" style={{ color: c.textSecondary }}>{modificacionesHistorial.length} registros</span>
                   <button
                     onClick={() => setMostrarHistorial(false)}
-                    className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                    className="p-2 rounded-lg transition-colors" style={{ color: c.textSecondary }}
                   >
-                    <X className="w-5 h-5 text-gray-400" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -2935,7 +2940,7 @@ export function ListaPedidos() {
 
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               {modificacionesHistorial.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12" style={{ color: c.textSecondary }}>
                   No hay registros en el historial
                 </div>
               ) : (
@@ -2943,7 +2948,7 @@ export function ListaPedidos() {
                   {modificacionesHistorial.slice().reverse().map(mod => (
                     <div
                       key={mod.id}
-                      className="bg-gradient-to-r from-gray-900/80 to-gray-800/60 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-all shadow-lg"
+                      className="rounded-xl p-4 transition-all shadow-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -2959,15 +2964,15 @@ export function ListaPedidos() {
                             {mod.tipo === 'CONSOLIDACION' && 'Consolidación'}
                             {mod.tipo === 'EDICION_MULTIPLE' && '📋 Edición Múltiple'}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs mt-1" style={{ color: c.textMuted }}>
                             {mod.fecha} {mod.hora}
                           </div>
                         </div>
                         <div className="text-right">
                           {(mod.tipo === 'MODIFICACION' || mod.tipo === 'AUMENTO' || mod.tipo === 'CONSOLIDACION') && (
                             <>
-                              <div className="text-sm text-gray-400">Cantidad</div>
-                              <div className="text-white font-bold drop-shadow">
+                              <div className="text-sm" style={{ color: c.textSecondary }}>Cantidad</div>
+                              <div className="font-bold drop-shadow" style={{ color: c.text }}>
                                 {mod.cantidadAnterior} → {mod.cantidadNueva}
                               </div>
                             </>
@@ -2977,21 +2982,21 @@ export function ListaPedidos() {
 
                       {mod.motivo && (
                         <div className="mt-2 pt-2 border-t border-gray-700/50">
-                          <div className="text-xs text-gray-400">Motivo:</div>
-                          <div className="text-sm text-gray-300">{mod.motivo}</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>Motivo:</div>
+                          <div className="text-sm" style={{ color: c.textSecondary }}>{mod.motivo}</div>
                         </div>
                       )}
 
                       {mod.detalles && (
                         <div className="mt-2">
-                          <div className="text-xs text-gray-400">Detalles:</div>
-                          <div className="text-sm text-gray-300">{mod.detalles}</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>Detalles:</div>
+                          <div className="text-sm" style={{ color: c.textSecondary }}>{mod.detalles}</div>
                         </div>
                       )}
 
                       {mod.pedidosAfectados && mod.pedidosAfectados.length > 0 && (
                         <div className="mt-2">
-                          <div className="text-xs text-gray-400">Pedidos afectados:</div>
+                          <div className="text-xs" style={{ color: c.textSecondary }}>Pedidos afectados:</div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {mod.pedidosAfectados.map(numero => (
                               <span key={numero} className="px-2 py-1 bg-black/50 rounded text-xs text-blue-400 border border-blue-500/30">
@@ -3049,27 +3054,27 @@ export function ListaPedidos() {
 
       {/* Modal de Nuevo Pedido Rápido */}
       {mostrarModalNuevoPedido && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-amber-500/30 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
+          <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" style={{ background: c.bgModal, border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : c.border}` }}>
             {/* Header del Modal */}
-            <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 border-b border-amber-500/30 p-4 flex items-center justify-between">
+            <div className="sticky top-0 p-4 flex items-center justify-between" style={{ background: c.bgCard, borderBottom: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : c.border}` }}>
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2 drop-shadow-lg">
+                <h2 className="text-xl font-bold flex items-center gap-2 drop-shadow-lg" style={{ color: c.text }}>
                   <div className="p-2 bg-green-900/30 rounded-lg border border-green-500/30">
                     <Plus className="w-6 h-6 text-green-400" />
                   </div>
                   Nuevo Pedido Rápido
                 </h2>
-                <p className="text-sm text-gray-400 mt-1">
-                  Cliente: <span className="text-amber-400 font-medium drop-shadow">{nuevoPedidoRapido.cliente}</span>
-                  <span className="text-gray-500 ml-2">({nuevoPedidoRapido.numeroCliente})</span>
+                <p className="text-sm mt-1" style={{ color: c.textSecondary }}>
+                  Cliente: <span className="font-medium drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>{nuevoPedidoRapido.cliente}</span>
+                  <span className="ml-2" style={{ color: c.textMuted }}>({nuevoPedidoRapido.numeroCliente})</span>
                 </p>
               </div>
               <button
                 onClick={() => setMostrarModalNuevoPedido(false)}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6" style={{ color: c.textSecondary }} />
               </button>
             </div>
 
@@ -3077,11 +3082,11 @@ export function ListaPedidos() {
             <div className="p-6 space-y-6">
               {/* Tipo de Ave */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de Ave *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Tipo de Ave *</label>
                 <select
                   value={nuevoPedidoRapido.tipoAve}
                   onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, tipoAve: e.target.value, presentacion: '' }))}
-                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   <option value="">Seleccionar tipo de ave...</option>
                   {tiposAve?.map(tipo => (
@@ -3095,11 +3100,11 @@ export function ListaPedidos() {
                 const tipoAveInfo = tiposAve?.find(t => t.nombre === nuevoPedidoRapido.tipoAve);
                 return tipoAveInfo?.tieneVariedad && tipoAveInfo?.variedades ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Variedad *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Variedad *</label>
                     <select
                       value={nuevoPedidoRapido.variedad || ''}
                       onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, variedad: e.target.value }))}
-                      className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     >
                       <option value="">Seleccionar variedad...</option>
                       {tipoAveInfo.variedades.map((variedad: string) => (
@@ -3117,7 +3122,7 @@ export function ListaPedidos() {
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                           <span className="flex items-center gap-2">
                             <span className="w-3 h-3 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50"></span>
                             Cantidad Machos
@@ -3129,11 +3134,11 @@ export function ListaPedidos() {
                           value={nuevoPedidoRapido.cantidadMachos}
                           onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, cantidadMachos: e.target.value }))}
                           placeholder="0"
-                          className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white text-center text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-3 rounded-lg text-center text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>
                           <span className="flex items-center gap-2">
                             <span className="w-3 h-3 bg-pink-500 rounded-full shadow-lg shadow-pink-500/50"></span>
                             Cantidad Hembras
@@ -3145,14 +3150,14 @@ export function ListaPedidos() {
                           value={nuevoPedidoRapido.cantidadHembras}
                           onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, cantidadHembras: e.target.value }))}
                           placeholder="0"
-                          className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white text-center text-xl font-bold focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                          className="w-full px-4 py-3 rounded-lg text-center text-xl font-bold focus:ring-2 focus:ring-pink-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                         />
                       </div>
                     </div>
                     <div className="bg-gradient-to-r from-green-900/20 to-green-800/10 border border-green-500/30 rounded-lg p-4 shadow-lg">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-300 font-medium">Total de aves:</span>
-                        <span className="text-3xl font-bold text-green-400 drop-shadow-lg">
+                        <span className="font-medium" style={{ color: c.textSecondary }}>Total de aves:</span>
+                        <span className="text-3xl font-bold drop-shadow-lg" style={{ color: isDark ? '#4ade80' : '#166534' }}>
                           {(parseInt(nuevoPedidoRapido.cantidadMachos) || 0) + (parseInt(nuevoPedidoRapido.cantidadHembras) || 0)}
                         </span>
                       </div>
@@ -3160,14 +3165,14 @@ export function ListaPedidos() {
                   </>
                 ) : nuevoPedidoRapido.tipoAve ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Cantidad Total *</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Cantidad Total *</label>
                     <input
                       type="number"
                       min="1"
                       value={nuevoPedidoRapido.cantidadMachos}
                       onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, cantidadMachos: e.target.value, cantidadHembras: '0' }))}
                       placeholder="0"
-                      className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white text-center text-xl font-bold focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-lg text-center text-xl font-bold focus:ring-2 focus:ring-green-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                     />
                   </div>
                 ) : null;
@@ -3175,11 +3180,11 @@ export function ListaPedidos() {
 
               {/* Presentación */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Presentación *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Presentación *</label>
                 <select
                   value={nuevoPedidoRapido.presentacion}
                   onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, presentacion: e.target.value }))}
-                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   <option value="">Seleccionar presentación...</option>
                   {getPresentacionesPorTipoAve(nuevoPedidoRapido.tipoAve).map((pres: any) => (
@@ -3190,11 +3195,11 @@ export function ListaPedidos() {
 
               {/* Contenedor */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Contenedor *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: c.textSecondary }}>Contenedor *</label>
                 <select
                   value={nuevoPedidoRapido.contenedor}
                   onChange={(e) => setNuevoPedidoRapido(prev => ({ ...prev, contenedor: e.target.value }))}
-                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}
                 >
                   <option value="">Seleccionar contenedor...</option>
                   {contenedores?.map((cont: any) => (
@@ -3205,10 +3210,10 @@ export function ListaPedidos() {
             </div>
 
             {/* Footer del Modal */}
-            <div className="sticky bottom-0 bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-700 p-4 flex gap-3">
+            <div className="sticky bottom-0 p-4 flex gap-3" style={{ background: c.bgCard, borderTop: `1px solid ${c.border}` }}>
               <button
                 onClick={() => setMostrarModalNuevoPedido(false)}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-800/60 to-gray-700/40 border border-gray-600 rounded-lg text-gray-300 font-medium hover:from-gray-800/80 hover:to-gray-700/60 transition-all shadow-lg hover:shadow-xl"
+                className="flex-1 px-4 py-3 rounded-lg font-medium transition-all shadow-lg hover:shadow-xl" style={{ background: isDark ? 'linear-gradient(to right, rgba(31,41,55,0.6), rgba(55,65,81,0.4))' : 'rgba(243,244,246,0.8)', border: isDark ? '1px solid rgb(75,85,99)' : '1px solid rgb(209,213,219)', color: c.textSecondary }}
               >
                 Cancelar
               </button>

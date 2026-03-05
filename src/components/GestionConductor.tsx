@@ -456,10 +456,10 @@ export function GestionConductor() {
               {pedido.tipoAve}
             </h3>
             {pedido.variedad && (
-              <p className="text-[11px] text-gray-400 mt-0.5">{pedido.variedad}</p>
+              <p className="text-[11px] mt-0.5" style={{ color: c.textSecondary }}>{pedido.variedad}</p>
             )}
           </div>
-          <span className="font-mono text-[10px] bg-gray-800/80 px-2 py-0.5 rounded shrink-0 ml-2" style={{ color: c.textMuted }}>
+          <span className="font-mono text-[10px] px-2 py-0.5 rounded shrink-0 ml-2" style={{ color: c.textMuted, background: isDark ? 'rgba(31,41,55,0.8)' : 'rgba(243,244,246,0.8)' }}>
             {pedido.numeroPedido || 'S/N'}
           </span>
         </div>
@@ -474,7 +474,7 @@ export function GestionConductor() {
             {vivo ? `Jabas · ${jabas} jabas` : `Unidades · ${pedido.cantidad} unids.`}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+        <div className="flex flex-wrap items-center gap-3 text-[11px]" style={{ color: c.textMuted }}>
           <span className="flex items-center gap-1">
             <Weight className="w-3 h-3" />
             <span className="font-bold" style={{ color: c.text }}>{(pedido.pesoBrutoTotal || 0).toFixed(1)} kg</span> bruto
@@ -542,7 +542,7 @@ export function GestionConductor() {
                     <p className="text-[11px]" style={{ color: c.textMuted }}>{devolucionesDisponibles.length} producto{devolucionesDisponibles.length > 1 ? 's' : ''} · Puede adicionarlos desde cada despacho</p>
                   </div>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showDevolucionesInfo ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${showDevolucionesInfo ? 'rotate-180' : ''}`} style={{ color: c.textMuted }} />
               </button>
               {showDevolucionesInfo && (
                 <div className="px-5 pb-4 space-y-2" style={{ borderTop: `1px solid ${c.borderSubtle}` }}>
@@ -550,18 +550,18 @@ export function GestionConductor() {
                     <div key={dev.registroId} className="rounded-lg p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full">Dev. de {dev.clienteOrigen}</span>
-                        <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
+                        <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{dev.pedidoNumero}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold" style={{ color: c.text }}>{dev.tipoAve}</span>
-                          {dev.variedad && <span className="text-[10px] text-gray-500">({dev.variedad})</span>}
-                          <span className="text-[10px] text-gray-500">·</span>
+                          {dev.variedad && <span className="text-[10px]" style={{ color: c.textMuted }}>({dev.variedad})</span>}
+                          <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
                           <span className="text-[10px] text-blue-400">{dev.presentacion}</span>
                         </div>
                         <div className="text-right">
                           <span className="text-sm font-bold text-cyan-400">{dev.cantidadDisponible} unids.</span>
-                          <span className="text-[10px] text-gray-500 ml-1.5">{dev.pesoDisponible.toFixed(1)} kg</span>
+                          <span className="text-[10px] ml-1.5" style={{ color: c.textMuted }}>{dev.pesoDisponible.toFixed(1)} kg</span>
                         </div>
                       </div>
                     </div>
@@ -610,7 +610,7 @@ export function GestionConductor() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex flex-wrap items-center gap-2">
                         {grupo.numeroTicket && (
-                          <span className="font-mono text-[11px] text-white bg-emerald-400/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                          <span className="font-mono text-[11px] px-2 py-0.5 rounded-md" style={{ color: isDark ? '#fff' : '#065f46', background: isDark ? 'rgba(52,211,153,0.1)' : 'rgba(209,250,229,0.8)', border: '1px solid rgba(16,185,129,0.3)' }}>
                             {grupo.numeroTicket}
                           </span>
                         )}
@@ -755,20 +755,20 @@ export function GestionConductor() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-white">{freshP.tipoAve}</span>
-                            {freshP.variedad && <span className="text-[10px] text-gray-500">({freshP.variedad})</span>}
-                            <span className="font-mono text-[10px] text-gray-500">{freshP.numeroPedido}</span>
+                            <span className="text-sm font-bold" style={{ color: c.text }}>{freshP.tipoAve}</span>
+                            {freshP.variedad && <span className="text-[10px]" style={{ color: c.textMuted }}>({freshP.variedad})</span>}
+                            <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{freshP.numeroPedido}</span>
                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoBadge(freshP.estado || 'En Despacho')}`}>
                               {freshP.estado}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-[10px] text-gray-500">{freshP.presentacion}</span>
-                            <span className="text-[10px] text-gray-600">·</span>
+                            <span className="text-[10px]" style={{ color: c.textMuted }}>{freshP.presentacion}</span>
+                            <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
                             <span className={`text-[10px] font-bold ${vivo ? 'text-amber-400' : 'text-purple-400'}`}>
                               {vivo ? `${freshP.cantidadJabas || 0} jabas` : `${freshP.cantidad} unids.`}
                             </span>
-                            <span className="text-[10px] text-gray-600">·</span>
+                            <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
                             <span className="text-[10px] font-bold" style={{ color: c.text }}>{(freshP.pesoBrutoTotal || 0).toFixed(1)} kg</span>
                           </div>
                         </div>
@@ -778,7 +778,7 @@ export function GestionConductor() {
                         className="p-2 rounded-lg transition-all hover:scale-105 shrink-0"
                         style={{ background: c.g06, border: `1px solid ${c.border}` }}
                       >
-                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} style={{ color: c.textSecondary }} />
                       </button>
                     </div>
                   </div>
@@ -801,7 +801,7 @@ export function GestionConductor() {
                                 <span className="text-xs font-bold" style={{ color: c.text }}>{getTipoLabel(reg.tipo, reg.id)}</span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                              <div className="flex items-center gap-2 text-[10px]" style={{ color: c.textMuted }}>
                                 {reg.cantidadUnidades && <span className="text-orange-300">{reg.cantidadUnidades} unids.</span>}
                                 {reg.peso && <span className="font-mono font-bold" style={{ color: c.text }}>{reg.peso.toFixed(1)} kg</span>}
                                 <span>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -870,7 +870,7 @@ export function GestionConductor() {
               <div className="space-y-3">
                 <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-widest px-1 flex items-center gap-2">
                   <ArrowLeftRight className="w-4 h-4" /> Adiciones ({adicionesGrupo.length})
-                  <span className="text-[10px] text-gray-500 font-normal normal-case ml-auto">
+                  <span className="text-[10px] font-normal normal-case ml-auto" style={{ color: c.textMuted }}>
                     Total: {pesoTotalAdiciones.toFixed(1)} kg · Se integran al confirmar entrega
                   </span>
                 </h3>
@@ -895,17 +895,17 @@ export function GestionConductor() {
                               <span className="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-bold">
                                 desde {reg.clienteOrigenNombre}
                               </span>
-                              <span className="font-mono text-[10px] text-gray-500">{reg.pedidoOrigenNumero}</span>
+                              <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{reg.pedidoOrigenNumero}</span>
                               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-green-500/25 bg-green-500/15 text-green-400">
                                 Entregado
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <span className="text-[10px] font-bold text-cyan-400">{reg.cantidadUnidades} unids.</span>
-                              <span className="text-[10px] text-gray-600">·</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
                               <span className="text-[10px] font-bold" style={{ color: c.text }}>{(reg.peso || 0).toFixed(1)} kg</span>
-                              <span className="text-[10px] text-gray-600">·</span>
-                              <span className="text-[10px] text-gray-500">{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                           </div>
                         </div>
@@ -947,7 +947,7 @@ export function GestionConductor() {
                         <Truck className="w-4 h-4 text-emerald-400" />}
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Estado</p>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: c.textMuted }}>Estado</p>
                     <p className={`text-sm font-bold ${freshSP.estado === 'Devolución' ? 'text-red-400' :
                       freshSP.estado === 'Con Incidencia' ? 'text-amber-400' : 'text-emerald-400'
                       }`}>{freshSP.estado}</p>
@@ -981,8 +981,8 @@ export function GestionConductor() {
 
             {/* Timeline completo */}
             <div className="space-y-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2 px-1">
-                <History className="w-4 h-4 text-gray-500" /> Registro de Movimientos
+              <h3 className="text-base font-bold flex items-center gap-2 px-1" style={{ color: c.text }}>
+                <History className="w-4 h-4" style={{ color: c.textMuted }} /> Registro de Movimientos
               </h3>
               {getRegistrosPedido(selectedPedido.id).length === 0 ? (
                 <div className="rounded-xl p-14 text-center" style={{ background: c.bgCard, border: `1px dashed ${c.border}` }}>
@@ -991,7 +991,7 @@ export function GestionConductor() {
                 </div>
               ) : (
                 <div className="relative pl-6">
-                  <div className="absolute left-[10px] top-2 bottom-2 w-px bg-gray-800" />
+                  <div className="absolute left-[10px] top-2 bottom-2 w-px" style={{ background: isDark ? '#1f2937' : '#e5e7eb' }} />
                   <div className="space-y-4">
                     {getRegistrosPedido(selectedPedido.id).map(reg => (
                       <div key={reg.id} className="relative">
@@ -1003,9 +1003,9 @@ export function GestionConductor() {
                         <div className="rounded-xl p-4 transition-colors" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             {getTipoIcon(reg.tipo)}
-                            <span className="text-sm font-bold text-white">{getTipoLabel(reg.tipo, reg.id)}</span>
+                            <span className="text-sm font-bold" style={{ color: c.text }}>{getTipoLabel(reg.tipo, reg.id)}</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoColor(reg.estado)}`}>{reg.estado}</span>
-                            <span className="ml-auto text-[11px] text-gray-500 flex items-center gap-1 tabular-nums">
+                            <span className="ml-auto text-[11px] flex items-center gap-1 tabular-nums" style={{ color: c.textMuted }}>
                               <Calendar className="w-3 h-3" />{new Date(reg.fecha).toLocaleDateString()}
                               <span className="text-gray-700 mx-0.5">·</span>
                               <Clock className="w-3 h-3" />{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1013,33 +1013,33 @@ export function GestionConductor() {
                           </div>
                           <div className="space-y-1">
                             {reg.cantidadUnidades && (
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <Hash className="w-4 h-4 text-gray-600" />Cantidad: <span className="text-white font-bold">{reg.cantidadUnidades} unids.</span>
+                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
+                                <Hash className="w-4 h-4" style={{ color: c.textMuted }} />Cantidad: <span className="font-bold" style={{ color: c.text }}>{reg.cantidadUnidades} unids.</span>
                               </div>
                             )}
                             {reg.peso && (
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <Weight className="w-4 h-4 text-gray-600" />Peso: <span className="text-white font-bold">{reg.peso.toFixed(1)} kg</span>
+                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
+                                <Weight className="w-4 h-4" style={{ color: c.textMuted }} />Peso: <span className="font-bold" style={{ color: c.text }}>{reg.peso.toFixed(1)} kg</span>
                               </div>
                             )}
                             {reg.motivo && (
                               <p className="text-sm text-orange-300 bg-orange-900/15 border border-orange-500/15 px-3 py-1.5 rounded-lg">"{reg.motivo}"</p>
                             )}
                             {reg.clienteDestinoNombre && (
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <User className="w-4 h-4 text-gray-600" />Destino: <span className="text-teal-400 font-bold">{reg.clienteDestinoNombre}</span>
+                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
+                                <User className="w-4 h-4" style={{ color: c.textMuted }} />Destino: <span className="text-teal-400 font-bold">{reg.clienteDestinoNombre}</span>
                               </div>
                             )}
                             {reg.nuevoClienteNombre && (
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <User className="w-4 h-4 text-gray-600" />Cliente: <span className="text-emerald-400 font-bold">{reg.nuevoClienteNombre}</span>
+                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
+                                <User className="w-4 h-4" style={{ color: c.textMuted }} />Cliente: <span className="text-emerald-400 font-bold">{reg.nuevoClienteNombre}</span>
                               </div>
                             )}
                           </div>
                           {reg.fotos.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {reg.fotos.map((f, fi) => (
-                                <div key={fi} className="w-14 h-14 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden cursor-pointer hover:border-emerald-500/60 transition-all"
+                                <div key={fi} className="w-14 h-14 rounded-lg overflow-hidden cursor-pointer hover:border-emerald-500/60 transition-all" style={{ background: isDark ? '#1f2937' : '#f3f4f6', border: `1px solid ${c.border}` }}
                                   onClick={() => window.open(f.url, '_blank')}>
                                   <img src={f.url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Foto'; }} />
                                 </div>
@@ -1078,7 +1078,7 @@ export function GestionConductor() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Repesaje</h2>
-                    <p className="text-[11px] text-gray-500">{freshP.cliente} · {freshP.numeroPedido}</p>
+                    <p className="text-[11px]" style={{ color: c.textMuted }}>{freshP.cliente} · {freshP.numeroPedido}</p>
                   </div>
                 </div>
 
@@ -1091,7 +1091,7 @@ export function GestionConductor() {
                     <Package className="w-5 h-5 text-amber-400 shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-amber-300">Despacho en Jabas</p>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px]" style={{ color: c.textSecondary }}>
                         {freshP.cantidadJabas || 0} jabas · {freshP.unidadesPorJaba || 0} aves/jaba ·{' '}
                         {(freshP.cantidadJabas || 0) * (freshP.unidadesPorJaba || 0)} aves total
                       </p>
@@ -1135,21 +1135,22 @@ export function GestionConductor() {
                 {/* Input peso + foto */}
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
                       Peso de esta tanda (kg) <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
                       <input type="number" inputMode="decimal" step="0.1" min="0" value={formWeight}
                         onChange={(e) => setFormWeight(e.target.value)} placeholder="0.0"
-                        className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-4 text-white text-3xl font-black focus:outline-none focus:border-blue-500 transition-all pr-12 shadow-inner" />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">kg</span>
+                        className="w-full rounded-xl px-4 py-4 text-3xl font-black focus:outline-none focus:border-blue-500 transition-all pr-12 shadow-inner" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-lg" style={{ color: c.textMuted }}>kg</span>
                     </div>
                   </div>
                   <button onClick={() => handleCapturePhoto(setCapturedPhoto)}
                     className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${capturedPhoto
                       ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
-                      : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700 hover:border-amber-500/50'
-                      }`}>
+                      : ''
+                      }`}
+                    style={!capturedPhoto ? { background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text } : undefined}>
                     <Camera className={`w-5 h-5 ${capturedPhoto ? 'text-emerald-400' : 'text-amber-400'}`} />
                     {capturedPhoto ? '✓ FOTO LISTA' : 'TOMAR FOTO'}
                   </button>
@@ -1157,11 +1158,11 @@ export function GestionConductor() {
 
                 {/* Preview foto */}
                 {capturedPhoto && (
-                  <div className="flex items-center gap-3 p-2 bg-black/30 border border-gray-800/70 rounded-xl">
+                  <div className="flex items-center gap-3 p-2 rounded-xl" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(243,244,246,0.8)', border: `1px solid ${c.border}` }}>
                     <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
                       <img src={capturedPhoto} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <p className="text-xs text-gray-500 flex-1">Foto de evidencia capturada</p>
+                    <p className="text-xs flex-1" style={{ color: c.textMuted }}>Foto de evidencia capturada</p>
                     <button onClick={() => setCapturedPhoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
                   </div>
                 )}
@@ -1169,7 +1170,11 @@ export function GestionConductor() {
                 {/* Botón sumar tanda */}
                 <button onClick={handleAddTanda}
                   disabled={!formWeight || !capturedPhoto}
-                  className="w-full py-4 border-2 rounded-xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale bg-blue-600/90 border-blue-400/60 text-white hover:bg-blue-500/90">
+                  className="w-full py-4 border-2 rounded-xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:cursor-not-allowed"
+                  style={formWeight && capturedPhoto
+                    ? { background: 'rgba(37, 99, 235, 0.9)', borderColor: 'rgba(96, 165, 250, 0.6)', color: '#fff' }
+                    : { background: isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#9ca3af', color: c.textMuted, opacity: 0.6 }
+                  }>
                   <Plus className="w-6 h-6" /> SUMAR TANDA
                 </button>
 
@@ -1177,27 +1182,27 @@ export function GestionConductor() {
                 {tandasRepesaje.length > 0 && (
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tandas ({tandasRepesaje.length})</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: c.textMuted }}>Tandas ({tandasRepesaje.length})</p>
                       <button onClick={handleQuitarUltimaTanda} className="text-[10px] text-red-400/70 hover:text-red-400 font-bold flex items-center gap-1">
                         <Minus className="w-3 h-3" /> Quitar última
                       </button>
                     </div>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {tandasRepesaje.map((t, i) => (
-                        <div key={i} className="flex items-center justify-between bg-black/40 border border-gray-700/50 rounded-lg p-2.5">
+                        <div key={i} className="flex items-center justify-between rounded-lg p-2.5" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
                           <div className="flex items-center gap-2">
                             <div className="w-9 h-9 rounded-lg overflow-hidden border border-gray-600/50 shrink-0">
                               <img src={t.foto} className="w-full h-full object-cover" />
                             </div>
-                            <span className="text-white font-bold text-sm">Tanda {t.numero}</span>
+                            <span className="font-bold text-sm" style={{ color: c.text }}>Tanda {t.numero}</span>
                           </div>
                           <span className="text-lg font-black text-blue-400 tabular-nums">{t.peso.toFixed(1)} kg</span>
                         </div>
                       ))}
                     </div>
                     <div className="bg-blue-900/25 border border-blue-500/30 rounded-xl p-3 flex justify-between items-center">
-                      <span className="text-white font-extrabold text-sm uppercase tracking-wider">Total Repesaje</span>
-                      <span className="text-2xl font-black text-white tabular-nums">{pesoAcumulado.toFixed(1)} kg</span>
+                      <span className="font-extrabold text-sm uppercase tracking-wider" style={{ color: c.text }}>Total Repesaje</span>
+                      <span className="text-2xl font-black tabular-nums" style={{ color: c.text }}>{pesoAcumulado.toFixed(1)} kg</span>
                     </div>
                   </div>
                 )}
@@ -1205,8 +1210,11 @@ export function GestionConductor() {
                 {/* Finalizar */}
                 <button onClick={handleFinishRepesaje}
                   disabled={tandasRepesaje.length === 0}
-                  className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${tandasRepesaje.length > 0 ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                    }`}>
+                  className="w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
+                  style={tandasRepesaje.length > 0
+                    ? { background: '#059669', color: '#fff' }
+                    : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
+                  }>
                   <CheckCircle2 className="w-5 h-5" /> FINALIZAR REPESAJE
                 </button>
               </div>
@@ -1235,7 +1243,7 @@ export function GestionConductor() {
                     <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>
                       {devStep === 'datos' ? 'Registrar Devolución' : 'Motivo de Devolución'}
                     </h2>
-                    <p className="text-[11px] text-gray-500">{freshP.cliente} · {freshP.numeroPedido}</p>
+                    <p className="text-[11px]" style={{ color: c.textMuted }}>{freshP.cliente} · {freshP.numeroPedido}</p>
                   </div>
                 </div>
 
@@ -1247,7 +1255,7 @@ export function GestionConductor() {
                   <div className="bg-orange-500/8 border border-orange-500/20 rounded-xl p-3 flex items-center gap-3">
                     <AlertCircle className="w-5 h-5 text-orange-400 shrink-0" />
                     <p className="text-[11px] text-orange-300">
-                      <span className="font-bold">Importante:</span> Aunque el despacho es en jabas, la devolución se registra en <span className="font-bold text-white">unidades</span>.
+                      <span className="font-bold">Importante:</span> Aunque el despacho es en jabas, la devolución se registra en <span className="font-bold" style={{ color: c.text }}>unidades</span>.
                     </p>
                   </div>
                 )}
@@ -1257,22 +1265,22 @@ export function GestionConductor() {
                     {/* Cantidad + Peso */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
                           Cantidad (unids.) <span className="text-red-400">*</span>
                         </label>
                         <input type="number" inputMode="numeric" min="1" value={devCantidad}
                           onChange={(e) => setDevCantidad(e.target.value)} placeholder="0"
-                          className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-orange-500 transition-all text-center" />
+                          className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-orange-500 transition-all text-center" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
                           Peso (kg) <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <input type="number" inputMode="decimal" step="0.1" min="0" value={devPeso}
                             onChange={(e) => setDevPeso(e.target.value)} placeholder="0.0"
-                            className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-orange-500 transition-all text-center pr-10" />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">kg</span>
+                            className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-orange-500 transition-all text-center pr-10" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-sm" style={{ color: c.textMuted }}>kg</span>
                         </div>
                       </div>
                     </div>
@@ -1283,8 +1291,9 @@ export function GestionConductor() {
                       <button onClick={() => handleCapturePhoto(setDevFoto)}
                         className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${devFoto
                           ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
-                          : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700 hover:border-orange-500/50'
-                          }`}>
+                          : ''
+                          }`}
+                        style={!devFoto ? { background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text } : undefined}>
                         <Camera className={`w-5 h-5 ${devFoto ? 'text-emerald-400' : 'text-orange-400'}`} />
                         {devFoto ? '✓ FOTO LISTA' : 'TOMAR FOTO'}
                       </button>
@@ -1292,11 +1301,11 @@ export function GestionConductor() {
 
                     {/* Preview foto */}
                     {devFoto && (
-                      <div className="flex items-center gap-3 p-2 bg-black/30 border border-gray-800/70 rounded-xl">
+                      <div className="flex items-center gap-3 p-2 rounded-xl" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(243,244,246,0.8)', border: `1px solid ${c.border}` }}>
                         <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
                           <img src={devFoto} alt="" className="w-full h-full object-cover" />
                         </div>
-                        <p className="text-xs text-gray-500 flex-1">Foto de evidencia</p>
+                        <p className="text-xs flex-1" style={{ color: c.textMuted }}>Foto de evidencia</p>
                         <button onClick={() => setDevFoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
                       </div>
                     )}
@@ -1309,10 +1318,11 @@ export function GestionConductor() {
                       setDevStep('motivo');
                     }}
                       disabled={!devCantidad || !devPeso || !devFoto}
-                      className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${devCantidad && devPeso && devFoto
-                        ? 'bg-orange-600 hover:bg-orange-500 text-white'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                        }`}>
+                      className="w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
+                      style={(devCantidad && devPeso && devFoto)
+                        ? { background: '#ea580c', color: '#fff' }
+                        : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
+                      }>
                       <ArrowRight className="w-5 h-5" /> CONTINUAR
                     </button>
                   </>
@@ -1322,11 +1332,11 @@ export function GestionConductor() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Cantidad</p>
-                        <p className="text-xl font-black text-white">{devCantidad} <span className="text-xs text-gray-500">unids.</span></p>
+                        <p className="text-xl font-black" style={{ color: c.text }}>{devCantidad} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
                       </div>
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Peso</p>
-                        <p className="text-xl font-black text-white">{parseFloat(devPeso).toFixed(1)} <span className="text-xs text-gray-500">kg</span></p>
+                        <p className="text-xl font-black" style={{ color: c.text }}>{parseFloat(devPeso).toFixed(1)} <span className="text-xs" style={{ color: c.textMuted }}>kg</span></p>
                       </div>
                     </div>
 
@@ -1336,23 +1346,24 @@ export function GestionConductor() {
                         <AlertCircle className="w-4 h-4" /> Motivo <span className="text-red-400">*</span>
                       </label>
                       <textarea value={devMotivo} autoFocus onChange={(e) => setDevMotivo(e.target.value)}
-                        className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white text-base focus:outline-none focus:border-orange-500 transition-all h-28 resize-none placeholder:text-gray-600"
-                        placeholder="Ej: Producto dañado, cliente no aceptó..." maxLength={200} />
+                        className="w-full rounded-xl px-4 py-3 text-base focus:outline-none focus:border-orange-500 transition-all h-28 resize-none placeholder:text-gray-600"
+                        style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}                        placeholder="Ej: Producto dañado, cliente no aceptó..." maxLength={200} />
                       <div className="flex justify-between items-center mt-1.5">
                         <button onClick={() => setDevStep('datos')} className="text-xs text-orange-400/50 hover:text-orange-400 font-bold uppercase underline transition-colors">
                           Volver a datos
                         </button>
-                        <p className="text-[10px] text-gray-500 font-mono tabular-nums">{devMotivo.length}/200</p>
+                        <p className="text-[10px] font-mono tabular-nums" style={{ color: c.textMuted }}>{devMotivo.length}/200</p>
                       </div>
                     </div>
 
                     {/* Confirmar */}
                     <button onClick={handleFinishDevolucion}
                       disabled={devMotivo.length < 3}
-                      className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${devMotivo.length >= 3
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                        }`}>
+                      className="w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
+                      style={devMotivo.length >= 3
+                        ? { background: '#059669', color: '#fff' }
+                        : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
+                      }>
                       <CheckCircle2 className="w-6 h-6" /> CONFIRMAR DEVOLUCIÓN
                     </button>
                   </>
@@ -1379,7 +1390,7 @@ export function GestionConductor() {
                     </div>
                     <div>
                       <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Adición para {grupoSeleccionado.cliente}</h2>
-                      <p className="text-[11px] text-gray-500">Seleccione un producto devuelto para adicionar a este despacho</p>
+                      <p className="text-[11px]" style={{ color: c.textMuted }}>Seleccione un producto devuelto para adicionar a este despacho</p>
                     </div>
                   </div>
 
@@ -1403,12 +1414,12 @@ export function GestionConductor() {
                               <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
                                 Dev. de {dev.clienteOrigen}
                               </span>
-                              <span className="font-mono text-[10px] text-gray-500">{dev.pedidoNumero}</span>
+                              <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{dev.pedidoNumero}</span>
                             </div>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-bold text-white">{dev.tipoAve}</h4>
-                                {dev.variedad && <p className="text-[10px] text-gray-500">{dev.variedad}</p>}
+                                <h4 className="text-sm font-bold" style={{ color: c.text }}>{dev.tipoAve}</h4>
+                                {dev.variedad && <p className="text-[10px]" style={{ color: c.textMuted }}>{dev.variedad}</p>}
                                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                     {dev.presentacion}
@@ -1422,9 +1433,9 @@ export function GestionConductor() {
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <p className="text-xs text-gray-500 uppercase font-bold">Disponible</p>
-                                <p className="text-lg font-black text-cyan-400">{dev.cantidadDisponible} <span className="text-xs text-gray-500">unids.</span></p>
-                                <p className="text-sm font-bold text-white">{dev.pesoDisponible.toFixed(1)} kg</p>
+                                <p className="text-xs uppercase font-bold" style={{ color: c.textMuted }}>Disponible</p>
+                                <p className="text-lg font-black text-cyan-400">{dev.cantidadDisponible} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
+                                <p className="text-sm font-bold" style={{ color: c.text }}>{dev.pesoDisponible.toFixed(1)} kg</p>
                               </div>
                             </div>
                             <div className="flex items-center justify-end mt-2">
@@ -1453,9 +1464,9 @@ export function GestionConductor() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Confirmar Adición</h2>
-                    <p className="text-[11px] text-gray-500">Para <span className="text-cyan-400 font-bold">{grupoSeleccionado.cliente}</span></p>
+                    <p className="text-[11px]" style={{ color: c.textMuted }}>Para <span className="text-cyan-400 font-bold">{grupoSeleccionado.cliente}</span></p>
                   </div>
-                  <button onClick={() => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(''); setAdicionPeso(''); setAdicionFoto(''); }} className="p-1.5 text-gray-600 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
+                  <button onClick={() => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(''); setAdicionPeso(''); setAdicionFoto(''); }} className="p-1.5 transition-colors rounded-lg" style={{ color: c.textMuted }}>
                     <ArrowRight className="w-4 h-4 rotate-180" />
                   </button>
                 </div>
@@ -1465,8 +1476,8 @@ export function GestionConductor() {
                   <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Producto de Devolución</p>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-base font-black text-white">{adicionSeleccionada.tipoAve}</h4>
-                      {adicionSeleccionada.variedad && <p className="text-[11px] text-gray-400">{adicionSeleccionada.variedad}</p>}
+                      <h4 className="text-base font-black" style={{ color: c.text }}>{adicionSeleccionada.tipoAve}</h4>
+                      {adicionSeleccionada.variedad && <p className="text-[11px]" style={{ color: c.textSecondary }}>{adicionSeleccionada.variedad}</p>}
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                           {adicionSeleccionada.presentacion}
@@ -1478,14 +1489,14 @@ export function GestionConductor() {
                           {adicionSeleccionada.esVivo ? 'Jabas' : 'Unidades'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-1.5">
-                        <span className="text-gray-400">Origen:</span> {adicionSeleccionada.clienteOrigen} · {adicionSeleccionada.pedidoNumero}
+                      <p className="text-[11px] mt-1.5" style={{ color: c.textMuted }}>
+                        <span style={{ color: c.textSecondary }}>Origen:</span> {adicionSeleccionada.clienteOrigen} · {adicionSeleccionada.pedidoNumero}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-[10px] text-cyan-400 uppercase font-bold">Disponible</p>
                       <p className="text-xl font-black text-cyan-400">{adicionSeleccionada.cantidadDisponible}</p>
-                      <p className="text-xs text-gray-400">{adicionSeleccionada.pesoDisponible.toFixed(1)} kg</p>
+                      <p className="text-xs" style={{ color: c.textSecondary }}>{adicionSeleccionada.pesoDisponible.toFixed(1)} kg</p>
                     </div>
                   </div>
                 </div>
@@ -1495,13 +1506,13 @@ export function GestionConductor() {
                   <User className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div>
                     <p className="text-[10px] text-emerald-400 uppercase font-bold">Cliente Destino</p>
-                    <p className="text-sm font-bold text-white">{grupoSeleccionado.cliente}</p>
+                    <p className="text-sm font-bold" style={{ color: c.text }}>{grupoSeleccionado.cliente}</p>
                   </div>
                 </div>
 
                 {/* Cantidad */}
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
                     Cantidad (unids.) <span className="text-red-400">*</span>
                     <span className="text-cyan-400 ml-2">Máx. {adicionSeleccionada.cantidadDisponible}</span>
                   </label>
@@ -1515,9 +1526,9 @@ export function GestionConductor() {
                       }
                     }}
                     placeholder={`1 - ${adicionSeleccionada.cantidadDisponible}`}
-                    className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center" />
+                    className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
                   {adicionCantidad && parseInt(adicionCantidad) > 0 && parseInt(adicionCantidad) < adicionSeleccionada.cantidadDisponible && (
-                    <p className="text-[10px] text-gray-500 mt-1 text-center">
+                    <p className="text-[10px] mt-1 text-center" style={{ color: c.textMuted }}>
                       Quedarán {adicionSeleccionada.cantidadDisponible - parseInt(adicionCantidad)} unids. disponibles para otros clientes
                     </p>
                   )}
@@ -1530,16 +1541,16 @@ export function GestionConductor() {
 
                 {/* Peso - siempre obligatorio (pesaje real) */}
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
                     Peso real pesado (kg) <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <input type="number" inputMode="decimal" step="0.1" min="0"
                       value={adicionPeso} onChange={(e) => setAdicionPeso(e.target.value)} placeholder="0.0"
-                      className="w-full bg-gray-950 border-2 border-gray-800 rounded-xl px-4 py-3.5 text-white text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center pr-12" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">kg</span>
+                      className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center pr-12" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-lg" style={{ color: c.textMuted }}>kg</span>
                   </div>
-                  <p className="text-[10px] text-gray-600 mt-1 text-center">Pese el producto y registre el peso real de la balanza</p>
+                  <p className="text-[10px] mt-1 text-center" style={{ color: c.textMuted }}>Pese el producto y registre el peso real de la balanza</p>
                 </div>
 
                 {/* Foto - obligatoria */}
@@ -1548,19 +1559,20 @@ export function GestionConductor() {
                   <button onClick={() => handleCapturePhoto(setAdicionFoto)}
                     className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${adicionFoto
                       ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
-                      : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700 hover:border-cyan-500/50'
-                      }`}>
+                      : ''
+                      }`}
+                    style={!adicionFoto ? { background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text } : undefined}>
                     <Camera className={`w-5 h-5 ${adicionFoto ? 'text-emerald-400' : 'text-cyan-400'}`} />
                     {adicionFoto ? '✓ FOTO LISTA' : 'TOMAR FOTO'}
                   </button>
                 </div>
 
                 {adicionFoto && (
-                  <div className="flex items-center gap-3 p-2 bg-black/30 border border-gray-800/70 rounded-xl">
+                  <div className="flex items-center gap-3 p-2 rounded-xl" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(243,244,246,0.8)', border: `1px solid ${c.border}` }}>
                     <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
                       <img src={adicionFoto} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <p className="text-xs text-gray-500 flex-1">Foto de evidencia del pesaje</p>
+                    <p className="text-xs flex-1" style={{ color: c.textMuted }}>Foto de evidencia del pesaje</p>
                     <button onClick={() => setAdicionFoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
                   </div>
                 )}
@@ -1571,15 +1583,15 @@ export function GestionConductor() {
                     <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Resumen de Adición</p>
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <p className="text-[10px] text-gray-500">Cantidad</p>
-                        <p className="text-lg font-black text-white">{adicionCantidad}</p>
+                        <p className="text-[10px]" style={{ color: c.textMuted }}>Cantidad</p>
+                        <p className="text-lg font-black" style={{ color: c.text }}>{adicionCantidad}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500">Peso</p>
-                        <p className="text-lg font-black text-white">{parseFloat(adicionPeso).toFixed(1)} kg</p>
+                        <p className="text-[10px]" style={{ color: c.textMuted }}>Peso</p>
+                        <p className="text-lg font-black" style={{ color: c.text }}>{parseFloat(adicionPeso).toFixed(1)} kg</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500">Destino</p>
+                        <p className="text-[10px]" style={{ color: c.textMuted }}>Destino</p>
                         <p className="text-sm font-bold text-cyan-400 truncate">{grupoSeleccionado.cliente}</p>
                       </div>
                     </div>
@@ -1589,10 +1601,11 @@ export function GestionConductor() {
                 {/* Confirmar */}
                 <button onClick={handleFinishAdicion}
                   disabled={!adicionCantidad || !adicionPeso || !adicionFoto || parseInt(adicionCantidad) <= 0 || parseFloat(adicionPeso) <= 0}
-                  className={`w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${adicionCantidad && adicionPeso && adicionFoto && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                    }`}>
+                  className="w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
+                  style={(adicionCantidad && adicionPeso && adicionFoto && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0)
+                    ? { background: '#059669', color: '#fff' }
+                    : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
+                  }>
                   <CheckCircle2 className="w-6 h-6" /> CONFIRMAR ADICIÓN
                 </button>
               </div>
@@ -1614,7 +1627,7 @@ export function GestionConductor() {
                   </div>
                   <div>
                     <h3 className="text-lg font-extrabold" style={{ color: c.text }}>Confirmar Entrega Total</h3>
-                    <p className="text-xs text-gray-500">{freshGrupo.cliente} · {freshGrupo.pedidos.length} pedido{freshGrupo.pedidos.length > 1 ? 's' : ''}</p>
+                    <p className="text-xs" style={{ color: c.textMuted }}>{freshGrupo.cliente} · {freshGrupo.pedidos.length} pedido{freshGrupo.pedidos.length > 1 ? 's' : ''}</p>
                   </div>
                 </div>
 
@@ -1630,9 +1643,9 @@ export function GestionConductor() {
                       <div key={p.id} className="rounded-xl p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{freshP.tipoAve}</span>
-                            {freshP.variedad && <span className="text-[10px] text-gray-500">({freshP.variedad})</span>}
-                            <span className="font-mono text-[10px] text-gray-500">{freshP.numeroPedido}</span>
+                            <span className="text-sm font-bold" style={{ color: c.text }}>{freshP.tipoAve}</span>
+                            {freshP.variedad && <span className="text-[10px]" style={{ color: c.textMuted }}>({freshP.variedad})</span>}
+                            <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{freshP.numeroPedido}</span>
                           </div>
                           <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-current/20 ${getEstadoBadge(freshP.estado || 'En Despacho')}`}>
                             {freshP.estado}
@@ -1645,13 +1658,16 @@ export function GestionConductor() {
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneRepesaje ? 'bg-blue-500/15 text-blue-400' : 'bg-gray-800 text-gray-600'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneRepesaje ? 'bg-blue-500/15 text-blue-400' : ''}`}
+                            style={!tieneRepesaje ? { background: isDark ? '#1f2937' : '#e5e7eb', color: c.textMuted } : undefined}>
                             {tieneRepesaje ? '✓' : '✗'} Repesaje
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneDevolucion ? 'bg-orange-500/15 text-orange-400' : 'bg-gray-800 text-gray-600'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneDevolucion ? 'bg-orange-500/15 text-orange-400' : ''}`}
+                            style={!tieneDevolucion ? { background: isDark ? '#1f2937' : '#e5e7eb', color: c.textMuted } : undefined}>
                             {tieneDevolucion ? '✓' : '✗'} Devolución
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneEntrega ? 'bg-green-500/15 text-green-400' : 'bg-gray-800 text-gray-600'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${tieneEntrega ? 'bg-green-500/15 text-green-400' : ''}`}
+                            style={!tieneEntrega ? { background: isDark ? '#1f2937' : '#e5e7eb', color: c.textMuted } : undefined}>
                             {tieneEntrega ? '✓' : '✗'} Entrega
                           </span>
                         </div>
@@ -1674,19 +1690,20 @@ export function GestionConductor() {
                         <span className="text-sm font-black text-cyan-400">{pesoTotalAd.toFixed(1)} kg</span>
                       </div>
                       {adicionesModal.map(ad => (
-                        <div key={ad.id} className="flex items-center justify-between text-[11px] bg-black/20 rounded-lg px-2.5 py-1.5">
-                          <span className="text-gray-400">Desde <span className="text-cyan-300 font-bold">{ad.clienteOrigenNombre}</span> · {ad.cantidadUnidades} unids.</span>
-                          <span className="text-white font-bold">{(ad.peso || 0).toFixed(1)} kg</span>
+                        <div key={ad.id} className="flex items-center justify-between text-[11px] rounded-lg px-2.5 py-1.5" style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)' }}>
+                          <span style={{ color: c.textSecondary }}>Desde <span className="text-cyan-300 font-bold">{ad.clienteOrigenNombre}</span> · {ad.cantidadUnidades} unids.</span>
+                          <span className="font-bold" style={{ color: c.text }}>{(ad.peso || 0).toFixed(1)} kg</span>
                         </div>
                       ))}
-                      <p className="text-[10px] text-gray-500 italic">Se sumarán como Adición Kg en Cartera de Cobro</p>
+                      <p className="text-[10px] italic" style={{ color: c.textMuted }}>Se sumarán como Adición Kg en Cartera de Cobro</p>
                     </div>
                   );
                 })()}
 
                 <div className="flex gap-3">
                   <button onClick={() => setShowConfirmEntregaTotal(false)}
-                    className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors">
+                    className="flex-1 py-3 rounded-xl font-bold transition-colors"
+                    style={{ color: c.textSecondary, background: isDark ? '#1f2937' : '#e5e7eb' }}>
                     Cancelar
                   </button>
                   <button onClick={() => { setShowConfirmEntregaTotal(false); handleConfirmarEntregaTotal(); }}
@@ -1715,14 +1732,15 @@ export function GestionConductor() {
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold" style={{ color: c.text }}>Confirmar Entrega</h3>
-                    <p className="text-xs text-gray-500">{pedidoToConfirm.numeroPedido} · {pedidoToConfirm.tipoAve}</p>
+                    <p className="text-xs" style={{ color: c.textMuted }}>{pedidoToConfirm.numeroPedido} · {pedidoToConfirm.tipoAve}</p>
                   </div>
                 </div>
                 <ProductInfoCard pedido={pedidoToConfirm} compact />
                 <p className="text-sm" style={{ color: c.textSecondary }}>¿Confirmar la entrega de este pedido?</p>
                 <div className="flex gap-3">
                   <button onClick={() => setConfirmEntregaPedidoId(null)}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors text-sm">
+                    className="flex-1 py-2.5 rounded-xl font-bold transition-colors text-sm"
+                    style={{ color: c.textSecondary, background: isDark ? '#1f2937' : '#e5e7eb' }}>
                     Cancelar
                   </button>
                   <button onClick={() => { handleConfirmarEntregaPedido(pedidoToConfirm); setConfirmEntregaPedidoId(null); }}
