@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { Search, Filter, Package, ListOrdered, User, Tag, Edit2, Trash2, Plus, X, Truck, Box, Users, Layers, History, Calendar, Merge, Check, AlertCircle, Save, RotateCcw, Eye, Weight, CheckCircle, User as UserIcon, Truck as TruckIcon, Wrench } from 'lucide-react';
+import { Search, Filter, Package, ListOrdered, User, Tag, Edit2, Trash2, Plus, X, Truck, Box, Users, Layers, History, Calendar, Merge, Check, AlertCircle, Save, RotateCcw, Eye, Weight, CheckCircle, User as UserIcon, Truck as TruckIcon, Wrench, MapPin } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner'
@@ -158,9 +158,11 @@ export function ListaPedidos() {
 
   // Estados principales
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCliente, setFilterCliente] = useState<string>('all');
+  const [filterVariedad, setFilterVariedad] = useState<string>('all');
+  const [filterPresentacion, setFilterPresentacion] = useState<string>('all');
   const [filterTipoAve, setFilterTipoAve] = useState<string>('all');
   const [filterEstado, setFilterEstado] = useState<string>('all');
+  const [filterZona, setFilterZona] = useState<string>('all');
   const [pedidosLista, setPedidosLista] = useState<PedidoLista[]>([]);
   const [pedidosAgrupados, setPedidosAgrupados] = useState<PedidoAgrupado[]>([]);
 
@@ -1369,10 +1371,15 @@ export function ListaPedidos() {
       pedido.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCliente = filterCliente === 'all' || pedido.cliente === filterCliente;
+    const matchesVariedad = filterVariedad === 'all' || (pedido.variedad || '') === filterVariedad;
+    const matchesPresentacion = filterPresentacion === 'all' || pedido.presentacion === filterPresentacion;
     const matchesTipoAve = filterTipoAve === 'all' || pedido.tipoAve === filterTipoAve;
     const matchesEstado = filterEstado === 'all' || pedido.estado === filterEstado;
-    return matchesSearch && matchesCliente && matchesTipoAve && matchesEstado;
+    const matchesZona = filterZona === 'all' || (() => {
+      const cl = clientes.find(c => c.nombre === pedido.cliente);
+      return cl?.zona === filterZona;
+    })();
+    return matchesSearch && matchesVariedad && matchesPresentacion && matchesTipoAve && matchesEstado && matchesZona;
   });
 
   // Consolidar pedidos automáticamente para mostrar
@@ -1436,9 +1443,15 @@ export function ListaPedidos() {
   const completados = pedidosLista.filter(p => ['Completado', 'Completado con alerta', 'Devolución'].includes(p.estado)).length;
   const enPesaje = pedidosPesaje.length;
 
-  // Obtener clientes únicos para filtro
-  const clientesParaFiltro = Array.from(new Set(pedidosLista.map(p => p.cliente)));
   const tiposAveParaFiltro = Array.from(new Set(pedidosLista.map(p => p.tipoAve)));
+  const zonasParaFiltro = (() => {
+    const zonas = new Set<string>();
+    pedidosLista.forEach(p => {
+      const cl = clientes.find(c => c.nombre === p.cliente);
+      if (cl?.zona) zonas.add(cl.zona);
+    });
+    return Array.from(zonas).sort();
+  })();
 
   return (
     <div className="min-h-screen" style={{ background: c.bgPage }}>
@@ -1535,7 +1548,7 @@ export function ListaPedidos() {
 
         {/* Filtros */}
         <div className="border rounded-2xl p-5 mb-8 shadow-2xl" style={{ background: c.bgCardAlt, borderColor: c.border }}>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-amber-400" />
               <input
@@ -1549,27 +1562,10 @@ export function ListaPedidos() {
             </div>
 
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
-              <select
-                value={filterCliente}
-                onChange={(e) => setFilterCliente(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 shadow-inner"
-                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
-              >
-                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los clientes</option>
-                {clientesParaFiltro.map(cliente => (
-                  <option key={cliente} value={cliente} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
-                    {cliente}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="relative">
               <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-emerald-400" />
               <select
                 value={filterTipoAve}
-                onChange={(e) => setFilterTipoAve(e.target.value)}
+                onChange={(e) => { setFilterTipoAve(e.target.value); setFilterVariedad('all'); setFilterPresentacion('all'); }}
                 className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
                 style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
               >
@@ -1579,6 +1575,59 @@ export function ListaPedidos() {
                     {tipo}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <Layers className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+              <select
+                value={filterVariedad}
+                onChange={(e) => setFilterVariedad(e.target.value)}
+                disabled={filterTipoAve === 'all' || (() => { const variedades = Array.from(new Set(pedidosLista.filter(p => p.tipoAve === filterTipoAve && p.variedad).map(p => p.variedad!))); return variedades.length === 0; })()}
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-inner disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
+              >
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todas las variedades</option>
+                {Array.from(new Set(pedidosLista.filter(p => filterTipoAve === 'all' || p.tipoAve === filterTipoAve).filter(p => p.variedad).map(p => p.variedad!))).map(v => (
+                  <option key={v} value={v} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-emerald-400" />
+              <select
+                value={filterPresentacion}
+                onChange={(e) => setFilterPresentacion(e.target.value)}
+                disabled={filterTipoAve === 'all'}
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-inner disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
+              >
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todas las presentaciones</option>
+                {Array.from(new Set(pedidosLista.filter(p => filterTipoAve === 'all' || p.tipoAve === filterTipoAve).map(p => p.presentacion))).map(pres => (
+                  <option key={pres} value={pres} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>{pres}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-violet-400" />
+              <select
+                value={filterZona}
+                onChange={(e) => setFilterZona(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 shadow-inner"
+                style={{ background: c.bgInput, borderColor: c.border, color: c.text }}
+              >
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todas las zonas</option>
+                {zonasParaFiltro.map(zona => {
+                  const m = zona.match(/(\d+)/);
+                  const label = m ? `Zona ${m[1]}` : zona;
+                  return (
+                    <option key={zona} value={zona} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -1599,6 +1648,16 @@ export function ListaPedidos() {
                 <option value="Cancelado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Cancelado</option>
               </select>
             </div>
+
+            {(searchTerm || filterEstado !== 'all' || filterTipoAve !== 'all' || filterVariedad !== 'all' || filterPresentacion !== 'all' || filterZona !== 'all') && (
+              <button
+                onClick={() => { setSearchTerm(''); setFilterEstado('all'); setFilterTipoAve('all'); setFilterVariedad('all'); setFilterPresentacion('all'); setFilterZona('all'); }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1732,6 +1791,7 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Orden</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Pedido</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Zona</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>Macho</div></th>
@@ -1792,6 +1852,21 @@ export function ListaPedidos() {
                         <td className="px-6 py-4">
                           <div className="font-medium drop-shadow" style={{ color: c.text }}>{pedido.cliente}</div>
                           <div className="text-xs" style={{ color: c.textSecondary }}>Cliente {pedido.numeroCliente}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {(() => {
+                            const cl = clientes.find(cl => cl.nombre === pedido.cliente);
+                            const zona = cl?.zona;
+                            if (!zona) return <span className="text-xs" style={{ color: c.textMuted }}>—</span>;
+                            const m = zona.match(/(\d+)/);
+                            const label = m ? `Zona ${m[1]}` : zona;
+                            return (
+                              <span className="text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1"
+                                style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                                <MapPin className="w-3 h-3" />{label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1.5">
@@ -2098,6 +2173,9 @@ export function ListaPedidos() {
                     <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div>
                   </th>
                   <th className="px-6 py-4 text-left">
+                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Zona</div>
+                  </th>
+                  <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div>
                   </th>
                   <th className="px-6 py-4 text-left">
@@ -2126,7 +2204,7 @@ export function ListaPedidos() {
               <tbody>
                 {pedidosPesaje.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center">
+                    <td colSpan={11} className="px-6 py-12 text-center">
                       <div style={{ color: c.textSecondary }}>
                         No hay pedidos en proceso de pesaje
                       </div>
@@ -2144,6 +2222,22 @@ export function ListaPedidos() {
 
                       <td className="px-6 py-4">
                         <div className="font-medium drop-shadow" style={{ color: c.text }}>{pedido.cliente}</div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const cl = clientes.find(cl => cl.nombre === pedido.cliente);
+                          const zona = cl?.zona;
+                          if (!zona) return <span className="text-xs" style={{ color: c.textMuted }}>—</span>;
+                          const m = zona.match(/(\d+)/);
+                          const label = m ? `Zona ${m[1]}` : zona;
+                          return (
+                            <span className="text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1"
+                              style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                              <MapPin className="w-3 h-3" />{label}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-6 py-4">
