@@ -461,7 +461,7 @@ export function NuevoPedido() {
           tipoAve: `${sub.tipoAve}${varInfo}${detalleSexo}`,
           variedad: sub.variedad, presentacion: sub.presentacion,
           cantidad: cantidadFinal, cantidadJabas: jabas, unidadesPorJaba: uPorJaba,
-          contenedor: 'Jaba Estándar', fecha, hora,
+          contenedor: '', fecha, hora,
           prioridad: pedido.prioridadBase, esSubPedido: pedido.subPedidos.length > 1,
           grupoDespacho,
         };

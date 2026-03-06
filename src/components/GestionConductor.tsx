@@ -69,7 +69,8 @@ export function GestionConductor() {
   // ── Devolución ──
   const [devCantidad, setDevCantidad] = useState("");
   const [devPeso, setDevPeso] = useState("");
-  const [devFoto, setDevFoto] = useState("");
+  const [devFotos, setDevFotos] = useState<string[]>([]);
+  const [devFotoActual, setDevFotoActual] = useState("");
   const [devMotivo, setDevMotivo] = useState("");
   const [devStep, setDevStep] = useState<'datos' | 'motivo'>('datos');
 
@@ -94,7 +95,6 @@ export function GestionConductor() {
   // ── UI ──
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
   const [showConfirmEntregaTotal, setShowConfirmEntregaTotal] = useState(false);
-  const [confirmEntregaPedidoId, setConfirmEntregaPedidoId] = useState<string | null>(null);
 
   // ── Registros ──
   const [registros, setRegistros] = useState<RegistroConductor[]>(() => {
@@ -171,7 +171,7 @@ export function GestionConductor() {
   };
 
   const resetRepesaje = () => { setTandasRepesaje([]); setFormWeight(""); setCapturedPhoto(""); };
-  const resetDevolucion = () => { setDevCantidad(""); setDevPeso(""); setDevFoto(""); setDevMotivo(""); setDevStep('datos'); };
+  const resetDevolucion = () => { setDevCantidad(""); setDevPeso(""); setDevFotos([]); setDevFotoActual(""); setDevMotivo(""); setDevStep('datos'); };
   const resetNuevoPedido = () => { setNpSubPedidos([]); setNpTipoAve(''); setNpVariedad(''); setNpPresentacion(''); setNpCantidad(''); setNpCantidadJabas(''); setNpUnidadesPorJaba(''); };
 
   // ── UI Helpers ──
@@ -276,14 +276,14 @@ export function GestionConductor() {
   const handleFinishDevolucion = () => {
     const cantidad = devCantidad ? parseInt(devCantidad) : 0;
     const peso = devPeso ? parseFloat(devPeso) : 0;
-    if (!devFoto) { toast.error("Debe tomar foto de evidencia"); return; }
+    if (devFotos.length === 0) { toast.error("Debe tomar al menos una foto de evidencia"); return; }
     if (!devMotivo || devMotivo.length < 3) { toast.error("Ingrese el motivo (mín. 3 caracteres)"); return; }
     const fresh = getFreshPedido();
 
     setRegistros(prev => [...prev, {
       id: generarId(), pedidoId: selectedPedido!.id, tipo: 'devolucion',
       peso, cantidadUnidades: cantidad, motivo: devMotivo,
-      fotos: [{ tipo: 'devolucion' as const, url: devFoto, fecha: new Date().toISOString() }],
+      fotos: devFotos.map(url => ({ tipo: 'devolucion' as const, url, fecha: new Date().toISOString() })),
       fecha: new Date().toISOString(), estado: 'Con Incidencia',
     }]);
 
@@ -399,7 +399,7 @@ export function GestionConductor() {
         cantidad: parseInt(sub.cantidad),
         cantidadJabas: sub.cantidadJabas ? parseInt(sub.cantidadJabas) : undefined,
         unidadesPorJaba: sub.unidadesPorJaba ? parseInt(sub.unidadesPorJaba) : undefined,
-        contenedor: 'Jaba Estándar',
+        contenedor: '',
         fecha, hora,
         prioridad: parseInt(clienteData!.numeroCliente.replace('C', '')),
         esSubPedido: npSubPedidos.length > 1,
@@ -418,16 +418,6 @@ export function GestionConductor() {
   };
 
   // ── Entrega ──
-  const handleConfirmarEntregaPedido = (pedido: PedidoConfirmado) => {
-    const fresh = pedidosConfirmados.find(p => p.id === pedido.id) || pedido;
-    setRegistros(prev => [...prev, {
-      id: generarId(), pedidoId: pedido.id, tipo: 'entrega', fotos: [],
-      fecha: new Date().toISOString(), estado: 'Completado',
-    }]);
-    updatePedidoConfirmado(pedido.id, { ...fresh, estado: 'Entregado' });
-    toast.success('Entrega confirmada');
-  };
-
   const handleConfirmarEntregaTotal = () => {
     const freshGrupo = getFreshGrupo();
     if (!freshGrupo) return;
@@ -795,7 +785,7 @@ export function GestionConductor() {
                           <span className="text-green-400 font-black text-sm uppercase tracking-wider">Entregado</span>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2 mt-3">
+                        <div className="grid grid-cols-2 gap-2 mt-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); setSelectedPedido(freshP); resetRepesaje(); setModo('REPESADA'); }}
                             className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
@@ -811,14 +801,6 @@ export function GestionConductor() {
                           >
                             <RotateCcw className="w-5 h-5 text-orange-400" />
                             <span className="text-[10px] font-bold text-orange-300 uppercase">Devolución</span>
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setConfirmEntregaPedidoId(freshP.id); }}
-                            className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
-                            style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}
-                          >
-                            <CheckCircle2 className="w-5 h-5 text-green-400" />
-                            <span className="text-[10px] font-bold text-green-300 uppercase">Entrega</span>
                           </button>
                         </div>
                       )}
@@ -862,7 +844,7 @@ export function GestionConductor() {
                 </div>
 
                 {freshSP.estado !== 'Entregado' && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="grid grid-cols-2 gap-2 mt-4">
                     <button onClick={() => { resetRepesaje(); setModo('REPESADA'); }}
                       className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
                       style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)' }}>
@@ -874,12 +856,6 @@ export function GestionConductor() {
                       style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.18)' }}>
                       <RotateCcw className="w-5 h-5 text-orange-400" />
                       <span className="text-[10px] font-bold text-orange-300 uppercase">Devolución</span>
-                    </button>
-                    <button onClick={() => setConfirmEntregaPedidoId(freshSP.id)}
-                      className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97]"
-                      style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                      <CheckCircle2 className="w-5 h-5 text-green-400" />
-                      <span className="text-[10px] font-bold text-green-300 uppercase">Entrega</span>
                     </button>
                   </div>
                 )}
@@ -1181,39 +1157,49 @@ export function GestionConductor() {
                       </div>
                     </div>
 
-                    {/* Foto */}
+                    {/* Fotos de evidencia */}
                     <div>
-                      <label className="block text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1.5">Foto de Evidencia <span className="text-red-400">*</span></label>
-                      <button onClick={() => handleCapturePhoto(setDevFoto)}
-                        className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${devFoto
-                          ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
-                          : ''
-                          }`}
-                        style={!devFoto ? { background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text } : undefined}>
-                        <Camera className={`w-5 h-5 ${devFoto ? 'text-emerald-400' : 'text-orange-400'}`} />
-                        {devFoto ? '✓ FOTO LISTA' : 'TOMAR FOTO'}
+                      <label className="block text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1.5">Fotos de Evidencia <span className="text-red-400">*</span> <span className="text-[9px]" style={{ color: c.textMuted }}>({devFotos.length} capturada{devFotos.length !== 1 ? 's' : ''})</span></label>
+                      <button onClick={() => handleCapturePhoto((url: string) => setDevFotos(prev => [...prev, url]))}
+                        className="w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95"
+                        style={{ background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text }}>
+                        <Camera className="w-5 h-5 text-orange-400" />
+                        TOMAR FOTO
                       </button>
                     </div>
 
-                    {/* Preview foto */}
-                    {devFoto && (
-                      <div className="flex items-center gap-3 p-2 rounded-xl" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(243,244,246,0.8)', border: `1px solid ${c.border}` }}>
-                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
-                          <img src={devFoto} alt="" className="w-full h-full object-cover" />
+                    {/* Lista de fotos capturadas */}
+                    {devFotos.length > 0 && (
+                      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: c.textMuted }}>Fotos ({devFotos.length})</p>
+                          <button onClick={() => setDevFotos(prev => prev.slice(0, -1))} className="text-[10px] text-red-400/70 hover:text-red-400 font-bold flex items-center gap-1">
+                            <Minus className="w-3 h-3" /> Quitar última
+                          </button>
                         </div>
-                        <p className="text-xs flex-1" style={{ color: c.textMuted }}>Foto de evidencia</p>
-                        <button onClick={() => setDevFoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
+                        <div className="flex flex-wrap gap-2">
+                          {devFotos.map((foto, i) => (
+                            <div key={i} className="relative">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-700 shrink-0">
+                                <img src={foto} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
+                                <span className="text-[9px] font-black text-white">{i + 1}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     {/* Continuar a motivo */}
                     <button onClick={() => {
-                      if (!devFoto) { toast.error("Tome la foto de evidencia"); return; }
+                      if (devFotos.length === 0) { toast.error("Tome al menos una foto de evidencia"); return; }
                       setDevStep('motivo');
                     }}
-                      disabled={!devFoto}
+                      disabled={devFotos.length === 0}
                       className="w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
-                      style={devFoto
+                      style={devFotos.length > 0
                         ? { background: '#ea580c', color: '#fff' }
                         : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
                       }>
@@ -1223,7 +1209,7 @@ export function GestionConductor() {
                 ) : (
                   <>
                     {/* Resumen de datos */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Cantidad</p>
                         <p className="text-xl font-black" style={{ color: c.text }}>{devCantidad || '0'} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
@@ -1231,6 +1217,10 @@ export function GestionConductor() {
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Peso</p>
                         <p className="text-xl font-black" style={{ color: c.text }}>{devPeso ? parseFloat(devPeso).toFixed(1) : '0.0'} <span className="text-xs" style={{ color: c.textMuted }}>kg</span></p>
+                      </div>
+                      <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
+                        <p className="text-[10px] text-orange-400 uppercase font-bold">Fotos</p>
+                        <p className="text-xl font-black" style={{ color: c.text }}>{devFotos.length}</p>
                       </div>
                     </div>
 
@@ -1523,42 +1513,6 @@ export function GestionConductor() {
         );
       })()}
 
-      {/* ═══════ MODAL: CONFIRMAR ENTREGA INDIVIDUAL ═══════ */}
-      {confirmEntregaPedidoId && (() => {
-        const pedidoToConfirm = pedidosConfirmados.find(p => p.id === confirmEntregaPedidoId);
-        if (!pedidoToConfirm) return null;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: c.bgModalOverlay }}>
-            <div className="rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: c.bgModal, border: `1px solid ${c.border}` }}>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold" style={{ color: c.text }}>Confirmar Entrega</h3>
-                    <p className="text-xs" style={{ color: c.textMuted }}>{pedidoToConfirm.numeroPedido} · {pedidoToConfirm.tipoAve}</p>
-                  </div>
-                </div>
-                <ProductInfoCard pedido={pedidoToConfirm} compact />
-                <p className="text-sm" style={{ color: c.textSecondary }}>¿Confirmar la entrega de este pedido?</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setConfirmEntregaPedidoId(null)}
-                    className="flex-1 py-2.5 rounded-xl font-bold transition-colors text-sm"
-                    style={{ color: c.textSecondary, background: isDark ? '#1f2937' : '#e5e7eb' }}>
-                    Cancelar
-                  </button>
-                  <button onClick={() => { handleConfirmarEntregaPedido(pedidoToConfirm); setConfirmEntregaPedidoId(null); }}
-                    className="flex-1 py-2.5 rounded-xl font-black text-white text-sm transition-all hover:scale-[1.01]"
-                    style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)' }}>
-                    Confirmar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

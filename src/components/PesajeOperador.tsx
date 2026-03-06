@@ -297,8 +297,10 @@ export function PesajeOperador() {
         setCantidadBloqueada(true);
       }
     } else {
-      const contDef = contenedores.find(c => c.tipo === pedido.contenedor);
-      if (contDef) setContenedorFinalId(contDef.id);
+      if (pedido.contenedor) {
+        const contDef = contenedores.find(c => c.tipo === pedido.contenedor);
+        if (contDef) setContenedorFinalId(contDef.id);
+      }
     }
     broadcastRef.current?.postMessage({
       type: 'pedido-selected',
@@ -439,6 +441,7 @@ export function PesajeOperador() {
 
       const pedidoActualizado: PedidoConfirmado = {
         ...resultado.pedido,
+        contenedor: resultado.tipoContenedor,
         pesoBrutoTotal: resultado.pesoBrutoTotal,
         pesoNetoTotal: resultado.pesoNetoTotal,
         pesoKg: resultado.pesoNetoTotal,
