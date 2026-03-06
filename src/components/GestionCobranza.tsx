@@ -113,10 +113,14 @@ export function GestionCobranza() {
   const [modalPagoMonto, setModalPagoMonto] = useState(0);
   const [modalPagoFechas, setModalPagoFechas] = useState<string[]>([]);
 
-  /** Check if a day is paid for a client (either has a Confirmado pago or a Pendiente pago) */
+  /** Check if a day is paid for a client.
+   * Efectivo 'Pendiente' counts as 'pagado' for the cobrador (money handed in person).
+   * Digital 'Pendiente' counts as 'pendiente' (waiting for Secretaría validation). */
   const isDiaPagado = (clienteNombre: string, fecha: string): 'pagado' | 'pendiente' | 'no' => {
     const pagosCliente = pagos.filter(p => p.clienteNombre === clienteNombre && p.fechasCubiertas?.includes(fecha));
     if (pagosCliente.some(p => p.estado === 'Confirmado')) return 'pagado';
+    // Efectivo Pendiente = cobrador already handed money → treat as paid
+    if (pagosCliente.some(p => p.estado === 'Pendiente' && p.metodo === 'Efectivo')) return 'pagado';
     if (pagosCliente.some(p => p.estado === 'Pendiente')) return 'pendiente';
     return 'no';
   };

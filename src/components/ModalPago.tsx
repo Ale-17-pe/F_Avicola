@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   X, DollarSign, Smartphone, CreditCard, Camera, QrCode, Copy,
   CheckCircle, AlertTriangle, Loader2, ChevronLeft, Eye, Trash2,
@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 // ─── TYPES ────────────────────────────────────────────────────────
 type MetodoPago = Pago['metodo'];
-type Paso = 'metodo' | 'efectivo' | 'digital-sub' | 'digital-detalle' | 'preconfirm' | 'esperando';
+type Paso = 'metodo' | 'efectivo' | 'digital-sub' | 'digital-detalle' | 'preconfirm' | 'esperando' | 'completado';
 
 interface ModalPagoProps {
   isOpen: boolean;
@@ -49,13 +49,23 @@ const DIGITAL_METHODS: {
 
 // ─── COMPONENT ────────────────────────────────────────────────────
 export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fechasCubiertas, onPagoRegistrado }: ModalPagoProps) {
-  const { addPago } = useApp();
+  const { addPago, pagos } = useApp();
 
   const [paso, setPaso] = useState<Paso>('metodo');
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<MetodoPago | null>(null);
   const [observaciones, setObservaciones] = useState('');
   const [fotoBase64, setFotoBase64] = useState<string | null>(null);
+  const [pagoRegistradoId, setPagoRegistradoId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── REAL-TIME: Watch for confirmation from Secretaría ─────────
+  useEffect(() => {
+    if (paso !== 'esperando' || !pagoRegistradoId) return;
+    const pagoActual = pagos.find(p => p.id === pagoRegistradoId);
+    if (pagoActual && pagoActual.estado === 'Confirmado') {
+      setPaso('completado');
+    }
+  }, [pagos, paso, pagoRegistradoId]);
 
   // Reset state when opening
   const resetState = useCallback(() => {
@@ -63,10 +73,11 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
     setMetodoSeleccionado(null);
     setObservaciones('');
     setFotoBase64(null);
+    setPagoRegistradoId(null);
   }, []);
 
   const handleClose = () => {
-    if (paso === 'esperando') return; // Can't close while waiting
+    if (paso === 'esperando') return; // Can't close while waiting for digital
     resetState();
     onClose();
   };
@@ -121,9 +132,11 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   const confirmarPago = () => {
     if (!metodoSeleccionado) return;
 
+    const esEfectivo = metodoSeleccionado === 'Efectivo';
     const now = new Date();
+    const pagoId = `pago-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const nuevoPago: Pago = {
-      id: `pago-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: pagoId,
       clienteId,
       clienteNombre,
       monto,
@@ -138,9 +151,18 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
     };
 
     addPago(nuevoPago);
-    setPaso('esperando');
-    toast.success('Pago registrado — En espera de validación');
+    setPagoRegistradoId(pagoId);
     onPagoRegistrado?.();
+
+    if (esEfectivo) {
+      // Efectivo: show completed immediately (cobrador sees it as done)
+      setPaso('completado');
+      toast.success('Pago en efectivo registrado — Dinero recibido');
+    } else {
+      // Digital: wait for Secretaría validation
+      setPaso('esperando');
+      toast.success('Pago registrado — En espera de validación');
+    }
   };
 
   // ─── DIGITAL METHOD INFO ───────────────────────────────────────
@@ -154,7 +176,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3"
       style={{ background: 'rgba(0,0,0,0.85)' }}
-      onClick={(e) => e.target === e.currentTarget && paso !== 'esperando' && handleClose()}
+      onClick={(e) => e.target === e.currentTarget && paso !== 'esperando' && paso !== 'completado' && handleClose()}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -181,7 +203,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
         <div className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: `1px solid ${G10}` }}>
           <div className="flex items-center gap-3">
-            {paso !== 'metodo' && paso !== 'esperando' && (
+            {paso !== 'metodo' && paso !== 'esperando' && paso !== 'completado' && (
               <button onClick={() => {
                 if (paso === 'preconfirm') setPaso(metodoSeleccionado === 'Efectivo' ? 'efectivo' : 'digital-detalle');
                 else if (paso === 'digital-detalle') { setPaso('digital-sub'); setFotoBase64(null); }
@@ -200,11 +222,12 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 {paso === 'digital-detalle' && `Pago con ${metodoDigitalInfo?.label || ''}`}
                 {paso === 'preconfirm' && 'Confirmar Pago'}
                 {paso === 'esperando' && 'Pago Registrado'}
+                {paso === 'completado' && 'Pago Completado'}
               </h3>
               <p className="text-[10px] text-gray-500">{clienteNombre}</p>
             </div>
           </div>
-          {paso !== 'esperando' && (
+          {paso !== 'esperando' && paso !== 'completado' && (
             <button onClick={handleClose}
               className="p-2 rounded-lg transition-all hover:bg-white/10">
               <X className="w-4 h-4 text-gray-400" />
@@ -213,7 +236,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
         </div>
 
         {/* ─── MONTO DISPLAY ──────────────────────────────────────── */}
-        {paso !== 'esperando' && (
+        {paso !== 'esperando' && paso !== 'completado' && (
           <div className="px-5 py-4 text-center" style={{ borderBottom: `1px solid ${G06}` }}>
             <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Monto a pagar</p>
             <p className="text-3xl font-black text-white tabular-nums font-mono">
@@ -592,7 +615,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
             </motion.div>
           )}
 
-          {/* ─── ESTADO DE ESPERA ─────────────────────────────────── */}
+          {/* ─── ESTADO DE ESPERA (Digital) ───────────────────────── */}
           {paso === 'esperando' && (
             <motion.div
               key="esperando"
@@ -621,18 +644,62 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               <div className="rounded-xl p-4 space-y-2" style={{ background: G06, border: `1px solid ${G15}` }}>
                 <div className="flex items-center gap-2 text-amber-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-xs font-bold">Pendiente de validación</span>
+                  <span className="text-xs font-bold">Esperando validación en tiempo real...</span>
                 </div>
                 <p className="text-[10px] text-gray-500">
-                  Una vez que secretaría confirme la recepción, el pago quedará registrado definitivamente.
+                  Esta pantalla se actualizará automáticamente cuando secretaría confirme la recepción.
                 </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── COMPLETADO (Efectivo inmediato + Digital confirmado) ─ */}
+          {paso === 'completado' && (
+            <motion.div
+              key="completado"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-8 text-center space-y-5"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+                style={{ background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.30)' }}
+              >
+                <CheckCircle className="w-10 h-10 text-emerald-400" />
+              </motion.div>
+
+              <div>
+                <h4 className="text-white font-bold text-lg mb-2">
+                  {metodoSeleccionado === 'Efectivo' ? 'Dinero Recibido' : 'Pago Confirmado'}
+                </h4>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  {metodoSeleccionado === 'Efectivo'
+                    ? <>El pago en efectivo de <strong className="text-white">S/ {monto.toFixed(2)}</strong> ha sido registrado. El dinero será validado por secretaría al recibirlo en el local.</>
+                    : <>El pago de <strong className="text-white">S/ {monto.toFixed(2)}</strong> ha sido <strong className="text-emerald-400">confirmado por secretaría</strong>. La transacción está completa.</>}
+                </p>
+              </div>
+
+              <div className="rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                <div className="flex items-center justify-center gap-2 text-emerald-400">
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="text-xs font-bold">
+                    {metodoSeleccionado === 'Efectivo' ? 'Pago registrado correctamente' : 'Validación completada'}
+                  </span>
+                </div>
               </div>
 
               <button
                 onClick={() => { resetState(); onClose(); }}
-                className="w-full py-3 rounded-xl font-bold text-xs transition-all hover:bg-white/10 text-gray-400"
-                style={{ background: G08, border: `1px solid ${G15}` }}
+                className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 text-black transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.30)',
+                }}
               >
+                <CheckCircle className="w-3.5 h-3.5" />
                 Cerrar
               </button>
             </motion.div>
