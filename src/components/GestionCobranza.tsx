@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Wallet, MapPin, Search, User, ChevronLeft,
   Calendar, DollarSign, ArrowLeft, CreditCard,
-  ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle, X
+  ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle, X,
+  Eye, MessageSquare
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -15,7 +16,8 @@ interface FilaCartera {
   presentacion: string; cantidad: number; cantidadLabel: string;
   merma: number; tara: number; contenedorTipo: string;
   devolucionPeso: number; devolucionCantidad: number;
-  repesada: number; adicionPeso: number;
+  devolucionFoto?: string; devolucionMotivo?: string;
+  repesada: number;
   pesoPedido: number; pesoContenedor: number; pesoBruto: number;
   pesoNeto: number; precio: number; total: number;
   confirmado: boolean; editando: boolean; fecha: string;
@@ -542,6 +544,7 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
   const G30 = c.g30;
 
   const [collapsed, setCollapsed] = useState(true);
+  const [devFotoModal, setDevFotoModal] = useState<{ foto: string; motivo: string; peso: number } | null>(null);
   const totalConSaldo = restante + saldoAnterior;
 
   const esPagado = estadoPago === 'pagado';
@@ -643,9 +646,21 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
                         <span className="text-[9px] ml-0.5" style={{ color: c.textMuted }}>{fila.cantidadLabel}</span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: fila.devolucionPeso > 0 ? COL.devolucion : c.textMuted }}>
-                          {fila.devolucionPeso.toFixed(2)}
-                        </span>
+                        {fila.devolucionPeso > 0 && fila.devolucionFoto ? (
+                          <button
+                            onClick={() => setDevFotoModal({ foto: fila.devolucionFoto!, motivo: fila.devolucionMotivo || '', peso: fila.devolucionPeso })}
+                            className="inline-flex items-center gap-1 text-xs tabular-nums font-mono transition-colors hover:opacity-80 cursor-pointer"
+                            style={{ color: COL.devolucion }}
+                            title="Ver foto de devolución"
+                          >
+                            <Eye className="w-3 h-3" />
+                            {fila.devolucionPeso.toFixed(2)}
+                          </button>
+                        ) : (
+                          <span className="text-xs tabular-nums font-mono" style={{ color: fila.devolucionPeso > 0 ? COL.devolucion : c.textMuted }}>
+                            {fila.devolucionPeso.toFixed(2)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <span className="font-bold text-xs tabular-nums font-mono px-1.5 py-0.5 rounded-md inline-block"
@@ -745,6 +760,38 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, montoPaga
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal foto devolución */}
+      {devFotoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setDevFotoModal(null)}>
+          <div className="rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+            style={{ background: isDark ? '#1a1a2e' : '#fff', border: `1px solid ${G20}` }}
+            onClick={e => e.stopPropagation()}>
+            <div className="p-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${G10}` }}>
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4" style={{ color: COL.devolucion }} />
+                <span className="text-sm font-bold" style={{ color: c.text }}>Devolución — {devFotoModal.peso.toFixed(2)} kg</span>
+              </div>
+              <button onClick={() => setDevFotoModal(null)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4" style={{ color: c.textMuted }} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <img src={devFotoModal.foto} alt="Foto devolución" className="w-full rounded-xl object-contain max-h-72" style={{ border: `1px solid ${G15}` }} />
+              {devFotoModal.motivo && (
+                <div className="rounded-xl p-3" style={{ background: G06, border: `1px solid ${G15}` }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" style={{ color: COL.devolucion }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: COL.devolucion }}>Motivo</span>
+                  </div>
+                  <p className="text-sm" style={{ color: c.text }}>{devFotoModal.motivo}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

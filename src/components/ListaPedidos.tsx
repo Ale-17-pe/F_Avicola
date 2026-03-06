@@ -21,7 +21,7 @@ interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Cancelado';
   conductor?: string;
   grupoDespacho?: string;
 }
@@ -47,7 +47,7 @@ interface PedidoLista {
   empleado: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Cancelado';
   autoConfirmado: boolean;
   esSubPedido: boolean;
   prioridadBase: number;
@@ -1421,7 +1421,7 @@ export function ListaPedidos() {
   const pedidosEnProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción');
   const pedidosPesaje = pedidosMostrar.filter(p => p.estado === 'En Pesaje');
   const pedidosEnEntrega = pedidosMostrar.filter(p => ['En Despacho', 'Despachando', 'En Ruta', 'Con Incidencia'].includes(p.estado || ''));
-  const pedidosEntregados = pedidosMostrar.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado));
+  const pedidosEntregados = pedidosMostrar.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución'].includes(p.estado));
 
   // Tabla de producción combinada (para backward compat)
   const pedidosProduccion = pedidosLista.filter(p => p.estado !== 'Completado');
@@ -1433,7 +1433,7 @@ export function ListaPedidos() {
   const enProduccion = pedidosMostrar.filter(p => p.estado === 'En Producción').length;
   const pendientes = pedidosMostrar.filter(p => p.estado === 'Pendiente').length;
   const cancelados = pedidosMostrar.filter(p => p.estado === 'Cancelado').length;
-  const completados = pedidosLista.filter(p => ['Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado)).length;
+  const completados = pedidosLista.filter(p => ['Completado', 'Completado con alerta', 'Devolución'].includes(p.estado)).length;
   const enPesaje = pedidosPesaje.length;
 
   // Obtener clientes únicos para filtro
@@ -1596,7 +1596,6 @@ export function ListaPedidos() {
                 <option value="Completado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Completado</option>
                 <option value="Completado con alerta" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Completado con alerta</option>
                 <option value="Devolución" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Devolución</option>
-                <option value="Confirmado con Adición" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Confirmado con Adición</option>
                 <option value="Cancelado" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Cancelado</option>
               </select>
             </div>
@@ -1962,7 +1961,6 @@ export function ListaPedidos() {
                               'Completado': { bg: 'rgba(20,83,45,0.4)', bgLight: 'rgba(220,252,231,0.8)', border: 'rgba(34,197,94,0.3)', text: '#86efac', textLight: '#166534' },
                               'Completado con alerta': { bg: 'rgba(113,63,18,0.4)', bgLight: 'rgba(254,249,195,0.8)', border: 'rgba(234,179,8,0.3)', text: '#fde68a', textLight: '#a16207' },
                               'Devolución': { bg: 'rgba(127,29,29,0.4)', bgLight: 'rgba(254,226,226,0.8)', border: 'rgba(239,68,68,0.3)', text: '#fca5a5', textLight: '#dc2626' },
-                              'Confirmado con Adición': { bg: 'rgba(6,78,59,0.4)', bgLight: 'rgba(209,250,229,0.8)', border: 'rgba(16,185,129,0.3)', text: '#6ee7b7', textLight: '#065f46' },
                               'Cancelado': { bg: 'rgba(127,29,29,0.4)', bgLight: 'rgba(254,226,226,0.8)', border: 'rgba(239,68,68,0.3)', text: '#fca5a5', textLight: '#dc2626' },
                             };
                             const colors = estadoColors[pedido.estado] || { bg: 'rgba(75,85,99,0.4)', bgLight: 'rgba(243,244,246,0.8)', border: 'rgba(107,114,128,0.3)', text: '#d1d5db', textLight: '#4b5563' };

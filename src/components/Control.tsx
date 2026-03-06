@@ -357,7 +357,7 @@ export function Control() {
 
                       {/* Producto */}
                       <td className="px-3 py-2.5">
-                        <span className="text-emerald-300 font-medium text-sm">{pedido.tipoAve}{pedido.variedad ? ` (${pedido.variedad})` : ''}</span>
+                        <span className="text-emerald-300 font-medium text-sm">{pedido.tipoAve}{pedido.variedad && !pedido.tipoAve.includes(pedido.variedad) ? ` (${pedido.variedad})` : ''}</span>
                       </td>
 
                       {/* Presentación */}
@@ -523,7 +523,7 @@ export function Control() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                  {[
                   { label: 'Cliente', value: selectedPedido.cliente, color: c.text },
-                  { label: 'Producto', value: `${selectedPedido.tipoAve}${selectedPedido.variedad ? ` (${selectedPedido.variedad})` : ''}`, color: '#34d399' },
+                  { label: 'Producto', value: `${selectedPedido.tipoAve}${selectedPedido.variedad && !selectedPedido.tipoAve.includes(selectedPedido.variedad) ? ` (${selectedPedido.variedad})` : ''}`, color: '#34d399' },
                   { label: 'Presentación', value: selectedPedido.presentacion, color: '#fbbf24' },
                   { label: 'Cantidad', value: `${selectedPedido.cantidad} aves`, color: c.text },
                 ].map(item => (

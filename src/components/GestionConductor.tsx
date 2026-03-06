@@ -3,7 +3,7 @@ import {
   Truck, Scale, RotateCcw, Camera, CheckCircle2, AlertTriangle,
   ArrowRight, ChevronRight, History, X, PackageCheck,
   FileText, User, MapPin, Clock, Weight, AlertCircle, Package, Calendar, Plus,
-  ChevronDown, Layers, ArrowLeftRight, Hash, Minus, Eye,
+  ChevronDown, Layers, Hash, Minus, Eye, ShoppingCart, Trash2,
 } from "lucide-react";
 import { useApp, PedidoConfirmado } from "../contexts/AppContext";
 import { useTheme, t } from "../contexts/ThemeContext";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 // ===================== INTERFACES =====================
 
 interface FotoRegistro {
-  tipo: 'repesada' | 'devolucion' | 'entrega' | 'adicion';
+  tipo: 'repesada' | 'devolucion' | 'entrega';
   url: string;
   fecha: string;
 }
@@ -26,20 +26,10 @@ interface TandaRepesaje {
 interface RegistroConductor {
   id: string;
   pedidoId: string;
-  tipo: 'repesada' | 'devolucion' | 'adicion' | 'entrega' | 'asignacion';
+  tipo: 'repesada' | 'devolucion' | 'entrega' | 'asignacion';
   peso?: number;
   cantidadUnidades?: number;
   motivo?: string;
-  // Adición fields
-  clienteDestinoId?: string;
-  clienteDestinoNombre?: string;
-  devolucionOrigenId?: string;
-  clienteOrigenNombre?: string;
-  pedidoOrigenId?: string;
-  pedidoOrigenNumero?: string;
-  // Legacy
-  nuevoClienteId?: string;
-  nuevoClienteNombre?: string;
   fotos: FotoRegistro[];
   fecha: string;
   estado: 'Pendiente' | 'Completado' | 'Con Incidencia';
@@ -58,32 +48,15 @@ interface GrupoDespacho {
   todosEntregados: boolean;
 }
 
-interface DevolucionDisponible {
-  registroId: string;
-  pedidoId: string;
-  pedidoNumero: string;
-  clienteOrigen: string;
-  grupoOrigenId: string;
-  tipoAve: string;
-  variedad?: string;
-  presentacion: string;
-  esVivo: boolean;
-  cantidadTotal: number;
-  cantidadDisponible: number;
-  pesoTotal: number;
-  pesoDisponible: number;
-  foto: string;
-}
-
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function GestionConductor() {
-  const { pedidosConfirmados, clientes, updatePedidoConfirmado } = useApp();
+  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
   // ── Vista ──
-  const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'ADICION'>('LISTA');
+  const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'NUEVO_PEDIDO'>('LISTA');
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<GrupoDespacho | null>(null);
   const [selectedPedido, setSelectedPedido] = useState<PedidoConfirmado | null>(null);
   const [showDevolucionesInfo, setShowDevolucionesInfo] = useState(false);
@@ -100,13 +73,23 @@ export function GestionConductor() {
   const [devMotivo, setDevMotivo] = useState("");
   const [devStep, setDevStep] = useState<'datos' | 'motivo'>('datos');
 
-  // ── Adición ──
-  const [adicionStep, setAdicionStep] = useState<'lista' | 'formulario'>('lista');
-  const [adicionSeleccionada, setAdicionSeleccionada] = useState<DevolucionDisponible | null>(null);
-  const [adicionCantidad, setAdicionCantidad] = useState("");
-  const [adicionPeso, setAdicionPeso] = useState("");
-  const [adicionFoto, setAdicionFoto] = useState("");
-  const [adicionFromGrupo, setAdicionFromGrupo] = useState(false);
+  // ── Nuevo Pedido ──
+  interface SubPedidoConductor {
+    id: string;
+    tipoAve: string;
+    variedad?: string;
+    presentacion: string;
+    cantidad: string;
+    cantidadJabas?: string;
+    unidadesPorJaba?: string;
+  }
+  const [npSubPedidos, setNpSubPedidos] = useState<SubPedidoConductor[]>([]);
+  const [npTipoAve, setNpTipoAve] = useState('');
+  const [npVariedad, setNpVariedad] = useState('');
+  const [npPresentacion, setNpPresentacion] = useState('');
+  const [npCantidad, setNpCantidad] = useState('');
+  const [npCantidadJabas, setNpCantidadJabas] = useState('');
+  const [npUnidadesPorJaba, setNpUnidadesPorJaba] = useState('');
 
   // ── UI ──
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
@@ -126,7 +109,7 @@ export function GestionConductor() {
   // ── Pedidos en ruta ──
   const pedidosRuta = pedidosConfirmados.filter((p) =>
     p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' ||
-    p.estado === 'Con Incidencia' || p.estado === 'Devolución' || p.estado === 'Confirmado con Adición'
+    p.estado === 'Con Incidencia' || p.estado === 'Devolución'
   );
 
   // ── Agrupar por grupoDespacho ──
@@ -157,39 +140,6 @@ export function GestionConductor() {
       };
     });
   }, [pedidosRuta]);
-
-  // ── Devoluciones disponibles para Adición ──
-  const devolucionesDisponibles: DevolucionDisponible[] = useMemo(() => {
-    const devoluciones = registros.filter(r => r.tipo === 'devolucion' && r.cantidadUnidades && r.cantidadUnidades > 0);
-    return devoluciones.map(dev => {
-      const pedido = pedidosConfirmados.find(p => p.id === dev.pedidoId);
-      if (!pedido) return null;
-      const adicionesDesdeEsta = registros
-        .filter(r => r.tipo === 'adicion' && r.devolucionOrigenId === dev.id)
-        .reduce((sum, r) => sum + (r.cantidadUnidades || 0), 0);
-      const cantidadDisponible = (dev.cantidadUnidades || 0) - adicionesDesdeEsta;
-      if (cantidadDisponible <= 0) return null;
-      const pesoPorUnidad = (dev.peso || 0) / (dev.cantidadUnidades || 1);
-      const pesoDisponible = pesoPorUnidad * cantidadDisponible;
-      const grupo = gruposDespacho.find(g => g.pedidos.some(p => p.id === pedido.id));
-      return {
-        registroId: dev.id,
-        pedidoId: pedido.id,
-        pedidoNumero: pedido.numeroPedido || 'S/N',
-        clienteOrigen: pedido.cliente,
-        grupoOrigenId: grupo?.grupoId || '',
-        tipoAve: pedido.tipoAve,
-        variedad: pedido.variedad,
-        presentacion: pedido.presentacion,
-        esVivo: checkEsVivo(pedido),
-        cantidadTotal: dev.cantidadUnidades || 0,
-        cantidadDisponible,
-        pesoTotal: dev.peso || 0,
-        pesoDisponible: parseFloat(pesoDisponible.toFixed(2)),
-        foto: dev.fotos[0]?.url || '',
-      } as DevolucionDisponible;
-    }).filter(Boolean) as DevolucionDisponible[];
-  }, [registros, pedidosConfirmados, gruposDespacho]);
 
   // ── Helpers ──
   function checkEsVivo(pedido: PedidoConfirmado) {
@@ -222,7 +172,7 @@ export function GestionConductor() {
 
   const resetRepesaje = () => { setTandasRepesaje([]); setFormWeight(""); setCapturedPhoto(""); };
   const resetDevolucion = () => { setDevCantidad(""); setDevPeso(""); setDevFoto(""); setDevMotivo(""); setDevStep('datos'); };
-  const resetAdicion = () => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(""); setAdicionPeso(""); setAdicionFoto(""); setAdicionFromGrupo(false); };
+  const resetNuevoPedido = () => { setNpSubPedidos([]); setNpTipoAve(''); setNpVariedad(''); setNpPresentacion(''); setNpCantidad(''); setNpCantidadJabas(''); setNpUnidadesPorJaba(''); };
 
   // ── UI Helpers ──
   const getEstadoBadge = (estado: string) => {
@@ -230,7 +180,6 @@ export function GestionConductor() {
       case 'Devolución': return 'bg-red-500/15 text-red-400 ring-red-500/25';
       case 'Con Incidencia': return 'bg-amber-500/15 text-amber-400 ring-amber-500/25';
       case 'Despachando': return 'bg-blue-500/15 text-blue-400 ring-blue-500/25';
-      case 'Confirmado con Adición': return 'bg-teal-500/15 text-teal-400 ring-teal-500/25';
       case 'En Ruta': return 'bg-purple-500/15 text-purple-400 ring-purple-500/25';
       case 'Entregado': return 'bg-green-500/15 text-green-400 ring-green-500/25';
       default: return 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/25';
@@ -247,7 +196,6 @@ export function GestionConductor() {
     switch (tipo) {
       case 'repesada': return <Scale className="w-4 h-4 text-blue-400" />;
       case 'devolucion': return <RotateCcw className="w-4 h-4 text-orange-400" />;
-      case 'adicion': case 'asignacion': return <ArrowLeftRight className="w-4 h-4 text-teal-400" />;
       case 'entrega': return <CheckCircle2 className="w-4 h-4 text-green-400" />;
       default: return <FileText className="w-4 h-4 text-gray-400" />;
     }
@@ -263,7 +211,6 @@ export function GestionConductor() {
     switch (tipo) {
       case 'repesada': return 'Repesaje';
       case 'devolucion': return 'Devolución';
-      case 'adicion': case 'asignacion': return 'Adición';
       case 'entrega': return 'Entrega';
       default: return tipo;
     }
@@ -282,8 +229,8 @@ export function GestionConductor() {
 
   // ── Repesaje ──
   const handleAddTanda = () => {
-    const peso = parseFloat(formWeight);
-    if (!formWeight || isNaN(peso) || peso <= 0) { toast.error("Ingrese un peso válido"); return; }
+    const peso = formWeight ? parseFloat(formWeight) : 0;
+    if (isNaN(peso) || peso < 0) { toast.error("Peso inválido"); return; }
     if (!capturedPhoto) { toast.error("Debe tomar la foto de evidencia"); return; }
     const nueva: TandaRepesaje = { numero: tandasRepesaje.length + 1, peso, foto: capturedPhoto };
     const nuevas = [...tandasRepesaje, nueva];
@@ -327,10 +274,8 @@ export function GestionConductor() {
 
   // ── Devolución ──
   const handleFinishDevolucion = () => {
-    const cantidad = parseInt(devCantidad);
-    const peso = parseFloat(devPeso);
-    if (!cantidad || cantidad <= 0) { toast.error("Ingrese cantidad válida"); return; }
-    if (!peso || peso <= 0) { toast.error("Ingrese peso válido"); return; }
+    const cantidad = devCantidad ? parseInt(devCantidad) : 0;
+    const peso = devPeso ? parseFloat(devPeso) : 0;
     if (!devFoto) { toast.error("Debe tomar foto de evidencia"); return; }
     if (!devMotivo || devMotivo.length < 3) { toast.error("Ingrese el motivo (mín. 3 caracteres)"); return; }
     const fresh = getFreshPedido();
@@ -348,53 +293,128 @@ export function GestionConductor() {
       ultimaIncidencia: `Devolución: ${cantidad} unids. (${peso.toFixed(1)} kg)`,
     });
 
-    toast.warning(`Devolución: ${cantidad} unids. · ${peso.toFixed(1)} kg`);
+    toast.warning(`Devolución registrada: ${cantidad} unids. · ${peso.toFixed(1)} kg`);
     setModo('GRUPO'); resetDevolucion();
   };
 
-  // ── Adición ──
-  const getAdicionesParaGrupo = (grupoId: string) => {
-    const grupo = gruposDespacho.find(g => g.grupoId === grupoId);
-    if (!grupo) return [];
-    return devolucionesDisponibles.filter(d => d.clienteOrigen !== grupo.cliente);
+  // ── Nuevo Pedido helpers ──
+  const tiposAveActivos = tiposAve.filter(t => t.estado !== 'Inactivo');
+
+  const getProductosParaCliente = (nombreCliente: string) => {
+    if (!nombreCliente) return tiposAveActivos;
+    const cliente = clientes.find(c => c.nombre === nombreCliente);
+    if (!cliente) return tiposAveActivos;
+    const costosDelCliente = costosClientes.filter(cc => cc.clienteId === cliente.id);
+    if (costosDelCliente.length === 0) return tiposAveActivos;
+    const tipoIdsConCosto = [...new Set(costosDelCliente.map(cc => cc.tipoAveId))];
+    return tiposAveActivos.filter(t => tipoIdsConCosto.includes(t.id));
   };
 
-  // Obtener registros de adiciones ya confirmadas para un grupo destino
-  const getAdicionesRegistradasParaGrupo = (grupoId: string) => {
-    return registros.filter(r => r.tipo === 'adicion' && r.clienteDestinoId === grupoId);
+  const getVariedadesParaCliente = (nombreCliente: string, tipoAveNombre: string): string[] => {
+    const info = tiposAve.find(t => t.nombre === tipoAveNombre);
+    if (!info?.tieneVariedad || !info.variedades?.length) return [];
+    if (!nombreCliente) return info.variedades;
+    const cliente = clientes.find(c => c.nombre === nombreCliente);
+    if (!cliente) return info.variedades;
+    const costosDelCliente = costosClientes.filter(cc => cc.clienteId === cliente.id && cc.tipoAveId === info.id);
+    if (costosDelCliente.length === 0) return info.variedades;
+    const variedadesConCosto = [...new Set(costosDelCliente.filter(cc => cc.variedad).map(cc => cc.variedad!))];
+    return variedadesConCosto.length > 0 ? variedadesConCosto : info.variedades;
   };
 
-  const handleFinishAdicion = () => {
-    if (!adicionSeleccionada || !grupoSeleccionado) return;
-    const cantidad = parseInt(adicionCantidad);
-    const peso = parseFloat(adicionPeso);
-    if (!cantidad || cantidad <= 0 || cantidad > adicionSeleccionada.cantidadDisponible) {
-      toast.error(`Cantidad inválida (máx. ${adicionSeleccionada.cantidadDisponible})`); return;
+  const getPresentacionesParaFormulario = (tipoAveNombre: string, variedad?: string) => {
+    const filtered = presentaciones.filter(p => {
+      if (p.tipoAve.toLowerCase() !== tipoAveNombre.toLowerCase()) return false;
+      if (variedad && p.variedad && p.variedad !== variedad) return false;
+      return true;
+    });
+    // Deduplicate by nombre (e.g. avoid duplicates from Macho/Hembra variants)
+    const seen = new Set<string>();
+    return filtered.filter(p => {
+      if (seen.has(p.nombre)) return false;
+      seen.add(p.nombre);
+      return true;
+    });
+  };
+
+  const npEsVivo = npPresentacion?.toLowerCase().includes('vivo');
+
+  const handleAgregarSubPedido = () => {
+    if (!npTipoAve) { toast.error('Seleccione tipo de ave'); return; }
+    if (!npPresentacion) { toast.error('Seleccione presentación'); return; }
+    if (npEsVivo) {
+      if (!npCantidadJabas || parseInt(npCantidadJabas) <= 0) { toast.error('Ingrese cantidad de jabas'); return; }
+      if (!npUnidadesPorJaba || parseInt(npUnidadesPorJaba) <= 0) { toast.error('Ingrese unidades por jaba'); return; }
+    } else {
+      if (!npCantidad || parseInt(npCantidad) <= 0) { toast.error('Ingrese cantidad'); return; }
     }
-    if (!peso || peso <= 0) { toast.error("Ingrese peso válido"); return; }
-    if (!adicionFoto) { toast.error("Debe tomar foto de evidencia"); return; }
 
-    const grupoDestino = grupoSeleccionado;
+    const nuevo: SubPedidoConductor = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      tipoAve: npTipoAve,
+      variedad: npVariedad || undefined,
+      presentacion: npPresentacion,
+      cantidad: npEsVivo ? String(parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)) : npCantidad,
+      cantidadJabas: npEsVivo ? npCantidadJabas : undefined,
+      unidadesPorJaba: npEsVivo ? npUnidadesPorJaba : undefined,
+    };
+    setNpSubPedidos(prev => [...prev, nuevo]);
+    setNpTipoAve(''); setNpVariedad(''); setNpPresentacion(''); setNpCantidad(''); setNpCantidadJabas(''); setNpUnidadesPorJaba('');
+    toast.success('Sub-pedido agregado');
+  };
 
-    // Solo crear registro local — NO se crea pedido nuevo
-    // La adición se integrará al pedido del cliente al confirmar entrega total
-    setRegistros(prev => [...prev, {
-      id: generarId(),
-      pedidoId: adicionSeleccionada.pedidoId,
-      tipo: 'adicion',
-      peso, cantidadUnidades: cantidad,
-      devolucionOrigenId: adicionSeleccionada.registroId,
-      clienteOrigenNombre: adicionSeleccionada.clienteOrigen,
-      pedidoOrigenId: adicionSeleccionada.pedidoId,
-      pedidoOrigenNumero: adicionSeleccionada.pedidoNumero,
-      clienteDestinoId: grupoDestino.grupoId,
-      clienteDestinoNombre: grupoDestino.cliente,
-      fotos: [{ tipo: 'adicion' as const, url: adicionFoto, fecha: new Date().toISOString() }],
-      fecha: new Date().toISOString(), estado: 'Completado',
-    }]);
+  const handleConfirmarNuevoPedido = () => {
+    if (!grupoSeleccionado || npSubPedidos.length === 0) return;
+    const ahora = new Date();
+    const fecha = ahora.toISOString().split('T')[0];
+    const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
+    const grupoDespacho = `despacho-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-    toast.success(`Adición registrada: ${cantidad} unids. (${peso.toFixed(1)} kg) → ${grupoDestino.cliente}. Se enviará a Cartera al confirmar entrega.`);
-    setModo('GRUPO'); resetAdicion();
+    // Get or create numeroCliente from localStorage
+    let clientesNumerados: { nombre: string; numeroCliente: string; siguienteSubNumero: number }[] = [];
+    try {
+      const saved = localStorage.getItem('clientesNumerados');
+      if (saved) clientesNumerados = JSON.parse(saved);
+    } catch { /* ignore */ }
+
+    let clienteData = clientesNumerados.find(c => c.nombre === grupoSeleccionado.cliente);
+    if (!clienteData) {
+      const maxNum = clientesNumerados.length > 0
+        ? Math.max(...clientesNumerados.map(c => parseInt(c.numeroCliente.replace('C', '')) || 0))
+        : 0;
+      clienteData = { nombre: grupoSeleccionado.cliente, numeroCliente: `C${String(maxNum + 1).padStart(3, '0')}`, siguienteSubNumero: 1 };
+      clientesNumerados.push(clienteData);
+    }
+
+    const confirmar = npSubPedidos.map((sub, idx) => {
+      const subNum = clienteData!.siguienteSubNumero + idx;
+      return {
+        id: `confirmed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        numeroPedido: `${clienteData!.numeroCliente}.${subNum}`,
+        numeroCliente: clienteData!.numeroCliente,
+        cliente: grupoSeleccionado.cliente,
+        tipoAve: sub.tipoAve + (sub.variedad ? ` - ${sub.variedad}` : ''),
+        variedad: sub.variedad,
+        presentacion: sub.presentacion,
+        cantidad: parseInt(sub.cantidad),
+        cantidadJabas: sub.cantidadJabas ? parseInt(sub.cantidadJabas) : undefined,
+        unidadesPorJaba: sub.unidadesPorJaba ? parseInt(sub.unidadesPorJaba) : undefined,
+        contenedor: 'Jaba Estándar',
+        fecha, hora,
+        prioridad: parseInt(clienteData!.numeroCliente.replace('C', '')),
+        esSubPedido: npSubPedidos.length > 1,
+        grupoDespacho,
+      };
+    });
+
+    // Update siguienteSubNumero
+    clienteData!.siguienteSubNumero += npSubPedidos.length;
+    try { localStorage.setItem('clientesNumerados', JSON.stringify(clientesNumerados)); } catch { /* ignore */ }
+
+    addMultiplePedidosConfirmados(confirmar);
+    toast.success(`${confirmar.length} pedido(s) creado(s) para ${grupoSeleccionado.cliente}`);
+    resetNuevoPedido();
+    setModo('GRUPO');
   };
 
   // ── Entrega ──
@@ -423,20 +443,6 @@ export function GestionConductor() {
         updatePedidoConfirmado(p.id, { ...fresh, estado: 'Entregado' });
       }
     });
-
-    // Integrar adiciones al primer pedido del grupo → Cartera de Cobro
-    const adicionesDelGrupo = getAdicionesRegistradasParaGrupo(freshGrupo.grupoId);
-    if (adicionesDelGrupo.length > 0) {
-      const pesoTotalAdiciones = adicionesDelGrupo.reduce((sum, r) => sum + (r.peso || 0), 0);
-      // Escribir pesoAdicional en el primer pedido del grupo
-      const primerPedido = pedidosConfirmados.find(fp => fp.id === freshGrupo.pedidos[0].id) || freshGrupo.pedidos[0];
-      const pesoAdicionPrevio = primerPedido.pesoAdicional || 0;
-      updatePedidoConfirmado(primerPedido.id, {
-        ...primerPedido,
-        estado: 'Entregado',
-        pesoAdicional: pesoAdicionPrevio + pesoTotalAdiciones,
-      });
-    }
 
     toast.success('¡Entrega total confirmada!');
     setModo('LISTA'); setGrupoSeleccionado(null);
@@ -509,9 +515,8 @@ export function GestionConductor() {
             onClick={() => {
               if (modo === 'DETALLE') { setModo('GRUPO'); setSelectedPedido(null); }
               else if (modo === 'GRUPO') { setModo('LISTA'); setGrupoSeleccionado(null); setExpandedPedidos(new Set()); }
-              else if (modo === 'ADICION') {
-                if (adicionFromGrupo) { setModo('GRUPO'); } else { setModo('LISTA'); }
-                resetAdicion();
+              else if (modo === 'NUEVO_PEDIDO') {
+                setModo('GRUPO'); resetNuevoPedido();
               }
               else { setModo('GRUPO'); setSelectedPedido(null); resetRepesaje(); resetDevolucion(); }
             }}
@@ -526,50 +531,6 @@ export function GestionConductor() {
       {/* ═══════ LISTA DE DESPACHOS ═══════ */}
       {modo === 'LISTA' && (
         <div className="space-y-5">
-          {/* Panel informativo de devoluciones disponibles para adición */}
-          {devolucionesDisponibles.length > 0 && (
-            <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid rgba(6,182,212,0.2)` }}>
-              <button
-                onClick={() => setShowDevolucionesInfo(!showDevolucionesInfo)}
-                className="w-full px-5 py-3 flex items-center justify-between hover:bg-cyan-500/5 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
-                    <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold" style={{ color: c.text }}>Productos devueltos disponibles</p>
-                    <p className="text-[11px]" style={{ color: c.textMuted }}>{devolucionesDisponibles.length} producto{devolucionesDisponibles.length > 1 ? 's' : ''} · Puede adicionarlos desde cada despacho</p>
-                  </div>
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showDevolucionesInfo ? 'rotate-180' : ''}`} style={{ color: c.textMuted }} />
-              </button>
-              {showDevolucionesInfo && (
-                <div className="px-5 pb-4 space-y-2" style={{ borderTop: `1px solid ${c.borderSubtle}` }}>
-                  {devolucionesDisponibles.map(dev => (
-                    <div key={dev.registroId} className="rounded-lg p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full">Dev. de {dev.clienteOrigen}</span>
-                        <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{dev.pedidoNumero}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold" style={{ color: c.text }}>{dev.tipoAve}</span>
-                          {dev.variedad && <span className="text-[10px]" style={{ color: c.textMuted }}>({dev.variedad})</span>}
-                          <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
-                          <span className="text-[10px] text-blue-400">{dev.presentacion}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-cyan-400">{dev.cantidadDisponible} unids.</span>
-                          <span className="text-[10px] ml-1.5" style={{ color: c.textMuted }}>{dev.pesoDisponible.toFixed(1)} kg</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {gruposDespacho.length > 0 && (
             <div className="flex items-center justify-between rounded-xl px-5 py-3" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
@@ -693,29 +654,36 @@ export function GestionConductor() {
                 </div>
               </div>
               {/* Botones de acción del grupo */}
+              {(() => {
+                const todosRepesados = grupoSeleccionado.pedidos.every(p => {
+                  const regs = getRegistrosPedido(p.id);
+                  return regs.some(r => r.tipo === 'repesada');
+                });
+                return (
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowConfirmEntregaTotal(true)}
-                  className="flex-1 py-3.5 rounded-xl font-black text-white text-sm transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}
+                  onClick={() => todosRepesados && setShowConfirmEntregaTotal(true)}
+                  disabled={!todosRepesados}
+                  className="flex-1 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+                  style={todosRepesados
+                    ? { background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)', color: '#fff' }
+                    : { background: isDark ? '#1f2937' : '#d1d5db', color: isDark ? '#6b7280' : '#9ca3af', opacity: 0.7 }
+                  }
+                  title={!todosRepesados ? 'Todos los pedidos deben tener repesada completada' : ''}
                 >
                   <CheckCircle2 className="w-5 h-5" /> ENTREGA TOTAL
+                  {!todosRepesados && <span className="text-[9px] ml-1">(Faltan repesadas)</span>}
                 </button>
-                {(() => {
-                  const adicionesParaEsteGrupo = getAdicionesParaGrupo(grupoSeleccionado.grupoId);
-                  if (adicionesParaEsteGrupo.length === 0) return null;
-                  return (
-                    <button
-                      onClick={() => { resetAdicion(); setAdicionFromGrupo(true); setModo('ADICION'); }}
-                      className="py-3.5 px-5 rounded-xl font-bold text-white text-sm transition-all hover:scale-[1.01] flex items-center gap-2 relative"
-                      style={{ background: 'linear-gradient(135deg, #0d3d4a, #164e63, #06b6d4)', boxShadow: '0 4px 15px -3px rgba(6,182,212,0.3)' }}
-                    >
-                      <ArrowLeftRight className="w-5 h-5" /> ADICIÓN
-                      <span className="bg-white/20 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{adicionesParaEsteGrupo.length}</span>
-                    </button>
-                  );
-                })()}
+                <button
+                  onClick={() => { resetNuevoPedido(); setModo('NUEVO_PEDIDO'); }}
+                  className="py-3.5 px-5 rounded-xl font-bold text-white text-sm transition-all hover:scale-[1.01] flex items-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #4a1d96, #6d28d9, #8b5cf6)', boxShadow: '0 4px 15px -3px rgba(139,92,246,0.3)' }}
+                >
+                  <ShoppingCart className="w-5 h-5" /> NUEVO PEDIDO
+                </button>
               </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -819,7 +787,7 @@ export function GestionConductor() {
                         </div>
                       )}
 
-                      {/* Acciones: Repesaje, Devolución, Entrega (SIN ADICIÓN) */}
+                      {/* Acciones: Repesaje, Devolución, Entrega */}
                       {pedidoCompletado ? (
                         <div className="flex items-center justify-center gap-2 py-3 rounded-xl mt-3"
                           style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
@@ -861,67 +829,6 @@ export function GestionConductor() {
             })}
           </div>
 
-          {/* Adiciones registradas para este grupo (sub-items visuales) */}
-          {(() => {
-            const adicionesGrupo = getAdicionesRegistradasParaGrupo(grupoSeleccionado.grupoId);
-            if (adicionesGrupo.length === 0) return null;
-            const pesoTotalAdiciones = adicionesGrupo.reduce((sum, r) => sum + (r.peso || 0), 0);
-            return (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-widest px-1 flex items-center gap-2">
-                  <ArrowLeftRight className="w-4 h-4" /> Adiciones ({adicionesGrupo.length})
-                  <span className="text-[10px] font-normal normal-case ml-auto" style={{ color: c.textMuted }}>
-                    Total: {pesoTotalAdiciones.toFixed(1)} kg · Se integran al confirmar entrega
-                  </span>
-                </h3>
-                {adicionesGrupo.map(reg => (
-                  <div key={reg.id}
-                    className="backdrop-blur-xl rounded-xl overflow-hidden"
-                    style={{
-                      background: c.bgCard,
-                      border: '1px solid rgba(6, 182, 212, 0.25)',
-                    }}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <span className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
-                            style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4' }}>
-                            <ArrowLeftRight className="w-4 h-4" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold" style={{ color: c.text }}>Adición</span>
-                              <span className="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-bold">
-                                desde {reg.clienteOrigenNombre}
-                              </span>
-                              <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{reg.pedidoOrigenNumero}</span>
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-green-500/25 bg-green-500/15 text-green-400">
-                                Entregado
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              <span className="text-[10px] font-bold text-cyan-400">{reg.cantidadUnidades} unids.</span>
-                              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
-                              <span className="text-[10px] font-bold" style={{ color: c.text }}>{(reg.peso || 0).toFixed(1)} kg</span>
-                              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
-                              <span className="text-[10px]" style={{ color: c.textMuted }}>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Sin botones de acción — auto-entregado */}
-                      <div className="flex items-center justify-center gap-2 py-2 rounded-xl mt-3"
-                        style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)' }}>
-                        <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                        <span className="text-cyan-400 font-bold text-[11px] uppercase tracking-wider">Adición · Se integra con Entrega Total</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
         </div>
       )}
 
@@ -997,7 +904,6 @@ export function GestionConductor() {
                       <div key={reg.id} className="relative">
                         <div className={`absolute -left-6 top-5 w-[9px] h-[9px] rounded-full ring-2 ring-gray-900 z-10 ${reg.tipo === 'repesada' ? 'bg-blue-400' :
                           reg.tipo === 'devolucion' ? 'bg-orange-400' :
-                            (reg.tipo === 'adicion' || reg.tipo === 'asignacion') ? 'bg-teal-400' :
                               reg.tipo === 'entrega' ? 'bg-green-400' : 'bg-gray-500'
                           }`} />
                         <div className="rounded-xl p-4 transition-colors" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
@@ -1024,16 +930,6 @@ export function GestionConductor() {
                             )}
                             {reg.motivo && (
                               <p className="text-sm text-orange-300 bg-orange-900/15 border border-orange-500/15 px-3 py-1.5 rounded-lg">"{reg.motivo}"</p>
-                            )}
-                            {reg.clienteDestinoNombre && (
-                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
-                                <User className="w-4 h-4" style={{ color: c.textMuted }} />Destino: <span className="text-teal-400 font-bold">{reg.clienteDestinoNombre}</span>
-                              </div>
-                            )}
-                            {reg.nuevoClienteNombre && (
-                              <div className="flex items-center gap-2 text-sm" style={{ color: c.textSecondary }}>
-                                <User className="w-4 h-4" style={{ color: c.textMuted }} />Cliente: <span className="text-emerald-400 font-bold">{reg.nuevoClienteNombre}</span>
-                              </div>
                             )}
                           </div>
                           {reg.fotos.length > 0 && (
@@ -1125,7 +1021,7 @@ export function GestionConductor() {
                 )}
 
                 {/* Alerta: foto obligatoria */}
-                {formWeight && !capturedPhoto && (
+                {!capturedPhoto && (
                   <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl p-3 flex items-center gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                     <p className="text-amber-200 font-bold text-xs uppercase">Tome la foto antes de sumar la tanda</p>
@@ -1136,7 +1032,7 @@ export function GestionConductor() {
                 <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
-                      Peso de esta tanda (kg) <span className="text-red-400">*</span>
+                      Peso de esta tanda (kg)
                     </label>
                     <div className="relative">
                       <input type="number" inputMode="decimal" step="0.1" min="0" value={formWeight}
@@ -1169,9 +1065,9 @@ export function GestionConductor() {
 
                 {/* Botón sumar tanda */}
                 <button onClick={handleAddTanda}
-                  disabled={!formWeight || !capturedPhoto}
+                  disabled={!capturedPhoto}
                   className="w-full py-4 border-2 rounded-xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:cursor-not-allowed"
-                  style={formWeight && capturedPhoto
+                  style={capturedPhoto
                     ? { background: 'rgba(37, 99, 235, 0.9)', borderColor: 'rgba(96, 165, 250, 0.6)', color: '#fff' }
                     : { background: isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#9ca3af', color: c.textMuted, opacity: 0.6 }
                   }>
@@ -1266,15 +1162,15 @@ export function GestionConductor() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
-                          Cantidad (unids.) <span className="text-red-400">*</span>
+                          Cantidad (unids.)
                         </label>
-                        <input type="number" inputMode="numeric" min="1" value={devCantidad}
+                        <input type="number" inputMode="numeric" min="0" value={devCantidad}
                           onChange={(e) => setDevCantidad(e.target.value)} placeholder="0"
                           className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-orange-500 transition-all text-center" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
-                          Peso (kg) <span className="text-red-400">*</span>
+                          Peso (kg)
                         </label>
                         <div className="relative">
                           <input type="number" inputMode="decimal" step="0.1" min="0" value={devPeso}
@@ -1312,14 +1208,12 @@ export function GestionConductor() {
 
                     {/* Continuar a motivo */}
                     <button onClick={() => {
-                      if (!devCantidad || parseInt(devCantidad) <= 0) { toast.error("Ingrese cantidad"); return; }
-                      if (!devPeso || parseFloat(devPeso) <= 0) { toast.error("Ingrese peso"); return; }
                       if (!devFoto) { toast.error("Tome la foto de evidencia"); return; }
                       setDevStep('motivo');
                     }}
-                      disabled={!devCantidad || !devPeso || !devFoto}
+                      disabled={!devFoto}
                       className="w-full py-4 rounded-xl font-extrabold text-lg shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
-                      style={(devCantidad && devPeso && devFoto)
+                      style={devFoto
                         ? { background: '#ea580c', color: '#fff' }
                         : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
                       }>
@@ -1332,11 +1226,11 @@ export function GestionConductor() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Cantidad</p>
-                        <p className="text-xl font-black" style={{ color: c.text }}>{devCantidad} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
+                        <p className="text-xl font-black" style={{ color: c.text }}>{devCantidad || '0'} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
                       </div>
                       <div className="bg-orange-900/15 border border-orange-500/25 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-orange-400 uppercase font-bold">Peso</p>
-                        <p className="text-xl font-black" style={{ color: c.text }}>{parseFloat(devPeso).toFixed(1)} <span className="text-xs" style={{ color: c.textMuted }}>kg</span></p>
+                        <p className="text-xl font-black" style={{ color: c.text }}>{devPeso ? parseFloat(devPeso).toFixed(1) : '0.0'} <span className="text-xs" style={{ color: c.textMuted }}>kg</span></p>
                       </div>
                     </div>
 
@@ -1374,243 +1268,178 @@ export function GestionConductor() {
         );
       })()}
 
-      {/* ═══════ MÓDULO DE ADICIÓN (DESDE GRUPO) ═══════ */}
-      {modo === 'ADICION' && grupoSeleccionado && (
+      {/* ═══════ MÓDULO DE NUEVO PEDIDO ═══════ */}
+      {modo === 'NUEVO_PEDIDO' && grupoSeleccionado && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <div className="h-1 w-full bg-violet-500" />
+            <div className="p-5 space-y-4">
 
-          {adicionStep === 'lista' ? (
-            /* ── Lista de devoluciones disponibles para este cliente ── */
-            <div className="space-y-4">
-              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-                <div className="h-1 w-full bg-cyan-500" />
-                <div className="p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center shrink-0">
-                      <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Adición para {grupoSeleccionado.cliente}</h2>
-                      <p className="text-[11px]" style={{ color: c.textMuted }}>Seleccione un producto devuelto para adicionar a este despacho</p>
-                    </div>
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-5 h-5 text-violet-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Nuevo Pedido</h2>
+                  <p className="text-[11px]" style={{ color: c.textMuted }}>Para <span className="text-violet-400 font-bold">{grupoSeleccionado.cliente}</span></p>
+                </div>
+              </div>
+
+              {/* Cliente (auto) */}
+              <div className="bg-violet-900/10 border border-violet-500/20 rounded-xl p-3 flex items-center gap-3">
+                <User className="w-5 h-5 text-violet-400 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-violet-400 uppercase font-bold">Cliente</p>
+                  <p className="text-sm font-bold" style={{ color: c.text }}>{grupoSeleccionado.cliente}</p>
+                </div>
+              </div>
+
+              {/* Formulario sub-pedido */}
+              <div className="space-y-3 rounded-xl p-4" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Agregar Producto</p>
+
+                {/* Tipo de Ave */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Tipo de Ave <span className="text-red-400">*</span></label>
+                  <select value={npTipoAve} onChange={e => { setNpTipoAve(e.target.value); setNpVariedad(''); setNpPresentacion(''); }}
+                    className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                    style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
+                    <option value="">Seleccionar...</option>
+                    {getProductosParaCliente(grupoSeleccionado.cliente).map(t => (
+                      <option key={t.id} value={t.nombre}>{t.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Variedad */}
+                {npTipoAve && getVariedadesParaCliente(grupoSeleccionado.cliente, npTipoAve).length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Variedad</label>
+                    <select value={npVariedad} onChange={e => { setNpVariedad(e.target.value); setNpPresentacion(''); }}
+                      className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
+                      <option value="">Seleccionar...</option>
+                      {getVariedadesParaCliente(grupoSeleccionado.cliente, npTipoAve).map(v => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
                   </div>
+                )}
 
-                  {(() => {
-                    const disponibles = getAdicionesParaGrupo(grupoSeleccionado.grupoId);
-                    return disponibles.length === 0 ? (
-                      <div className="rounded-xl p-12 text-center" style={{ background: c.bgCard, border: `1px dashed ${c.border}` }}>
-                        <ArrowLeftRight className="w-10 h-10 mx-auto mb-3" style={{ color: c.textMuted }} />
-                        <p className="text-sm" style={{ color: c.textMuted }}>No hay productos disponibles para adición</p>
-                        <p className="text-[11px] mt-1" style={{ color: c.textMuted }}>Las adiciones aparecerán cuando otros clientes registren devoluciones</p>
+                {/* Presentación */}
+                {npTipoAve && (
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Presentación <span className="text-red-400">*</span></label>
+                    <select value={npPresentacion} onChange={e => setNpPresentacion(e.target.value)}
+                      className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                      style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
+                      <option value="">Seleccionar...</option>
+                      {getPresentacionesParaFormulario(npTipoAve, npVariedad || undefined).map(p => (
+                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Cantidad */}
+                {npPresentacion && (
+                  npEsVivo ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Jabas <span className="text-red-400">*</span></label>
+                        <input type="number" inputMode="numeric" min="1" value={npCantidadJabas}
+                          onChange={e => setNpCantidadJabas(e.target.value)} placeholder="0"
+                          className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                          style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {disponibles.map(dev => (
-                          <div key={dev.registroId}
-                            className="rounded-xl p-4 transition-all cursor-pointer active:scale-[0.99]"
-                            style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}
-                            onClick={() => { setAdicionSeleccionada(dev); setAdicionStep('formulario'); }}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-[10px] font-bold text-cyan-300 uppercase bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
-                                Dev. de {dev.clienteOrigen}
-                              </span>
-                              <span className="font-mono text-[10px]" style={{ color: c.textMuted }}>{dev.pedidoNumero}</span>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Aves/Jaba <span className="text-red-400">*</span></label>
+                        <input type="number" inputMode="numeric" min="1" value={npUnidadesPorJaba}
+                          onChange={e => setNpUnidadesPorJaba(e.target.value)} placeholder="0"
+                          className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                          style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                      </div>
+                      {npCantidadJabas && npUnidadesPorJaba && parseInt(npCantidadJabas) > 0 && parseInt(npUnidadesPorJaba) > 0 && (
+                        <div className="col-span-2 text-center text-xs font-bold text-violet-400">
+                          Total: {parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)} aves
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Cantidad (unids.) <span className="text-red-400">*</span></label>
+                      <input type="number" inputMode="numeric" min="1" value={npCantidad}
+                        onChange={e => setNpCantidad(e.target.value)} placeholder="0"
+                        className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                        style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                    </div>
+                  )
+                )}
+
+                {/* Botón agregar */}
+                <button onClick={handleAgregarSubPedido}
+                  disabled={!npTipoAve || !npPresentacion}
+                  className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:cursor-not-allowed"
+                  style={(npTipoAve && npPresentacion)
+                    ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa' }
+                    : { background: isDark ? '#1f2937' : '#e5e7eb', color: c.textMuted, opacity: 0.6 }
+                  }>
+                  <Plus className="w-4 h-4" /> AGREGAR SUB-PEDIDO
+                </button>
+              </div>
+
+              {/* Lista de sub-pedidos agregados */}
+              {npSubPedidos.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest px-1" style={{ color: c.textMuted }}>
+                    Productos ({npSubPedidos.length})
+                  </p>
+                  {npSubPedidos.map((sub, idx) => {
+                    const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
+                    return (
+                      <div key={sub.id} className="flex items-center justify-between rounded-xl p-3"
+                        style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 bg-violet-500/12 text-violet-400">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-bold" style={{ color: c.text }}>{sub.tipoAve}</span>
+                              {sub.variedad && <span className="text-[10px]" style={{ color: c.textMuted }}>({sub.variedad})</span>}
                             </div>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-bold" style={{ color: c.text }}>{dev.tipoAve}</h4>
-                                {dev.variedad && <p className="text-[10px]" style={{ color: c.textMuted }}>{dev.variedad}</p>}
-                                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                    {dev.presentacion}
-                                  </span>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${dev.esVivo
-                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                    : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                    }`}>
-                                    {dev.esVivo ? 'Jabas' : 'Unidades'}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <p className="text-xs uppercase font-bold" style={{ color: c.textMuted }}>Disponible</p>
-                                <p className="text-lg font-black text-cyan-400">{dev.cantidadDisponible} <span className="text-xs" style={{ color: c.textMuted }}>unids.</span></p>
-                                <p className="text-sm font-bold" style={{ color: c.text }}>{dev.pesoDisponible.toFixed(1)} kg</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1">
-                                Seleccionar <ChevronRight className="w-3 h-3" />
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <span className="text-[10px] text-blue-400">{sub.presentacion}</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
+                              <span className={`text-[10px] font-bold ${esVivo ? 'text-amber-400' : 'text-purple-400'}`}>
+                                {esVivo ? `${sub.cantidadJabas} jabas × ${sub.unidadesPorJaba} = ${sub.cantidad} aves` : `${sub.cantidad} unids.`}
                               </span>
                             </div>
                           </div>
-                        ))}
+                        </div>
+                        <button onClick={() => setNpSubPedidos(prev => prev.filter(s => s.id !== sub.id))}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0">
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </button>
                       </div>
                     );
-                  })()}
+                  })}
                 </div>
-              </div>
+              )}
+
+              {/* Confirmar */}
+              <button onClick={handleConfirmarNuevoPedido}
+                disabled={npSubPedidos.length === 0}
+                className="w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
+                style={npSubPedidos.length > 0
+                  ? { background: 'linear-gradient(135deg, #4a1d96, #6d28d9, #8b5cf6)', color: '#fff', boxShadow: '0 6px 20px -5px rgba(139,92,246,0.35)' }
+                  : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
+                }>
+                <CheckCircle2 className="w-6 h-6" /> CONFIRMAR PEDIDO ({npSubPedidos.length})
+              </button>
             </div>
-          ) : adicionSeleccionada && (
-            /* ── Formulario de Adición ── */
-            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-              <div className="h-1 w-full bg-cyan-500" />
-              <div className="p-5 space-y-4">
-
-                {/* Header */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center shrink-0">
-                    <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-extrabold uppercase tracking-tight" style={{ color: c.text }}>Confirmar Adición</h2>
-                    <p className="text-[11px]" style={{ color: c.textMuted }}>Para <span className="text-cyan-400 font-bold">{grupoSeleccionado.cliente}</span></p>
-                  </div>
-                  <button onClick={() => { setAdicionStep('lista'); setAdicionSeleccionada(null); setAdicionCantidad(''); setAdicionPeso(''); setAdicionFoto(''); }} className="p-1.5 transition-colors rounded-lg" style={{ color: c.textMuted }}>
-                    <ArrowRight className="w-4 h-4 rotate-180" />
-                  </button>
-                </div>
-
-                {/* Origen del producto */}
-                <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-4">
-                  <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Producto de Devolución</p>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-base font-black" style={{ color: c.text }}>{adicionSeleccionada.tipoAve}</h4>
-                      {adicionSeleccionada.variedad && <p className="text-[11px]" style={{ color: c.textSecondary }}>{adicionSeleccionada.variedad}</p>}
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          {adicionSeleccionada.presentacion}
-                        </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${adicionSeleccionada.esVivo
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                          }`}>
-                          {adicionSeleccionada.esVivo ? 'Jabas' : 'Unidades'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] mt-1.5" style={{ color: c.textMuted }}>
-                        <span style={{ color: c.textSecondary }}>Origen:</span> {adicionSeleccionada.clienteOrigen} · {adicionSeleccionada.pedidoNumero}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-[10px] text-cyan-400 uppercase font-bold">Disponible</p>
-                      <p className="text-xl font-black text-cyan-400">{adicionSeleccionada.cantidadDisponible}</p>
-                      <p className="text-xs" style={{ color: c.textSecondary }}>{adicionSeleccionada.pesoDisponible.toFixed(1)} kg</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Destino (auto-seleccionado) */}
-                <div className="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
-                  <User className="w-5 h-5 text-emerald-400 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-emerald-400 uppercase font-bold">Cliente Destino</p>
-                    <p className="text-sm font-bold" style={{ color: c.text }}>{grupoSeleccionado.cliente}</p>
-                  </div>
-                </div>
-
-                {/* Cantidad */}
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
-                    Cantidad (unids.) <span className="text-red-400">*</span>
-                    <span className="text-cyan-400 ml-2">Máx. {adicionSeleccionada.cantidadDisponible}</span>
-                  </label>
-                  <input type="number" inputMode="numeric" min="1" max={adicionSeleccionada.cantidadDisponible}
-                    value={adicionCantidad}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const num = parseInt(val);
-                      if (val === '' || (num >= 0 && num <= adicionSeleccionada.cantidadDisponible)) {
-                        setAdicionCantidad(val);
-                      }
-                    }}
-                    placeholder={`1 - ${adicionSeleccionada.cantidadDisponible}`}
-                    className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
-                  {adicionCantidad && parseInt(adicionCantidad) > 0 && parseInt(adicionCantidad) < adicionSeleccionada.cantidadDisponible && (
-                    <p className="text-[10px] mt-1 text-center" style={{ color: c.textMuted }}>
-                      Quedarán {adicionSeleccionada.cantidadDisponible - parseInt(adicionCantidad)} unids. disponibles para otros clientes
-                    </p>
-                  )}
-                  {adicionCantidad && parseInt(adicionCantidad) === adicionSeleccionada.cantidadDisponible && (
-                    <p className="text-[10px] text-cyan-400 mt-1 text-center font-bold">
-                      Se adicionará todo el producto disponible
-                    </p>
-                  )}
-                </div>
-
-                {/* Peso - siempre obligatorio (pesaje real) */}
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: c.textMuted }}>
-                    Peso real pesado (kg) <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <input type="number" inputMode="decimal" step="0.1" min="0"
-                      value={adicionPeso} onChange={(e) => setAdicionPeso(e.target.value)} placeholder="0.0"
-                      className="w-full rounded-xl px-4 py-3.5 text-2xl font-black focus:outline-none focus:border-cyan-500 transition-all text-center pr-12" style={{ background: c.bgInput, border: `2px solid ${c.border}`, color: c.text }} />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-lg" style={{ color: c.textMuted }}>kg</span>
-                  </div>
-                  <p className="text-[10px] mt-1 text-center" style={{ color: c.textMuted }}>Pese el producto y registre el peso real de la balanza</p>
-                </div>
-
-                {/* Foto - obligatoria */}
-                <div>
-                  <label className="block text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-1.5">Foto de Pesaje <span className="text-red-400">*</span></label>
-                  <button onClick={() => handleCapturePhoto(setAdicionFoto)}
-                    className={`w-full h-14 border-2 rounded-xl flex items-center justify-center gap-3 transition-all font-black text-base active:scale-95 ${adicionFoto
-                      ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400'
-                      : ''
-                      }`}
-                    style={!adicionFoto ? { background: isDark ? '#1f2937' : c.bgInput, border: `2px solid ${c.border}`, color: c.text } : undefined}>
-                    <Camera className={`w-5 h-5 ${adicionFoto ? 'text-emerald-400' : 'text-cyan-400'}`} />
-                    {adicionFoto ? '✓ FOTO LISTA' : 'TOMAR FOTO'}
-                  </button>
-                </div>
-
-                {adicionFoto && (
-                  <div className="flex items-center gap-3 p-2 rounded-xl" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(243,244,246,0.8)', border: `1px solid ${c.border}` }}>
-                    <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-700 shrink-0">
-                      <img src={adicionFoto} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-xs flex-1" style={{ color: c.textMuted }}>Foto de evidencia del pesaje</p>
-                    <button onClick={() => setAdicionFoto("")} className="p-1 bg-red-500/20 rounded-full"><X className="w-3 h-3 text-red-400" /></button>
-                  </div>
-                )}
-
-                {/* Resumen antes de confirmar */}
-                {adicionCantidad && adicionPeso && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0 && (
-                  <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3">
-                    <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Resumen de Adición</p>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="text-[10px]" style={{ color: c.textMuted }}>Cantidad</p>
-                        <p className="text-lg font-black" style={{ color: c.text }}>{adicionCantidad}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px]" style={{ color: c.textMuted }}>Peso</p>
-                        <p className="text-lg font-black" style={{ color: c.text }}>{parseFloat(adicionPeso).toFixed(1)} kg</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px]" style={{ color: c.textMuted }}>Destino</p>
-                        <p className="text-sm font-bold text-cyan-400 truncate">{grupoSeleccionado.cliente}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Confirmar */}
-                <button onClick={handleFinishAdicion}
-                  disabled={!adicionCantidad || !adicionPeso || !adicionFoto || parseInt(adicionCantidad) <= 0 || parseFloat(adicionPeso) <= 0}
-                  className="w-full py-5 rounded-xl font-extrabold text-xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:cursor-not-allowed"
-                  style={(adicionCantidad && adicionPeso && adicionFoto && parseInt(adicionCantidad) > 0 && parseFloat(adicionPeso) > 0)
-                    ? { background: '#059669', color: '#fff' }
-                    : { background: isDark ? '#1f2937' : '#d1d5db', color: c.textMuted, opacity: 0.6 }
-                  }>
-                  <CheckCircle2 className="w-6 h-6" /> CONFIRMAR ADICIÓN
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -1675,30 +1504,6 @@ export function GestionConductor() {
                     );
                   })}
                 </div>
-
-                {/* Adiciones que se integrarán */}
-                {(() => {
-                  const adicionesModal = getAdicionesRegistradasParaGrupo(freshGrupo.grupoId);
-                  if (adicionesModal.length === 0) return null;
-                  const pesoTotalAd = adicionesModal.reduce((s, r) => s + (r.peso || 0), 0);
-                  return (
-                    <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <ArrowLeftRight className="w-3.5 h-3.5" /> Adiciones a integrar
-                        </p>
-                        <span className="text-sm font-black text-cyan-400">{pesoTotalAd.toFixed(1)} kg</span>
-                      </div>
-                      {adicionesModal.map(ad => (
-                        <div key={ad.id} className="flex items-center justify-between text-[11px] rounded-lg px-2.5 py-1.5" style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)' }}>
-                          <span style={{ color: c.textSecondary }}>Desde <span className="text-cyan-300 font-bold">{ad.clienteOrigenNombre}</span> · {ad.cantidadUnidades} unids.</span>
-                          <span className="font-bold" style={{ color: c.text }}>{(ad.peso || 0).toFixed(1)} kg</span>
-                        </div>
-                      ))}
-                      <p className="text-[10px] italic" style={{ color: c.textMuted }}>Se sumarán como Adición Kg en Cartera de Cobro</p>
-                    </div>
-                  );
-                })()}
 
                 <div className="flex gap-3">
                   <button onClick={() => setShowConfirmEntregaTotal(false)}
