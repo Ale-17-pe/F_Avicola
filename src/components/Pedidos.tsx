@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, Package, User, Calendar, CheckCircle, Clock, Settings, Scale, TrendingUp, PieChart as PieChartIcon, X, Eye, Layers, Truck, Box, Tag, AlertCircle, ChevronRight, Grid3x3 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, Package, User, Calendar, CheckCircle, Clock, Settings, Scale, TrendingUp, PieChart as PieChartIcon, X, Eye, Layers, Truck, Box, Tag, AlertCircle, ChevronRight, Grid3x3, MapPin, RotateCcw } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
@@ -66,7 +66,8 @@ export function Pedidos() {
   const [pedidosAgrupados, setPedidosAgrupados] = useState<PedidoAgrupado[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('all');
-  const [filterCliente, setFilterCliente] = useState<string>('all');
+  const [filterVariedad, setFilterVariedad] = useState<string>('all');
+  const [filterPresentacion, setFilterPresentacion] = useState<string>('all');
   const [filterTipoAve, setFilterTipoAve] = useState<string>('all');
   const [isContenedoresModalOpen, setIsContenedoresModalOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
@@ -328,9 +329,10 @@ export function Pedidos() {
       pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pedido.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filterEstado === 'all' || pedido.estado === filterEstado;
-    const matchesCliente = filterCliente === 'all' || pedido.cliente === filterCliente;
+    const matchesVariedad = filterVariedad === 'all' || (pedido.variedad || '') === filterVariedad;
+    const matchesPresentacion = filterPresentacion === 'all' || pedido.presentacion === filterPresentacion;
     const matchesTipoAve = filterTipoAve === 'all' || pedido.tipoAve === filterTipoAve;
-    return matchesSearch && matchesEstado && matchesCliente && matchesTipoAve;
+    return matchesSearch && matchesEstado && matchesVariedad && matchesPresentacion && matchesTipoAve;
   });
 
   // ============ ESTADÍSTICAS ============
@@ -466,7 +468,7 @@ export function Pedidos() {
 
         {/* Filtros */}
         <div className="border rounded-2xl p-5 mb-8" style={{ background: c.bgCardAlt, borderColor: c.border }}>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -477,23 +479,6 @@ export function Pedidos() {
                 className="w-full pl-10 pr-4 py-3 border rounded-xl placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
                 style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               />
-            </div>
-
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
-                value={filterCliente}
-                onChange={(e) => setFilterCliente(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/20"
-                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
-              >
-                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todos los clientes</option>
-                {Array.from(new Set(pedidos.map(p => p.cliente))).map(cliente => (
-                  <option key={cliente} value={cliente} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>
-                    {cliente}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="relative">
@@ -519,7 +504,7 @@ export function Pedidos() {
               <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <select
                 value={filterTipoAve}
-                onChange={(e) => setFilterTipoAve(e.target.value)}
+                onChange={(e) => { setFilterTipoAve(e.target.value); setFilterVariedad('all'); setFilterPresentacion('all'); }}
                 className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
                 style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
               >
@@ -531,6 +516,48 @@ export function Pedidos() {
                 ))}
               </select>
             </div>
+
+            <div className="relative">
+              <Layers className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={filterVariedad}
+                onChange={(e) => setFilterVariedad(e.target.value)}
+                disabled={filterTipoAve === 'all' || (() => { const variedades = Array.from(new Set(pedidos.filter(p => p.tipoAve === filterTipoAve && p.variedad).map(p => p.variedad!))); return variedades.length === 0; })()}
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
+              >
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todas las variedades</option>
+                {Array.from(new Set(pedidos.filter(p => filterTipoAve === 'all' || p.tipoAve === filterTipoAve).filter(p => p.variedad).map(p => p.variedad!))).map(v => (
+                  <option key={v} value={v} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={filterPresentacion}
+                onChange={(e) => setFilterPresentacion(e.target.value)}
+                disabled={filterTipoAve === 'all'}
+                className="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: c.bgCard, borderColor: c.border, color: c.text }}
+              >
+                <option value="all" style={{ background: isDark ? '#000' : '#fff', color: c.text }}>Todas las presentaciones</option>
+                {Array.from(new Set(pedidos.filter(p => filterTipoAve === 'all' || p.tipoAve === filterTipoAve).map(p => p.presentacion))).map(pres => (
+                  <option key={pres} value={pres} style={{ background: isDark ? '#000' : '#fff', color: c.text }}>{pres}</option>
+                ))}
+              </select>
+            </div>
+
+            {(searchTerm || filterEstado !== 'all' || filterTipoAve !== 'all' || filterVariedad !== 'all' || filterPresentacion !== 'all') && (
+              <button
+                onClick={() => { setSearchTerm(''); setFilterEstado('all'); setFilterTipoAve('all'); setFilterVariedad('all'); setFilterPresentacion('all'); }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -655,6 +682,9 @@ export function Pedidos() {
                   <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Cliente</div>
                 </th>
                 <th className="px-6 py-4 text-left">
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Zona</div>
+                </th>
+                <th className="px-6 py-4 text-left">
                   <div className="text-xs font-semibold uppercase" style={{ color: c.textSecondary }}>Producto</div>
                 </th>
                 <th className="px-6 py-4 text-left">
@@ -674,7 +704,7 @@ export function Pedidos() {
             <tbody>
               {filteredPedidos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <div style={{ color: c.textMuted }}>
                       {pedidos.length === 0 
                         ? 'No hay pedidos confirmados' 
@@ -714,6 +744,22 @@ export function Pedidos() {
                       <td className="px-6 py-4">
                         <div className="font-medium" style={{ color: c.text }}>{pedido.cliente}</div>
                         <div className="text-xs" style={{ color: c.textMuted }}>Cliente {pedido.numeroCliente}</div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const cl = clientes.find(cl => cl.nombre === pedido.cliente);
+                          const zona = cl?.zona;
+                          if (!zona) return <span className="text-xs" style={{ color: c.textMuted }}>—</span>;
+                          const m = zona.match(/(\d+)/);
+                          const label = m ? `Zona ${m[1]}` : zona;
+                          return (
+                            <span className="text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1"
+                              style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                              <MapPin className="w-3 h-3" />{label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       
                       <td className="px-6 py-4">
