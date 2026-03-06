@@ -1869,22 +1869,12 @@ export function ListaPedidos() {
                           })()}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="space-y-1.5">
-                            <div className="font-bold uppercase tracking-tight drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
-                            {pedido.variedad ? (
-                              <div className={`px-3 py-1.5 rounded-lg text-sm font-black uppercase inline-block shadow-lg tracking-wider`}
-                                style={pedido.cantidadMachos === undefined && pedido.cantidadHembras === undefined 
-                                  ? { color: isDark ? '#fff' : '#1a1a2e', border: isDark ? '2px solid rgba(255,255,255,0.2)' : '2px solid rgba(0,0,0,0.2)', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }
-                                  : { background: isDark ? 'linear-gradient(to right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', color: isDark ? '#fcd34d' : '#92400e', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }
-                                }>
-                                {pedido.variedad}
-                              </div>
-                            ) : (
-                              <div className="text-[10px] italic" style={{ color: c.textMuted }}>Estándar</div>
-                            )}
-                            <div className={`text-xs font-semibold ${pedido.presentacion?.toLowerCase().includes('vivo') ? '' : ''}`} style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
-                              {pedido.presentacion}
-                            </div>
+                          <div className="font-bold uppercase tracking-tight drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                          {pedido.variedad && (
+                            <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.variedad}</div>
+                          )}
+                          <div className="text-xs font-semibold" style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
+                            {pedido.presentacion}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -2241,7 +2231,10 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="font-medium drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve}</div>
+                        <div className="font-medium drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                        {pedido.variedad && (
+                          <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.variedad}</div>
+                        )}
                       </td>
 
                       <td className="px-6 py-4">
@@ -2394,6 +2387,7 @@ export function ListaPedidos() {
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Orden</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Pedido</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cliente</div></th>
+                      <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Zona</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Producto</div></th>
                       <th className="px-6 py-4 text-left"><div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Cantidad</div></th>
                       <th className="px-6 py-4 text-center"><div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>Macho</div></th>
@@ -2427,7 +2421,25 @@ export function ListaPedidos() {
                           <div className="text-xs" style={{ color: c.textSecondary }}>Cliente {pedido.numeroCliente}</div>
                         </td>
                         <td className="px-6 py-4">
+                          {(() => {
+                            const cl = clientes.find(cli => cli.nombre === pedido.cliente);
+                            const zona = cl?.zona;
+                            if (!zona) return <span className="text-xs" style={{ color: c.textMuted }}>—</span>;
+                            const m = zona.match(/(\d+)/);
+                            const label = m ? `Zona ${m[1]}` : zona;
+                            return (
+                              <span className="text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1"
+                                style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                                <MapPin className="w-3 h-3" />{label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-6 py-4">
                           <div className="font-bold uppercase tracking-tight drop-shadow" style={{ color: isDark ? '#6ee7b7' : '#065f46' }}>{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                          {pedido.variedad && (
+                            <div className="text-xs font-semibold" style={{ color: c.textSecondary }}>{pedido.variedad}</div>
+                          )}
                           <div className="text-xs font-semibold" style={{ color: pedido.presentacion?.toLowerCase().includes('vivo') ? c.text : c.textSecondary }}>
                             {pedido.presentacion}
                           </div>

@@ -303,8 +303,8 @@ export function Control() {
                     { key: 'cantidad', label: 'Cantidad', width: 'w-24' },
                     { key: 'machos_hembras', label: 'M/H', width: 'w-28' },
                     { key: 'contenedor', label: 'Contenedor', width: 'w-28' },
-                    { key: 'pesoPedido', label: 'Peso Pedido (kg)', width: 'w-28' },
-                    { key: 'pesoContenedores', label: 'Peso Cont. (kg)', width: 'w-28' },
+                    { key: 'pesoPedido', label: 'Peso Neto (kg)', width: 'w-28' },
+                    { key: 'pesoContenedores', label: 'Tara (kg)', width: 'w-28' },
                     { key: 'pesoBruto', label: 'Peso Bruto (kg)', width: 'w-28' },
                     { key: 'conductor', label: 'Conductor', width: 'w-32' },
                     { key: 'zonaEntrega', label: 'Zona', width: 'w-20' },
@@ -312,10 +312,10 @@ export function Control() {
                   ].map(col => (
                     <th
                       key={col.key}
-                      className={`px-3 py-3 text-left ${col.width} group cursor-pointer select-none hover:bg-purple-900/10 transition-colors`}
+                      className={`px-3 py-3 text-center ${col.width} group cursor-pointer select-none hover:bg-purple-900/10 transition-colors`}
                       onClick={() => col.key !== 'acciones' && col.key !== 'pesoPedido' && handleSort(col.key)}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-center gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#a855f7' }}>
                           {col.label}
                         </span>
@@ -338,12 +338,12 @@ export function Control() {
                       }}
                     >
                       {/* N° Pedido */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <span className="font-mono font-bold text-sm" style={{ color: c.text }}>{pedido.numeroPedido || 'S/N'}</span>
                       </td>
 
                       {/* Fecha */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <span className="text-xs" style={{ color: c.textSecondary }}>{pedido.fechaPesaje || '—'}</span>
                         {pedido.horaPesaje && (
                           <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.horaPesaje}</div>
@@ -351,17 +351,20 @@ export function Control() {
                       </td>
 
                       {/* Cliente */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <span className="font-medium text-sm truncate block max-w-[160px]" style={{ color: c.text }}>{pedido.cliente}</span>
                       </td>
 
                       {/* Producto */}
-                      <td className="px-3 py-2.5">
-                        <span className="text-emerald-300 font-medium text-sm">{pedido.tipoAve}{pedido.variedad && !pedido.tipoAve.includes(pedido.variedad) ? ` (${pedido.variedad})` : ''}</span>
+                      <td className="px-3 py-2.5 text-center">
+                        <div className="text-emerald-300 font-medium text-sm">{pedido.tipoAve.replace(/\(.*?\)/g, '').replace(/-.*$/, '').trim()}</div>
+                        {pedido.variedad && (
+                          <div className="text-[10px]" style={{ color: c.textSecondary }}>{pedido.variedad}</div>
+                        )}
                       </td>
 
                       {/* Presentación */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <span className={`text-sm ${pedido.presentacion?.toLowerCase().includes('vivo') ? 'text-amber-300 font-semibold' : ''}`} style={pedido.presentacion?.toLowerCase().includes('vivo') ? undefined : { color: c.textSecondary }}>
                           {pedido.presentacion}
                         </span>
@@ -377,46 +380,49 @@ export function Control() {
 
                       {/* M/H (Machos y Hembras) */}
                       <td className="px-3 py-2.5 text-center">
-                         <div className="flex flex-col">
-                           {pedido.bloquesPesaje?.some(b => b.pesoBruto > 0) ? (
-                             <span className="text-blue-300 font-bold text-xs">Pesado</span>
-                           ) : (
-                             <span className="text-xs" style={{ color: c.textMuted }}>—</span>
-                           )}
-                         </div>
+                        {(() => {
+                          const mh = pedido.tipoAve.match(/\(M:(\d+),\s*H:(\d+)\)/);
+                          if (!mh) return <span className="text-xs" style={{ color: c.textMuted }}>—</span>;
+                          return (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.25)' }}>M:{mh[1]}</span>
+                              <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.25)' }}>H:{mh[2]}</span>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Contenedor */}
-                      <td className="px-3 py-2.5">
-                        <span className="text-sm" style={{ color: c.textSecondary }}>{pedido.contenedor}</span>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="text-sm" style={{ color: c.textSecondary }}>{pedido.contenedor || '—'}</span>
                         {pedido.cantidadTotalContenedores && (
                           <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidadTotalContenedores} tandas</div>
                         )}
                       </td>
 
-                      {/* Peso Pedido (sin contenedores) */}
-                      <td className="px-3 py-2.5 text-right">
+                      {/* Peso Neto (sin contenedores) */}
+                      <td className="px-3 py-2.5 text-center">
                         <span className="text-green-400 font-bold text-sm tabular-nums">
                           {pedido.pesoBrutoTotal ? pesoPedidoRow.toFixed(1) : '—'}
                         </span>
                       </td>
 
-                      {/* Peso Contenedores */}
-                      <td className="px-3 py-2.5 text-right">
+                      {/* Tara (Peso Contenedores) */}
+                      <td className="px-3 py-2.5 text-center">
                         <span className="text-red-300 text-sm tabular-nums">
                           {pedido.pesoTotalContenedores ? pedido.pesoTotalContenedores.toFixed(1) : '—'}
                         </span>
                       </td>
 
                       {/* Peso Bruto (total) */}
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-3 py-2.5 text-center">
                         <span className="text-amber-300 font-bold text-sm tabular-nums">
                           {pedido.pesoBrutoTotal ? pedido.pesoBrutoTotal.toFixed(1) : '—'}
                         </span>
                       </td>
 
                       {/* Conductor */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         {pedido.conductor ? (
                           <span className="text-sm truncate block max-w-[120px]" style={{ color: c.text }}>{pedido.conductor}</span>
                         ) : (
@@ -425,17 +431,17 @@ export function Control() {
                       </td>
 
                       {/* Zona (del cliente) */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <span className="text-purple-300 text-xs font-semibold">
                           {(() => {
                             const clienteObj = clientes.find(cl => cl.nombre === pedido.cliente);
-                            return clienteObj?.zona ? `Zona ${clienteObj.zona}` : '—';
+                            return formatearZona(clienteObj?.zona);
                           })()}
                         </span>
                       </td>
 
                       {/* Acciones */}
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-center">
                         <button
                           onClick={() => setSelectedPedido(pedido)}
                           className="p-1.5 rounded-lg transition-all hover:scale-110 hover:bg-purple-900/20"
@@ -452,24 +458,25 @@ export function Control() {
               {/* Footer de totales */}
               <tfoot>
                 <tr style={{ background: 'rgba(168,85,247,0.06)', borderTop: '2px solid rgba(168,85,247,0.2)' }}>
-                  <td className="px-3 py-3" colSpan={5}>
+                  <td className="px-3 py-3 text-center" colSpan={5}>
                     <span className="text-purple-400 font-bold text-xs uppercase tracking-wider">TOTALES</span>
                   </td>
                   <td className="px-3 py-3 text-center">
                     <span className="font-bold text-sm" style={{ color: c.text }}>{pedidosOrdenados.reduce((s, p) => s + p.cantidad, 0)}</span>
                   </td>
-                   <td className="px-3 py-3">
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-center">
                     <span className="text-xs" style={{ color: c.textSecondary }}>{pedidosOrdenados.reduce((s, p) => s + (p.cantidadTotalContenedores || 0), 0)} tandas</span>
                   </td>
-                  <td className="px-3 py-3 text-right">
+                  <td className="px-3 py-3 text-center">
                     <span className="text-green-400 font-bold text-sm">
                       {(pedidosOrdenados.reduce((s, p) => s + (p.pesoBrutoTotal || 0), 0) - pedidosOrdenados.reduce((s, p) => s + (p.pesoTotalContenedores || 0), 0)).toFixed(1)}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-right">
+                  <td className="px-3 py-3 text-center">
                     <span className="text-red-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoTotalContenedores || 0), 0).toFixed(1)}</span>
                   </td>
-                  <td className="px-3 py-3 text-right">
+                  <td className="px-3 py-3 text-center">
                     <span className="text-amber-300 font-bold text-sm">{pedidosOrdenados.reduce((s, p) => s + (p.pesoBrutoTotal || 0), 0).toFixed(1)}</span>
                   </td>
                   <td colSpan={3}></td>

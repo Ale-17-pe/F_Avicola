@@ -609,7 +609,22 @@ export function Pedidos() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="font-bold text-lg" style={{ color: c.text }}>{grupo.cliente}</div>
-                    <div className="text-sm text-blue-400 font-mono">{grupo.numeroCliente}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-blue-400 font-mono">{grupo.numeroCliente}</span>
+                      {(() => {
+                        const cl = clientes.find(c => c.nombre === grupo.cliente);
+                        const zona = cl?.zona;
+                        if (!zona) return null;
+                        const m = zona.match(/(\d+)/);
+                        const label = m ? `Zona ${m[1]}` : zona;
+                        return (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                            style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                            <MapPin className="w-3 h-3" />{label}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                   <div className="px-3 py-1 bg-amber-900/20 border border-amber-700/30 rounded-lg">
                     <span className="text-amber-400 text-sm">{grupo.pedidos.length} pedidos</span>
