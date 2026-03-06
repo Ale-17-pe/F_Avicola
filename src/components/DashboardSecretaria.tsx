@@ -16,7 +16,8 @@ interface FilaCartera {
   presentacion: string; cantidad: number; cantidadLabel: string;
   merma: number; tara: number; contenedorTipo: string;
   devolucionPeso: number; devolucionCantidad: number;
-  repesada: number; adicionPeso: number;
+  devolucionFoto?: string; devolucionMotivo?: string;
+  repesada: number;
   pesoPedido: number; pesoContenedor: number; pesoBruto: number;
   pesoNeto: number; precio: number; total: number;
   confirmado: boolean; editando: boolean; fecha: string;
@@ -27,7 +28,7 @@ interface FilaCartera {
 }
 
 interface FotoRegistroConductor {
-  tipo: 'repesada' | 'devolucion' | 'entrega' | 'adicion';
+  tipo: 'repesada' | 'devolucion' | 'entrega';
   url: string;
   fecha: string;
 }
@@ -35,14 +36,10 @@ interface FotoRegistroConductor {
 interface RegistroConductor {
   id: string;
   pedidoId: string;
-  tipo: 'repesada' | 'devolucion' | 'adicion' | 'entrega' | 'asignacion';
+  tipo: 'repesada' | 'devolucion' | 'entrega' | 'asignacion';
   peso?: number;
   cantidadUnidades?: number;
   motivo?: string;
-  clienteDestinoId?: string;
-  clienteDestinoNombre?: string;
-  clienteOrigenNombre?: string;
-  pedidoOrigenNumero?: string;
   fotos: FotoRegistroConductor[];
   fecha: string;
   estado: string;
@@ -78,7 +75,7 @@ const COL = {
   merma:      '#e2e8f0',
   devolucion: '#f87171',
   repesada:   '#38bdf8',   // sky-400
-  adicion:    '#a3e635',   // lime-400
+  adicion:    '#a3e635',   // lime-400 — kept for legacy registro display
   neto:       '#22d3ee',
   total:      '#fbbf24',
   tipo:       '#6ee7b7',
@@ -208,19 +205,15 @@ export function DashboardSecretaria() {
   }, [refreshKey]);
 
   // Helper: obtener fotos de un pedido por tipo de registro
-  const getFotosConductor = (pedidoId: string, tipo: 'repesada' | 'devolucion' | 'adicion') => {
+  const getFotosConductor = (pedidoId: string, tipo: 'repesada' | 'devolucion') => {
     const regs = registrosConductor.filter(r => r.pedidoId === pedidoId && r.tipo === tipo && r.fotos && r.fotos.length > 0);
     return regs.flatMap(r => r.fotos.filter(f => f.tipo === tipo));
   };
 
-  // Helper: obtener fotos de adiciones para un pedido (por grupoDespacho del pedido)
-  const getFotosAdicion = (pedidoId: string) => {
-    // Buscar el pedido para obtener su grupoDespacho
-    const pedido = pedidosConfirmados.find(p => p.id === pedidoId);
-    if (!pedido?.grupoDespacho) return [];
-    // Buscar registros de adición cuyo destino sea este grupo
-    const regs = registrosConductor.filter(r => r.tipo === 'adicion' && r.clienteDestinoId === pedido.grupoDespacho && r.fotos && r.fotos.length > 0);
-    return regs.flatMap(r => r.fotos.filter(f => f.tipo === 'adicion'));
+  // Helper: obtener motivo de devolución de un pedido
+  const getMotivoDevolucion = (pedidoId: string): string => {
+    const reg = registrosConductor.find(r => r.pedidoId === pedidoId && r.tipo === 'devolucion' && r.motivo);
+    return reg?.motivo || '';
   };
 
   // cerrar calendario si click fuera
@@ -253,7 +246,7 @@ export function DashboardSecretaria() {
       console.log(`[CARTERA] Total pedidosConfirmados: ${(pedidosConfirmados||[]).length}`);
       console.log(`[CARTERA] Pedidos del día (con ticket): ${delDia.length}`);
       delDia.forEach(p => {
-        console.log(`[CARTERA] Pedido ${p.id}: cliente=${p.cliente}, repesada=${p.pesoRepesada||0}, devolucion=${p.pesoDevolucion||0}, adicion=${p.pesoAdicional||0}, estado=${p.estado}, fechaPesaje=${p.fechaPesaje}, ticketEmitido=${p.ticketEmitido}`);
+        console.log(`[CARTERA] Pedido ${p.id}: cliente=${p.cliente}, repesada=${p.pesoRepesada||0}, devolucion=${p.pesoDevolucion||0}, estado=${p.estado}, fechaPesaje=${p.fechaPesaje}, ticketEmitido=${p.ticketEmitido}`);
       });
 
       if (delDia.length === 0) {
@@ -308,8 +301,10 @@ export function DashboardSecretaria() {
         const pesoBruto = p.pesoBrutoTotal || 0;
         // Datos VIVOS del conductor — se leen siempre de pedidosConfirmados
         const devolucionFromConductor = p.pesoDevolucion || 0;
+        const devolucionFotoArr = getFotosConductor(p.id, 'devolucion');
+        const devolucionFoto = devolucionFotoArr.length > 0 ? devolucionFotoArr[0].url : undefined;
+        const devolucionMotivo = p.motivoDevolucion || undefined;
         const repesadaFromConductor   = p.pesoRepesada   || 0;
-        const adicionFromConductor    = p.pesoAdicional  || 0;
 
         const pesoNeto = (pesoBruto + mermaTotal) - pesoContenedor - devolucionFromConductor;
         const pesoPedido = pesoBruto - pesoContenedor;
@@ -380,8 +375,9 @@ export function DashboardSecretaria() {
           contenedorTipo: contenedorRealTipo,
           devolucionPeso: devolucionFromConductor,
           devolucionCantidad: 0,
+          devolucionFoto,
+          devolucionMotivo,
           repesada: repesadaFromConductor,
-          adicionPeso: adicionFromConductor,
           pesoPedido: Math.max(0, pesoPedido),
           pesoContenedor,
           pesoBruto: pesoBruto,
@@ -391,7 +387,7 @@ export function DashboardSecretaria() {
           confirmado: filaPrev?.confirmado ?? false,
           editando: filaPrev?.editando ?? false,
           fecha: fechaSeleccionada,
-          zona: p.zonaEntrega || '—',
+          zona: (() => { const m = (p.zonaEntrega || '').match(/(\d+)/); return m ? `Zona ${m[1]}` : (p.zonaEntrega || '—'); })(),
           conductor: p.conductor || '—',
           cantidadContenedores: p.cantidadTotalContenedores || 0,
           contenedorPesoUnit: (p.cantidadTotalContenedores && p.cantidadTotalContenedores > 0)
@@ -555,8 +551,8 @@ export function DashboardSecretaria() {
   };
 
   const exportarCSV = () => {
-    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','Tara','P.Bruto','Repesada','Merma','Devol','Adicion','P.Neto','Precio','Total','Zona','Conductor'];
-    const rows=filasFiltradas.map(f=>[f.cliente,f.tipo,f.presentacion,`${f.cantidad} ${f.cantidadLabel}`,f.pesoPedido.toFixed(2),f.pesoContenedor.toFixed(2),f.pesoBruto.toFixed(2),f.repesada.toFixed(2),f.merma.toFixed(2),f.devolucionPeso.toFixed(2),f.adicionPeso.toFixed(2),f.pesoNeto.toFixed(2),f.precio.toFixed(2),f.total.toFixed(2),f.zona,f.conductor]);
+    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','Tara','P.Bruto','Repesada','Merma','Devol','P.Neto','Precio','Total','Zona','Conductor'];
+    const rows=filasFiltradas.map(f=>[f.cliente,f.tipo,f.presentacion,`${f.cantidad} ${f.cantidadLabel}`,f.pesoPedido.toFixed(2),f.pesoContenedor.toFixed(2),f.pesoBruto.toFixed(2),f.repesada.toFixed(2),f.merma.toFixed(2),f.devolucionPeso.toFixed(2),f.pesoNeto.toFixed(2),f.precio.toFixed(2),f.total.toFixed(2),f.zona,f.conductor]);
     const blob=new Blob([[headers.join(','),...rows.map(r=>r.join(','))].join('\n')],{type:'text/csv'});
     Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`cartera_${fechaSeleccionada}.csv`}).click();
   };
@@ -920,7 +916,6 @@ export function DashboardSecretaria() {
                     {key:'repesada',       label:'REPESADA kg',  align:'right' as const},
                     {key:'merma',          label:'MERMA kg',     align:'right' as const},
                     {key:'devolucionPeso', label:'DEVOL. kg',    align:'right' as const},
-                    {key:'adicionPeso',    label:'ADICIÓN kg',   align:'right' as const},
                     {key:'pesoNeto',       label:'P.NETO kg',    align:'right' as const},
                     {key:'precio',         label:'PRECIO S/',    align:'right' as const},
                     {key:'total',          label:'TOTAL S/',     align:'right' as const},
@@ -1059,33 +1054,14 @@ export function DashboardSecretaria() {
                             {(() => {
                               const fotos = getFotosConductor(fila.id, 'devolucion');
                               if (fotos.length === 0) return null;
+                              const motivo = getMotivoDevolucion(fila.id);
                               return (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Devolución — ${fila.cliente}`, fotos}); }}
+                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Devolución — ${fila.cliente}`, fotos, extra: motivo || undefined}); }}
                                   className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
                                   style={{background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.20)'}}
                                   title={`Ver ${fotos.length} foto${fotos.length>1?'s':''} de devolución`}>
                                   <Camera className="w-3 h-3" style={{color:COL.devolucion}} />
-                                </button>
-                              );
-                            })()}
-                          </div>
-                        </td>
-
-                        {/* ADICIÓN — click-to-edit, lime-400 + foto evidencia */}
-                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
-                          <div className="flex items-center justify-end gap-1">
-                            <ClickEditCell value={fila.adicionPeso} onChange={v=>actualizarCampo(fila.id,'adicionPeso',v)} locked={bloqueado} color={COL.adicion} />
-                            {(() => {
-                              const fotos = getFotosAdicion(fila.id);
-                              if (fotos.length === 0) return null;
-                              return (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setFotosModal({open:true, titulo:`Evidencia Adición — ${fila.cliente}`, fotos}); }}
-                                  className="p-1 rounded-md hover:brightness-125 transition-all shrink-0"
-                                  style={{background:'rgba(163,230,53,0.08)', border:'1px solid rgba(163,230,53,0.20)'}}
-                                  title={`Ver ${fotos.length} foto${fotos.length>1?'s':''} de adición`}>
-                                  <Camera className="w-3 h-3" style={{color:COL.adicion}} />
                                 </button>
                               );
                             })()}
@@ -1162,7 +1138,6 @@ export function DashboardSecretaria() {
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.repesada}}>{tot('repesada').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:c.text}}>{tot('merma').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.devolucion}}>{tot('devolucionPeso').toFixed(2)}</span></td>
-                  <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.adicion}}>{tot('adicionPeso').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right">
                     <span className="font-bold text-xs tabular-nums px-1.5 py-0.5 rounded-md"
                       style={{background:'rgba(6,182,212,0.10)', border:'1px solid rgba(6,182,212,0.25)', color:COL.neto}}>
@@ -1394,6 +1369,14 @@ export function DashboardSecretaria() {
                     <X className="w-4 h-4" style={{color:c.textMuted}} />
                   </button>
                 </div>
+
+                {/* Comentario/Motivo de devolución */}
+                {fotosModal.extra && (
+                  <div className="rounded-xl p-3" style={{background: G10, border: `1px solid ${G20}`}}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: c.textMuted}}>Motivo / Comentario</p>
+                    <p className="text-sm" style={{color: c.text}}>{fotosModal.extra}</p>
+                  </div>
+                )}
 
                 {/* Grid de fotos */}
                 <div className={`grid gap-3 ${fotosModal.fotos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>

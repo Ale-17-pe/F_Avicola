@@ -339,7 +339,7 @@ export function Pedidos() {
   const pedidosProduccion = filteredPedidos.filter(p => p.estado === 'En Producción').length;
   const pedidosPesaje = filteredPedidos.filter(p => p.estado === 'En Pesaje').length;
   const pedidosDespachando = filteredPedidos.filter(p => p.estado === 'Despachando').length;
-  const pedidosCompletados = filteredPedidos.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución', 'Confirmado con Adición'].includes(p.estado)).length;
+  const pedidosCompletados = filteredPedidos.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución'].includes(p.estado)).length;
   const pedidosCancelados = filteredPedidos.filter(p => p.estado === 'Cancelado').length;
 
   const mermaTotal = pedidos.reduce((acc, p) => acc + p.mermaTotal, 0);

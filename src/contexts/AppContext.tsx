@@ -81,7 +81,7 @@ export interface PedidoConfirmado {
   numeroPedido?: string;
   numeroCliente?: string;
   esSubPedido?: boolean;
-  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Confirmado con Adición' | 'Cancelado';
+  estado?: 'Pendiente' | 'En Producción' | 'En Pesaje' | 'En Despacho' | 'Despachando' | 'En Ruta' | 'Con Incidencia' | 'Entregado' | 'Completado' | 'Completado con alerta' | 'Devolución' | 'Cancelado';
   
   // CAMPOS DE PESAJE (se llenan en PesajeOperador)
   pesoBrutoTotal?: number; // Suma de todos los bloques
@@ -108,9 +108,6 @@ export interface PedidoConfirmado {
   pesoRepesada?: number;
   pesoDevolucion?: number;
   motivoDevolucion?: string;
-  pesoAdicional?: number;
-  clienteAdicionalId?: string;
-  clienteAdicionalNombre?: string;
   ultimaIncidencia?: string | null;
   // Merma calculada del pedido
   mermaTotal?: number;
