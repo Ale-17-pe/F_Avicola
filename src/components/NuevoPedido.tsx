@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ShoppingCart, Eye, Plus, CheckCircle, X, Users, Bird, Package, Layers, ChevronRight, Tag, Trash2, RotateCcw, Grid3x3, Edit2, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, Eye, Plus, CheckCircle, X, Users, Bird, Package, Layers, ChevronRight, Tag, Trash2, RotateCcw, Grid3x3, Edit2, Save, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -60,6 +60,47 @@ export function NuevoPedido() {
   // Filtrar solo clientes y productos activos
   const clientesActivos = clientes.filter(c => c.estado !== 'Inactivo');
   const tiposAveActivos = tiposAve.filter(t => t.estado !== 'Inactivo');
+
+  // Zonas desde localStorage
+  const [zonasDisponibles, setZonasDisponibles] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('avicola_zonas');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setZonasDisponibles(parsed.map((z: { nombre: string }) => z.nombre));
+      }
+    } catch { }
+  }, []);
+
+  // Estado de filtro de zona y autocompletado de cliente por formulario
+  const [zonaFiltros, setZonaFiltros] = useState<string[]>(['', '', '', '']);
+  const [clienteSearches, setClienteSearches] = useState<string[]>(['', '', '', '']);
+  const [clienteDropdowns, setClienteDropdowns] = useState<boolean[]>([false, false, false, false]);
+  const clienteRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      clienteRefs.current.forEach((ref, i) => {
+        if (ref && !ref.contains(e.target as Node)) {
+          setClienteDropdowns(prev => { const n = [...prev]; n[i] = false; return n; });
+        }
+      });
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Filtrar clientes según zona y texto de búsqueda
+  const getClientesFiltrados = (index: number) => {
+    let lista = clientesActivos;
+    const zona = zonaFiltros[index];
+    if (zona) lista = lista.filter(cl => cl.zona === zona);
+    const texto = clienteSearches[index]?.toLowerCase().trim();
+    if (texto) lista = lista.filter(cl => cl.nombre.toLowerCase().includes(texto));
+    return lista;
+  };
 
   // Filtrar productos según costos asignados al cliente
   const getProductosParaCliente = (nombreCliente: string) => {
@@ -174,6 +215,9 @@ export function NuevoPedido() {
       setPedidosEnCola([]);
       setNumeroClienteActual(1);
       setClientesNumerados(clientes.map((c, i) => ({ nombre: c.nombre, numeroCliente: `C${String(i + 1).padStart(3, '0')}`, siguienteSubNumero: 1 })));
+      setZonaFiltros(['', '', '', '']);
+      setClienteSearches(['', '', '', '']);
+      setClienteDropdowns([false, false, false, false]);
       toast.success('Todos los datos han sido limpiados');
     }
   };
@@ -363,11 +407,14 @@ export function NuevoPedido() {
     });
 
     setPedidosEnCola(prev => [...prev, ...nuevos]);
-    setFormularios(prev => prev.map(f =>
-      f.completado
-        ? { id: f.id, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '', completado: false }
-        : f
-    ));
+    setFormularios(prev => prev.map((f, i) => {
+      if (f.completado) {
+        setZonaFiltros(prev => { const n = [...prev]; n[i] = ''; return n; });
+        setClienteSearches(prev => { const n = [...prev]; n[i] = ''; return n; });
+        return { id: f.id, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '', completado: false };
+      }
+      return f;
+    }));
     toast.success(`${nuevos.length} pedido(s) agregado(s) a la cola`);
   };
 
@@ -745,7 +792,7 @@ export function NuevoPedido() {
           const esCatOtro = info?.categoria === 'Otro';
 
           return (
-            <div key={form.id} className="border rounded-2xl p-5 relative overflow-hidden transition-all duration-300"
+            <div key={form.id} className="border rounded-2xl p-5 relative transition-all duration-300"
               style={{ background: c.bgCardAlt, borderColor: form.completado ? `${formColor}80` : c.border, boxShadow: form.completado ? `0 10px 40px -10px ${formColor}40` : c.shadowMd }}>
 
               <div className="absolute top-4 right-4 z-10">
@@ -768,15 +815,79 @@ export function NuevoPedido() {
               </div>
 
               <div className="space-y-3">
-                {/* Cliente */}
+                {/* Zona (filtro) */}
                 <div>
-                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><Users className="w-4 h-4 text-blue-400" /> Cliente</label>
-                  <select value={form.cliente} onChange={e => actualizarFormulario(form.id, 'cliente', e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all"
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><MapPin className="w-4 h-4 text-purple-400" /> Zona</label>
+                  <select value={zonaFiltros[index]} onChange={e => {
+                    const val = e.target.value;
+                    setZonaFiltros(prev => { const n = [...prev]; n[index] = val; return n; });
+                    // Si el cliente actual no pertenece a la nueva zona, limpiarlo
+                    if (val && form.cliente) {
+                      const cl = clientesActivos.find(c => c.nombre === form.cliente);
+                      if (cl && cl.zona !== val) {
+                        actualizarFormulario(form.id, 'cliente', '');
+                        setClienteSearches(prev => { const n = [...prev]; n[index] = ''; return n; });
+                      }
+                    }
+                  }}
+                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-all"
                     style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
-                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar cliente...</option>
-                    {clientesActivos.map(cl => <option key={cl.id} value={cl.nombre} style={{ background: c.bgPage, color: c.text }}>{cl.nombre}</option>)}
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Todas las zonas</option>
+                    {zonasDisponibles.map(z => <option key={z} value={z} style={{ background: c.bgPage, color: c.text }}>{z}</option>)}
                   </select>
+                </div>
+
+                {/* Cliente (autocompletado) */}
+                <div ref={el => { clienteRefs.current[index] = el; }} className="relative">
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-2" style={{ color: c.textSecondary }}><Users className="w-4 h-4 text-blue-400" /> Cliente</label>
+                  <input type="text"
+                    value={clienteSearches[index] || form.cliente}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setClienteSearches(prev => { const n = [...prev]; n[index] = val; return n; });
+                      setClienteDropdowns(prev => { const n = [...prev]; n[index] = true; return n; });
+                      // Si se borra el texto, limpiar el cliente seleccionado
+                      if (!val) actualizarFormulario(form.id, 'cliente', '');
+                    }}
+                    onFocus={() => setClienteDropdowns(prev => { const n = [...prev]; n[index] = true; return n; })}
+                    placeholder="Escriba para buscar cliente..."
+                    className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all"
+                    style={{ background: c.bgCard, borderColor: c.border, color: c.text }} />
+                  {form.cliente && (
+                    <button onClick={() => { actualizarFormulario(form.id, 'cliente', ''); setClienteSearches(prev => { const n = [...prev]; n[index] = ''; return n; }); }}
+                      className="absolute right-2 top-[34px] p-1 rounded hover:bg-white/10 transition-colors">
+                      <X className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+                    </button>
+                  )}
+                  {clienteDropdowns[index] && !form.cliente && (() => {
+                    const filtrados = getClientesFiltrados(index);
+                    if (filtrados.length === 0) return (
+                      <div className="absolute z-50 w-full mt-1 rounded-lg border shadow-2xl overflow-hidden"
+                        style={{ background: isDark ? '#1a1a1a' : '#ffffff', borderColor: c.border, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                        <div className="px-4 py-3 text-sm" style={{ color: c.textMuted }}>No se encontraron clientes</div>
+                      </div>
+                    );
+                    return (
+                      <div className="absolute z-50 w-full mt-1 rounded-lg border shadow-2xl max-h-48 overflow-y-auto"
+                        style={{ background: isDark ? '#1a1a1a' : '#ffffff', borderColor: c.border, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                        {filtrados.map(cl => (
+                          <button key={cl.id}
+                            onClick={() => {
+                              actualizarFormulario(form.id, 'cliente', cl.nombre);
+                              setClienteSearches(prev => { const n = [...prev]; n[index] = cl.nombre; return n; });
+                              setClienteDropdowns(prev => { const n = [...prev]; n[index] = false; return n; });
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm transition-all flex items-center justify-between"
+                            style={{ color: c.text, background: isDark ? '#1a1a1a' : '#ffffff', borderBottom: `1px solid ${c.border}` }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = isDark ? '#2a2a2a' : '#f3f4f6'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isDark ? '#1a1a1a' : '#ffffff'; }}>
+                            <span>{cl.nombre}</span>
+                            {cl.zona && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{cl.zona}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Producto */}
