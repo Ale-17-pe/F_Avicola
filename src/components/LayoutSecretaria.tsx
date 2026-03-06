@@ -16,6 +16,7 @@ import {
   UserCircle,
   Truck,
   ClipboardList,
+  Wallet,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -44,6 +45,11 @@ export function LayoutSecretaria() {
       label: "Cartera de Cobro",
       path: "/dashboard-secretaria",
       icon: DollarSign,
+    },
+    {
+      label: "Validación de Pagos",
+      path: "/dashboard-secretaria/validacion-pagos",
+      icon: Wallet,
     },
     {
       label: "Nuevo Pedido",

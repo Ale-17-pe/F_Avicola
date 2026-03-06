@@ -138,13 +138,16 @@ export interface Pago {
   clienteId: string;
   clienteNombre: string;
   monto: number;
-  metodo: 'Efectivo' | 'Transferencia' | 'Yape' | 'Plin' | 'Otro';
+  metodo: 'Efectivo' | 'Yape' | 'Plin' | 'BCP' | 'Interbank' | 'BBVA';
   fecha: string;
   hora: string;
-  referencia?: string; // Para números de operación o notas
-  foto?: string; // URL de la foto del comprobante
+  referencia?: string;
+  observaciones?: string;
+  foto?: string; // base64 data-url del comprobante
   estado: 'Pendiente' | 'Confirmado' | 'Rechazado';
   registradoPor: string;
+  /** Fechas de pedidos que cubre este pago */
+  fechasCubiertas?: string[];
 }
 
 interface AppContextType {

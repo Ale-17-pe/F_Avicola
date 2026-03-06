@@ -29,8 +29,7 @@ import { LayoutOperador } from "./components/LayoutOperador";
 import { LayoutConductor } from "./components/LayoutConductor";
 import { GestionConductor } from "./components/GestionConductor";
 import { LayoutCobranza } from "./components/LayoutCobranza";
-import { GestionCobranza } from "./components/GestionCobranza";
-import { History as HistoryIcon } from "lucide-react";
+import { GestionCobranza } from "./components/GestionCobranza";import { ValidacionPagos } from './components/ValidacionPagos';import { History as HistoryIcon } from "lucide-react";
 
 export const router = createBrowserRouter([
   {
@@ -174,6 +173,12 @@ export const router = createBrowserRouter([
       { 
         path: "control", 
         Component: Control 
+      },
+
+      // Validación de Pagos (Secretaría)
+      {
+        path: "validacion-pagos",
+        Component: ValidacionPagos
       },
     ],
   },

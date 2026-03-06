@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Wallet, MapPin, Search, User, ChevronLeft,
   Calendar, DollarSign, ArrowLeft, CreditCard,
-  ChevronDown, ChevronUp, Lock, Package
+  ChevronDown, ChevronUp, Lock, Package, Clock, CheckCircle
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ModalPago } from './ModalPago';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface FilaCartera {
@@ -107,28 +108,29 @@ export function GestionCobranza() {
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Per-client per-day payment state stored in localStorage
-  const pagosDiaKey = (clienteNombre: string) => `cobranzaPagosDia_${clienteNombre}`;
-  
-  const getPagosDia = (clienteNombre: string): PagosDia => {
-    try {
-      const data = localStorage.getItem(pagosDiaKey(clienteNombre));
-      return data ? JSON.parse(data) : {};
-    } catch { return {}; }
+  // ─── MODAL PAGO STATE ───────────────────────────────────────────
+  const [modalPagoOpen, setModalPagoOpen] = useState(false);
+  const [modalPagoMonto, setModalPagoMonto] = useState(0);
+  const [modalPagoFechas, setModalPagoFechas] = useState<string[]>([]);
+
+  /** Check if a day is paid for a client (either has a Confirmado pago or a Pendiente pago) */
+  const isDiaPagado = (clienteNombre: string, fecha: string): 'pagado' | 'pendiente' | 'no' => {
+    const pagosCliente = pagos.filter(p => p.clienteNombre === clienteNombre && p.fechasCubiertas?.includes(fecha));
+    if (pagosCliente.some(p => p.estado === 'Confirmado')) return 'pagado';
+    if (pagosCliente.some(p => p.estado === 'Pendiente')) return 'pendiente';
+    return 'no';
   };
 
-  const setPagoDia = (clienteNombre: string, fecha: string, pagado: boolean) => {
-    const current = getPagosDia(clienteNombre);
-    current[fecha] = pagado;
-    localStorage.setItem(pagosDiaKey(clienteNombre), JSON.stringify(current));
-    setRefreshKey(k => k + 1);
+  const abrirPagoDia = (fecha: string, monto: number) => {
+    setModalPagoMonto(monto);
+    setModalPagoFechas([fecha]);
+    setModalPagoOpen(true);
   };
 
-  const setPagarTodo = (clienteNombre: string, fechas: string[]) => {
-    const current = getPagosDia(clienteNombre);
-    fechas.forEach(f => { current[f] = true; });
-    localStorage.setItem(pagosDiaKey(clienteNombre), JSON.stringify(current));
-    setRefreshKey(k => k + 1);
+  const abrirPagoTodo = (fechas: string[], monto: number) => {
+    setModalPagoMonto(monto);
+    setModalPagoFechas(fechas);
+    setModalPagoOpen(true);
   };
 
   // Get unique clients who made orders (from pedidosConfirmados) + also from cartera
@@ -160,7 +162,6 @@ export function GestionCobranza() {
     if (!selectedCliente) return null;
 
     const porDia = getFilasLiquidadasPorCliente(selectedCliente);
-    const pagosDia = getPagosDia(selectedCliente);
 
     // Sort dates ascending for saldo calculation
     const fechasAsc = Array.from(porDia.keys()).sort();
@@ -171,14 +172,14 @@ export function GestionCobranza() {
     const diasData = fechasAsc.map(fecha => {
       const filas = porDia.get(fecha) || [];
       const totalDia = filas.reduce((s, f) => s + f.total, 0);
-      const pagado = pagosDia[fecha] === true;
+      const estadoPago = isDiaPagado(selectedCliente, fecha);
 
       const saldoAnterior = saldoAcumulado;
-      if (!pagado) {
+      if (estadoPago === 'no') {
         saldoAcumulado += totalDia;
       }
 
-      return { fecha, filas, totalDia, pagado, saldoAnterior };
+      return { fecha, filas, totalDia, estadoPago, saldoAnterior };
     });
 
     // Reverse to show most recent first
@@ -186,11 +187,11 @@ export function GestionCobranza() {
 
     // Grand total = sum of all unpaid days
     const totalPendiente = diasData
-      .filter(d => !d.pagado)
+      .filter(d => d.estadoPago === 'no')
       .reduce((s, d) => s + d.totalDia, 0);
 
     return { fechas: diasDataDesc, totalPendiente, saldoAcumulado };
-  }, [selectedCliente, refreshKey]);
+  }, [selectedCliente, refreshKey, pagos]);
 
   const clienteObj = clientes.find(c => c.nombre === selectedCliente);
 
@@ -233,14 +234,15 @@ export function GestionCobranza() {
             {clientesConPedidos.map((cliente, idx) => {
               // Quick check for pending amounts
               const porDia = getFilasLiquidadasPorCliente(cliente.nombre);
-              const pagosDia = getPagosDia(cliente.nombre);
               let totalPendiente = 0;
+              let diasPendientes = 0;
               porDia.forEach((filas, fecha) => {
-                if (pagosDia[fecha] !== true) {
+                const estado = isDiaPagado(cliente.nombre, fecha);
+                if (estado === 'no') {
                   totalPendiente += filas.reduce((s, f) => s + f.total, 0);
+                  diasPendientes++;
                 }
               });
-              const diasPendientes = Array.from(porDia.keys()).filter(f => pagosDia[f] !== true).length;
 
               return (
                 <motion.div
@@ -344,15 +346,15 @@ export function GestionCobranza() {
       ) : (
         <>
           {/* Day-by-day tables */}
-          {clienteData.fechas.map(({ fecha, filas, totalDia, pagado, saldoAnterior }) => (
+          {clienteData.fechas.map(({ fecha, filas, totalDia, estadoPago, saldoAnterior }) => (
             <DiaTable
               key={fecha}
               fecha={fecha}
               filas={filas}
               totalDia={totalDia}
               saldoAnterior={saldoAnterior}
-              pagado={pagado}
-              onPagar={() => setPagoDia(selectedCliente, fecha, true)}
+              estadoPago={estadoPago}
+              onPagar={() => abrirPagoDia(fecha, totalDia)}
             />
           ))}
 
@@ -395,8 +397,8 @@ export function GestionCobranza() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    const fechasNoPagadas = clienteData.fechas.filter(d => !d.pagado).map(d => d.fecha);
-                    setPagarTodo(selectedCliente, fechasNoPagadas);
+                    const fechasNoPagadas = clienteData.fechas.filter(d => d.estadoPago === 'no').map(d => d.fecha);
+                    abrirPagoTodo(fechasNoPagadas, clienteData.totalPendiente);
                   }}
                   className="w-full py-3.5 mt-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all text-black"
                   style={{
@@ -416,6 +418,19 @@ export function GestionCobranza() {
               )}
             </div>
           </div>
+
+          {/* ─── MODAL PAGO ──────────────────────────────────────────── */}
+          {selectedCliente && (
+            <ModalPago
+              isOpen={modalPagoOpen}
+              onClose={() => { setModalPagoOpen(false); setRefreshKey(k => k + 1); }}
+              clienteNombre={selectedCliente}
+              clienteId={clienteObj?.id || ''}
+              monto={modalPagoMonto}
+              fechasCubiertas={modalPagoFechas}
+              onPagoRegistrado={() => setRefreshKey(k => k + 1)}
+            />
+          )}
         </>
       )}
     </div>
@@ -434,16 +449,24 @@ const TH_COLS: { label: string; align: 'left' | 'right'; width?: string }[] = [
 ];
 
 // ─── DiaTable — Table for a single day ────────────────────────────────────────
-function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
+function DiaTable({ fecha, filas, totalDia, saldoAnterior, estadoPago, onPagar }: {
   fecha: string;
   filas: FilaCartera[];
   totalDia: number;
   saldoAnterior: number;
-  pagado: boolean;
+  estadoPago: 'pagado' | 'pendiente' | 'no';
   onPagar: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const totalConSaldo = totalDia + saldoAnterior;
+
+  const esPagado = estadoPago === 'pagado';
+  const esPendiente = estadoPago === 'pendiente';
+  const borderColor = esPagado
+    ? 'rgba(16,185,129,0.25)'
+    : esPendiente
+      ? 'rgba(245,158,11,0.25)'
+      : G15;
 
   return (
     <motion.div
@@ -452,8 +475,8 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
       className="rounded-2xl overflow-hidden"
       style={{
         background: G04,
-        border: `1px solid ${pagado ? 'rgba(16,185,129,0.25)' : G15}`,
-        opacity: pagado ? 0.7 : 1,
+        border: `1px solid ${borderColor}`,
+        opacity: esPagado ? 0.7 : 1,
       }}
     >
       {/* Day header */}
@@ -466,15 +489,21 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
           <Calendar className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-bold text-white">{formatFecha(fecha)}</span>
           <span className="text-[10px] text-gray-500 font-mono">{filas.length} pedido{filas.length > 1 ? 's' : ''}</span>
-          {pagado && (
+          {esPagado && (
             <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-              Pagado
+              <CheckCircle className="w-3 h-3 inline mr-1" />Pagado
+            </span>
+          )}
+          {esPendiente && (
+            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1"
+              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+              <Clock className="w-3 h-3" /> En espera
             </span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-black tabular-nums" style={{ color: pagado ? '#10b981' : COL.total }}>
+          <span className="text-sm font-black tabular-nums" style={{ color: esPagado ? '#10b981' : esPendiente ? '#f59e0b' : COL.total }}>
             S/ {totalDia.toFixed(2)}
           </span>
           {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronUp className="w-3.5 h-3.5 text-gray-500" />}
@@ -580,8 +609,8 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
               </table>
             </div>
 
-            {/* Pay this day button */}
-            {!pagado && (
+            {/* Pay this day button / status */}
+            {estadoPago === 'no' && (
               <div className="px-4 py-3" style={{ borderTop: `1px solid ${G10}` }}>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -597,6 +626,12 @@ function DiaTable({ fecha, filas, totalDia, saldoAnterior, pagado, onPagar }: {
                   <DollarSign className="w-3.5 h-3.5" />
                   Pagar este día — S/ {totalDia.toFixed(2)}
                 </motion.button>
+              </div>
+            )}
+            {estadoPago === 'pendiente' && (
+              <div className="px-4 py-3 flex items-center justify-center gap-2" style={{ borderTop: `1px solid ${G10}` }}>
+                <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                <span className="text-xs font-bold text-amber-400">Pago en espera de validación</span>
               </div>
             )}
           </motion.div>
