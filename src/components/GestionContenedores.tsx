@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Settings, Scale, Box, Layers, ArrowUpDown, Edit3, Trash2, AlertCircle, TrendingUp, Weight, BarChart3, X, Check, History } from 'lucide-react';
+import { Package, Settings, Scale, Box, Layers, ArrowUpDown, Edit3, Trash2, AlertCircle, TrendingUp, Weight, BarChart3, X, Check } from 'lucide-react';
 import { ModalContenedores } from './ModalContenedores';
 import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -741,88 +741,6 @@ export function GestionContenedores() {
             <p className="text-xs mt-1" style={{ color: c.textMuted }}>Toca "Gestionar" para agregar</p>
           </div>
         )}
-      </div>
-
-      {/* Uso Reciente de Contenedores (Log de Pesajes) */}
-      <div 
-        className="backdrop-blur-xl rounded-xl overflow-hidden shadow-2xl shadow-amber-900/10"
-        style={{ background: c.bgCard, border: `1px solid ${c.borderGold}` }}
-      >
-        <div className="px-6 py-4 flex items-center justify-between"
-          style={{ background: `linear-gradient(135deg, rgba(59, 130, 246, 0.15), ${c.bgCardAlt})`, borderBottom: `1px solid ${c.borderGold}` }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', boxShadow: '0 4px 15px rgba(59,130,246,0.4)' }}>
-              <History className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold" style={{ color: c.text }}>Uso Reciente de Contenedores</h3>
-              <p className="text-xs" style={{ color: c.textMuted }}>Últimos pesajes registrados en el sistema</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
-                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Fecha/Hora</th>
-                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Cliente</th>
-                <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Contenedor</th>
-                <th className="px-6 py-4 text-center font-bold text-xs tracking-wider uppercase text-amber-400">Cant.</th>
-                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Tara Total</th>
-                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Peso Neto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedidosConfirmados
-                .filter(p => (p.ticketEmitido || p.estado === 'En Pesaje') && p.contenedor !== 'Por definir en pesaje')
-                .sort((a, b) => {
-                  const dateA = new Date(`${a.fechaPesaje || a.fecha} ${a.horaPesaje || a.hora}`).getTime();
-                  const dateB = new Date(`${b.fechaPesaje || b.fecha} ${b.horaPesaje || b.hora}`).getTime();
-                  return dateB - dateA;
-                })
-                .slice(0, 10)
-                .map((pedido) => (
-                  <tr key={pedido.id} className="transition-all duration-200" style={{ borderBottom: `1px solid ${c.borderSubtle}` }}>
-                    <td className="px-6 py-4">
-                      <div className="text-xs font-medium" style={{ color: c.text }}>{pedido.fechaPesaje || pedido.fecha}</div>
-                      <div className="text-[10px]" style={{ color: c.textMuted }}>{pedido.horaPesaje || pedido.hora}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-sm truncate max-w-[150px]" style={{ color: c.text }}>{pedido.cliente}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Box className="w-3.5 h-3.5 text-amber-500/70" />
-                        <span className="text-blue-300 font-medium text-xs">{pedido.contenedor}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="font-bold text-sm" style={{ color: c.text }}>{pedido.cantidadTotalContenedores || '—'}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-red-400 font-mono text-sm font-bold">
-                        {pedido.pesoTotalContenedores ? `-${pedido.pesoTotalContenedores.toFixed(1)} kg` : '—'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-green-400 font-mono text-sm font-bold">
-                        {pedido.pesoNetoTotal ? `${pedido.pesoNetoTotal.toFixed(1)} kg` : '—'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              {pedidosConfirmados.filter(p => (p.ticketEmitido || p.estado === 'En Pesaje') && p.contenedor !== 'Por definir en pesaje').length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center italic text-sm" style={{ color: c.textMuted }}>
-                    No hay registros de uso de contenedores aún
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Modal Gestionar Contenedores */}
