@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   X, DollarSign, Smartphone, CreditCard, Camera, QrCode, Copy,
   CheckCircle, AlertTriangle, Loader2, ChevronLeft, Eye, Trash2,
-  Banknote, Clock
+  Banknote, Clock, XCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp, Pago } from '../contexts/AppContext';
@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 // ─── TYPES ────────────────────────────────────────────────────────
 type MetodoPago = Pago['metodo'];
-type Paso = 'metodo' | 'efectivo' | 'digital-sub' | 'digital-detalle' | 'preconfirm' | 'esperando' | 'completado';
+type Paso = 'metodo' | 'efectivo' | 'digital-sub' | 'digital-detalle' | 'preconfirm' | 'esperando' | 'completado' | 'rechazado';
 
 interface ModalPagoProps {
   isOpen: boolean;
@@ -60,12 +60,36 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   const [montoManual, setMontoManual] = useState(false);
   const [montoInput, setMontoInput] = useState('');
 
+  // ─── NÚMERO DE OPERACIÓN ─────────────────────────────────────
+  const [numeroOperacion, setNumeroOperacion] = useState('');
+
+  // Validation rules per payment method
+  const OPERACION_RULES: Record<string, { min: number; max: number; label: string }> = {
+    Yape:      { min: 8,  max: 8,  label: '8 dígitos' },
+    Plin:      { min: 8,  max: 12, label: '8 a 12 dígitos' },
+    BCP:       { min: 6,  max: 10, label: '6 a 10 dígitos' },
+    BBVA:      { min: 6,  max: 8,  label: '6 a 8 dígitos' },
+    Interbank: { min: 6,  max: 9,  label: '6 a 9 dígitos' },
+  };
+
+  const getOperacionValidation = () => {
+    if (!metodoSeleccionado || metodoSeleccionado === 'Efectivo') return null;
+    const rule = OPERACION_RULES[metodoSeleccionado];
+    if (!rule) return null;
+    const len = numeroOperacion.length;
+    const isValid = /^\d+$/.test(numeroOperacion) && len >= rule.min && len <= rule.max;
+    return { ...rule, isValid, len };
+  };
+
   // ─── REAL-TIME: Watch for confirmation from Secretaría ─────────
   useEffect(() => {
     if (paso !== 'esperando' || !pagoRegistradoId) return;
     const pagoActual = pagos.find(p => p.id === pagoRegistradoId);
     if (pagoActual && pagoActual.estado === 'Confirmado') {
       setPaso('completado');
+    }
+    if (pagoActual && pagoActual.estado === 'Rechazado') {
+      setPaso('rechazado');
     }
   }, [pagos, paso, pagoRegistradoId]);
 
@@ -86,6 +110,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
     setMontoManual(false);
     setMontoInput('');
     setMontoAPagar(monto);
+    setNumeroOperacion('');
   }, [monto]);
 
   // ─── MONTO INPUT HANDLER ──────────────────────────────────────
@@ -171,6 +196,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
       estado: 'Pendiente',
       registradoPor: 'Cobranza',
       fechasCubiertas,
+      numeroOperacion: (metodoSeleccionado !== 'Efectivo' && numeroOperacion.trim()) ? numeroOperacion.trim() : undefined,
     };
 
     addPago(nuevoPago);
@@ -192,14 +218,16 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
   const metodoDigitalInfo = DIGITAL_METHODS.find(m => m.id === metodoSeleccionado);
   const esBanco = metodoDigitalInfo?.tipo === 'banco';
   const requiereFoto = metodoSeleccionado !== 'Efectivo' && metodoSeleccionado !== null;
-  const puedeConfirmar = montoAPagar > 0 && (metodoSeleccionado === 'Efectivo' || (requiereFoto && !!fotoBase64));
+  const operacionValidation = getOperacionValidation();
+  const operacionValida = metodoSeleccionado === 'Efectivo' || !operacionValidation || operacionValidation.isValid;
+  const puedeConfirmar = montoAPagar > 0 && (metodoSeleccionado === 'Efectivo' || (requiereFoto && !!fotoBase64 && operacionValida));
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3"
       style={{ background: c.bgModalOverlay }}
-      onClick={(e) => e.target === e.currentTarget && paso !== 'esperando' && paso !== 'completado' && handleClose()}
+      onClick={(e) => e.target === e.currentTarget && paso !== 'esperando' && paso !== 'completado' && paso !== 'rechazado' && handleClose()}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -229,7 +257,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
             {paso !== 'metodo' && paso !== 'esperando' && paso !== 'completado' && (
               <button onClick={() => {
                 if (paso === 'preconfirm') setPaso(metodoSeleccionado === 'Efectivo' ? 'efectivo' : 'digital-detalle');
-                else if (paso === 'digital-detalle') { setPaso('digital-sub'); setFotoBase64(null); }
+                else if (paso === 'digital-detalle') { setPaso('digital-sub'); setFotoBase64(null); setNumeroOperacion(''); }
                 else if (paso === 'digital-sub') { setPaso('metodo'); setMetodoSeleccionado(null); }
                 else if (paso === 'efectivo') { setPaso('metodo'); setMetodoSeleccionado(null); }
               }}
@@ -246,11 +274,12 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                 {paso === 'preconfirm' && 'Confirmar Pago'}
                 {paso === 'esperando' && 'Pago Registrado'}
                 {paso === 'completado' && 'Pago Completado'}
+                {paso === 'rechazado' && 'Pago Rechazado'}
               </h3>
               <p className="text-[10px]" style={{ color: c.textMuted }}>{clienteNombre}</p>
             </div>
           </div>
-          {paso !== 'esperando' && paso !== 'completado' && (
+          {paso !== 'esperando' && paso !== 'completado' && paso !== 'rechazado' && (
             <button onClick={handleClose}
               className="p-2 rounded-lg transition-all">
               <X className="w-4 h-4" style={{ color: c.textSecondary }} />
@@ -259,7 +288,7 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
         </div>
 
         {/* ─── MONTO DISPLAY ──────────────────────────────────────── */}
-        {paso !== 'esperando' && paso !== 'completado' && (
+        {paso !== 'esperando' && paso !== 'completado' && paso !== 'rechazado' && (
           <div className="px-5 py-4" style={{ borderBottom: `1px solid ${c.g06}` }}>
             <p className="text-[10px] uppercase tracking-widest font-bold mb-2 text-center" style={{ color: c.textMuted }}>Monto a pagar</p>
             {montoManual && paso === 'metodo' ? (
@@ -562,16 +591,63 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               {/* Observaciones */}
               <div>
                 <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block" style={{ color: c.textMuted }}>
+                  Número de Operación *
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={numeroOperacion}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    const rule = OPERACION_RULES[metodoSeleccionado || ''];
+                    if (rule && val.length <= rule.max) {
+                      setNumeroOperacion(val);
+                    } else if (!rule) {
+                      setNumeroOperacion(val);
+                    }
+                  }}
+                  placeholder={`Ej: ${'0'.repeat(OPERACION_RULES[metodoSeleccionado || '']?.min || 8)}`}
+                  className="w-full px-4 py-3 rounded-xl text-sm placeholder-gray-600 outline-none transition-all font-mono tracking-wider"
+                  style={{
+                    color: c.text,
+                    background: c.g06,
+                    border: `1px solid ${numeroOperacion && operacionValidation && !operacionValidation.isValid ? 'rgba(245,158,11,0.50)' : c.g15}`,
+                  }}
+                  onFocus={e => (e.target.style.borderColor = metodoDigitalInfo!.color + '80')}
+                  onBlur={e => (e.target.style.borderColor = numeroOperacion && operacionValidation && !operacionValidation.isValid ? 'rgba(245,158,11,0.50)' : c.g15)}
+                />
+                {operacionValidation && (
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    {operacionValidation.isValid ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[10px] text-emerald-400 font-bold">Número válido</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-3 h-3 text-amber-400" />
+                        <span className="text-[10px] text-amber-400">
+                          {metodoDigitalInfo?.label}: {operacionValidation.label} (numérico)
+                          {numeroOperacion.length > 0 && ` — actual: ${numeroOperacion.length} dígitos`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-widest font-bold mb-2 block" style={{ color: c.textMuted }}>
                   Observaciones (opcional)
                 </label>
                 <textarea
                   value={observaciones}
                   onChange={e => setObservaciones(e.target.value)}
-                  placeholder="Nro. de operación, notas..."
+                  placeholder="Notas adicionales..."
                   rows={2}
                   className="w-full px-4 py-3 rounded-xl text-sm placeholder-gray-600 outline-none resize-none transition-all"
                   style={{ color: c.text, background: c.g06, border: `1px solid ${c.g15}` }}
-                  onFocus={e => (e.target.style.borderColor = metodoDigitalInfo.color + '80')}
+                  onFocus={e => (e.target.style.borderColor = metodoDigitalInfo!.color + '80')}
                   onBlur={e => (e.target.style.borderColor = c.g15)}
                 />
               </div>
@@ -658,6 +734,12 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
                   <div className="flex justify-between text-xs">
                     <span style={{ color: c.textMuted }}>Observaciones</span>
                     <span className="text-right max-w-[60%]" style={{ color: c.textSecondary }}>{observaciones.trim()}</span>
+                  </div>
+                )}
+                {numeroOperacion.trim() && metodoSeleccionado !== 'Efectivo' && (
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: c.textMuted }}>Nro. Operación</span>
+                    <span className="font-bold font-mono" style={{ color: metodoDigitalInfo?.color || c.text }}>{numeroOperacion.trim()}</span>
                   </div>
                 )}
                 {fotoBase64 && (
@@ -787,6 +869,71 @@ export function ModalPago({ isOpen, onClose, clienteNombre, clienteId, monto, fe
               </button>
             </motion.div>
           )}
+
+          {/* ─── RECHAZADO (Digital rechazado por secretaría) ─────── */}
+          {paso === 'rechazado' && (() => {
+            const pagoRechazado = pagos.find(p => p.id === pagoRegistradoId);
+            return (
+              <motion.div
+                key="rechazado"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-8 text-center space-y-5"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '2px solid rgba(239,68,68,0.30)' }}
+                >
+                  <XCircle className="w-10 h-10 text-red-400" />
+                </motion.div>
+
+                <div>
+                  <h4 className="text-white font-bold text-lg mb-2">Pago Rechazado</h4>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    El pago de <strong className="text-white">S/ {montoAPagar.toFixed(2)}</strong> ha sido{' '}
+                    <strong className="text-red-400">rechazado por secretaría</strong>.
+                  </p>
+                </div>
+
+                {pagoRechazado?.motivoRechazo && (
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                    <div className="flex items-center justify-center gap-2 text-red-400 mb-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase">Motivo del rechazo</span>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: c.text }}>
+                      {pagoRechazado.motivoRechazo}
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <div className="flex items-center justify-center gap-2 text-red-400">
+                    <XCircle className="w-4 h-4" />
+                    <span className="text-xs font-bold">
+                      Debe volver a registrar el pago
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => { resetState(); onClose(); }}
+                  className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: '#fff',
+                    boxShadow: '0 4px 16px rgba(239,68,68,0.30)',
+                  }}
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Cerrar
+                </button>
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </motion.div>
     </div>
