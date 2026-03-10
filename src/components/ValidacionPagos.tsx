@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import {
-  CheckCircle, XCircle, Clock, Eye, User, Calendar,
+  CheckCircle, XCircle, Clock, Eye, Calendar,
   DollarSign, Smartphone, Banknote, CreditCard,
   AlertTriangle, ChevronDown, ChevronUp, Search, Filter,
-  MessageSquare
+  MessageSquare, Hash, ShieldCheck, Ban
 } from 'lucide-react';
 import { useApp, Pago } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -40,13 +40,15 @@ const getFechaHoyPeru = () => {
   return `${y}-${m}-${d}`;
 };
 
+type FiltroEstado = 'pendientes' | 'confirmados' | 'rechazados' | 'todos';
+
 // ─── COMPONENT ────────────────────────────────────────────────────
 export function ValidacionPagos() {
   const { isDark } = useTheme();
   const c = t(isDark);
   const { pagos, updatePago } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filtro, setFiltro] = useState<'pendientes' | 'todos' | 'confirmados'>('pendientes');
+  const [filtro, setFiltro] = useState<FiltroEstado>('pendientes');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ pago: Pago; accion: 'confirmar' | 'rechazar' } | null>(null);
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
@@ -61,24 +63,31 @@ export function ValidacionPagos() {
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [confirmarRechazo, setConfirmarRechazo] = useState(false);
 
+  // ─── STATS ───────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const hoy = getFechaHoyPeru();
+    const pagosHoy = pagos.filter(p => p.fecha === hoy);
+    return {
+      pendientes: pagos.filter(p => p.estado === 'Pendiente').length,
+      confirmados: pagosHoy.filter(p => p.estado === 'Confirmado').length,
+      rechazados: pagosHoy.filter(p => p.estado === 'Rechazado').length,
+      totalHoy: pagosHoy.filter(p => p.estado === 'Confirmado').reduce((s, p) => s + p.monto, 0),
+    };
+  }, [pagos]);
+
   const pagosFiltrados = useMemo(() => {
     let lista = [...pagos].sort((a, b) => {
-      // Pendientes first, then by date desc
       if (a.estado === 'Pendiente' && b.estado !== 'Pendiente') return -1;
       if (a.estado !== 'Pendiente' && b.estado === 'Pendiente') return 1;
       return (b.fecha + b.hora).localeCompare(a.fecha + a.hora);
     });
 
-    // Date filter — always use current date
-    const fechaHoy = getFechaHoyPeru();
     if (filterFecha) lista = lista.filter(p => p.fecha === filterFecha);
 
-    // Payment type filter (fisico / digital)
     if (filtroTipoPago === 'fisico') {
       lista = lista.filter(p => METODO_CONFIG[p.metodo]?.tipo === 'fisico');
     } else if (filtroTipoPago === 'digital') {
       lista = lista.filter(p => METODO_CONFIG[p.metodo]?.tipo === 'digital');
-      // Sub-filter by specific digital method
       if (filtroMetodoDigital !== 'todos') {
         lista = lista.filter(p => p.metodo === filtroMetodoDigital);
       }
@@ -86,6 +95,7 @@ export function ValidacionPagos() {
 
     if (filtro === 'pendientes') lista = lista.filter(p => p.estado === 'Pendiente');
     else if (filtro === 'confirmados') lista = lista.filter(p => p.estado === 'Confirmado');
+    else if (filtro === 'rechazados') lista = lista.filter(p => p.estado === 'Rechazado');
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -98,7 +108,6 @@ export function ValidacionPagos() {
     return lista;
   }, [pagos, filtro, searchTerm, filterFecha, filtroTipoPago, filtroMetodoDigital]);
 
-  // Group payments by day (chronological, most recent first)
   const pagosPorDia = useMemo(() => {
     const grouped = new Map<string, Pago[]>();
     pagosFiltrados.forEach(pago => {
@@ -114,10 +123,9 @@ export function ValidacionPagos() {
         totalMonto: pagos.reduce((s, p) => s + p.monto, 0),
         pendientesDia: pagos.filter(p => p.estado === 'Pendiente').length,
         confirmadosDia: pagos.filter(p => p.estado === 'Confirmado').length,
+        rechazadosDia: pagos.filter(p => p.estado === 'Rechazado').length,
       }));
   }, [pagosFiltrados]);
-
-  const pendientes = pagos.filter(p => p.estado === 'Pendiente').length;
 
   const handleValidar = (pago: Pago, accion: 'confirmar' | 'rechazar') => {
     if (accion === 'rechazar') {
@@ -162,32 +170,60 @@ export function ValidacionPagos() {
   };
 
   return (
-    <div className="space-y-5 pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(204,170,0,0.12)', border: `1px solid rgba(204,170,0,0.30)` }}>
-            <DollarSign className="w-5 h-5" style={{ color: GOLD }} />
+    <div className="space-y-4 pb-20">
+      {/* ─── HEADER ───────────────────────────────────────────────── */}
+      <div className="rounded-2xl p-5" style={{ background: `linear-gradient(135deg, ${c.g04}, ${c.g06})`, border: `1px solid ${c.g10}` }}>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ background: `${GOLD}15`, border: `1.5px solid ${GOLD}35` }}>
+              <ShieldCheck className="w-5.5 h-5.5" style={{ color: GOLD }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-black tracking-tight" style={{ color: c.text }}>Validación de Pagos</h2>
+              <p className="text-[11px] mt-0.5" style={{ color: c.textMuted }}>
+                {stats.pendientes > 0
+                  ? <span className="text-amber-400 font-bold">{stats.pendientes} pago{stats.pendientes > 1 ? 's' : ''} pendiente{stats.pendientes > 1 ? 's' : ''} de revisión</span>
+                  : <span className="text-emerald-400 font-semibold">✓ Todo al día — Sin pagos pendientes</span>}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold" style={{ color: c.text }}>Validación de Pagos</h2>
-            <p className="text-xs" style={{ color: c.textMuted }}>
-              {pendientes > 0
-                ? <span className="text-amber-400 font-bold">{pendientes} pago{pendientes > 1 ? 's' : ''} pendiente{pendientes > 1 ? 's' : ''}</span>
-                : <span className="text-emerald-400">Sin pagos pendientes</span>}
-            </p>
-          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex gap-2 overflow-x-auto">
+          {[
+            { label: 'Pendientes', value: stats.pendientes, color: '#f59e0b', icon: Clock },
+            { label: 'Confirmados', value: stats.confirmados, color: '#10b981', icon: CheckCircle },
+            { label: 'Rechazados', value: stats.rechazados, color: '#ef4444', icon: XCircle },
+            { label: 'Recaudado', value: null, monto: stats.totalHoy, color: GOLD, icon: DollarSign },
+          ].map(s => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="flex-1 min-w-0 rounded-xl px-3 py-2.5 flex items-center gap-2.5" style={{ background: s.color + '0a', border: `1px solid ${s.color}20` }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: s.color + '15' }}>
+                  <Icon className="w-4 h-4" style={{ color: s.color }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black tabular-nums font-mono leading-tight" style={{ color: s.color }}>
+                    {s.monto !== undefined ? `S/ ${s.monto.toFixed(0)}` : s.value}
+                  </p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: s.color + '80' }}>{s.label}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Search + Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* ─── FILTERS BAR ──────────────────────────────────────────── */}
+      <div className="rounded-2xl p-4 space-y-3" style={{ background: c.g04, border: `1px solid ${c.g10}` }}>
+        {/* Search */}
+        <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
           <input
             type="text"
-            placeholder="Buscar por cliente..."
+            placeholder="Buscar por cliente o método..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm placeholder-gray-600 outline-none transition-all"
@@ -197,94 +233,105 @@ export function ValidacionPagos() {
           />
         </div>
 
-        <div className="flex gap-1.5">
-          {([
-            { key: 'pendientes', label: 'Pendientes', color: '#f59e0b' },
-            { key: 'confirmados', label: 'Confirmados', color: '#10b981' },
-            { key: 'todos', label: 'Todos', color: '#9ca3af' },
-          ] as const).map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFiltro(f.key)}
-              className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
-              style={{
-                background: filtro === f.key ? f.color + '20' : c.g06,
-                border: `1px solid ${filtro === f.key ? f.color + '50' : c.g15}`,
-                color: filtro === f.key ? f.color : c.textMuted,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+        {/* Estado filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Estado</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {([
+              { key: 'pendientes',  label: 'Pendientes',  color: '#f59e0b', icon: Clock },
+              { key: 'confirmados', label: 'Confirmados', color: '#10b981', icon: CheckCircle },
+              { key: 'rechazados',  label: 'Rechazados',  color: '#ef4444', icon: Ban },
+              { key: 'todos',       label: 'Todos',       color: '#9ca3af', icon: Filter },
+            ] as const).map(f => {
+              const Icon = f.icon;
+              const isActive = filtro === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFiltro(f.key)}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                  style={{
+                    background: isActive ? f.color + '20' : 'transparent',
+                    border: `1px solid ${isActive ? f.color + '50' : c.g15}`,
+                    color: isActive ? f.color : c.textMuted,
+                  }}
+                >
+                  <Icon className="w-3 h-3" />
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Date filter */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Fecha</span>
-        <input
-          type="date"
-          value={filterFecha}
-          onChange={e => setFilterFecha(e.target.value || getFechaHoyPeru())}
-          className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
-          style={{ color: c.text, background: c.g08, border: `1px solid ${c.g15}` }}
-        />
-        {filterFecha !== getFechaHoyPeru() && (
-          <button
-            onClick={() => setFilterFecha(getFechaHoyPeru())}
-            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors"
-            style={{ color: c.textSecondary, background: c.g08, border: `1px solid ${c.g15}` }}
-          >
-            Hoy
-          </button>
-        )}
-        {filterFecha && (
-          <button
-            onClick={() => setFilterFecha('')}
-            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors"
-            style={{ color: c.textSecondary, background: c.g08, border: `1px solid ${c.g15}` }}
-          >
-            Ver todos
-          </button>
-        )}
-      </div>
+        {/* Date + Type filters */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Date */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+            <input
+              type="date"
+              value={filterFecha}
+              onChange={e => setFilterFecha(e.target.value || getFechaHoyPeru())}
+              className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
+              style={{ color: c.text, background: c.g06, border: `1px solid ${c.g15}` }}
+            />
+            {filterFecha !== getFechaHoyPeru() && (
+              <button
+                onClick={() => setFilterFecha(getFechaHoyPeru())}
+                className="px-2 py-1 rounded-md text-[10px] font-bold transition-colors"
+                style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}
+              >
+                Hoy
+              </button>
+            )}
+            {filterFecha && (
+              <button
+                onClick={() => setFilterFecha('')}
+                className="px-2 py-1 rounded-md text-[10px] font-bold transition-colors"
+                style={{ color: c.textMuted, background: c.g06, border: `1px solid ${c.g15}` }}
+              >
+                Todas
+              </button>
+            )}
+          </div>
 
-      {/* Payment type filter */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Tipo</span>
-        <div className="flex gap-1.5">
-          {([
-            { key: 'todos', label: 'Todos', color: '#9ca3af' },
-            { key: 'fisico', label: 'Físico', color: '#10b981' },
-            { key: 'digital', label: 'Digital', color: '#8b5cf6' },
-          ] as const).map(f => (
-            <button
-              key={f.key}
-              onClick={() => { setFiltroTipoPago(f.key); if (f.key !== 'digital') setFiltroMetodoDigital('todos'); }}
-              className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-              style={{
-                background: filtroTipoPago === f.key ? f.color + '20' : c.g06,
-                border: `1px solid ${filtroTipoPago === f.key ? f.color + '50' : c.g15}`,
-                color: filtroTipoPago === f.key ? f.color : c.textMuted,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          <div className="w-px h-5" style={{ background: c.g15 }} />
+
+          {/* Type */}
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+            {([
+              { key: 'todos',   label: 'Todos',   color: '#9ca3af' },
+              { key: 'fisico',  label: 'Físico',  color: '#10b981' },
+              { key: 'digital', label: 'Digital', color: '#8b5cf6' },
+            ] as const).map(f => (
+              <button
+                key={f.key}
+                onClick={() => { setFiltroTipoPago(f.key); if (f.key !== 'digital') setFiltroMetodoDigital('todos'); }}
+                className="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
+                style={{
+                  background: filtroTipoPago === f.key ? f.color + '18' : 'transparent',
+                  border: `1px solid ${filtroTipoPago === f.key ? f.color + '45' : c.g15}`,
+                  color: filtroTipoPago === f.key ? f.color : c.textMuted,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Digital sub-filter */}
         {filtroTipoPago === 'digital' && (
-          <div className="flex gap-1.5 ml-1">
-            <span className="text-[10px] font-bold self-center" style={{ color: c.textMuted }}>→</span>
+          <div className="flex items-center gap-1.5 pl-1 flex-wrap">
+            <span className="text-[10px]" style={{ color: c.textMuted }}>⤷</span>
             <button
               onClick={() => setFiltroMetodoDigital('todos')}
-              className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+              className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
               style={{
-                background: filtroMetodoDigital === 'todos' ? '#8b5cf620' : c.g06,
-                border: `1px solid ${filtroMetodoDigital === 'todos' ? '#8b5cf650' : c.g15}`,
+                background: filtroMetodoDigital === 'todos' ? '#8b5cf618' : 'transparent',
+                border: `1px solid ${filtroMetodoDigital === 'todos' ? '#8b5cf645' : c.g15}`,
                 color: filtroMetodoDigital === 'todos' ? '#8b5cf6' : c.textMuted,
               }}
             >
@@ -296,10 +343,10 @@ export function ValidacionPagos() {
                 <button
                   key={m}
                   onClick={() => setFiltroMetodoDigital(m)}
-                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                  className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
                   style={{
-                    background: filtroMetodoDigital === m ? cfg.color + '20' : c.g06,
-                    border: `1px solid ${filtroMetodoDigital === m ? cfg.color + '50' : c.g15}`,
+                    background: filtroMetodoDigital === m ? cfg.color + '18' : 'transparent',
+                    border: `1px solid ${filtroMetodoDigital === m ? cfg.color + '45' : c.g15}`,
                     color: filtroMetodoDigital === m ? cfg.color : c.textMuted,
                   }}
                 >
@@ -311,23 +358,30 @@ export function ValidacionPagos() {
         )}
       </div>
 
-      {/* Payments grouped by day */}
-      <div className="space-y-5">
-        {pagosPorDia.map(({ fecha, pagos: pagosDia, totalMonto, pendientesDia, confirmadosDia }) => (
+      {/* ─── PAYMENTS LIST ─────────────────────────────────────── */}
+      <div className="space-y-4">
+        {pagosPorDia.map(({ fecha, pagos: pagosDia, totalMonto, pendientesDia, confirmadosDia, rechazadosDia }) => (
           <div key={fecha} className="space-y-2">
             {/* Day header */}
-            <div className="flex items-center justify-between px-1 py-1">
-              <div className="flex items-center gap-2.5">
-                <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+            <div className="flex items-center justify-between px-2 py-1.5 rounded-xl" style={{ background: c.g04 }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: c.g08 }}>
+                  <Calendar className="w-3.5 h-3.5" style={{ color: c.textMuted }} />
+                </div>
                 <span className="text-xs font-bold" style={{ color: c.text }}>{formatFecha(fecha)}</span>
-                <span className="text-[10px]" style={{ color: c.textMuted }}>{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ color: c.textMuted, background: c.g08 }}>{pagosDia.length} pago{pagosDia.length > 1 ? 's' : ''}</span>
                 {pendientesDia > 0 && (
-                  <span className="text-[9px] font-semibold text-amber-400/80 tabular-nums">
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.10)' }}>
                     {pendientesDia} pend.
                   </span>
                 )}
-                {confirmadosDia > 0 && pendientesDia === 0 && (
-                  <span className="text-[9px] font-semibold text-emerald-400/80 flex items-center gap-0.5">
+                {rechazadosDia > 0 && (
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)' }}>
+                    {rechazadosDia} rech.
+                  </span>
+                )}
+                {confirmadosDia > 0 && pendientesDia === 0 && rechazadosDia === 0 && (
+                  <span className="text-[9px] font-semibold text-emerald-400 flex items-center gap-0.5">
                     <CheckCircle className="w-2.5 h-2.5" />OK
                   </span>
                 )}
@@ -337,13 +391,14 @@ export function ValidacionPagos() {
               </span>
             </div>
 
-            {/* Payment cards for this day */}
-            <div className="space-y-2">
+            {/* Payment cards */}
+            <div className="space-y-2 pl-1">
               <AnimatePresence>
                 {pagosDia.map((pago, idx) => {
                   const metodo = METODO_CONFIG[pago.metodo] || METODO_CONFIG.Efectivo;
                   const MetodoIcon = metodo.icon;
                   const isExpanded = expandedId === pago.id;
+                  const estadoColor = pago.estado === 'Pendiente' ? '#f59e0b' : pago.estado === 'Confirmado' ? '#10b981' : '#ef4444';
 
                   return (
                     <motion.div
@@ -355,53 +410,55 @@ export function ValidacionPagos() {
                       className="rounded-2xl overflow-hidden"
                       style={{
                         background: c.g04,
-                        border: `1px solid ${pago.estado === 'Pendiente' ? 'rgba(245,158,11,0.25)' : pago.estado === 'Confirmado' ? 'rgba(16,185,129,0.20)' : 'rgba(239,68,68,0.20)'}`,
+                        border: `1px solid ${estadoColor}20`,
+                        boxShadow: pago.estado === 'Pendiente' ? `0 0 0 1px ${estadoColor}08` : 'none',
                       }}
                     >
                       {/* Card header */}
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : pago.id)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 transition-all"
+                        className="w-full flex items-center justify-between px-4 py-3 transition-all"
                         style={{ background: 'transparent' }}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ background: metodo.color + '15', border: `1px solid ${metodo.color}30` }}>
-                            <MetodoIcon className="w-4.5 h-4.5" style={{ color: metodo.color }} />
-                          </div>
-                          <div className="text-left">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold" style={{ color: c.text }}>{pago.clienteNombre}</span>
-                              {pago.estado === 'Pendiente' && (
-                                <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-0.5">
-                                  <Clock className="w-2.5 h-2.5" /> Pendiente
-                                </span>
-                              )}
-                              {pago.estado === 'Confirmado' && (
-                                <span className="text-[9px] font-semibold text-emerald-500 flex items-center gap-0.5">
-                                  <CheckCircle className="w-2.5 h-2.5" /> Confirmado
-                                </span>
-                              )}
-                              {pago.estado === 'Rechazado' && (
-                                <span className="text-[9px] font-semibold text-red-500 flex items-center gap-0.5">
-                                  <XCircle className="w-2.5 h-2.5" /> Rechazado
-                                </span>
-                              )}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Status indicator + icon */}
+                          <div className="relative shrink-0">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                              style={{ background: metodo.color + '12', border: `1.5px solid ${metodo.color}30` }}>
+                              <MetodoIcon className="w-5 h-5" style={{ color: metodo.color }} />
                             </div>
-                            <div className="flex items-center gap-3 text-[10px] mt-0.5" style={{ color: c.textMuted }}>
+                            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                              style={{ background: c.g04, border: `1.5px solid ${estadoColor}` }}>
+                              {pago.estado === 'Pendiente' && <Clock className="w-2 h-2" style={{ color: estadoColor }} />}
+                              {pago.estado === 'Confirmado' && <CheckCircle className="w-2.5 h-2.5" style={{ color: estadoColor }} />}
+                              {pago.estado === 'Rechazado' && <XCircle className="w-2.5 h-2.5" style={{ color: estadoColor }} />}
+                            </div>
+                          </div>
+
+                          <div className="text-left min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold truncate" style={{ color: c.text }}>{pago.clienteNombre}</span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0" style={{ color: estadoColor, background: estadoColor + '12' }}>
+                                {pago.estado}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-[10px] mt-0.5" style={{ color: c.textMuted }}>
                               <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
+                              <span>•</span>
                               <span>{pago.hora.slice(0, 5)}</span>
-                              {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
-                                <span style={{ color: c.textMuted }}>{pago.fechasCubiertas.length} día{pago.fechasCubiertas.length > 1 ? 's' : ''}</span>
+                              {pago.numeroOperacion && (
+                                <><span>•</span><span className="font-mono" style={{ color: c.textSecondary }}>#{pago.numeroOperacion}</span></>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-base font-black tabular-nums font-mono" style={{ color: c.text }}>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <span className="text-sm font-black tabular-nums font-mono" style={{ color: c.text }}>
                             S/ {pago.monto.toFixed(2)}
                           </span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" style={{ color: c.textMuted }} /> : <ChevronDown className="w-3.5 h-3.5" style={{ color: c.textMuted }} />}
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: c.g08 }}>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" style={{ color: c.textMuted }} /> : <ChevronDown className="w-3.5 h-3.5" style={{ color: c.textMuted }} />}
+                          </div>
                         </div>
                       </button>
 
@@ -416,7 +473,13 @@ export function ValidacionPagos() {
                           >
                             <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${c.g10}` }}>
                               <div className="pt-3 grid grid-cols-2 gap-3">
+                                {/* Payment info */}
                                 <div className="rounded-xl p-3 space-y-2" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
+                                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: c.textMuted }}>Detalles del Pago</p>
+                                  <div className="flex justify-between text-[10px]">
+                                    <span style={{ color: c.textMuted }}>Cliente</span>
+                                    <span className="font-bold" style={{ color: c.text }}>{pago.clienteNombre}</span>
+                                  </div>
                                   <div className="flex justify-between text-[10px]">
                                     <span style={{ color: c.textMuted }}>Método</span>
                                     <span className="font-bold" style={{ color: metodo.color }}>{metodo.label}</span>
@@ -436,11 +499,11 @@ export function ValidacionPagos() {
                                     </div>
                                   )}
                                   {pago.fechasCubiertas && pago.fechasCubiertas.length > 0 && (
-                                    <div className="text-[10px]">
+                                    <div className="text-[10px] pt-1" style={{ borderTop: `1px solid ${c.g10}` }}>
                                       <span style={{ color: c.textMuted }}>Días cubiertos:</span>
                                       <div className="flex flex-wrap gap-1 mt-1">
                                         {pago.fechasCubiertas.map(fc => (
-                                          <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded-md font-mono" style={{ background: c.g04, color: c.textSecondary }}>
+                                          <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded-md font-mono" style={{ background: c.g04, color: c.textSecondary, border: `1px solid ${c.g10}` }}>
                                             {formatFecha(fc)}
                                           </span>
                                         ))}
@@ -448,13 +511,28 @@ export function ValidacionPagos() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="rounded-xl p-3" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
-                                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: c.textMuted }}>Observaciones</p>
-                                  <p className="text-xs leading-relaxed" style={{ color: c.textSecondary }}>
+
+                                {/* Observaciones */}
+                                <div className="rounded-xl p-3 flex flex-col" style={{ background: c.g06, border: `1px solid ${c.g10}` }}>
+                                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: c.textMuted }}>Observaciones</p>
+                                  <p className="text-xs leading-relaxed flex-1" style={{ color: c.textSecondary }}>
                                     {pago.observaciones || <span className="italic" style={{ color: c.textMuted }}>Sin observaciones</span>}
                                   </p>
                                 </div>
                               </div>
+
+                              {/* Motivo de rechazo */}
+                              {pago.estado === 'Rechazado' && pago.motivoRechazo && (
+                                <div className="rounded-xl p-3" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)' }}>
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <MessageSquare className="w-3 h-3 text-red-400" />
+                                    <p className="text-[9px] uppercase tracking-widest font-bold text-red-400">Motivo del Rechazo</p>
+                                  </div>
+                                  <p className="text-xs leading-relaxed" style={{ color: '#fca5a5' }}>
+                                    {pago.motivoRechazo}
+                                  </p>
+                                </div>
+                              )}
 
                               {pago.foto && (
                                 <div className="rounded-xl overflow-hidden cursor-pointer group relative"
@@ -512,14 +590,21 @@ export function ValidacionPagos() {
         ))}
 
         {pagosFiltrados.length === 0 && (
-          <div className="text-center py-16">
-            <DollarSign className="w-12 h-12 mx-auto mb-3" style={{ color: c.textMuted }} />
-            <p className="text-sm" style={{ color: c.textMuted }}>
+          <div className="text-center py-16 rounded-2xl" style={{ background: c.g04, border: `1px solid ${c.g10}` }}>
+            {filtro === 'pendientes' && <Clock className="w-10 h-10 mx-auto mb-3 text-amber-500/40" />}
+            {filtro === 'confirmados' && <CheckCircle className="w-10 h-10 mx-auto mb-3 text-emerald-500/40" />}
+            {filtro === 'rechazados' && <XCircle className="w-10 h-10 mx-auto mb-3 text-red-500/40" />}
+            {filtro === 'todos' && <DollarSign className="w-10 h-10 mx-auto mb-3" style={{ color: c.textMuted }} />}
+            <p className="text-sm font-semibold mb-1" style={{ color: c.textSecondary }}>
+              {filtro === 'pendientes' && 'No hay pagos pendientes'}
+              {filtro === 'confirmados' && 'No hay pagos confirmados'}
+              {filtro === 'rechazados' && 'No hay pagos rechazados'}
+              {filtro === 'todos' && 'No hay pagos registrados'}
+            </p>
+            <p className="text-[11px]" style={{ color: c.textMuted }}>
               {filtro === 'pendientes'
-                ? 'No hay pagos pendientes de validación'
-                : filtro === 'confirmados'
-                  ? 'No hay pagos confirmados'
-                  : 'No hay pagos registrados'}
+                ? 'Todos los pagos han sido procesados'
+                : 'Ajuste los filtros para ver más resultados'}
             </p>
           </div>
         )}
