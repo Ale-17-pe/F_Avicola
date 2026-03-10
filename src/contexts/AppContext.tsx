@@ -145,6 +145,10 @@ export interface Pago {
   registradoPor: string;
   /** Fechas de pedidos que cubre este pago */
   fechasCubiertas?: string[];
+  /** Número de operación para pagos digitales */
+  numeroOperacion?: string;
+  /** Motivo de rechazo cuando secretaría rechaza el pago */
+  motivoRechazo?: string;
 }
 
 interface AppContextType {
