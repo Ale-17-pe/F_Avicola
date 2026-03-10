@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Scale, MapPin, User, Printer, CheckCircle, Package, X, FileText, Usb, Wifi,
-  RotateCcw, Monitor, Box, Plus, Lock, ChevronRight, ChevronDown, Clock,
-  ArrowLeft, Layers, Users,
+  RotateCcw, Monitor, Box, Plus, Lock, ChevronLeft, ChevronRight,
+  ArrowLeft, Layers, Users, Truck, XCircle,
 } from 'lucide-react';
 import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -29,6 +29,7 @@ const ZONAS = [
 ];
 
 const JABA_ESTANDAR = { id: 'jaba-std', tipo: 'Jaba Estándar', peso: 6.9 };
+const NUM_SLOTS = 4;
 
 // ===================== INTERFACES =====================
 
@@ -42,6 +43,27 @@ interface ContenedorOpcion {
   id: string;
   tipo: string;
   peso: number;
+}
+
+interface SubPedidoEstado {
+  pesadas: PesadaParcial[];
+  completado: boolean;
+  contenedorId: string;
+  cantidadContenedores: number;
+  pesoJabaEditable: number;
+  faseConfirmandoContenedor: boolean;
+  cantidadContenedoresInput: string;
+}
+
+interface SlotData {
+  grupoId: string;
+  cliente: string;
+  pedidos: PedidoConfirmado[];
+  currentSubIdx: number;
+  subEstados: Record<string, SubPedidoEstado>;
+  conductorId: string;
+  zonaId: string;
+  zonaBloqueada: boolean;
 }
 
 interface ResultadoPesajeOrden {
@@ -84,6 +106,48 @@ interface ClienteEnPesaje {
   totalPedidos: number;
   grupos: GrupoPesaje[];
   primeraLlegada: number;
+}
+
+// ===================== HELPERS =====================
+
+function getAbreviacion(pedido: PedidoConfirmado): string {
+  const pres = pedido.presentacion?.toLowerCase() || '';
+  const presLetra = pres.charAt(0).toUpperCase();
+  let abbr = pedido.tipoAve || '';
+  abbr += ` ${presLetra}`;
+  if (pedido.tipoAve?.toLowerCase().includes('gallina') && pedido.variedad) {
+    abbr += `-${pedido.variedad.charAt(0).toUpperCase()}`;
+  }
+  abbr += `-${pedido.cantidad}`;
+  return abbr;
+}
+
+function crearSubEstado(pedido: PedidoConfirmado, allContenedores: ContenedorOpcion[]): SubPedidoEstado {
+  const esVivo = !!pedido.presentacion?.toLowerCase().includes('vivo');
+  let contenedorId = '';
+  let cantidadContenedores = 0;
+  let cantidadContenedoresInput = '';
+
+  if (esVivo) {
+    contenedorId = JABA_ESTANDAR.id;
+    if (pedido.cantidadJabas && pedido.cantidadJabas > 0) {
+      cantidadContenedores = pedido.cantidadJabas;
+      cantidadContenedoresInput = String(pedido.cantidadJabas);
+    }
+  } else if (pedido.contenedor) {
+    const contDef = allContenedores.find(ct => ct.tipo === pedido.contenedor);
+    if (contDef) contenedorId = contDef.id;
+  }
+
+  return {
+    pesadas: [],
+    completado: false,
+    contenedorId,
+    cantidadContenedores,
+    pesoJabaEditable: JABA_ESTANDAR.peso,
+    faseConfirmandoContenedor: false,
+    cantidadContenedoresInput,
+  };
 }
 
 // ===================== HOOK: useSerialScale =====================
@@ -172,54 +236,43 @@ export function PesajeOperador() {
   const { isDark } = useTheme();
   const c = t(isDark);
   const scale = useSerialScale();
-
-  // ── Vista principal ──
-  const [vista, setVista] = useState<'clientes' | 'pesaje' | 'entrega'>('clientes');
-  const [clienteExpandido, setClienteExpandido] = useState<string | null>(null);
-
-  // ── Pesaje de grupo ──
-  const [grupoActual, setGrupoActual] = useState<GrupoPesaje | null>(null);
-  const [ordenActualIdx, setOrdenActualIdx] = useState(0);
-  const [resultadosCompletos, setResultadosCompletos] = useState<ResultadoPesajeOrden[]>([]);
-
-  // ── Estado de pesaje de la orden actual ──
-  const [modoManual, setModoManual] = useState(true);
-  const [pesoManualInput, setPesoManualInput] = useState('');
-  const [pesadas, setPesadas] = useState<PesadaParcial[]>([]);
-  const [faseOrden, setFaseOrden] = useState<'pesando' | 'confirmando-contenedor'>('pesando');
-
-  // Contenedor
-  const [contenedorFinalId, setContenedorFinalId] = useState('');
-  const [cantidadContenedoresInput, setCantidadContenedoresInput] = useState('');
-  const [cantidadBloqueada, setCantidadBloqueada] = useState(false);
-
-  // Jabas (Vivo)
-  const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
-  const [pesoJabaEditable, setPesoJabaEditable] = useState(JABA_ESTANDAR.peso);
-
-  // Entrega (compartido para todo el grupo)
-  const [conductorId, setConductorId] = useState('');
-  const [zonaId, setZonaId] = useState('');
-  const [zonaBloqueada, setZonaBloqueada] = useState(false);
-
-  // Ticket
-  const [ticketVisible, setTicketVisible] = useState<ConsolidatedTicketData | null>(null);
-  const ticketRef = useRef<HTMLDivElement>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const ticketRef = useRef<HTMLDivElement>(null);
+  const balanzaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     broadcastRef.current = new BroadcastChannel('pesaje-display');
     return () => broadcastRef.current?.close();
   }, []);
 
-  // ── Datos derivados ──
+  // ── State ──
+  const [slots, setSlots] = useState<(SlotData | null)[]>(Array(NUM_SLOTS).fill(null));
+  const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
+  const [modoManual, setModoManual] = useState(true);
+  const [pesoManualInput, setPesoManualInput] = useState('');
+  const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
+  const [selectedClienteBottom, setSelectedClienteBottom] = useState<string | null>(null);
+  const [bottomMode, setBottomMode] = useState<'clientes' | 'registro'>('clientes');
+  const [ticketVisible, setTicketVisible] = useState<ConsolidatedTicketData | null>(null);
+
+  // ── Derived data ──
   const pedidosEnPesaje = pedidosConfirmados
     .filter(p => p.estado === 'En Pesaje')
     .sort((a, b) => a.prioridad - b.prioridad);
 
+  const pedidosIdsCargados = useMemo(() => {
+    const ids = new Set<string>();
+    slots.forEach(slot => {
+      if (slot) slot.pedidos.forEach(p => ids.add(p.id));
+    });
+    return ids;
+  }, [slots]);
+
+  const pedidosDisponibles = pedidosEnPesaje.filter(p => !pedidosIdsCargados.has(p.id));
+
   const clientesEnPesaje: ClienteEnPesaje[] = useMemo(() => {
     const map = new Map<string, PedidoConfirmado[]>();
-    pedidosEnPesaje.forEach(p => {
+    pedidosDisponibles.forEach(p => {
       if (!map.has(p.cliente)) map.set(p.cliente, []);
       map.get(p.cliente)!.push(p);
     });
@@ -246,201 +299,295 @@ export function PesajeOperador() {
         };
       })
       .sort((a, b) => a.primeraLlegada - b.primeraLlegada);
-  }, [pedidosEnPesaje]);
+  }, [pedidosDisponibles]);
 
-  // Orden actual
-  const ordenActual = grupoActual?.pedidos[ordenActualIdx] || null;
-  const esVivo = !!ordenActual?.presentacion?.toLowerCase().includes('vivo');
-
-  const opcionesContenedor: ContenedorOpcion[] = esVivo
-    ? [JABA_ESTANDAR]
-    : contenedores.map(c => ({ id: c.id, tipo: c.tipo, peso: c.peso }));
-
+  // Active slot derived data
+  const activeSlot = activeSlotIdx !== null ? slots[activeSlotIdx] : null;
+  const activeSubPedido = activeSlot ? activeSlot.pedidos[activeSlot.currentSubIdx] : null;
+  const activeSubEstado = activeSlot && activeSubPedido ? activeSlot.subEstados[activeSubPedido.id] : null;
+  const esVivoActivo = !!activeSubPedido?.presentacion?.toLowerCase().includes('vivo');
   const pesoActual = modoManual ? parseFloat(pesoManualInput) || 0 : scale.currentWeight;
-  const pesoBrutoTotal = pesadas.reduce((sum, p) => sum + p.peso, 0);
-
-  // Jabas tracking
-  const totalJabasPedido = ordenActual?.cantidadJabas || 0;
-  const unidadesPorJaba = ordenActual?.unidadesPorJaba || 0;
-  const totalAvesPedido = totalJabasPedido * unidadesPorJaba;
-  const jabasPesadas = pesadas.reduce((sum, p) => sum + (p.jabas || 0), 0);
-  const jabasRestantes = totalJabasPedido - jabasPesadas;
+  const totalJabasActivo = activeSubPedido?.cantidadJabas || 0;
+  const jabasPesadasActivo = activeSubEstado?.pesadas.reduce((s, p) => s + (p.jabas || 0), 0) || 0;
+  const jabasRestantesActivo = totalJabasActivo - jabasPesadasActivo;
   const jabasInput = parseInt(jabasEnEstaPesada) || 0;
+  const pesoBrutoActivoActual = activeSubEstado?.pesadas.reduce((s, p) => s + p.peso, 0) || 0;
 
-  // Container preview
-  const contSeleccionadoPreview = opcionesContenedor.find(c => c.id === contenedorFinalId);
-  const cantidadPreview = parseInt(cantidadContenedoresInput) || 0;
-  const taraPreview = esVivo ? pesoJabaEditable * cantidadPreview : (contSeleccionadoPreview?.peso || 0) * cantidadPreview;
-  const netoPreview = pesoBrutoTotal - taraPreview;
+  // ── Slot management ──
 
-  const zonaSeleccionada = ZONAS.find(z => z.id === zonaId);
-
-  // ── Handlers ──
-
-  const resetearOrdenActual = () => {
-    setPesadas([]);
-    setFaseOrden('pesando');
-    setPesoManualInput('');
-    setContenedorFinalId('');
-    setCantidadContenedoresInput('');
-    setCantidadBloqueada(false);
-    setJabasEnEstaPesada('');
-    setPesoJabaEditable(JABA_ESTANDAR.peso);
-  };
-
-  const prepararOrden = (pedido: PedidoConfirmado) => {
-    const esVivoP = !!pedido.presentacion?.toLowerCase().includes('vivo');
-    if (esVivoP) {
-      setContenedorFinalId(JABA_ESTANDAR.id);
-      if (pedido.cantidadJabas && pedido.cantidadJabas > 0) {
-        setCantidadContenedoresInput(String(pedido.cantidadJabas));
-        setCantidadBloqueada(true);
-      }
-    } else {
-      if (pedido.contenedor) {
-        const contDef = contenedores.find(c => c.tipo === pedido.contenedor);
-        if (contDef) setContenedorFinalId(contDef.id);
-      }
-    }
-    broadcastRef.current?.postMessage({
-      type: 'pedido-selected',
-      pedido: { cliente: pedido.cliente, tipoAve: pedido.tipoAve, cantidad: pedido.cantidad, presentacion: pedido.presentacion },
+  const updateSlot = useCallback((idx: number, updater: (slot: SlotData) => SlotData) => {
+    setSlots(prev => {
+      const next = [...prev];
+      if (next[idx]) next[idx] = updater(next[idx]!);
+      return next;
     });
-  };
+  }, []);
 
-  const iniciarPesajeGrupo = (grupo: GrupoPesaje) => {
-    setGrupoActual(grupo);
-    setOrdenActualIdx(0);
-    setResultadosCompletos([]);
-    setVista('pesaje');
-    resetearOrdenActual();
-    setConductorId('');
-    setZonaId('');
-    setZonaBloqueada(false);
+  const loadGrupoIntoSlot = useCallback((grupo: GrupoPesaje) => {
+    const emptyIdx = slots.findIndex(s => s === null);
+    if (emptyIdx === -1) {
+      toast.error('Todos los slots están ocupados. Retire un pedido primero.');
+      return;
+    }
+    const contsDisp: ContenedorOpcion[] = contenedores.map(ct => ({ id: ct.id, tipo: ct.tipo, peso: ct.peso }));
+    const subEstados: Record<string, SubPedidoEstado> = {};
+    grupo.pedidos.forEach(p => {
+      subEstados[p.id] = crearSubEstado(p, contsDisp);
+    });
 
-    // Zona del cliente
-    const pedido = grupo.pedidos[0];
-    const clienteObj = clientes.find(c => c.nombre === pedido.cliente);
+    const clienteObj = clientes.find(cl => cl.nombre === grupo.pedidos[0]?.cliente);
+    let zonaId = '';
+    let zonaBloqueada = false;
     if (clienteObj?.zona) {
       const zonaMatch = ZONAS.find(z =>
         z.id === clienteObj.zona ||
         z.nombre.toLowerCase().includes(clienteObj.zona.toLowerCase())
       );
-      if (zonaMatch) { setZonaId(zonaMatch.id); setZonaBloqueada(true); }
+      if (zonaMatch) { zonaId = zonaMatch.id; zonaBloqueada = true; }
     }
-    prepararOrden(pedido);
-  };
 
-  const handleVolver = () => {
-    if (resultadosCompletos.length > 0 || pesadas.length > 0) {
-      if (!window.confirm('¿Salir del pesaje? Se perderán los datos no guardados.')) return;
-    }
-    setVista('clientes');
-    setGrupoActual(null);
-    setOrdenActualIdx(0);
-    setResultadosCompletos([]);
-    resetearOrdenActual();
-  };
-
-  const sumarPesada = () => {
-    if (pesoActual <= 0) { toast.error('El peso debe ser mayor a 0'); return; }
-    if (esVivo && totalJabasPedido > 0) {
-      if (jabasInput <= 0) { toast.error('Ingrese cuántas jabas se pesan en esta tanda'); return; }
-      if (jabasInput > jabasRestantes) { toast.error(`Solo quedan ${jabasRestantes} jabas por pesar`); return; }
-    }
-    const nueva: PesadaParcial = {
-      numero: pesadas.length + 1,
-      peso: pesoActual,
-      ...(esVivo && totalJabasPedido > 0 ? { jabas: jabasInput } : {}),
+    const slotData: SlotData = {
+      grupoId: grupo.grupoId,
+      cliente: grupo.pedidos[0]?.cliente || '',
+      pedidos: grupo.pedidos,
+      currentSubIdx: 0,
+      subEstados,
+      conductorId: '',
+      zonaId,
+      zonaBloqueada,
     };
-    const nuevasPesadas = [...pesadas, nueva];
-    setPesadas(nuevasPesadas);
+
+    setSlots(prev => {
+      const next = [...prev];
+      next[emptyIdx] = slotData;
+      return next;
+    });
+    setActiveSlotIdx(emptyIdx);
+    setBottomMode('registro');
     setPesoManualInput('');
     setJabasEnEstaPesada('');
-    const acum = nuevasPesadas.reduce((s, p) => s + p.peso, 0);
-    broadcastRef.current?.postMessage({ type: 'weight-update', weight: acum, stable: true, timestamp: Date.now() });
-    const jabasMsg = nueva.jabas ? ` (${nueva.jabas} jabas)` : '';
-    toast.success(`Pesada ${nueva.numero}: ${pesoActual.toFixed(2)} kg${jabasMsg} → Acumulado: ${acum.toFixed(2)} kg`);
-  };
 
-  const quitarUltimaPesada = () => {
-    if (pesadas.length === 0) return;
-    setPesadas(pesadas.slice(0, -1));
-    toast.info('Última pesada eliminada');
-  };
+    broadcastRef.current?.postMessage({
+      type: 'pedido-selected',
+      pedido: {
+        cliente: grupo.pedidos[0]?.cliente,
+        tipoAve: grupo.pedidos[0]?.tipoAve,
+        cantidad: grupo.pedidos[0]?.cantidad,
+        presentacion: grupo.pedidos[0]?.presentacion,
+      },
+    });
+    toast.success(`Bloque cargado en slot ${emptyIdx + 1}`);
+    setTimeout(() => balanzaInputRef.current?.focus(), 100);
+  }, [slots, contenedores, clientes]);
 
-  const terminarPesaje = () => {
-    if (pesadas.length === 0) { toast.error('Debe registrar al menos una pesada'); return; }
-    setFaseOrden('confirmando-contenedor');
-  };
+  const unloadSlot = useCallback((idx: number) => {
+    const slot = slots[idx];
+    if (!slot) return;
+    const hasPesadas = Object.values(slot.subEstados).some(s => s.pesadas.length > 0);
+    if (hasPesadas) {
+      if (!window.confirm('¿Retirar este pedido? Se perderán las pesadas registradas.')) return;
+    }
+    setSlots(prev => {
+      const next = [...prev];
+      next[idx] = null;
+      return next;
+    });
+    if (activeSlotIdx === idx) {
+      setActiveSlotIdx(null);
+      setBottomMode('clientes');
+    }
+    toast.info('Pedido retirado del slot');
+  }, [slots, activeSlotIdx]);
 
-  const confirmarContenedorYAvanzar = () => {
-    if (!ordenActual || !grupoActual) return;
-    if (!contenedorFinalId) { toast.error('Seleccione el tipo de contenedor'); return; }
-    if (!cantidadPreview || cantidadPreview <= 0) { toast.error('Ingrese la cantidad de contenedores'); return; }
+  const activateSlot = useCallback((idx: number) => {
+    if (!slots[idx]) return;
+    setActiveSlotIdx(idx);
+    setBottomMode('registro');
+    setPesoManualInput('');
+    setJabasEnEstaPesada('');
+    setTimeout(() => balanzaInputRef.current?.focus(), 50);
+  }, [slots]);
 
-    const contFinal = opcionesContenedor.find(c => c.id === contenedorFinalId);
-    if (!contFinal) return;
+  const navigateSubOrder = useCallback((slotIdx: number, direction: number) => {
+    updateSlot(slotIdx, slot => {
+      const newIdx = slot.currentSubIdx + direction;
+      if (newIdx < 0 || newIdx >= slot.pedidos.length) return slot;
+      return { ...slot, currentSubIdx: newIdx };
+    });
+    setPesoManualInput('');
+    setJabasEnEstaPesada('');
+  }, [updateSlot]);
 
-    const pesoUnitCont = esVivo ? pesoJabaEditable : contFinal.peso;
-    const pesoTotalCont = pesoUnitCont * cantidadPreview;
-    const pesoNeto = pesoBrutoTotal - pesoTotalCont;
+  // ── Pesaje handlers ──
 
-    const resultado: ResultadoPesajeOrden = {
-      pedidoId: ordenActual.id,
-      pedido: ordenActual,
-      pesadas: [...pesadas],
-      pesoBrutoTotal,
-      contenedorId: contenedorFinalId,
-      tipoContenedor: contFinal.tipo,
-      cantidadContenedores: cantidadPreview,
-      pesoUnitarioContenedor: pesoUnitCont,
-      pesoContenedoresTotal: pesoTotalCont,
-      pesoNetoTotal: pesoNeto,
+  const sumarPesada = useCallback(() => {
+    if (activeSlotIdx === null || !activeSlot || !activeSubPedido || !activeSubEstado) return;
+    if (activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor) return;
+    if (pesoActual <= 0) { toast.error('El peso debe ser mayor a 0'); return; }
+
+    if (esVivoActivo && totalJabasActivo > 0) {
+      if (jabasInput <= 0) { toast.error('Ingrese cuántas jabas se pesan en esta tanda'); return; }
+      if (jabasInput > jabasRestantesActivo) { toast.error(`Solo quedan ${jabasRestantesActivo} jabas por pesar`); return; }
+    }
+
+    const nueva: PesadaParcial = {
+      numero: activeSubEstado.pesadas.length + 1,
+      peso: pesoActual,
+      ...(esVivoActivo && totalJabasActivo > 0 ? { jabas: jabasInput } : {}),
     };
 
-    const nuevosResultados = [...resultadosCompletos, resultado];
-    setResultadosCompletos(nuevosResultados);
+    const slotIdx = activeSlotIdx;
+    const pedidoId = activeSubPedido.id;
+    updateSlot(slotIdx, slot => {
+      const subEst = { ...slot.subEstados[pedidoId] };
+      subEst.pesadas = [...subEst.pesadas, nueva];
+      if (esVivoActivo && totalJabasActivo > 0) {
+        const newJabasPesadas = subEst.pesadas.reduce((s, p) => s + (p.jabas || 0), 0);
+        if (newJabasPesadas >= totalJabasActivo) {
+          subEst.completado = true;
+        }
+      }
+      return { ...slot, subEstados: { ...slot.subEstados, [pedidoId]: subEst } };
+    });
 
-    const nextIdx = ordenActualIdx + 1;
-    if (nextIdx < grupoActual.pedidos.length) {
-      setOrdenActualIdx(nextIdx);
-      resetearOrdenActual();
-      prepararOrden(grupoActual.pedidos[nextIdx]);
-      toast.success(`Pedido ${ordenActualIdx + 1}/${grupoActual.pedidos.length} completado. Siguiente pedido...`);
+    setPesoManualInput('');
+    setJabasEnEstaPesada('');
+    const jabasMsg = nueva.jabas ? ` (${nueva.jabas} jabas)` : '';
+    const acum = pesoBrutoActivoActual + pesoActual;
+    toast.success(`P-${nueva.numero}: ${pesoActual.toFixed(2)} kg${jabasMsg} → Acum: ${acum.toFixed(2)} kg`);
+    broadcastRef.current?.postMessage({ type: 'weight-update', weight: acum, stable: true, timestamp: Date.now() });
+    setTimeout(() => balanzaInputRef.current?.focus(), 50);
+  }, [activeSlotIdx, activeSlot, activeSubPedido, activeSubEstado, pesoActual, esVivoActivo, totalJabasActivo, jabasInput, jabasRestantesActivo, pesoBrutoActivoActual, updateSlot]);
+
+  const quitarUltimaPesada = useCallback(() => {
+    if (activeSlotIdx === null || !activeSubPedido || !activeSubEstado) return;
+    if (activeSubEstado.pesadas.length === 0) return;
+    const pedidoId = activeSubPedido.id;
+    updateSlot(activeSlotIdx, slot => {
+      const subEst = { ...slot.subEstados[pedidoId] };
+      subEst.pesadas = subEst.pesadas.slice(0, -1);
+      subEst.completado = false;
+      return { ...slot, subEstados: { ...slot.subEstados, [pedidoId]: subEst } };
+    });
+    toast.info('Última pesada eliminada');
+  }, [activeSlotIdx, activeSubPedido, activeSubEstado, updateSlot]);
+
+  const terminarSubOrden = useCallback(() => {
+    if (activeSlotIdx === null || !activeSubPedido || !activeSubEstado) return;
+    if (activeSubEstado.pesadas.length === 0) { toast.error('Registre al menos una pesada'); return; }
+    const pedidoId = activeSubPedido.id;
+    updateSlot(activeSlotIdx, slot => ({
+      ...slot,
+      subEstados: {
+        ...slot.subEstados,
+        [pedidoId]: { ...slot.subEstados[pedidoId], faseConfirmandoContenedor: true },
+      },
+    }));
+  }, [activeSlotIdx, activeSubPedido, activeSubEstado, updateSlot]);
+
+  const confirmarContenedorSub = useCallback((slotIdx: number, pedidoId: string) => {
+    const slot = slots[slotIdx];
+    if (!slot) return;
+    const subEst = slot.subEstados[pedidoId];
+    if (!subEst) return;
+    if (!subEst.contenedorId) { toast.error('Seleccione un contenedor'); return; }
+    const cant = parseInt(subEst.cantidadContenedoresInput) || 0;
+    if (cant <= 0) { toast.error('Ingrese cantidad de contenedores'); return; }
+    updateSlot(slotIdx, s => ({
+      ...s,
+      subEstados: {
+        ...s.subEstados,
+        [pedidoId]: { ...s.subEstados[pedidoId], completado: true, faseConfirmandoContenedor: false, cantidadContenedores: cant },
+      },
+    }));
+    toast.success('Sub-pedido pesado y confirmado');
+  }, [slots, updateSlot]);
+
+  const cancelarConfirmacion = useCallback(() => {
+    if (activeSlotIdx === null || !activeSubPedido) return;
+    const pedidoId = activeSubPedido.id;
+    updateSlot(activeSlotIdx, s => ({
+      ...s,
+      subEstados: {
+        ...s.subEstados,
+        [pedidoId]: { ...s.subEstados[pedidoId], faseConfirmandoContenedor: false },
+      },
+    }));
+  }, [activeSlotIdx, activeSubPedido, updateSlot]);
+
+  const updateSubField = useCallback((slotIdx: number, pedidoId: string, field: keyof SubPedidoEstado, value: any) => {
+    updateSlot(slotIdx, s => ({
+      ...s,
+      subEstados: {
+        ...s.subEstados,
+        [pedidoId]: { ...s.subEstados[pedidoId], [field]: value },
+      },
+    }));
+  }, [updateSlot]);
+
+  // ── Build resultado ──
+
+  const buildResultado = useCallback((pedido: PedidoConfirmado, subEst: SubPedidoEstado): ResultadoPesajeOrden => {
+    const esVivo = !!pedido.presentacion?.toLowerCase().includes('vivo');
+    const pesoBrutoTotal = subEst.pesadas.reduce((s, p) => s + p.peso, 0);
+    let tipoContenedor = '';
+    let pesoUnitContenedor = 0;
+    if (esVivo) {
+      tipoContenedor = JABA_ESTANDAR.tipo;
+      pesoUnitContenedor = subEst.pesoJabaEditable;
     } else {
-      setVista('entrega');
-      toast.success('¡Todos los pedidos del grupo han sido pesados!');
+      const cont = contenedores.find(ct => ct.id === subEst.contenedorId);
+      tipoContenedor = cont?.tipo || '';
+      pesoUnitContenedor = cont?.peso || 0;
     }
-  };
+    const cantidad = subEst.cantidadContenedores;
+    const pesoContenedoresTotal = pesoUnitContenedor * cantidad;
+    const pesoNetoTotal = pesoBrutoTotal - pesoContenedoresTotal;
+    return {
+      pedidoId: pedido.id, pedido, pesadas: subEst.pesadas, pesoBrutoTotal,
+      contenedorId: subEst.contenedorId, tipoContenedor, cantidadContenedores: cantidad,
+      pesoUnitarioContenedor: pesoUnitContenedor, pesoContenedoresTotal, pesoNetoTotal,
+    };
+  }, [contenedores]);
 
-  const handleConfirmarDespacho = () => {
-    if (!grupoActual) return;
-    if (!conductorId) { toast.error('Seleccione un conductor'); return; }
-    if (!zonaId) { toast.error('Seleccione una zona de entrega'); return; }
+  // ── Confirmar / Pendiente ──
 
-    const conductor = CONDUCTORES.find(c => c.id === conductorId);
-    const zona = ZONAS.find(z => z.id === zonaId);
-    if (!conductor || !zona) return;
+  const slotTodosCompletos = useCallback((slotIdx: number): boolean => {
+    const slot = slots[slotIdx];
+    if (!slot) return false;
+    return slot.pedidos.every(p => slot.subEstados[p.id]?.completado);
+  }, [slots]);
+
+  const slotListoParaConfirmar = useCallback((slotIdx: number): boolean => {
+    const slot = slots[slotIdx];
+    if (!slot) return false;
+    return slotTodosCompletos(slotIdx) && !!slot.conductorId;
+  }, [slots, slotTodosCompletos]);
+
+  const generarTicketYDespachar = useCallback((slot: SlotData, pedidosADespachar: PedidoConfirmado[], slotIdx: number) => {
+    const conductor = CONDUCTORES.find(cd => cd.id === slot.conductorId);
+    const zona = ZONAS.find(z => z.id === slot.zonaId);
+    if (!conductor) { toast.error('Asigne un conductor'); return null; }
 
     const ahora = new Date();
     const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const fechaPeru = `${peru.getFullYear()}-${String(peru.getMonth() + 1).padStart(2, '0')}-${String(peru.getDate()).padStart(2, '0')}`;
     const numeroTicket = `TK-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // Actualizar cada pedido del grupo
-    resultadosCompletos.forEach(resultado => {
+    const resultados: ResultadoPesajeOrden[] = [];
+    pedidosADespachar.forEach(pedido => {
+      const subEst = slot.subEstados[pedido.id];
+      if (!subEst?.completado) return;
+      const resultado = buildResultado(pedido, subEst);
+      resultados.push(resultado);
+
       const bloquesPesaje: BloquePesaje[] = resultado.pesadas.map((p, i) => ({
-        numero: i + 1,
-        tamano: 0,
-        pesoBruto: p.peso,
-        tipoContenedor: resultado.tipoContenedor,
-        pesoContenedor: 0,
-        cantidadContenedores: 0,
+        numero: i + 1, tamano: 0, pesoBruto: p.peso,
+        tipoContenedor: resultado.tipoContenedor, pesoContenedor: 0, cantidadContenedores: 0,
       }));
 
-      const pedidoActualizado: PedidoConfirmado = {
-        ...resultado.pedido,
+      updatePedidoConfirmado(pedido.id, {
+        ...pedido,
         contenedor: resultado.tipoContenedor,
         pesoBrutoTotal: resultado.pesoBrutoTotal,
         pesoNetoTotal: resultado.pesoNetoTotal,
@@ -449,49 +596,81 @@ export function PesajeOperador() {
         cantidadTotalContenedores: resultado.cantidadContenedores,
         bloquesPesaje,
         conductor: conductor.nombre,
-        zonaEntrega: zona.nombre,
+        zonaEntrega: zona?.nombre || '',
         estado: 'En Despacho',
         ticketEmitido: true,
         fechaPesaje: fechaPeru,
         horaPesaje: ahora.toTimeString().slice(0, 5),
         numeroTicket,
-      };
-
-      updatePedidoConfirmado(resultado.pedidoId, pedidoActualizado);
+      });
     });
 
-    // Generar datos del ticket consolidado
+    if (resultados.length === 0) return null;
+
     const totales = {
-      pesoBrutoTotal: resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0),
-      pesoContenedoresTotal: resultadosCompletos.reduce((s, r) => s + r.pesoContenedoresTotal, 0),
-      pesoNetoTotal: resultadosCompletos.reduce((s, r) => s + r.pesoNetoTotal, 0),
+      pesoBrutoTotal: resultados.reduce((s, r) => s + r.pesoBrutoTotal, 0),
+      pesoContenedoresTotal: resultados.reduce((s, r) => s + r.pesoContenedoresTotal, 0),
+      pesoNetoTotal: resultados.reduce((s, r) => s + r.pesoNetoTotal, 0),
     };
 
-    setTicketVisible({
-      grupoId: grupoActual.grupoId,
-      cliente: grupoActual.pedidos[0].cliente,
-      pedidos: resultadosCompletos,
-      totales,
-      conductor: conductor.nombre,
-      conductorPlaca: conductor.placa,
-      zona: zona.nombre,
+    const ticketData: ConsolidatedTicketData = {
+      grupoId: slot.grupoId, cliente: slot.cliente, pedidos: resultados, totales,
+      conductor: conductor.nombre, conductorPlaca: conductor.placa,
+      zona: zona?.nombre || '',
       fechaEmision: ahora.toLocaleDateString('es-PE'),
       horaEmision: ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
       numeroTicket,
-    });
+    };
 
-    // Reset
-    setVista('clientes');
-    setGrupoActual(null);
-    setOrdenActualIdx(0);
-    setResultadosCompletos([]);
-    resetearOrdenActual();
-    setConductorId('');
-    setZonaId('');
-    setZonaBloqueada(false);
     broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
-    toast.success(`Ticket ${numeroTicket} emitido — ${resultadosCompletos.length} pedido(s)`);
-  };
+    return ticketData;
+  }, [buildResultado, updatePedidoConfirmado]);
+
+  const confirmarSlot = useCallback((slotIdx: number) => {
+    const slot = slots[slotIdx];
+    if (!slot) return;
+    if (!slotListoParaConfirmar(slotIdx)) {
+      if (!slot.conductorId) toast.error('Asigne un conductor en el panel inferior');
+      else toast.error('No todos los sub-pedidos están completados');
+      return;
+    }
+    const ticketData = generarTicketYDespachar(slot, slot.pedidos, slotIdx);
+    if (ticketData) {
+      setTicketVisible(ticketData);
+      setSlots(prev => { const next = [...prev]; next[slotIdx] = null; return next; });
+      if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
+      toast.success(`Ticket ${ticketData.numeroTicket} emitido — ${ticketData.pedidos.length} pedido(s)`);
+    }
+  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar]);
+
+  const pendienteSlot = useCallback((slotIdx: number) => {
+    const slot = slots[slotIdx];
+    if (!slot) return;
+    const completados = slot.pedidos.filter(p => slot.subEstados[p.id]?.completado);
+    const noCompletados = slot.pedidos.filter(p => !slot.subEstados[p.id]?.completado);
+
+    if (completados.length === 0) {
+      setSlots(prev => { const next = [...prev]; next[slotIdx] = null; return next; });
+      if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
+      toast.info('Pedidos devueltos a pendiente');
+      return;
+    }
+
+    if (slot.conductorId) {
+      const ticketData = generarTicketYDespachar(slot, completados, slotIdx);
+      if (ticketData) {
+        setTicketVisible(ticketData);
+        toast.success(`${completados.length} pedido(s) despachados, ${noCompletados.length} devueltos a pendiente`);
+      }
+    } else {
+      toast.info(`${noCompletados.length} sub-pedido(s) devueltos a pendiente`);
+    }
+
+    setSlots(prev => { const next = [...prev]; next[slotIdx] = null; return next; });
+    if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
+  }, [slots, activeSlotIdx, generarTicketYDespachar]);
+
+  // ── Misc ──
 
   const abrirPantallaDisplay = () => {
     window.open(`${window.location.origin}/pesaje-display`, 'PesajeDisplay', 'width=800,height=600,menubar=no,toolbar=no');
@@ -519,616 +698,629 @@ export function PesajeOperador() {
     printWindow.document.close();
   };
 
+  // Number of loaded slots
+  const slotsOcupados = slots.filter(s => s !== null).length;
+
   // ===================== RENDER =====================
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3" style={{ minHeight: 'calc(100vh - 80px)' }}>
 
-      {/* ══════════ HEADER ══════════ */}
-      <div className="flex items-center justify-between">
+      {/* ═══════ HEADER BAR ═══════ */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          {vista !== 'clientes' && (
-            <button onClick={handleVolver} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:text-white transition-colors" style={{ background: c.g04, border: '1px solid ' + c.g08, color: c.textSecondary }}>
-              <ArrowLeft className="w-3.5 h-3.5" /> Volver
-            </button>
-          )}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <Package className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-bold text-amber-400">{pedidosEnPesaje.length}</span>
             <span className="text-xs" style={{ color: c.textMuted }}>en cola</span>
           </div>
-          {vista !== 'clientes' && grupoActual && (
+          {slotsOcupados > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
-              <Users className="w-4 h-4 text-green-500" />
-              <span className="text-sm font-semibold text-green-400">{grupoActual.pedidos[0].cliente}</span>
-              <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
-              <span className="text-xs" style={{ color: c.textSecondary }}>{vista === 'entrega' ? 'Asignando entrega' : `Pedido ${ordenActualIdx + 1} de ${grupoActual.pedidos.length}`}</span>
+              <Scale className="w-4 h-4 text-green-500" />
+              <span className="text-sm font-bold text-green-400">{slotsOcupados}</span>
+              <span className="text-xs" style={{ color: c.textMuted }}>en pesaje</span>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }}>
+          <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-2 rounded-xl font-semibold"
+            style={{ background: modoManual ? 'rgba(59,130,246,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${modoManual ? 'rgba(59,130,246,0.2)' : 'rgba(34,197,94,0.2)'}`, color: modoManual ? '#60a5fa' : '#22c55e' }}>
+            {modoManual ? '⌨ Manual' : '⚖ Balanza'}
+          </button>
+          <button onClick={abrirPantallaDisplay} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }}>
             <Monitor className="w-3.5 h-3.5" /> Display
           </button>
           <button
             onClick={() => { if (scale.connected) { scale.disconnect(); setModoManual(true); } else { scale.connect().then(ok => { if (ok) setModoManual(false); }); } }}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: scale.connected ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}
-          >
+            style={{ background: scale.connected ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${scale.connected ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`, color: scale.connected ? '#22c55e' : '#f59e0b' }}>
             {scale.connected ? <Wifi className="w-3.5 h-3.5" /> : <Usb className="w-3.5 h-3.5" />}
             {scale.connected ? 'Conectada' : 'Balanza'}
           </button>
         </div>
       </div>
 
-      {/* ══════════ VISTA: LISTA DE CLIENTES ══════════ */}
-      {vista === 'clientes' && (
-        <div className="space-y-2">
-          {clientesEnPesaje.length === 0 ? (
-            <div className="flex-1 rounded-xl p-10 text-center" style={{ background: c.g02, border: '1px dashed ' + c.borderSubtle }}>
-              <Scale className="w-10 h-10 mx-auto" style={{ color: c.g10 }} />
-              <p className="text-sm mt-3" style={{ color: c.textMuted }}>Sin pedidos en cola de pesaje</p>
-              <p className="text-xs mt-1" style={{ color: c.textMuted }}>Los pedidos llegarán aquí desde Seguimiento de Pedidos</p>
-            </div>
-          ) : (
-            clientesEnPesaje.map((clienteData, cIdx) => (
-              <div key={clienteData.cliente} className="rounded-xl overflow-hidden transition-all duration-200" style={{ background: c.g02, border: clienteExpandido === clienteData.cliente ? '2px solid rgba(34,197,94,0.3)' : '1px solid ' + c.borderSubtle }}>
-                {/* Cabecera del cliente */}
-                <button
-                  onClick={() => setClienteExpandido(clienteExpandido === clienteData.cliente ? null : clienteData.cliente)}
-                  className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ background: clienteExpandido === clienteData.cliente ? 'rgba(34,197,94,0.15)' : c.bgInput, color: clienteExpandido === clienteData.cliente ? '#22c55e' : c.textMuted }}>
-                    {cIdx + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-base font-bold truncate" style={{ color: c.text }}>{clienteData.cliente}</div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px]" style={{ color: c.textMuted }}>{clienteData.totalPedidos} pedido{clienteData.totalPedidos > 1 ? 's' : ''}</span>
-                      <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
-                      <span className="text-[10px]" style={{ color: c.textMuted }}>{clienteData.grupos.length} lote{clienteData.grupos.length > 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                      {clienteData.totalPedidos}
-                    </span>
-                    {clienteExpandido === clienteData.cliente ? <ChevronDown className="w-4 h-4 text-green-400" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
-                  </div>
-                </button>
+      {/* ═══════ BALANZA ═══════ */}
+      <div className="rounded-2xl relative overflow-hidden"
+        style={{
+          background: isDark ? 'linear-gradient(160deg, #0a0a0a, #141414)' : c.bgCard,
+          border: activeSlotIdx !== null ? '2px solid rgba(34,197,94,0.4)' : '2px solid ' + c.borderSubtle,
+          boxShadow: activeSlotIdx !== null ? '0 0 25px rgba(34,197,94,0.08)' : 'none',
+        }}>
 
-                {/* Contenido expandido: grupos/lotes */}
-                {clienteExpandido === clienteData.cliente && (
-                  <div className="px-5 pb-4 space-y-3" style={{ borderTop: '1px solid ' + c.g04 }}>
-                    {clienteData.grupos.map((grupo, gIdx) => (
-                      <div key={grupo.grupoId} className="rounded-xl p-4 space-y-3" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
-                        {/* Header del lote */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-blue-400/60" />
-                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Lote {gIdx + 1}</span>
-                            <span className="text-[10px]" style={{ color: c.textMuted }}>· {grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
-                          </div>
-                          <button
-                            onClick={() => iniciarPesajeGrupo(grupo)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white transition-all hover:scale-[1.03]"
-                            style={{ background: 'linear-gradient(135deg, #0d4a24, #22c55e)', boxShadow: '0 4px 12px rgba(34,197,94,0.3)' }}
-                          >
-                            <Scale className="w-3.5 h-3.5" /> PESAR
-                          </button>
-                        </div>
-
-                        {/* Lista de pedidos del lote */}
-                        <div className="space-y-1.5">
-                          {grupo.pedidos.map((pedido, pIdx) => (
-                            <div key={pedido.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: c.g02, border: '1px solid ' + c.g03 }}>
-                              <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
-                                {pIdx + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-mono" style={{ color: c.textSecondary }}>{pedido.numeroPedido || 'S/N'}</span>
-                                  <span className="text-xs font-semibold truncate" style={{ color: c.text }}>{pedido.tipoAve}</span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.08)', color: '#3b82f6' }}>{pedido.presentacion}</span>
-                                  <span className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidad} unids.</span>
-                                  {pedido.cantidadJabas && (
-                                    <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#f59e0b' }}>
-                                      <Lock className="w-2.5 h-2.5" />{pedido.cantidadJabas}j
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
+        {/* Balanza label */}
+        <div className="flex items-center justify-between px-5 py-2" style={{ borderBottom: '1px solid ' + c.g04 }}>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: c.textMuted }}>BALANZA</span>
+          {activeSlot && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+              Slot {(activeSlotIdx ?? 0) + 1} · {activeSlot.cliente}
+            </span>
+          )}
+          {!activeSlot && (
+            <span className="text-[10px]" style={{ color: c.textMuted }}>Seleccione un slot para pesar</span>
           )}
         </div>
-      )}
 
-      {/* ══════════ VISTA: PESAJE SECUENCIAL ══════════ */}
-      {vista === 'pesaje' && grupoActual && ordenActual && (
-        <div className="space-y-4">
-
-          {/* Barra de progreso del grupo */}
-          <div className="rounded-xl p-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.12)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Progreso del Lote</span>
-              <span className="text-xs font-bold text-green-400">{resultadosCompletos.length}/{grupoActual.pedidos.length}</span>
+        {/* Weight input area */}
+        <div className="px-5 py-4">
+          {modoManual ? (
+            <div className="relative max-w-2xl mx-auto">
+              <Scale className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-blue-400/30" />
+              <input
+                ref={balanzaInputRef}
+                type="number" step="0.01" min="0"
+                value={pesoManualInput}
+                onChange={(e) => setPesoManualInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                placeholder="0.00"
+                disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor}
+                className="w-full pl-14 pr-14 py-5 rounded-2xl text-5xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-40"
+                style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)', color: c.text }}
+                autoFocus
+              />
+              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-blue-400/30">Kg</span>
             </div>
-            <div className="flex gap-1">
-              {grupoActual.pedidos.map((p, i) => (
-                <div key={p.id} className="flex-1 h-2 rounded-full transition-all duration-300" style={{
-                  background: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? 'rgba(245,158,11,0.6)' : c.g06,
-                }} />
-              ))}
-            </div>
-            {/* Mini lista de pedidos con estado */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {grupoActual.pedidos.map((p, i) => (
-                <span key={p.id} className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{
-                  background: i < resultadosCompletos.length ? 'rgba(34,197,94,0.1)' : i === ordenActualIdx ? 'rgba(245,158,11,0.1)' : c.g03,
-                  color: i < resultadosCompletos.length ? '#22c55e' : i === ordenActualIdx ? '#f59e0b' : c.textMuted,
-                  border: `1px solid ${i < resultadosCompletos.length ? 'rgba(34,197,94,0.2)' : i === ordenActualIdx ? 'rgba(245,158,11,0.2)' : c.borderSubtle}`,
-                }}>
-                  {i < resultadosCompletos.length ? '✓' : i === ordenActualIdx ? '●' : '○'} {p.numeroPedido || `#${i + 1}`}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Cabecera del pedido actual */}
-          <div className="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <User className="w-5 h-5 text-green-400" />
+          ) : (
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className={`w-2 h-2 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? (scale.stable ? 'Estable' : 'Estabilizando...') : 'Sin conexión'}</span>
               </div>
-              <div>
-                <h2 className="text-lg font-bold" style={{ color: c.text }}>{ordenActual.cliente}</h2>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: c.g06, color: c.textSecondary }}>{ordenActual.numeroPedido || 'S/N'}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{ordenActual.tipoAve}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{ordenActual.presentacion}</span>
-                  <span className="px-2 py-0.5 rounded-md text-xs" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{ordenActual.cantidad} unids.</span>
-                  {ordenActual.cantidadJabas && (
-                    <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
-                      <Lock className="w-3 h-3" /> {ordenActual.cantidadJabas} jabas
-                    </span>
-                  )}
-                  {zonaBloqueada && zonaSeleccionada && (
-                    <span className="px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)' }}>
-                      <Lock className="w-3 h-3" /> {zonaSeleccionada.nombre.split(' - ')[0]}
-                    </span>
-                  )}
-                </div>
+              <p className="text-5xl font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
+                {scale.currentWeight.toFixed(2)}
+              </p>
+              <p className="text-sm font-light" style={{ color: c.textMuted }}>Kg</p>
+            </div>
+          )}
+
+          {/* Jabas input (only for active Vivo sub-order) */}
+          {activeSubPedido && esVivoActivo && totalJabasActivo > 0 && !activeSubEstado?.completado && !activeSubEstado?.faseConfirmandoContenedor && (
+            <div className="max-w-md mx-auto mt-3 flex items-center gap-3 p-2.5 rounded-xl"
+              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <Box className="w-5 h-5 text-amber-400/60 flex-shrink-0" />
+              <div className="flex-1">
+                <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Jabas en esta pesada</label>
+                <input type="number" min="1" max={jabasRestantesActivo}
+                  value={jabasEnEstaPesada}
+                  onChange={(e) => setJabasEnEstaPesada(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                  placeholder={`1-${jabasRestantesActivo}`}
+                  className="w-full mt-1 px-3 py-1.5 rounded-lg text-lg font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30"
+                  style={{ color: c.text, background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }}
+                />
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-[9px]" style={{ color: c.textMuted }}>quedan</div>
+                <div className="text-lg font-black text-amber-400 tabular-nums">{jabasRestantesActivo}</div>
               </div>
             </div>
-            {faseOrden === 'pesando' && (
-              <button onClick={() => setModoManual(!modoManual)} className="text-xs px-3 py-1.5 rounded-lg font-semibold self-start sm:self-auto"
-                style={{ background: modoManual ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${modoManual ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, color: modoManual ? '#22c55e' : '#f59e0b' }}>
-                {modoManual ? '⌨ Manual' : '⚖ Balanza'}
+          )}
+
+          {/* Quick info & actions */}
+          <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
+            <p className="text-[10px]" style={{ color: c.textMuted }}>
+              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: c.bgCard, color: c.text }}>Enter</kbd> sumar pesada
+            </p>
+            {activeSubEstado && activeSubEstado.pesadas.length > 0 && !activeSubEstado.completado && (
+              <button onClick={quitarUltimaPesada} className="text-[10px] flex items-center gap-1 hover:text-amber-400 transition-colors" style={{ color: c.textMuted }}>
+                <RotateCcw className="w-3 h-3" /> Deshacer
               </button>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Info jabas Vivo */}
-          {esVivo && totalJabasPedido > 0 && (
-            <div className="flex gap-2">
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.2)' }}>
-                <div className="text-[9px] text-amber-500/70 font-bold uppercase">Jabas</div>
-                <div className="text-lg font-black text-amber-400 tabular-nums">{totalJabasPedido}</div>
-              </div>
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(34,197,94,0.2)' }}>
-                <div className="text-[9px] text-green-500/70 font-bold uppercase">Aves/Jaba</div>
-                <div className="text-lg font-black text-green-400 tabular-nums">{unidadesPorJaba || '—'}</div>
-              </div>
-              <div className="flex-1 text-center py-2 rounded-lg" style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)' }}>
-                <div className="text-[9px] text-blue-500/70 font-bold uppercase">Total Aves</div>
-                <div className="text-lg font-black text-blue-400 tabular-nums">{totalAvesPedido || '—'}</div>
-              </div>
-            </div>
-          )}
+      {/* ═══════ SLOTS: Tarjetas estilo NuevoPedido (columnas verticales) ═══════ */}
+      <div className="flex flex-row gap-4 flex-shrink-0">
+        {slots.map((slot, idx) => {
+          const isActive = activeSlotIdx === idx;
+          const listo = slot ? slotListoParaConfirmar(idx) : false;
+          const slotColors = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b'];
+          const slotColor = slotColors[idx % slotColors.length];
 
-          {/* ─────────── FASE: PESANDO ─────────── */}
-          {faseOrden === 'pesando' && (
-            <div className="rounded-2xl relative overflow-hidden"
+          return (
+            <div key={`col-${idx}`}
+              className="flex-1 border rounded-2xl p-4 relative transition-all duration-300 flex flex-col"
               style={{
-                background: isDark ? 'linear-gradient(160deg, #080808, #111)' : c.bgCard,
-                border: modoManual ? '2px solid rgba(59,130,246,0.35)' : scale.stable ? '2px solid rgba(34,197,94,0.5)' : '2px solid rgba(245,158,11,0.4)',
-                boxShadow: modoManual ? '0 0 20px rgba(59,130,246,0.06)' : scale.stable ? '0 0 30px rgba(34,197,94,0.1)' : '0 0 20px rgba(245,158,11,0.06)',
-              }}
-            >
-              {/* Status bar */}
-              <div className="flex items-center justify-between px-5 py-3 flex-wrap gap-2" style={{ borderBottom: '1px solid ' + c.g04 }}>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full"
-                  style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
-                  {pesadas.length === 0 ? 'LISTO PARA PESAR' : `${pesadas.length} PESADA${pesadas.length > 1 ? 'S' : ''}`}
-                </span>
-                <div className="flex items-center gap-2">
-                  {esVivo && totalJabasPedido > 0 && (
-                    <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full"
-                      style={{
-                        background: jabasRestantes === 0 ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
-                        color: jabasRestantes === 0 ? '#22c55e' : '#f59e0b',
-                        border: `1px solid ${jabasRestantes === 0 ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                      }}>
-                      {jabasRestantes === 0 ? '✓ TODAS PESADAS' : `${jabasRestantes} jabas restantes`}
-                    </span>
-                  )}
-                  {pesadas.length > 0 && (
-                    <span className="text-xs font-bold font-mono px-3 py-1 rounded-full"
-                      style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
-                      Acumulado: {pesoBrutoTotal.toFixed(2)} kg
-                    </span>
-                  )}
+                background: isActive ? (isDark ? c.bgCardAlt : '#f0fdf4') : c.bgCardAlt,
+                borderColor: isActive ? `${slotColor}80` : slot ? c.border : (isDark ? 'rgba(255,255,255,0.06)' : c.border),
+                boxShadow: isActive ? `0 10px 40px -10px ${slotColor}40` : slot ? c.shadowMd : 'none',
+                minWidth: 0,
+              }}>
+
+              {/* Status dot (top-right) */}
+              <div className="absolute top-3 right-3 z-10">
+                {slot ? (
+                  slot.pedidos.every(p => slot.subEstados[p.id]?.completado)
+                    ? <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /><span className="text-[10px] font-medium" style={{ color: isDark ? '#4ade80' : '#166534' }}>Listo</span></div>
+                    : slot.pedidos.some(p => slot.subEstados[p.id]?.pesadas.length > 0)
+                      ? <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-[10px]" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Pesando</span></div>
+                      : <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: c.borderSubtle }} /><span className="text-[10px]" style={{ color: c.textMuted }}>Cargado</span></div>
+                ) : (
+                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: c.borderSubtle }} /><span className="text-[10px]" style={{ color: c.textMuted }}>Vacío</span></div>
+                )}
+              </div>
+
+              {/* Card header: number badge + title */}
+              <div className="mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-lg flex-shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${slotColor}, ${slotColor}dd)`, border: `1px solid ${slotColor}80` }}>
+                    {idx + 1}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm truncate" style={{ color: c.text }}>
+                      {slot ? slot.cliente : `Slot ${idx + 1}`}
+                    </h3>
+                    <p className="text-[10px]" style={{ color: c.textSecondary }}>
+                      {slot
+                        ? `${slot.pedidos.filter(p => slot.subEstados[p.id]?.completado).length}/${slot.pedidos.length} completados`
+                        : 'Sin pedido cargado'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Weight display */}
-              <div className="px-6 py-8 text-center">
-                {modoManual ? (
-                  <div>
-                    <div className="relative max-w-xl mx-auto">
-                      <Scale className="absolute left-5 top-1/2 -translate-y-1/2 w-7 h-7 text-blue-400/30" />
-                      <input
-                        type="number" step="0.01" min="0"
-                        value={pesoManualInput}
-                        onChange={(e) => setPesoManualInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
-                        placeholder="0.00"
-                        className="w-full pl-16 pr-16 py-6 rounded-2xl text-6xl md:text-7xl font-black font-mono text-center placeholder-gray-800 focus:ring-2 focus:ring-blue-500/30 transition-all"
-                        style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)', color: c.text }}
-                        autoFocus
-                      />
-                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
-                    </div>
-                    <p className="text-xs mt-2" style={{ color: c.textMuted }}>
-                      <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: c.bgCard, color: c.text }}>Enter</kbd> para sumar
-                    </p>
+              {/* ── Confirmar button ── */}
+              <button
+                onClick={() => confirmarSlot(idx)}
+                disabled={!listo}
+                className="w-full py-2.5 rounded-xl font-black text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] touch-manipulation mb-3 flex items-center justify-center gap-2"
+                style={{
+                  background: listo ? 'linear-gradient(135deg, #0d4a24, #22c55e)' : (isDark ? c.g04 : '#e5e7eb'),
+                  color: listo ? '#fff' : c.textMuted,
+                  boxShadow: listo ? '0 4px 12px rgba(34,197,94,0.3)' : 'none',
+                  border: listo ? 'none' : '1px solid ' + c.borderSubtle,
+                }}>
+                <CheckCircle className="w-4 h-4" />
+                Confirmar
+              </button>
+
+              {/* ── Slot content (center) ── */}
+              <div className="flex-1 flex flex-col min-h-0">
+                {!slot ? (
+                  /* Empty slot */
+                  <div
+                    onClick={() => {/* empty — users load from bottom panel */}}
+                    className="flex-1 rounded-xl flex flex-col items-center justify-center cursor-default select-none touch-manipulation border-2 border-dashed"
+                    style={{
+                      borderColor: c.borderSubtle,
+                      background: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.02)',
+                      minHeight: '160px',
+                    }}>
+                    <Scale className="w-10 h-10 mb-2" style={{ color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)' }} />
+                    <span className="text-[11px] font-medium" style={{ color: c.textMuted }}>Cargue un pedido</span>
+                    <span className="text-[9px] mt-0.5" style={{ color: c.textMuted }}>desde el panel inferior</span>
                   </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                      <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? 'Balanza conectada' : 'Sin conexión'}</span>
-                      {scale.connected && (scale.stable
-                        ? <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Estable</span>
-                        : <span className="text-xs text-amber-400">Estabilizando...</span>
+                ) : (() => {
+                  const subPed = slot.pedidos[slot.currentSubIdx];
+                  const subEst = subPed ? slot.subEstados[subPed.id] : null;
+                  const esVivo = !!subPed?.presentacion?.toLowerCase().includes('vivo');
+                  const brutoSub = subEst?.pesadas.reduce((s, p) => s + p.peso, 0) || 0;
+
+                  return (
+                    <div
+                      onClick={() => activateSlot(idx)}
+                      className="flex-1 rounded-xl overflow-hidden flex flex-col cursor-pointer select-none transition-all touch-manipulation border"
+                      style={{
+                        background: isActive ? (isDark ? 'rgba(34,197,94,0.04)' : '#f0fdf4') : c.bgCard,
+                        borderColor: isActive ? `${slotColor}50` : c.border,
+                        minHeight: '160px',
+                      }}>
+
+                      {/* Unload button */}
+                      <div className="flex items-center justify-end px-2 pt-1.5">
+                        <button onClick={(e) => { e.stopPropagation(); unloadSlot(idx); }}
+                          className="p-1.5 rounded-full bg-red-900/20 border border-red-700/30 hover:bg-red-900/30 hover:scale-110 transition-all touch-manipulation"
+                          title="Retirar">
+                          <X className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+
+                      {/* Sub-order navigation */}
+                      {slot.pedidos.length > 1 && (
+                        <div className="flex items-center justify-center gap-3 px-2 py-1">
+                          <button onClick={(e) => { e.stopPropagation(); navigateSubOrder(idx, -1); }}
+                            disabled={slot.currentSubIdx <= 0}
+                            className="p-1.5 rounded-lg disabled:opacity-20 hover:bg-white/10 transition-colors touch-manipulation border"
+                            style={{ borderColor: c.border }}>
+                            <ChevronLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
+                          </button>
+                          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg" style={{ color: c.text, background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                            {slot.currentSubIdx + 1}/{slot.pedidos.length}
+                          </span>
+                          <button onClick={(e) => { e.stopPropagation(); navigateSubOrder(idx, 1); }}
+                            disabled={slot.currentSubIdx >= slot.pedidos.length - 1}
+                            className="p-1.5 rounded-lg disabled:opacity-20 hover:bg-white/10 transition-colors touch-manipulation border"
+                            style={{ borderColor: c.border }}>
+                            <ChevronRight className="w-4 h-4" style={{ color: c.textSecondary }} />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Sub-order details */}
+                      {subPed && subEst && (
+                        <div className="flex-1 flex flex-col px-3 py-2 gap-2 overflow-y-auto">
+                          {/* Abbreviated product name */}
+                          <div className="text-center py-1">
+                            <span className="text-sm font-black" style={{ color: isActive ? '#4ade80' : c.text }}>
+                              {getAbreviacion(subPed)}
+                            </span>
+                          </div>
+
+                          {/* Jabas info for Vivo */}
+                          {esVivo && (subPed.cantidadJabas || 0) > 0 && (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                                <Lock className="w-2.5 h-2.5 inline mr-0.5" />{subPed.cantidadJabas}j
+                              </span>
+                              {!subEst.completado && (
+                                <span className="text-[9px]" style={{ color: c.textMuted }}>
+                                  restan {(subPed.cantidadJabas || 0) - subEst.pesadas.reduce((s, p) => s + (p.jabas || 0), 0)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Pesadas list */}
+                          {subEst.pesadas.length > 0 && (
+                            <div className="space-y-0.5">
+                              {subEst.pesadas.map(p => (
+                                <div key={p.numero} className="flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-mono"
+                                  style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
+                                  <span style={{ color: '#4ade80' }}>P-{p.numero}</span>
+                                  <span style={{ color: c.text }}>{p.peso.toFixed(2)}{p.jabas ? ` (${p.jabas}j)` : ''}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Gross weight summary */}
+                          {subEst.pesadas.length > 0 && (
+                            <div className="text-center py-1.5 rounded-xl mt-auto" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                              <div className="text-[9px] font-bold uppercase" style={{ color: c.textMuted }}>Bruto</div>
+                              <div className="text-lg font-black font-mono tabular-nums" style={{ color: '#22c55e' }}>
+                                {brutoSub.toFixed(2)}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Status / Container confirmation for non-Vivo */}
+                          {subEst.completado && (
+                            <div className="text-center py-1.5">
+                              <span className="text-[10px] font-bold text-green-400 flex items-center justify-center gap-1">
+                                <CheckCircle className="w-3.5 h-3.5" /> Completado
+                              </span>
+                            </div>
+                          )}
+
+                          {subEst.faseConfirmandoContenedor && !subEst.completado && (
+                            <div className="space-y-2 mt-auto rounded-xl p-2.5" style={{ background: c.bgCardAlt, border: `1px solid rgba(245,158,11,0.3)` }} onClick={(e) => e.stopPropagation()}>
+                              <div className="text-[10px] font-bold text-amber-400 uppercase text-center">Confirmar Contenedor</div>
+                              {!esVivo && (
+                                <select
+                                  value={subEst.contenedorId}
+                                  onChange={(e) => updateSubField(idx, subPed.id, 'contenedorId', e.target.value)}
+                                  className="w-full px-2 py-1.5 rounded-lg text-[11px] appearance-none"
+                                  style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}>
+                                  <option value="">Tipo...</option>
+                                  {contenedores.map(ct => <option key={ct.id} value={ct.id} className="bg-gray-900">{ct.tipo}</option>)}
+                                </select>
+                              )}
+                              <input type="number" min="1"
+                                value={subEst.cantidadContenedoresInput}
+                                onChange={(e) => updateSubField(idx, subPed.id, 'cantidadContenedoresInput', e.target.value)}
+                                placeholder="Cantidad"
+                                className="w-full px-2 py-1.5 rounded-lg text-sm font-mono text-center"
+                                style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}
+                              />
+                              <div className="flex gap-1.5">
+                                <button onClick={(e) => { e.stopPropagation(); cancelarConfirmacion(); }}
+                                  className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"
+                                  style={{ border: `1px solid ${c.border}`, color: c.textMuted }}>
+                                  Volver
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); confirmarContenedorSub(idx, subPed.id); }}
+                                  className="flex-1 py-1.5 rounded-lg text-[10px] font-bold text-white"
+                                  style={{ background: 'linear-gradient(135deg, #78350f, #d97706)' }}>
+                                  OK
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Terminar button for non-Vivo */}
+                          {!esVivo && !subEst.completado && !subEst.faseConfirmandoContenedor && subEst.pesadas.length > 0 && isActive && (
+                            <button onClick={(e) => { e.stopPropagation(); terminarSubOrden(); }}
+                              className="mt-auto py-2 rounded-xl text-[11px] font-bold text-white transition-all hover:scale-[1.02] touch-manipulation flex items-center justify-center gap-1.5"
+                              style={{ background: 'linear-gradient(135deg, #0a4d2a, #22c55e)' }}>
+                              <CheckCircle className="w-3.5 h-3.5" /> Terminar pesaje
+                            </button>
+                          )}
+
+                          {/* Empty state */}
+                          {subEst.pesadas.length === 0 && !subEst.completado && (
+                            <div className="flex-1 flex items-center justify-center">
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>
+                                {isActive ? 'Ingrese peso en la balanza' : 'Toque para activar'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Active indicator bar */}
+                      {isActive && (
+                        <div className="h-1" style={{ background: `linear-gradient(to right, ${slotColor}, ${slotColor}88)` }} />
                       )}
                     </div>
-                    <p className="text-7xl font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
-                      {scale.currentWeight.toFixed(2)}
-                    </p>
-                    <p className="text-xl font-light mt-1" style={{ color: c.textMuted }}>Kilogramos</p>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
-              {/* Jabas input — solo Vivo */}
-              {esVivo && totalJabasPedido > 0 && jabasRestantes > 0 && (
-                <div className="px-6 pb-2">
-                  <div className="max-w-xs mx-auto flex items-center gap-3 p-3 rounded-xl"
-                    style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Box className="w-5 h-5 text-amber-400/60 flex-shrink-0" />
-                    <div className="flex-1">
-                      <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Jabas en esta pesada</label>
-                      <input type="number" min="1" max={jabasRestantes}
-                        value={jabasEnEstaPesada}
-                        onChange={(e) => setJabasEnEstaPesada(e.target.value)}
-                        placeholder={`1-${jabasRestantes}`}
-                        className="w-full mt-1 px-3 py-2 rounded-lg text-xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ color: c.text, background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)' }} />
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-[10px]" style={{ color: c.textMuted }}>quedan</div>
-                      <div className="text-lg font-black text-amber-400 tabular-nums">{jabasRestantes}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* ── Pendiente button ── */}
+              <button
+                onClick={() => pendienteSlot(idx)}
+                disabled={!slot}
+                className="w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all disabled:opacity-20 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] touch-manipulation mt-3 flex items-center justify-center gap-2"
+                style={{
+                  background: slot ? 'rgba(245,158,11,0.08)' : (isDark ? c.g03 : '#f3f4f6'),
+                  border: slot ? '1px solid rgba(245,158,11,0.25)' : `1px solid ${c.borderSubtle}`,
+                  color: slot ? '#f59e0b' : c.textMuted,
+                }}>
+                PENDIENTE
+              </button>
 
-              {/* Pesadas chips */}
-              {pesadas.length > 0 && (
-                <div className="flex items-center justify-center gap-1.5 flex-wrap px-6 pb-3">
-                  {pesadas.map(p => (
-                    <span key={p.numero} className="text-[11px] font-mono px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(34,197,94,0.08)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)' }}>
-                      #{p.numero}: {p.peso.toFixed(2)}kg{p.jabas ? ` (${p.jabas}j)` : ''}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Action buttons */}
-              {(() => {
-                const sumarDisabled = pesoActual <= 0 || (esVivo && totalJabasPedido > 0 && (jabasInput <= 0 || jabasInput > jabasRestantes));
-                const sumarActive = !sumarDisabled;
-                const terminarDisabled = pesadas.length === 0 || (esVivo && totalJabasPedido > 0 && jabasRestantes > 0);
-                const terminarActive = !terminarDisabled;
-                return (
-                  <div className="grid grid-cols-2 gap-3 px-6 pb-6">
-                    <button onClick={sumarPesada} disabled={sumarDisabled}
-                      className="py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: sumarActive ? 'linear-gradient(165deg, #1e3a5f, #1d4ed8)' : (isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db'), color: sumarActive ? '#fff' : c.textMuted, boxShadow: sumarActive ? '0 8px 20px -6px rgba(37,99,235,0.4)' : 'none' }}>
-                      <Plus className="w-5 h-5" /> SUMAR
-                      {sumarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoActual.toFixed(2)}{jabasInput > 0 ? ` · ${jabasInput}j` : ''}</span>}
-                    </button>
-                    <button onClick={terminarPesaje} disabled={terminarDisabled}
-                      className="py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: terminarActive ? 'linear-gradient(165deg, #0a4d2a, #22c55e)' : (isDark ? 'rgba(255,255,255,0.06)' : '#d1d5db'), color: terminarActive ? '#fff' : c.textMuted, boxShadow: terminarActive ? '0 8px 20px -6px rgba(34,197,94,0.4)' : 'none' }}>
-                      <CheckCircle className="w-5 h-5" /> TERMINAR
-                      {terminarActive && <span className="text-sm font-mono bg-white/15 px-2 py-0.5 rounded-lg">{pesoBrutoTotal.toFixed(2)}</span>}
-                    </button>
-                  </div>
-                );
-              })()}
-
-              {pesadas.length > 0 && (
-                <div className="text-center pb-4">
-                  <button onClick={quitarUltimaPesada} className="text-xs hover:text-amber-400 transition-colors flex items-center gap-1 mx-auto" style={{ color: c.textMuted }}>
-                    <RotateCcw className="w-3 h-3" /> Deshacer última
-                  </button>
-                </div>
-              )}
             </div>
-          )}
+          );
+        })}
+      </div>
 
-          {/* ─────────── FASE: CONFIRMAR CONTENEDOR ─────────── */}
-          {faseOrden === 'confirmando-contenedor' && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: isDark ? 'linear-gradient(160deg, #080808, #111)' : c.bgCard, border: '2px solid rgba(245,158,11,0.35)' }}>
+      {/* ═══════ BOTTOM PANEL ═══════ */}
+      <div className="rounded-2xl overflow-hidden flex-1 flex min-h-0" style={{ background: c.g02, border: '1px solid ' + c.borderSubtle, minHeight: '250px' }}>
 
-              <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid ' + c.g04 }}>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-xs font-bold text-green-400">PESAJE COMPLETADO</span>
-                </div>
-                <p className="text-4xl font-black font-mono tabular-nums" style={{ color: c.text }}>
-                  {pesoBrutoTotal.toFixed(2)} <span className="text-lg font-light" style={{ color: c.textMuted }}>kg bruto</span>
-                </p>
-                <div className="flex justify-center gap-1.5 flex-wrap mt-2">
-                  {pesadas.map(p => (
-                    <span key={p.numero} className="text-[10px] font-mono px-2 py-0.5 rounded-full"
-                      style={{ background: 'rgba(34,197,94,0.06)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.1)' }}>
-                      #{p.numero}: {p.peso.toFixed(2)}{p.jabas ? ` (${p.jabas}j)` : ''}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-6 space-y-5">
-                <div className="text-center">
-                  <p className="text-amber-300 text-lg font-black uppercase tracking-wide">
-                    {esVivo ? 'Tipo de jaba utilizada' : '¿Qué tipo de contenedor se usó?'}
-                  </p>
-                  {esVivo && cantidadBloqueada && ordenActual?.cantidadJabas && (
-                    <div className="flex items-center justify-center gap-2 mt-1 text-xs text-amber-500">
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Cantidad bloqueada: <strong>{ordenActual.cantidadJabas} jabas</strong></span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {opcionesContenedor.map(cont => (
-                    <button key={cont.id}
-                      onClick={() => !esVivo && setContenedorFinalId(cont.id)}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition-all text-center ${!esVivo ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}`}
-                      style={{
-                        background: contenedorFinalId === cont.id ? 'rgba(245,158,11,0.15)' : c.g03,
-                        border: `2px solid ${contenedorFinalId === cont.id ? 'rgba(245,158,11,0.5)' : c.borderSubtle}`,
-                        color: contenedorFinalId === cont.id ? '#f59e0b' : '#666',
-                      }}>
-                      <div className="flex items-center gap-2">
-                        {esVivo && <Lock className="w-3 h-3 opacity-50" />}
-                        <div>
-                          <div className="text-sm">{cont.tipo}</div>
-                          <div className="text-[10px] opacity-50 font-mono">{esVivo ? `${pesoJabaEditable} kg/u` : `${cont.peso} kg/u`}</div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <div>
-                  <p className="text-center text-sm font-medium mb-3" style={{ color: c.textSecondary }}>
-                    {esVivo ? 'Cantidad de jabas' : '¿Cuántos contenedores?'}
-                  </p>
-                  {cantidadBloqueada ? (
-                    <div className="relative max-w-xs mx-auto flex items-center justify-center gap-3 py-4 rounded-xl"
-                      style={{ background: 'rgba(245,158,11,0.06)', border: '2px solid rgba(245,158,11,0.3)' }}>
-                      <Lock className="w-5 h-5 text-amber-400" />
-                      <span className="text-4xl font-black font-mono text-amber-400 tabular-nums">{cantidadContenedoresInput}</span>
-                      <div className="text-left">
-                        <div className="text-xs font-bold" style={{ color: '#f59e0b' }}>jabas</div>
-                        <div className="text-[10px]" style={{ color: c.textMuted }}>según pedido</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative max-w-xs mx-auto">
-                      <Box className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400/30" />
-                      <input type="number" min="1"
-                        value={cantidadContenedoresInput}
-                        onChange={(e) => setCantidadContenedoresInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarContenedorYAvanzar(); }}
-                        placeholder="Ej: 5"
-                        className="w-full pl-12 pr-6 py-4 rounded-xl text-4xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-amber-500/30 transition-all"
-                        style={{ background: c.bgCardAlt, border: '1px solid rgba(245,158,11,0.3)', color: c.text }}
-                        autoFocus
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {contenedorFinalId && cantidadPreview > 0 && (
-                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl text-center"
-                    style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
-                    <div>
-                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Peso Bruto</div>
-                      <div className="font-bold font-mono tabular-nums" style={{ color: c.text }}>{pesoBrutoTotal.toFixed(2)} kg</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Tara ({cantidadPreview}×{esVivo ? pesoJabaEditable : contSeleccionadoPreview?.peso})</div>
-                      <div className="text-amber-400 font-bold font-mono tabular-nums">{taraPreview.toFixed(2)} kg</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] mb-0.5" style={{ color: c.textMuted }}>Peso Neto</div>
-                      <div className="text-green-400 font-black font-mono text-lg tabular-nums">{netoPreview.toFixed(2)} kg</div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button onClick={() => setFaseOrden('pesando')}
-                    className="flex-1 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-white/5 transition-all"
-                    style={{ border: '1px solid ' + c.g08, color: c.textSecondary }}>
-                    <RotateCcw className="w-4 h-4" /> Volver
-                  </button>
-                  <button onClick={confirmarContenedorYAvanzar} disabled={!contenedorFinalId || cantidadPreview <= 0}
-                    className="flex-[2] py-3 rounded-xl text-white font-black text-base transition-all hover:scale-[1.01] disabled:opacity-20 flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #78350f, #d97706)', boxShadow: '0 4px 15px rgba(245,158,11,0.25)' }}>
-                    <CheckCircle className="w-5 h-5" />
-                    {ordenActualIdx < (grupoActual?.pedidos.length || 1) - 1 ? 'CONFIRMAR Y SIGUIENTE' : 'CONFIRMAR Y FINALIZAR'}
-                  </button>
-                </div>
-              </div>
+        {/* Left: Client list */}
+        <div className="flex-shrink-0 overflow-y-auto" style={{ width: '180px', borderRight: '1px solid ' + c.g04 }}>
+          <div className="px-3 py-2 sticky top-0" style={{ background: c.g02, borderBottom: '1px solid ' + c.g04 }}>
+            <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: c.textMuted }}>Clientes</span>
+          </div>
+          {clientesEnPesaje.length === 0 ? (
+            <div className="px-3 py-6 text-center">
+              <Users className="w-6 h-6 mx-auto mb-1" style={{ color: c.g08 }} />
+              <span className="text-[10px]" style={{ color: c.textMuted }}>Sin pedidos pendientes</span>
             </div>
+          ) : (
+            clientesEnPesaje.map((cl) => (
+              <button key={cl.cliente}
+                onClick={() => { setSelectedClienteBottom(cl.cliente); setBottomMode('clientes'); }}
+                className="w-full text-left px-3 py-3 transition-colors hover:bg-white/5 touch-manipulation"
+                style={{
+                  borderBottom: '1px solid ' + c.g04,
+                  background: selectedClienteBottom === cl.cliente && bottomMode === 'clientes' ? 'rgba(34,197,94,0.08)' : 'transparent',
+                }}>
+                <div className="text-xs font-bold truncate" style={{ color: selectedClienteBottom === cl.cliente && bottomMode === 'clientes' ? '#22c55e' : c.text }}>
+                  {cl.cliente}
+                </div>
+                <div className="text-[10px] mt-0.5" style={{ color: c.textMuted }}>
+                  {cl.totalPedidos} pedido{cl.totalPedidos > 1 ? 's' : ''} · {cl.grupos.length} bloque{cl.grupos.length > 1 ? 's' : ''}
+                </div>
+              </button>
+            ))
           )}
         </div>
-      )}
 
-      {/* ══════════ VISTA: ASIGNAR ENTREGA ══════════ */}
-      {vista === 'entrega' && grupoActual && (
-        <div className="space-y-4">
-          {/* Resumen de todos los pedidos pesados */}
-          <div className="rounded-2xl overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, rgba(34,197,94,0.03), #080808)', border: '2px solid rgba(34,197,94,0.3)' }}>
+        {/* Right: Content area */}
+        <div className="flex-1 overflow-y-auto">
 
-            <div className="px-5 py-4 text-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-3" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span className="text-xs font-bold text-green-400">TODOS LOS PEDIDOS PESADOS</span>
-              </div>
-
-              {/* Resumen por pedido */}
-              <div className="space-y-2 mb-4">
-                {resultadosCompletos.map((r, i) => (
-                  <div key={r.pedidoId} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
-                        {i + 1}
-                      </span>
-                      <div className="text-left">
-                        <div className="text-xs font-semibold" style={{ color: c.text }}>{r.pedido.tipoAve}</div>
-                        <div className="text-[10px]" style={{ color: c.textMuted }}>{r.pedido.presentacion} · {r.pesadas.length} pesada{r.pesadas.length > 1 ? 's' : ''}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-black tabular-nums" style={{ color: c.text }}>{r.pesoBrutoTotal.toFixed(2)} kg</div>
-                      <div className="text-[10px]" style={{ color: c.textMuted }}>bruto</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Totales generales */}
-              <div className="flex justify-center">
-                <div className="rounded-xl p-4 min-w-[160px]" style={{ background: c.g02, border: '1px solid ' + c.borderSubtle }}>
-                  <div className="text-[10px] mb-0.5 text-center" style={{ color: c.textMuted }}>Bruto Total</div>
-                  <div className="text-2xl font-black tabular-nums text-center" style={{ color: c.text }}>
-                    {resultadosCompletos.reduce((s, r) => s + r.pesoBrutoTotal, 0).toFixed(2)}
-                  </div>
-                  <div className="text-[10px] text-center" style={{ color: c.textMuted }}>kg</div>
+          {/* Registro mode: active slot detail */}
+          {bottomMode === 'registro' && activeSlot && activeSlotIdx !== null ? (
+            <div className="p-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-bold" style={{ color: c.text }}>Registro — Slot {activeSlotIdx + 1}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>{activeSlot.cliente}</span>
                 </div>
+                <button onClick={() => setBottomMode('clientes')} className="text-[10px] px-2 py-1 rounded-lg hover:bg-white/5 touch-manipulation" style={{ color: c.textMuted, border: '1px solid ' + c.g06 }}>
+                  Ver clientes
+                </button>
               </div>
-            </div>
 
-            <div className="p-6 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: c.textSecondary }}>Asignar Entrega (para todo el lote)</h3>
+              {/* Conductor & Zona assignment */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Conductor */}
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                  <select value={conductorId} onChange={(e) => setConductorId(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 rounded-xl text-sm appearance-none"
+                  <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                  <select value={activeSlot.conductorId}
+                    onChange={(e) => updateSlot(activeSlotIdx, s => ({ ...s, conductorId: e.target.value }))}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
                     style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)', color: c.text }}>
-                    <option value="">Seleccionar conductor...</option>
-                    {CONDUCTORES.map(c => <option key={c.id} value={c.id} className="bg-gray-900">{c.nombre} — {c.placa}</option>)}
+                    <option value="">Asignar conductor...</option>
+                    {CONDUCTORES.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre} — {cd.placa}</option>)}
                   </select>
                 </div>
-
-                {/* Zona */}
-                {zonaBloqueada ? (
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                    style={{ background: 'rgba(168,85,247,0.06)', border: '2px solid rgba(168,85,247,0.3)' }}>
-                    <Lock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                {activeSlot.zonaBloqueada ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <Lock className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
                     <div className="min-w-0">
-                      <div className="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Zona (del cliente)</div>
-                      <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{zonaSeleccionada?.nombre}</div>
+                      <div className="text-[9px] text-purple-500 font-bold uppercase">Zona</div>
+                      <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{ZONAS.find(z => z.id === activeSlot.zonaId)?.nombre || '—'}</div>
                     </div>
                   </div>
                 ) : (
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
-                    <select value={zonaId} onChange={(e) => setZonaId(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl appearance-none"
+                    <select value={activeSlot.zonaId}
+                      onChange={(e) => updateSlot(activeSlotIdx, s => ({ ...s, zonaId: e.target.value }))}
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
                       style={{ background: c.bgCard, border: '1px solid rgba(168,85,247,0.2)', color: c.text }}>
-                      <option value="">Seleccionar zona...</option>
+                      <option value="">Zona de entrega...</option>
                       {ZONAS.map(z => <option key={z.id} value={z.id} className="bg-gray-900">{z.nombre}</option>)}
                     </select>
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => {
-                  // Volver al pesaje del último pedido (deshacer último resultado)
-                  if (resultadosCompletos.length > 0) {
-                    const lastResult = resultadosCompletos[resultadosCompletos.length - 1];
-                    setResultadosCompletos(resultadosCompletos.slice(0, -1));
-                    setOrdenActualIdx(grupoActual.pedidos.findIndex(p => p.id === lastResult.pedidoId));
-                    setPesadas(lastResult.pesadas);
-                    setFaseOrden('confirmando-contenedor');
-                    setContenedorFinalId(lastResult.contenedorId);
-                    setCantidadContenedoresInput(String(lastResult.cantidadContenedores));
-                    setVista('pesaje');
-                  }
-                }}
-                  className="px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-white/5 transition-all"
-                  style={{ border: '1px solid ' + c.g08, color: c.textSecondary }}>
-                  <RotateCcw className="w-4 h-4" /> Volver
-                </button>
-                <button onClick={handleConfirmarDespacho}
-                  className="flex-1 py-3.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #0d4a24, #166534, #22c55e)', boxShadow: '0 6px 20px -5px rgba(34,197,94,0.35)' }}>
-                  <Printer className="w-5 h-5" /> CONFIRMAR Y EMITIR TICKET
-                </button>
+              {/* Sub-orders summary */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: c.textMuted }}>Pedidos del bloque</span>
+                {activeSlot.pedidos.map((ped, pIdx) => {
+                  const sEst = activeSlot.subEstados[ped.id];
+                  const bruto = sEst?.pesadas.reduce((s, p) => s + p.peso, 0) || 0;
+                  return (
+                    <div key={ped.id} className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
+                      {/* Sub-order header */}
+                      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: sEst && sEst.pesadas.length > 0 ? '1px solid ' + c.g04 : 'none' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{
+                            background: sEst?.completado ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.1)',
+                            color: sEst?.completado ? '#22c55e' : '#3b82f6',
+                          }}>{pIdx + 1}</span>
+                          <span className="text-xs font-bold" style={{ color: c.text }}>{getAbreviacion(ped)}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.08)', color: '#3b82f6' }}>{ped.presentacion}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {sEst?.completado ? (
+                            <span className="text-[10px] font-bold text-green-400 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Listo
+                            </span>
+                          ) : sEst && sEst.pesadas.length > 0 ? (
+                            <span className="text-[10px] font-bold text-amber-400">Pesando...</span>
+                          ) : (
+                            <span className="text-[10px]" style={{ color: c.textMuted }}>Pendiente</span>
+                          )}
+                          {bruto > 0 && (
+                            <span className="text-xs font-black font-mono tabular-nums" style={{ color: c.text }}>{bruto.toFixed(2)} kg</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pesadas detail */}
+                      {sEst && sEst.pesadas.length > 0 && (
+                        <div className="px-3 py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {sEst.pesadas.map(p => (
+                              <span key={p.numero} className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                                style={{ background: 'rgba(34,197,94,0.06)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.1)' }}>
+                                P-{p.numero}: {p.peso.toFixed(2)}{p.jabas ? ` (${p.jabas}j)` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Totals */}
+                {activeSlot.pedidos.some(p => activeSlot.subEstados[p.id]?.pesadas.length > 0) && (
+                  <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                    <div className="text-[9px] font-bold uppercase" style={{ color: c.textMuted }}>Peso bruto total del bloque</div>
+                    <div className="text-2xl font-black font-mono tabular-nums" style={{ color: '#22c55e' }}>
+                      {activeSlot.pedidos.reduce((s, p) => s + (activeSlot.subEstados[p.id]?.pesadas.reduce((s2, pp) => s2 + pp.peso, 0) || 0), 0).toFixed(2)} kg
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          ) : bottomMode === 'clientes' && selectedClienteBottom ? (
+            /* Clientes mode: show selected client's blocks */
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-bold" style={{ color: c.text }}>{selectedClienteBottom}</span>
+              </div>
 
-      {/* Placeholder cuando no hay selección */}
-      {vista === 'clientes' && clientesEnPesaje.length > 0 && !clienteExpandido && (
-        <div className="flex items-center justify-center rounded-2xl"
-          style={{ background: c.g02, border: '1px dashed ' + c.borderSubtle, minHeight: '30vh' }}>
-          <div className="text-center">
-            <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(34,197,94,0.08)' }} />
-            <p className="text-sm font-medium" style={{ color: c.textMuted }}>Seleccione un cliente de la lista</p>
-            <p className="text-xs mt-1" style={{ color: c.textMuted }}>Expanda el cliente → seleccione un lote → inicie el pesaje</p>
-          </div>
-        </div>
-      )}
+              {(() => {
+                const clienteData = clientesEnPesaje.find(cl => cl.cliente === selectedClienteBottom);
+                if (!clienteData) return (
+                  <div className="text-center py-8">
+                    <span className="text-xs" style={{ color: c.textMuted }}>No hay pedidos disponibles para este cliente</span>
+                  </div>
+                );
+                return clienteData.grupos.map((grupo, gIdx) => (
+                  <div key={grupo.grupoId} className="rounded-xl p-3 space-y-2" style={{ background: c.bgCard, border: '1px solid ' + c.borderSubtle }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-blue-400/60" />
+                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: c.textSecondary }}>Bloque {gIdx + 1}</span>
+                        <span className="text-[10px]" style={{ color: c.textMuted }}>· {grupo.pedidos.length} pedido{grupo.pedidos.length > 1 ? 's' : ''}</span>
+                      </div>
+                      <button
+                        onClick={() => loadGrupoIntoSlot(grupo)}
+                        disabled={slots.every(s => s !== null)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black text-white transition-all hover:scale-[1.03] disabled:opacity-40 touch-manipulation"
+                        style={{ background: 'linear-gradient(135deg, #0d4a24, #22c55e)', boxShadow: '0 4px 12px rgba(34,197,94,0.3)' }}>
+                        <Scale className="w-3.5 h-3.5" /> CARGAR
+                      </button>
+                    </div>
 
-      {/* ═══════ MODAL TICKET CONSOLIDADO ═══════ */}
+                    <div className="space-y-1">
+                      {grupo.pedidos.map((pedido, pIdx) => (
+                        <div key={pedido.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: c.g02, border: '1px solid ' + c.g03 }}>
+                          <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                            {pIdx + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-semibold" style={{ color: c.text }}>{getAbreviacion(pedido)}</span>
+                              <span className="text-[10px] font-mono" style={{ color: c.textMuted }}>{pedido.numeroPedido || 'S/N'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.08)', color: '#3b82f6' }}>{pedido.presentacion}</span>
+                              <span className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidad} unids.</span>
+                              {pedido.cantidadJabas && (
+                                <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#f59e0b' }}>
+                                  <Lock className="w-2.5 h-2.5" />{pedido.cantidadJabas}j
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+            /* Empty placeholder */
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <FileText className="w-10 h-10 mx-auto mb-2" style={{ color: c.g08 }} />
+                <p className="text-sm font-medium" style={{ color: c.textMuted }}>
+                  {slotsOcupados > 0 ? 'Toque un slot para ver el registro' : 'Seleccione un cliente para ver sus pedidos'}
+                </p>
+                <p className="text-xs mt-1" style={{ color: c.textMuted }}>
+                  {slotsOcupados > 0 ? 'O seleccione un cliente a la izquierda' : 'Luego cargue un bloque en un slot de pesaje'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════ TICKET MODAL ═══════ */}
       {ticketVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
           <div className="rounded-3xl border p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
@@ -1137,7 +1329,7 @@ export function PesajeOperador() {
               <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: c.text }}>
                 <FileText className="w-5 h-5 text-green-400" /> Tickets de Despacho
               </h2>
-              <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10">
+              <button onClick={() => setTicketVisible(null)} className="p-2 rounded-xl hover:bg-white/10 touch-manipulation">
                 <X className="w-5 h-5" style={{ color: c.textSecondary }} />
               </button>
             </div>
@@ -1149,7 +1341,6 @@ export function PesajeOperador() {
                   <div className="absolute top-0 left-0 right-0 h-1"
                     style={{ background: tipo === 'CLIENTE' ? 'linear-gradient(to right, #22c55e, #3b82f6)' : 'linear-gradient(to right, #ccaa00, #f97316)' }} />
 
-                  {/* Encabezado */}
                   <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #333' }}>
                     <h3 className="text-lg font-extrabold tracking-widest">
                       <span style={{ color: '#22c55e' }}>AVÍCOLA </span><span style={{ color: '#ccaa00' }}>JOSSY</span>
@@ -1157,32 +1348,25 @@ export function PesajeOperador() {
                     <p className="text-[9px] tracking-[0.2em] mt-0.5 uppercase" style={{ color: c.textMuted }}>Ticket de Despacho</p>
                   </div>
 
-                  {/* N° ticket */}
                   <div className="text-center py-1.5 px-3 rounded-lg mb-3 font-mono text-xs"
                     style={{ background: 'rgba(204,170,0,0.08)', border: '1px solid ' + c.borderGold, color: c.text }}>
                     {ticketVisible.numeroTicket}
                   </div>
 
-                  {/* Cliente */}
                   <div className="text-center mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <div className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1">Cliente</div>
                     <div className="text-sm font-bold" style={{ color: c.text }}>{ticketVisible.cliente}</div>
                   </div>
 
-                  {/* Bloques de pedidos */}
                   {ticketVisible.pedidos.map((resultado, idx) => (
                     <div key={resultado.pedidoId} className="mb-3 pb-3" style={{ borderBottom: '1px dashed #222' }}>
-                      {/* Encabezado del pedido */}
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
-                          {idx + 1}
-                        </span>
+                        <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>{idx + 1}</span>
                         <span className="text-[9px] uppercase tracking-[0.15em] font-bold" style={{ color: c.textMuted }}>
                           {idx === 0 ? 'Pedido Principal' : `Sub-Pedido ${idx}`}
                         </span>
                       </div>
 
-                      {/* Datos del pedido */}
                       <div className="mb-2 pb-1.5" style={{ borderBottom: '1px dotted rgba(255,255,255,0.06)' }}>
                         <p className="text-[8px] text-gray-600 uppercase tracking-[0.15em] mb-1">Detalle del Pedido</p>
                         {[
@@ -1197,7 +1381,6 @@ export function PesajeOperador() {
                         ))}
                       </div>
 
-                      {/* Detalle de pesaje */}
                       <div>
                         <p className="text-[8px] text-gray-600 uppercase tracking-[0.15em] mb-1">Detalle del Pesaje</p>
                         <table className="w-full text-[10px]">
@@ -1210,7 +1393,7 @@ export function PesajeOperador() {
                           <tbody>
                             {resultado.pesadas.map(p => (
                               <tr key={p.numero} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                                <td className="py-0.5" style={{ color: c.textSecondary }}>Pesada {p.numero}</td>
+                                <td className="py-0.5" style={{ color: c.textSecondary }}>Pesada {p.numero}{p.jabas ? ` (${p.jabas}j)` : ''}</td>
                                 <td className="py-0.5 text-right font-mono font-bold" style={{ color: c.text }}>{p.peso.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -1218,29 +1401,22 @@ export function PesajeOperador() {
                               <td className="py-0.5 font-bold text-[10px]" style={{ color: c.textSecondary }}>BRUTO</td>
                               <td className="py-0.5 text-right font-mono font-black" style={{ color: c.text }}>{resultado.pesoBrutoTotal.toFixed(2)}</td>
                             </tr>
-
                           </tbody>
                         </table>
                       </div>
                     </div>
                   ))}
 
-                  {/* Totales generales (si hay más de 1 pedido) */}
                   {ticketVisible.pedidos.length > 1 && (
                     <div className="mb-3 pb-2 rounded-lg p-2" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.1)' }}>
                       <p className="text-[8px] text-green-500 uppercase tracking-[0.15em] mb-1 font-bold">Totales Generales</p>
-                      {[
-                        ['Peso Bruto Total', `${ticketVisible.totales.pesoBrutoTotal.toFixed(2)} kg`],
-                      ].map(([label, value]) => (
-                        <div key={label} className="flex justify-between text-[11px]">
-                          <span style={{ color: c.textSecondary }}>{label}</span>
-                          <span className="font-black" style={{ color: c.text }}>{value}</span>
-                        </div>
-                      ))}
+                      <div className="flex justify-between text-[11px]">
+                        <span style={{ color: c.textSecondary }}>Peso Bruto Total</span>
+                        <span className="font-black" style={{ color: c.text }}>{ticketVisible.totales.pesoBrutoTotal.toFixed(2)} kg</span>
+                      </div>
                     </div>
                   )}
 
-                  {/* Datos de Entrega (uno solo para todo) */}
                   <div className="mb-3 pb-2" style={{ borderBottom: '1px dashed #222' }}>
                     <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos de Entrega</p>
                     {[
@@ -1265,12 +1441,12 @@ export function PesajeOperador() {
 
             <div className="flex gap-3 mt-5">
               <button onClick={handlePrint}
-                className="flex-1 py-3.5 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] flex items-center justify-center gap-2 touch-manipulation"
                 style={{ background: 'linear-gradient(135deg, #0d4a24, #22c55e)', boxShadow: '0 6px 18px rgba(34,197,94,0.3)' }}>
                 <Printer className="w-5 h-5" /> Imprimir Tickets
               </button>
               <button onClick={() => setTicketVisible(null)}
-                className="px-6 py-3.5 rounded-2xl font-bold flex items-center justify-center"
+                className="px-6 py-3.5 rounded-2xl font-bold flex items-center justify-center touch-manipulation"
                 style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', border: isDark ? '1px solid rgba(255,255,255,0.1)' : `1px solid ${c.border}`, color: c.textSecondary }}>
                 <X className="w-5 h-5" />
               </button>
