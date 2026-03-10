@@ -5,19 +5,16 @@ import {
   useNavigate,
 } from "react-router";
 import {
-  LayoutDashboard,
   LogOut,
-  Menu,
   ClipboardList,
   Scale,
   Truck,
-  UserCircle,
   Wrench,
   ShoppingCart,
   Sun,
   Moon,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme, t } from "../contexts/ThemeContext";
 import logoImage from "../assets/AvicolaLogo.png";
@@ -34,22 +31,6 @@ export function LayoutOperador() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const c = t(isDark);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Detectar si es pantalla pequeña para ajustar el estado inicial del sidebar
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setIsSidebarOpen(false); // en móvil/tablet el sidebar desktop está colapsado
-      } else {
-        setIsSidebarOpen(true); // en desktop lo dejamos abierto por defecto
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Redirigir a nuevo-pedido si estamos en la raíz del dashboard-operador
   useEffect(() => {
@@ -93,7 +74,7 @@ export function LayoutOperador() {
     for (const item of navigationItems) {
       if (item.path && location.pathname === item.path) return item.label;
     }
-    if (location.pathname === '/dashboard-operador') return "Nuevo Pedido"; // Cambiado para que muestre "Nuevo Pedido" como título
+    if (location.pathname === '/dashboard-operador') return "Nuevo Pedido";
     return "Avícola Jossy";
   };
 
@@ -104,291 +85,127 @@ export function LayoutOperador() {
     document.title = `${currentTitle} | Avícola Jossy`;
   }, [currentTitle]);
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div
-        className="p-4 sm:p-6 border-b flex-shrink-0"
-        style={{ borderColor: c.borderGold }}
-      >
-        <div className="flex items-center gap-3">
-          <img
-            src={logoImage}
-            alt="Avícola Jossy"
-            className="w-8 h-8 sm:w-10 sm:h-10"
-            style={{
-              filter: "drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))",
-            }}
-          />
-          {(isSidebarOpen || isMobileSidebarOpen) && (
-            <div className="lg:block truncate">
-              <h1 className="font-bold text-base sm:text-lg">
-                <span style={{ color: "#22c55e" }}>AVÍCOLA </span>
-                <span style={{ color: "#ccaa00" }}>JOSSY</span>
-              </h1>
-              <p className="text-xs hidden sm:block" style={{ color: c.text }}>
-                Panel de Operador
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation - Scrollable */}
-      <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1 custom-scrollbar">
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.label}
-              to={item.path}
-              onClick={() => setIsMobileSidebarOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group"
-              style={{
-                background: isActive(item.path)
-                  ? "linear-gradient(to right, #0d4a24, #ccaa00)"
-                  : "transparent",
-                color: isActive(item.path) ? "#ffffff" : c.inactiveNav,
-              }}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {(isSidebarOpen || isMobileSidebarOpen) && (
-                <span className="font-medium text-sm sm:text-base whitespace-nowrap">
-                  {item.label}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User Section */}
-      <div
-        className="p-3 sm:p-4 border-t space-y-2 flex-shrink-0"
-        style={{ borderColor: c.borderGold }}
-      >
-        {/* User Info - Solo cuando el sidebar está expandido */}
-        {(isSidebarOpen || isMobileSidebarOpen) && user && (
-          <div
-            className="px-3 py-2 rounded-lg"
-            style={{ background: "rgba(204, 170, 0, 0.1)" }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "linear-gradient(135deg, #22c55e, #166534)",
-                }}
-              >
-                <Wrench className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: c.text }}>
-                  {user.nombre} {user.apellido}
-                </p>
-                <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>
-                  {user.rol}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:scale-105"
-          style={{
-            background: "rgba(239, 68, 68, 0.1)",
-            color: "#ef4444",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-          }}
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {(isSidebarOpen || isMobileSidebarOpen) && (
-            <span className="font-medium text-sm sm:text-base whitespace-nowrap">
-              Cerrar Sesión
-            </span>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-
-  // Estilo de animación para el sidebar móvil (inline keyframes)
-  const slideInStyle = {
-    animation: 'slideIn 0.3s ease-out',
-  };
-
-  // Inyectar keyframes globalmente (solo una vez)
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateX(-100%);
-        }
-        to {
-          transform: translateX(0);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
   return (
     <div
-      className="min-h-screen flex"
+      className="min-h-screen flex flex-col"
       style={{
         background: c.bgPage,
         color: c.text,
         transition: 'background 0.25s ease, color 0.25s ease',
       }}
     >
-      {/* Desktop Sidebar - visible en lg y up */}
-      <aside
-        className={`hidden lg:flex flex-col backdrop-blur-xl border-r transition-all duration-300 fixed left-0 top-0 bottom-0 z-40 ${
-          isSidebarOpen ? "w-[280px]" : "w-[80px]"
-        }`}
+      {/* Top Navigation Bar */}
+      <header
+        className="backdrop-blur-xl border-b sticky top-0 z-30"
         style={{
           background: c.bgSidebarAlt,
           borderColor: c.borderGold,
         }}
       >
-        <SidebarContent />
-      </aside>
+        <div className="px-3 sm:px-6">
+          <div className="flex items-center h-14 sm:h-16 gap-2 sm:gap-4">
+            {/* Logo */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <img
+                src={logoImage}
+                alt="Avícola Jossy"
+                className="w-8 h-8"
+                style={{ filter: "drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))" }}
+              />
+            </div>
 
-      {/* Mobile & Tablet Sidebar (overlay) */}
-      {isMobileSidebarOpen && (
-        <>
-          <div
-            className="lg:hidden fixed inset-0 z-40 backdrop-blur-sm"
-            style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.3)' }}
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <aside
-            className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] sm:w-[320px] backdrop-blur-xl border-r"
-            style={{
-              background: c.bgSidebarMobile,
-              borderColor: c.borderGold,
-              ...slideInStyle,
-            }}
-          >
-            <SidebarContent />
-          </aside>
-        </>
-      )}
+            {/* Separator */}
+            <div className="w-px h-8 flex-shrink-0" style={{ background: c.borderGold }} />
 
-      {/* Main Content */}
-      <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-[80px]"
-        }`}
-      >
-        {/* Top Header */}
-        <header
-          className={`backdrop-blur-xl border-b fixed top-0 z-30 right-0 transition-all duration-300 ${
-            isSidebarOpen ? "lg:left-[280px]" : "lg:left-[80px]"
-          } left-0`}
-          style={{
-            background: c.bgSidebarAlt,
-            borderColor: c.borderGold,
-          }}
-        >
-          <div className="px-3 sm:px-5 lg:px-6">
-            <div className="flex items-center justify-between h-14 sm:h-16">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors"
-                style={{ color: "#ccaa00" }}
-                aria-label="Abrir menú"
-              >
-                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-
-              {/* Desktop Collapse Button */}
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="hidden lg:block p-2 rounded-lg hover:bg-white/5 transition-colors"
-                style={{ color: "#ccaa00" }}
-                aria-label={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
-              >
-                <Menu className="w-6 h-6" />
-              </button>
-
-              {/* Título de Página Dinámico */}
-              <div className="flex-1 flex justify-center lg:justify-start lg:ml-6">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold tracking-tight" style={{ color: c.text }}>
-                  <span className="text-amber-400 lg:hidden mr-2">|</span>
-                  {currentTitle}
-                </h2>
-              </div>
-
-              {/* Espaciador para mantener el layout cuando no hay botón izquierdo */}
-              <div className="lg:hidden w-10" />
-
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Badge de rol - visible solo en sm y up */}
-                <div
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{
-                    background: "rgba(34, 197, 94, 0.1)",
-                    border: "1px solid rgba(34, 197, 94, 0.3)",
-                  }}
-                >
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: "#22c55e" }}
+            {/* Navigation Icons */}
+            <nav className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0 py-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.path}
+                    title={item.label}
+                    className="p-2 sm:p-2.5 rounded-lg transition-all flex-shrink-0 hover:scale-110"
+                    style={{
+                      background: isActive(item.path)
+                        ? "linear-gradient(to right, #0d4a24, #ccaa00)"
+                        : "transparent",
+                      color: isActive(item.path) ? "#ffffff" : c.inactiveNav,
+                    }}
                   >
-                    Operador
-                  </span>
-                </div>
+                    <Icon className="w-5 h-5" />
+                  </Link>
+                );
+              })}
+            </nav>
 
-                {/* Info usuario - visible en md y up (tablet landscape) */}
-                <div className="hidden md:block text-right">
-                  <p className="text-xs sm:text-sm font-medium truncate max-w-[150px]" style={{ color: c.text }}>
-                    {user?.nombre} {user?.apellido}
-                  </p>
-                  <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>
-                    {user?.rol}
-                  </p>
-                </div>
-
-                {/* Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
-                  style={{ background: c.g10, color: '#ccaa00' }}
-                  title={isDark ? 'Modo claro' : 'Modo oscuro'}
-                >
-                  {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
-                </button>
-
-                {/* Avatar */}
-                <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: "linear-gradient(135deg, #22c55e, #166534)",
-                  }}
-                >
-                  <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
+            {/* Right side */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Badge de rol */}
+              <div
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{
+                  background: "rgba(34, 197, 94, 0.1)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs font-medium" style={{ color: "#22c55e" }}>
+                  Operador
+                </span>
               </div>
+
+              {/* Info usuario */}
+              <div className="hidden md:block text-right">
+                <p className="text-xs sm:text-sm font-medium truncate max-w-[150px]" style={{ color: c.text }}>
+                  {user?.nombre} {user?.apellido}
+                </p>
+                <p className="text-xs capitalize truncate" style={{ color: c.textSecondary }}>
+                  {user?.rol}
+                </p>
+              </div>
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                style={{ background: c.g10, color: '#ccaa00' }}
+                title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+              </button>
+
+              {/* Avatar */}
+              <div
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "linear-gradient(135deg, #22c55e, #166534)" }}
+              >
+                <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg transition-all hover:scale-105"
+                style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  color: "#ef4444",
+                  border: "1px solid rgba(239, 68, 68, 0.2)",
+                }}
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-6 lg:py-8 mt-14 sm:mt-16">
-          <Outlet />
-        </main>
-      </div>
+      {/* Page Content */}
+      <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-6">
+        <Outlet />
+      </main>
     </div>
   );
 }
