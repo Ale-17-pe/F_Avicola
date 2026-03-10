@@ -18,6 +18,7 @@ import {
   TrendingDown,
   CheckSquare,
   Square,
+  MapPin,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -52,6 +53,7 @@ export function CostosClientes() {
 
   const {
     clientes,
+    updateCliente,
     tiposAve,
     costosClientes,
     setCostosClientes,
@@ -62,6 +64,8 @@ export function CostosClientes() {
   const [filterTipoAve, setFilterTipoAve] = useState<string>("all");
   const [filterVariedad, setFilterVariedad] = useState<string>("all");
   const [filterPresentacion, setFilterPresentacion] = useState<string>("all");
+  const [filterZona, setFilterZona] = useState<string>("all");
+  const [filterEstado, setFilterEstado] = useState<string>("all");
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
@@ -110,6 +114,37 @@ export function CostosClientes() {
     () => tiposAve.filter((t) => (t.categoria === "Ave" || !t.categoria) && t.estado !== "Inactivo"),
     [tiposAve]
   );
+
+  // ============ ZONAS DINAMICAS ============
+  const [zonasEnvios, setZonasEnvios] = useState<{ id: string; nombre: string; descripcion: string; color: string }[]>(() => {
+    try {
+      const stored = localStorage.getItem('avicola_zonas');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const stored = localStorage.getItem('avicola_zonas');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setZonasEnvios(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(parsed)) return parsed;
+            return prev;
+          });
+        }
+      } catch { /* ignore */ }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const zonasUnicas = useMemo(() => {
+    const zonas = new Set<string>();
+    zonasEnvios.forEach(z => zonas.add(z.nombre));
+    clientes.forEach(c => { if (c.zona) zonas.add(c.zona); });
+    return Array.from(zonas).sort();
+  }, [clientes, zonasEnvios]);
 
   // ============ GENERAR FILAS DE PRECIOS GENERALES ============
   const generarPreciosGenerales = (): PrecioGeneral[] => {
@@ -293,8 +328,11 @@ export function CostosClientes() {
   // ============ FILTRADO DE CLIENTES ============
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
-      // Solo mostrar clientes activos
-      if (cliente.estado === 'Inactivo') return false;
+      // Filtro por estado
+      if (filterEstado !== 'all' && cliente.estado !== filterEstado) return false;
+
+      // Filtro por zona
+      if (filterZona !== 'all' && cliente.zona !== filterZona) return false;
 
       const matchesSearch = cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -310,7 +348,7 @@ export function CostosClientes() {
 
       return matchesSearch;
     });
-  }, [clientes, searchTerm, filterTipoAve, filterVariedad, costosClientes]);
+  }, [clientes, searchTerm, filterTipoAve, filterVariedad, filterZona, filterEstado, costosClientes]);
 
   // ============ HANDLERS GENERALES ============
   const handleEditGeneralCell = (
@@ -985,6 +1023,56 @@ export function CostosClientes() {
             <option value="Pelado">Pelado</option>
             <option value="Destripado">Destripado</option>
           </select>
+          <select
+            value={filterZona}
+            onChange={(e) => setFilterZona(e.target.value)}
+            className="px-3 py-2.5 rounded-lg text-sm"
+            style={{
+              background: c.bgInput,
+              border: "1px solid " + c.border,
+              color: c.text,
+            }}
+          >
+            <option value="all">Todas las zonas</option>
+            {zonasUnicas.map((z) => (
+              <option key={z} value={z}>{z}</option>
+            ))}
+          </select>
+          <select
+            value={filterEstado}
+            onChange={(e) => setFilterEstado(e.target.value)}
+            className="px-3 py-2.5 rounded-lg text-sm"
+            style={{
+              background: c.bgInput,
+              border: "1px solid " + c.border,
+              color: c.text,
+            }}
+          >
+            <option value="all">Todos los estados</option>
+            <option value="Activo">Activos</option>
+            <option value="Inactivo">Inactivos</option>
+          </select>
+          {(filterTipoAve !== 'all' || filterVariedad !== 'all' || filterPresentacion !== 'all' || filterZona !== 'all' || filterEstado !== 'all' || searchTerm !== '') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterTipoAve('all');
+                setFilterVariedad('all');
+                setFilterPresentacion('all');
+                setFilterZona('all');
+                setFilterEstado('all');
+              }}
+              className="px-3 py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-105 flex items-center gap-1.5 whitespace-nowrap"
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+              }}
+            >
+              <X className="w-3.5 h-3.5" />
+              Limpiar
+            </button>
+          )}
         </div>
 
         {/* Boton seleccionar todos los clientes */}
@@ -1117,9 +1205,21 @@ export function CostosClientes() {
                       <User className="w-5 h-5" style={{ color: c.text }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold truncate" style={{ color: c.text }}>
-                        {cliente.nombre}
-                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-bold truncate" style={{ color: c.text }}>
+                          {cliente.nombre}
+                        </h3>
+                        {cliente.zona && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium" style={{
+                            background: 'rgba(204, 170, 0, 0.1)',
+                            border: '1px solid rgba(204, 170, 0, 0.25)',
+                            color: '#ccaa00',
+                          }}>
+                            <MapPin className="w-3 h-3" />
+                            {cliente.zona}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs" style={{ color: c.textSecondary }}>
                         {preciosCliente.length}{" "}
                         {preciosCliente.length === 1 ? "producto" : "productos"} configurados
@@ -1127,6 +1227,23 @@ export function CostosClientes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        const nuevoEstado = cliente.estado === 'Activo' ? 'Inactivo' : 'Activo';
+                        updateCliente({ ...cliente, estado: nuevoEstado });
+                      }}
+                      className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      style={{
+                        background: cliente.estado === 'Activo'
+                          ? 'rgba(34, 197, 94, 0.2)'
+                          : 'rgba(239, 68, 68, 0.2)',
+                        color: cliente.estado === 'Activo' ? '#22c55e' : '#ef4444',
+                        border: `1px solid ${cliente.estado === 'Activo' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                      }}
+                      title="Click para cambiar estado"
+                    >
+                      {cliente.estado}
+                    </button>
                     <button
                       onClick={() => {
                         handleOpenGestionModal(cliente.id);

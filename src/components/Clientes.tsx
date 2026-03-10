@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, User, Phone, MapPin, Mail, TrendingUp, ShoppingCart, X, Building2, Users, DollarSign, Bird, CheckSquare, Square } from 'lucide-react';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CostosClientes } from './CostosClientes';
 import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
@@ -45,12 +44,8 @@ export function Clientes() {
     return () => clearInterval(interval);
   }, []);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterEstado, setFilterEstado] = useState<string>('all');
-  const [filterZona, setFilterZona] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'clientes' | 'costos'>('clientes');
   const [formData, setFormData] = useState({
     nombre: '',
     contacto: '',
@@ -110,24 +105,6 @@ export function Clientes() {
       return { ...p, presentaciones: newSet };
     }));
   };
-
-  // Zonas únicas para filtro (combina zonas de Envíos + zonas existentes en clientes)
-  const zonasUnicas = useMemo(() => {
-    const zonas = new Set<string>();
-    zonasEnvios.forEach(z => zonas.add(z.nombre));
-    clientes.forEach(c => { if (c.zona) zonas.add(c.zona); });
-    return Array.from(zonas).sort();
-  }, [clientes, zonasEnvios]);
-
-  const filteredClientes = clientes.filter(cliente => {
-    const matchesSearch =
-      cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.contacto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.telefono.includes(searchTerm);
-    const matchesEstado = filterEstado === 'all' || cliente.estado === filterEstado;
-    const matchesZona = filterZona === 'all' || cliente.zona === filterZona;
-    return matchesSearch && matchesEstado && matchesZona;
-  });
 
   const handleOpenModal = (cliente?: any) => {
     if (cliente) {
@@ -253,11 +230,6 @@ export function Clientes() {
     }
   };
 
-  // Estadísticas
-  const totalClientes = clientes.length;
-  const clientesActivos = clientes.filter(c => c.estado === 'Activo').length;
-  const clientesInactivos = clientes.filter(c => c.estado === 'Inactivo').length;
-
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
       {/* Header */}
@@ -266,262 +238,24 @@ export function Clientes() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: c.text }}>Gestión de Clientes</h1>
           <p className="text-xs sm:text-sm md:text-base" style={{ color: c.textSecondary }}>Administra la base de datos de clientes y precios</p>
         </div>
-        {activeTab === 'clientes' && (
-          <button
-            onClick={() => handleOpenModal()}
-            className="w-full sm:w-auto px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg font-bold transition-all hover:scale-105 flex items-center justify-center gap-1 sm:gap-2"
-            style={{
-              background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-              color: 'white',
-              boxShadow: '0 4px 15px rgba(204, 170, 0, 0.4)'
-            }}
-          >
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-            <span className="text-xs sm:text-sm md:text-base">Agregar Cliente</span>
-          </button>
-        )}
+        <button
+          onClick={() => handleOpenModal()}
+          className="w-full sm:w-auto px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg font-bold transition-all hover:scale-105 flex items-center justify-center gap-1 sm:gap-2"
+          style={{
+            background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(204, 170, 0, 0.4)'
+          }}
+        >
+          <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+          <span className="text-xs sm:text-sm md:text-base">Agregar Cliente</span>
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="backdrop-blur-xl rounded-lg sm:rounded-xl p-1" style={{
-        background: c.bgCard,
-        border: '1px solid ' + c.border
-      }}>
-        <div className="grid grid-cols-2 gap-1">
-          <button
-            onClick={() => setActiveTab('clientes')}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1 sm:gap-2"
-            style={{
-              background: activeTab === 'clientes'
-                ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                : 'transparent',
-              color: activeTab === 'clientes' ? 'white' : '#888',
-              boxShadow: activeTab === 'clientes' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none'
-            }}
-          >
-            <Users className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-            <span className="text-xs sm:text-sm md:text-base truncate">Clientes</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('costos')}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1 sm:gap-2"
-            style={{
-              background: activeTab === 'costos'
-                ? 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)'
-                : 'transparent',
-              color: activeTab === 'costos' ? 'white' : '#888',
-              boxShadow: activeTab === 'costos' ? '0 4px 15px rgba(204, 170, 0, 0.3)' : 'none'
-            }}
-          >
-            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-            <span className="text-xs sm:text-sm md:text-base truncate">Costos</span>
-          </button>
-        </div>
-      </div>
+      <CostosClientes />
 
-      {/* Contenido según tab activo */}
-      {activeTab === 'clientes' ? (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: c.bgCard,
-              border: '1px solid ' + c.g20
-            }}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Total Clientes</p>
-                <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: c.textSecondary }} />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold" style={{ color: c.text }}>{totalClientes}</p>
-            </div>
-
-            <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: c.bgCard,
-              border: '1px solid rgba(34, 197, 94, 0.3)'
-            }}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Activos</p>
-                <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#22c55e' }}>{clientesActivos}</p>
-            </div>
-
-            <div className="backdrop-blur-xl rounded-xl p-4 sm:p-6" style={{
-              background: c.bgCard,
-              border: '1px solid rgba(239, 68, 68, 0.3)'
-            }}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Inactivos</p>
-                <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ef4444' }} />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#ef4444' }}>{clientesInactivos}</p>
-            </div>
-          </div>
-
-          {/* Filtros */}
-          <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4" style={{
-            background: c.bgCard,
-            border: '1px solid ' + c.border
-          }}>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textSecondary }} />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, contacto o teléfono..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
-                  style={{
-                    background: c.bgInput,
-                    border: '1px solid ' + c.border,
-                    color: c.text,
-                  }}
-                />
-              </div>
-              <select
-                value={filterZona}
-                onChange={(e) => setFilterZona(e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm"
-                style={{
-                  background: c.bgInput,
-                  border: '1px solid ' + c.border,
-                  color: c.text,
-                }}
-              >
-                <option value="all">Todas las zonas</option>
-                {zonasUnicas.map(z => (
-                  <option key={z} value={z}>{z}</option>
-                ))}
-              </select>
-              <select
-                value={filterEstado}
-                onChange={(e) => setFilterEstado(e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm"
-                style={{
-                  background: c.bgInput,
-                  border: '1px solid ' + c.border,
-                  color: c.text,
-                }}
-              >
-                <option value="all">Todos</option>
-                <option value="Activo">Activos</option>
-                <option value="Inactivo">Inactivos</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Tabla de Clientes */}
-          <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-            background: c.bgCard,
-            border: '1px solid ' + c.border
-          }}>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] sm:min-w-full">
-                <thead>
-                  <tr style={{ background: c.bgTableHeader, borderBottom: '1px solid ' + c.borderGold }}>
-                    <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Cliente</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm hidden sm:table-cell" style={{ color: '#ccaa00' }}>Contacto</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Teléfono</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm hidden lg:table-cell" style={{ color: '#ccaa00' }}>Zona</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Estado</th>
-                    <th className="px-4 py-3 text-center font-bold text-xs sm:text-sm" style={{ color: '#ccaa00' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredClientes.map((cliente) => (
-                    <tr
-                      key={cliente.id}
-                      className="border-b transition-colors"
-                      style={{ borderColor: c.borderSubtle }}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{
-                            background: 'linear-gradient(135deg, #ccaa00, #b8941e)'
-                          }}>
-                            <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-sm truncate" style={{ color: c.text }}>{cliente.nombre}</p>
-                            <p className="text-xs sm:hidden" style={{ color: c.textSecondary }}>{cliente.contacto}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm hidden sm:table-cell" style={{ color: c.textSecondary }}>
-                        {cliente.contacto}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#ccaa00' }} />
-                          <span className="text-xs sm:text-sm truncate" style={{ color: c.text }}>{cliente.telefono}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#ccaa00' }} />
-                          <span className="text-sm truncate" style={{ color: c.textSecondary }}>{cliente.zona}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => {
-                            const nuevoEstado = cliente.estado === 'Activo' ? 'Inactivo' : 'Activo';
-                            updateCliente({ ...cliente, estado: nuevoEstado });
-                          }}
-                          className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                          style={{
-                            background: cliente.estado === 'Activo'
-                              ? 'rgba(34, 197, 94, 0.2)'
-                              : 'rgba(239, 68, 68, 0.2)',
-                            color: cliente.estado === 'Activo' ? '#22c55e' : '#ef4444',
-                            border: `1px solid ${cliente.estado === 'Activo' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                          }}
-                          title="Click para cambiar estado"
-                        >
-                          {cliente.estado}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1 sm:gap-2">
-                          <button
-                            onClick={() => handleOpenModal(cliente)}
-                            className="p-1.5 sm:p-2 rounded-lg transition-all hover:scale-110"
-                            style={{
-                              background: 'rgba(245, 158, 11, 0.2)',
-                              border: '1px solid rgba(245, 158, 11, 0.3)'
-                            }}
-                          >
-                            <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: '#f59e0b' }} />
-                          </button>
-                          <button
-                            onClick={() => handleEliminar(cliente.id)}
-                            className="p-1.5 sm:p-2 rounded-lg transition-all hover:scale-110"
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)'
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: '#ef4444' }} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredClientes.length === 0 && (
-              <div className="text-center py-8 sm:py-12">
-                <User className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4" style={{ color: c.textMuted }} />
-                <p className="text-sm sm:text-base" style={{ color: c.textSecondary }}>No se encontraron clientes</p>
-              </div>
-            )}
-          </div>
-
-          {/* Modal Agregar/Editar Cliente */}
-          {isModalOpen && (
+      {/* Modal Agregar/Editar Cliente */}
+      {isModalOpen && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto"
               style={{ background: c.bgModalOverlay }}
@@ -674,9 +408,38 @@ export function Clientes() {
                     {!editingCliente && (
                       <div className="md:col-span-2">
                         <label className="block text-xs sm:text-sm font-bold mb-1 sm:mb-2" style={{ color: '#ccaa00' }}>
-                          <div className="flex items-center gap-2">
-                            <Bird className="w-4 h-4" />
-                            Productos Iniciales (opcional)
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Bird className="w-4 h-4" />
+                              Productos Iniciales (opcional)
+                            </div>
+                            {productosDisponibles.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (productosSeleccionados.length === productosDisponibles.length) {
+                                    setProductosSeleccionados([]);
+                                  } else {
+                                    setProductosSeleccionados(productosDisponibles.map(item => ({
+                                      key: item.key,
+                                      tipoAveId: item.tipoAveId,
+                                      tipoAveNombre: item.nombre,
+                                      variedad: item.variedad,
+                                      color: item.color,
+                                      presentaciones: new Set<'Vivo' | 'Pelado' | 'Destripado'>(['Vivo', 'Pelado', 'Destripado']),
+                                    })));
+                                  }
+                                }}
+                                className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold transition-all hover:scale-105"
+                                style={{
+                                  background: productosSeleccionados.length === productosDisponibles.length ? 'rgba(239, 68, 68, 0.15)' : 'rgba(204, 170, 0, 0.15)',
+                                  border: productosSeleccionados.length === productosDisponibles.length ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(204, 170, 0, 0.3)',
+                                  color: productosSeleccionados.length === productosDisponibles.length ? '#ef4444' : '#ccaa00',
+                                }}
+                              >
+                                {productosSeleccionados.length === productosDisponibles.length ? 'Quitar todos' : 'Seleccionar todos'}
+                              </button>
+                            )}
                           </div>
                         </label>
                         <p className="text-xs text-gray-500 mb-2">
@@ -806,10 +569,6 @@ export function Clientes() {
               </div>
             </div>
           )}
-        </>
-      ) : (
-        <CostosClientes />
-      )}
     </div>
   );
 }
