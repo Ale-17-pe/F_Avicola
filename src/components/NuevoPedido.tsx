@@ -13,6 +13,8 @@ interface SubPedido {
   cantidadHembras?: string;
   cantidadTotal: string;
   unidadesPorJaba?: string;
+  unidadesPorJabaMachos?: string;
+  unidadesPorJabaHembras?: string;
   totalAves?: string; // ← NUEVO: jabas × unidadesPorJaba calculado
   presentacion: string;
 }
@@ -26,6 +28,8 @@ interface FormularioPedido {
   cantidadHembras?: string;
   cantidadTotal: string;
   unidadesPorJaba?: string;
+  unidadesPorJabaMachos?: string;
+  unidadesPorJabaHembras?: string;
   totalAves?: string;
   presentacion: string;
   completado: boolean;
@@ -50,7 +54,7 @@ interface PedidoEnCola {
 
 const emptySubForm = (): Partial<SubPedido> => ({
   tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '',
-  cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '',
+  cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '',
 });
 
 export function NuevoPedido() {
@@ -313,7 +317,7 @@ export function NuevoPedido() {
       if (campo === 'cliente' && f.tipoAve) {
         const productosDelCliente = getProductosParaCliente(valor);
         if (!productosDelCliente.some(p => p.nombre === f.tipoAve)) {
-          Object.assign(f, { tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
+          Object.assign(f, { tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '' });
         } else if (f.variedad) {
           // Verificar si la variedad sigue disponible para el nuevo cliente
           const variedadesDisponibles = getVariedadesParaCliente(valor, f.tipoAve);
@@ -324,7 +328,7 @@ export function NuevoPedido() {
       }
 
       if (campo === 'tipoAve') {
-        Object.assign(f, { variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' });
+        Object.assign(f, { variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '' });
       }
       if (campo === 'variedad') {
         f.presentacion = '';
@@ -332,11 +336,20 @@ export function NuevoPedido() {
       if (campo === 'cantidadMachos' || campo === 'cantidadHembras') {
         f.cantidadTotal = calcularTotal(campo === 'cantidadMachos' ? valor : f.cantidadMachos || '', campo === 'cantidadHembras' ? valor : f.cantidadHembras || '');
       }
-      // ← FIX PRINCIPAL: recalcular totalAves al cambiar jabas o unidades/jaba
+      // Recalcular totalAves al cambiar jabas, unidades/jaba generales o por sexo
       if (campo === 'cantidadTotal' || campo === 'unidadesPorJaba') {
         const jabas = campo === 'cantidadTotal' ? valor : f.cantidadTotal;
         const uPJ = campo === 'unidadesPorJaba' ? valor : (f.unidadesPorJaba || '');
         f.totalAves = recalcularTotalAves(jabas, uPJ);
+      }
+      if (campo === 'unidadesPorJabaMachos' || campo === 'unidadesPorJabaHembras' || campo === 'cantidadMachos' || campo === 'cantidadHembras') {
+        const m = parseInt(campo === 'cantidadMachos' ? valor : f.cantidadMachos || '0') || 0;
+        const h = parseInt(campo === 'cantidadHembras' ? valor : f.cantidadHembras || '0') || 0;
+        const uM = parseInt(campo === 'unidadesPorJabaMachos' ? valor : f.unidadesPorJabaMachos || '0') || 0;
+        const uH = parseInt(campo === 'unidadesPorJabaHembras' ? valor : f.unidadesPorJabaHembras || '0') || 0;
+        if (uM > 0 || uH > 0) {
+          f.totalAves = ((m * uM) + (h * uH)).toString();
+        }
       }
 
       const info = getTipoAveInfo(f.tipoAve);
@@ -359,7 +372,7 @@ export function NuevoPedido() {
   ) => {
     let next = { ...data, [campo]: valor };
     if (campo === 'tipoAve') {
-      next = { ...next, variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '' };
+      next = { ...next, variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '' };
     }
     if (campo === 'variedad') {
       next = { ...next, presentacion: '' };
@@ -370,11 +383,20 @@ export function NuevoPedido() {
         campo === 'cantidadHembras' ? valor : (data.cantidadHembras || '')
       );
     }
-    // ← FIX: recalculo en sub-form también
+    // Recalculo en sub-form
     if (campo === 'cantidadTotal' || campo === 'unidadesPorJaba') {
       const jabas = campo === 'cantidadTotal' ? valor : (data.cantidadTotal || '');
       const uPJ = campo === 'unidadesPorJaba' ? valor : (data.unidadesPorJaba || '');
       next.totalAves = recalcularTotalAves(jabas, uPJ);
+    }
+    if (campo === 'unidadesPorJabaMachos' || campo === 'unidadesPorJabaHembras' || campo === 'cantidadMachos' || campo === 'cantidadHembras') {
+      const m = parseInt(campo === 'cantidadMachos' ? valor : (next.cantidadMachos || '0')) || 0;
+      const h = parseInt(campo === 'cantidadHembras' ? valor : (next.cantidadHembras || '0')) || 0;
+      const uM = parseInt(campo === 'unidadesPorJabaMachos' ? valor : (next.unidadesPorJabaMachos || '0')) || 0;
+      const uH = parseInt(campo === 'unidadesPorJabaHembras' ? valor : (next.unidadesPorJabaHembras || '0')) || 0;
+      if (uM > 0 || uH > 0) {
+        next.totalAves = ((m * uM) + (h * uH)).toString();
+      }
     }
     setData(next);
   };
@@ -394,12 +416,26 @@ export function NuevoPedido() {
         cliente, ...num, timestamp: Date.now(),
         subPedidos: forms.map(f => {
           const esVivo = f.presentacion?.toLowerCase().includes('vivo');
+          const info = getTipoAveInfo(f.tipoAve);
+          const tieneSexoVivo = esVivo && info?.tieneSexo;
+          let totalAvesCalc = '';
+          if (tieneSexoVivo && (f.unidadesPorJabaMachos || f.unidadesPorJabaHembras)) {
+            const m = parseInt(f.cantidadMachos || '0') || 0;
+            const h = parseInt(f.cantidadHembras || '0') || 0;
+            const uM = parseInt(f.unidadesPorJabaMachos || '0') || 0;
+            const uH = parseInt(f.unidadesPorJabaHembras || '0') || 0;
+            totalAvesCalc = ((m * uM) + (h * uH)).toString();
+          } else if (esVivo) {
+            totalAvesCalc = recalcularTotalAves(f.cantidadTotal, f.unidadesPorJaba || '');
+          }
           return {
             id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             tipoAve: f.tipoAve, variedad: f.variedad,
             cantidadMachos: f.cantidadMachos, cantidadHembras: f.cantidadHembras,
             cantidadTotal: f.cantidadTotal, unidadesPorJaba: f.unidadesPorJaba,
-            totalAves: esVivo ? recalcularTotalAves(f.cantidadTotal, f.unidadesPorJaba || '') : '',
+            unidadesPorJabaMachos: f.unidadesPorJabaMachos,
+            unidadesPorJabaHembras: f.unidadesPorJabaHembras,
+            totalAves: totalAvesCalc,
             presentacion: f.presentacion,
           } as SubPedido;
         })
@@ -411,7 +447,7 @@ export function NuevoPedido() {
       if (f.completado) {
         setZonaFiltros(prev => { const n = [...prev]; n[i] = ''; return n; });
         setClienteSearches(prev => { const n = [...prev]; n[i] = ''; return n; });
-        return { id: f.id, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', totalAves: '', presentacion: '', completado: false };
+        return { id: f.id, cliente: '', tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '', cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '', completado: false };
       }
       return f;
     }));
@@ -441,18 +477,28 @@ export function NuevoPedido() {
           const h = parseInt(sub.cantidadHembras || '0');
           cantidadFinal = m + h;
           detalleSexo = ` (M:${m}, H:${h})`;
-          if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
+          if (esVivo) {
             jabas = cantidadFinal; // total jabas = M + H
-            uPorJaba = parseInt(sub.unidadesPorJaba);
-            cantidadFinal = jabas * uPorJaba; // total aves
+            const uM = parseInt(sub.unidadesPorJabaMachos || '0') || 0;
+            const uH = parseInt(sub.unidadesPorJabaHembras || '0') || 0;
+            if (uM > 0 || uH > 0) {
+              cantidadFinal = (m * uM) + (h * uH);
+              uPorJaba = undefined; // ya no es uniforme
+            } else if (sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
+              uPorJaba = parseInt(sub.unidadesPorJaba);
+              cantidadFinal = jabas * uPorJaba;
+            }
           }
         } else if (esVivo && sub.unidadesPorJaba && parseInt(sub.unidadesPorJaba) > 0) {
           jabas = parseInt(sub.cantidadTotal);
           uPorJaba = parseInt(sub.unidadesPorJaba);
-          cantidadFinal = jabas * uPorJaba; // ← FIX: total aves correcto
+          cantidadFinal = jabas * uPorJaba;
         } else {
           cantidadFinal = parseInt(sub.cantidadTotal);
         }
+
+        const uPJM = parseInt(sub.unidadesPorJabaMachos || '0') || undefined;
+        const uPJH = parseInt(sub.unidadesPorJabaHembras || '0') || undefined;
 
         return {
           id: `confirmed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -461,6 +507,7 @@ export function NuevoPedido() {
           tipoAve: `${sub.tipoAve}${varInfo}${detalleSexo}`,
           variedad: sub.variedad, presentacion: sub.presentacion,
           cantidad: cantidadFinal, cantidadJabas: jabas, unidadesPorJaba: uPorJaba,
+          unidadesPorJabaMachos: uPJM, unidadesPorJabaHembras: uPJH,
           contenedor: '', fecha, hora,
           prioridad: pedido.prioridadBase, esSubPedido: pedido.subPedidos.length > 1,
           grupoDespacho,
@@ -516,6 +563,18 @@ export function NuevoPedido() {
     const esVivo = editandoSubData.presentacion?.toLowerCase().includes('vivo');
     const jabas = editandoSubData.cantidadTotal || '';
     const uPJ = editandoSubData.unidadesPorJaba || '';
+    const tieneSexoVivo = esVivo && info?.tieneSexo;
+
+    let totalAvesCalc = '';
+    if (tieneSexoVivo && (editandoSubData.unidadesPorJabaMachos || editandoSubData.unidadesPorJabaHembras)) {
+      const m = parseInt(editandoSubData.cantidadMachos || '0') || 0;
+      const h = parseInt(editandoSubData.cantidadHembras || '0') || 0;
+      const uM = parseInt(editandoSubData.unidadesPorJabaMachos || '0') || 0;
+      const uH = parseInt(editandoSubData.unidadesPorJabaHembras || '0') || 0;
+      totalAvesCalc = ((m * uM) + (h * uH)).toString();
+    } else if (esVivo) {
+      totalAvesCalc = recalcularTotalAves(jabas, uPJ);
+    }
 
     const updated: SubPedido = {
       id: editandoSubId,
@@ -527,7 +586,9 @@ export function NuevoPedido() {
         ? calcularTotal(editandoSubData.cantidadMachos || '', editandoSubData.cantidadHembras || '')
         : jabas,
       unidadesPorJaba: uPJ,
-      totalAves: esVivo ? recalcularTotalAves(jabas, uPJ) : '',
+      unidadesPorJabaMachos: editandoSubData.unidadesPorJabaMachos,
+      unidadesPorJabaHembras: editandoSubData.unidadesPorJabaHembras,
+      totalAves: totalAvesCalc,
       presentacion: editandoSubData.presentacion!,
     };
 
@@ -551,6 +612,18 @@ export function NuevoPedido() {
     const esVivo = nuevoSubPedido.presentacion?.toLowerCase().includes('vivo');
     const jabas = nuevoSubPedido.cantidadTotal || '';
     const uPJ = nuevoSubPedido.unidadesPorJaba || '';
+    const tieneSexoVivo = esVivo && info?.tieneSexo;
+
+    let totalAvesCalc = '';
+    if (tieneSexoVivo && (nuevoSubPedido.unidadesPorJabaMachos || nuevoSubPedido.unidadesPorJabaHembras)) {
+      const m = parseInt(nuevoSubPedido.cantidadMachos || '0') || 0;
+      const h = parseInt(nuevoSubPedido.cantidadHembras || '0') || 0;
+      const uM = parseInt(nuevoSubPedido.unidadesPorJabaMachos || '0') || 0;
+      const uH = parseInt(nuevoSubPedido.unidadesPorJabaHembras || '0') || 0;
+      totalAvesCalc = ((m * uM) + (h * uH)).toString();
+    } else if (esVivo) {
+      totalAvesCalc = recalcularTotalAves(jabas, uPJ);
+    }
 
     const nuevo: SubPedido = {
       id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -562,7 +635,9 @@ export function NuevoPedido() {
         ? calcularTotal(nuevoSubPedido.cantidadMachos || '', nuevoSubPedido.cantidadHembras || '')
         : jabas,
       unidadesPorJaba: uPJ,
-      totalAves: esVivo ? recalcularTotalAves(jabas, uPJ) : '', // ← FIX
+      unidadesPorJabaMachos: nuevoSubPedido.unidadesPorJabaMachos,
+      unidadesPorJabaHembras: nuevoSubPedido.unidadesPorJabaHembras,
+      totalAves: totalAvesCalc,
       presentacion: nuevoSubPedido.presentacion!,
     };
 
@@ -700,7 +775,49 @@ export function NuevoPedido() {
         )}
 
         {/* Unidades por Jaba — SOLO cuando es vivo Y hay jabas ingresadas */}
-        {esVivo && data.cantidadTotal && parseInt(data.cantidadTotal) > 0 && (
+        {esVivo && data.cantidadTotal && parseInt(data.cantidadTotal) > 0 && necesitaSexo && (
+          <div>
+            <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}>
+              <Grid3x3 className="w-3 h-3" /> Aves por Jaba (por sexo)
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] mb-1" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>♂ Machos / jaba</label>
+                <input type="number" min="1" placeholder="Ej: 8, 10..."
+                  value={data.unidadesPorJabaMachos || ''}
+                  onChange={e => actualizarSubForm(data, setData, 'unidadesPorJabaMachos', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-blue-800/30 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  style={{ background: c.bgCardAlt, color: c.text }} />
+                {data.cantidadMachos && data.unidadesPorJabaMachos && parseInt(data.unidadesPorJabaMachos) > 0 && (
+                  <p className="text-[10px] mt-0.5" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>
+                    {data.cantidadMachos} × {data.unidadesPorJabaMachos} = {parseInt(data.cantidadMachos) * parseInt(data.unidadesPorJabaMachos)} aves
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-[10px] mb-1" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>♀ Hembras / jaba</label>
+                <input type="number" min="1" placeholder="Ej: 8, 10..."
+                  value={data.unidadesPorJabaHembras || ''}
+                  onChange={e => actualizarSubForm(data, setData, 'unidadesPorJabaHembras', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-amber-800/30 rounded-lg text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                  style={{ background: c.bgCardAlt, color: c.text }} />
+                {data.cantidadHembras && data.unidadesPorJabaHembras && parseInt(data.unidadesPorJabaHembras) > 0 && (
+                  <p className="text-[10px] mt-0.5" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>
+                    {data.cantidadHembras} × {data.unidadesPorJabaHembras} = {parseInt(data.cantidadHembras) * parseInt(data.unidadesPorJabaHembras)} aves
+                  </p>
+                )}
+              </div>
+            </div>
+            {data.totalAves && parseInt(data.totalAves) > 0 && (
+              <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
+                style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <span style={{ color: c.textSecondary }}>Total aves estimadas</span>
+                <span className="font-bold font-mono" style={{ color: isDark ? '#4ade80' : '#166534' }}>🐔 {data.totalAves} unidades</span>
+              </div>
+            )}
+          </div>
+        )}
+        {esVivo && data.cantidadTotal && parseInt(data.cantidadTotal) > 0 && !necesitaSexo && (
           <div>
             <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}>
               <Grid3x3 className="w-3 h-3" /> Unidades por Jaba
@@ -968,8 +1085,47 @@ export function NuevoPedido() {
                   </div>
                 )}
 
-                {/* Unidades por Jaba — SOLO vivo con jabas */}
-                {esVivo && form.cantidadTotal && parseInt(form.cantidadTotal) > 0 && (
+                {/* Unidades por Jaba — vivo con sexo: dividido por machos/hembras */}
+                {esVivo && form.cantidadTotal && parseInt(form.cantidadTotal) > 0 && necesitaSexo && (
+                  <div>
+                    <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}><Grid3x3 className="w-3 h-3" /> Aves por Jaba (por sexo)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] mb-1" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>♂ Machos / jaba</label>
+                        <input type="number" value={form.unidadesPorJabaMachos || ''} onChange={e => actualizarFormulario(form.id, 'unidadesPorJabaMachos', e.target.value)}
+                          placeholder="Ej: 8, 10..." min="1"
+                          className="w-full px-3 py-2.5 border border-blue-800/30 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                          style={{ background: c.bgCard, color: c.text }} />
+                        {form.cantidadMachos && form.unidadesPorJabaMachos && parseInt(form.unidadesPorJabaMachos) > 0 && (
+                          <p className="text-[10px] mt-0.5" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>
+                            {form.cantidadMachos} × {form.unidadesPorJabaMachos} = {parseInt(form.cantidadMachos) * parseInt(form.unidadesPorJabaMachos)} aves
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10px] mb-1" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>♀ Hembras / jaba</label>
+                        <input type="number" value={form.unidadesPorJabaHembras || ''} onChange={e => actualizarFormulario(form.id, 'unidadesPorJabaHembras', e.target.value)}
+                          placeholder="Ej: 8, 10..." min="1"
+                          className="w-full px-3 py-2.5 border border-amber-800/30 rounded-lg text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                          style={{ background: c.bgCard, color: c.text }} />
+                        {form.cantidadHembras && form.unidadesPorJabaHembras && parseInt(form.unidadesPorJabaHembras) > 0 && (
+                          <p className="text-[10px] mt-0.5" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>
+                            {form.cantidadHembras} × {form.unidadesPorJabaHembras} = {parseInt(form.cantidadHembras) * parseInt(form.unidadesPorJabaHembras)} aves
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {form.totalAves && parseInt(form.totalAves) > 0 && (
+                      <div className="mt-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between"
+                        style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                        <span style={{ color: c.textSecondary }}>Total aves</span>
+                        <span className="font-bold font-mono" style={{ color: isDark ? '#4ade80' : '#166534' }}>{form.totalAves} unidades</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Unidades por Jaba — vivo SIN sexo */}
+                {esVivo && form.cantidadTotal && parseInt(form.cantidadTotal) > 0 && !necesitaSexo && (
                   <div>
                     <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}><Grid3x3 className="w-3 h-3" /> Unidades por Jaba</label>
                     <input type="number" value={form.unidadesPorJaba || ''} onChange={e => actualizarFormulario(form.id, 'unidadesPorJaba', e.target.value)}

@@ -14,6 +14,8 @@ interface PedidoConfirmado {
   cantidad: number;
   cantidadJabas?: number;
   unidadesPorJaba?: number;
+  unidadesPorJabaMachos?: number;
+  unidadesPorJabaHembras?: number;
   contenedor: string;
   fecha: string;
   hora: string;
@@ -36,6 +38,8 @@ interface PedidoLista {
   cantidad: number;
   cantidadJabas?: number;
   unidadesPorJaba?: number;
+  unidadesPorJabaMachos?: number;
+  unidadesPorJabaHembras?: number;
   cantidadMachos?: number;
   cantidadHembras?: number;
   presentacion: string;
@@ -203,6 +207,8 @@ export function ListaPedidos() {
     cantidadMachos?: number;
     cantidadHembras?: number;
     unidadesPorJaba?: number;
+    unidadesPorJabaMachos?: number;
+    unidadesPorJabaHembras?: number;
   }>({ cantidad: 0 });
 
   const iniciarEdicionInline = (pedido: PedidoLista) => {
@@ -219,6 +225,8 @@ export function ListaPedidos() {
       cantidadMachos: pedido.cantidadMachos,
       cantidadHembras: pedido.cantidadHembras,
       unidadesPorJaba: pedido.unidadesPorJaba,
+      unidadesPorJabaMachos: pedido.unidadesPorJabaMachos,
+      unidadesPorJabaHembras: pedido.unidadesPorJabaHembras,
     });
   };
 
@@ -241,9 +249,21 @@ export function ListaPedidos() {
     if (esVivoEdit) {
       const jabas = inlineEditData.cantidad;
       const upj = inlineEditData.unidadesPorJaba || pedidoLista?.unidadesPorJaba || 0;
+      const uPJM = inlineEditData.unidadesPorJabaMachos || 0;
+      const uPJH = inlineEditData.unidadesPorJabaHembras || 0;
       cambios.cantidadJabas = jabas;
       cambios.unidadesPorJaba = upj;
-      cambios.cantidad = jabas * upj || jabas;
+      if (uPJM > 0 || uPJH > 0) {
+        cambios.unidadesPorJabaMachos = uPJM || undefined;
+        cambios.unidadesPorJabaHembras = uPJH || undefined;
+        const m = inlineEditData.cantidadMachos || 0;
+        const h = inlineEditData.cantidadHembras || 0;
+        cambios.cantidad = (m * uPJM) + (h * uPJH);
+        if (uPJM !== pedidoLista?.unidadesPorJabaMachos) cambiosTexto.push(`Uds/Jaba M: ${pedidoLista?.unidadesPorJabaMachos || '—'} → ${uPJM}`);
+        if (uPJH !== pedidoLista?.unidadesPorJabaHembras) cambiosTexto.push(`Uds/Jaba H: ${pedidoLista?.unidadesPorJabaHembras || '—'} → ${uPJH}`);
+      } else {
+        cambios.cantidad = jabas * upj || jabas;
+      }
       if (upj !== pedidoLista?.unidadesPorJaba) {
         cambiosTexto.push(`Uds/Jaba: ${pedidoLista?.unidadesPorJaba || '—'} → ${upj}`);
       }
@@ -473,6 +493,8 @@ export function ListaPedidos() {
       cantidad: pedido.cantidad,
       cantidadJabas: pedido.cantidadJabas,
       unidadesPorJaba: pedido.unidadesPorJaba,
+      unidadesPorJabaMachos: pedido.unidadesPorJabaMachos,
+      unidadesPorJabaHembras: pedido.unidadesPorJabaHembras,
       cantidadMachos: infoGenero?.machos,
       cantidadHembras: infoGenero?.hembras,
       presentacion: pedido.presentacion,
@@ -1882,20 +1904,11 @@ export function ListaPedidos() {
                             const esVivoRow = pedido.presentacion?.toLowerCase().includes('vivo');
                             if (inlineEditId === pedido.id && pedido.estado === 'Pendiente') {
                               if (esVivoRow && pedido.cantidadMachos !== undefined) {
-                                // Vivo con sexo: cantidad = jabas M+H, auto-calculada
-                                const jabas = inlineEditData.cantidad;
-                                const upj = inlineEditData.unidadesPorJaba || 0;
+                                // Vivo con sexo: cantidad = jabas M+H, auto-calculada (no editable)
+                                const jabas = (inlineEditData.cantidadMachos || 0) + (inlineEditData.cantidadHembras || 0);
                                 return (
                                   <div>
                                     <div className="font-bold text-lg drop-shadow" style={{ color: c.text }}>{jabas} <span className="text-[10px] text-amber-400">jabas</span></div>
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-[10px]" style={{ color: c.textMuted }}>×</span>
-                                      <input type="number" min="1" value={upj || ''} placeholder="u/j"
-                                        onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJaba: parseInt(e.target.value) || 0 }))}
-                                        onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
-                                        className="w-12 px-1 py-0.5 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-[10px] text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
-                                      <span className="text-[10px]" style={{ color: c.textMuted }}>= <span className="text-green-400 font-bold">{jabas * upj || '—'}</span> aves</span>
-                                    </div>
                                     <div className="text-[9px] italic mt-0.5" style={{ color: c.textMuted }}>auto (♂+♀)</div>
                                   </div>
                                 );
@@ -1947,20 +1960,10 @@ export function ListaPedidos() {
                             // Vista normal
                             if (esVivoRow && pedido.cantidadJabas) {
                               const jabas = pedido.cantidadMachos !== undefined ? (pedido.cantidadMachos + (pedido.cantidadHembras || 0)) : pedido.cantidadJabas;
-                              const upj = pedido.unidadesPorJaba || 0;
-                              const totalAves = jabas * upj;
                               return (
-                                <div className={pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
+                                <div className={pedido.cantidadMachos === undefined && pedido.estado === 'Pendiente' ? 'cursor-pointer group/cant' : ''} onClick={() => pedido.cantidadMachos === undefined && pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
                                   <div className="font-bold text-lg drop-shadow group-hover/cant:text-amber-300 transition-colors" style={{ color: c.text }}>{jabas} <span className="text-[10px]" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>jabas</span></div>
-                                  {upj > 0 && (
-                                    <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
-                                      background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
-                                      border: '1px solid rgba(245,158,11,0.3)', boxShadow: '0 0 10px rgba(245,158,11,0.2)'
-                                    }}>
-                                      × {upj} = {totalAves} aves
-                                    </div>
-                                  )}
-                                  {pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
+                                  {pedido.cantidadMachos === undefined && pedido.estado === 'Pendiente' && <div className="text-[9px] text-amber-500/60 mt-0.5 opacity-0 group-hover/cant:opacity-100 transition-opacity">clic para editar</div>}
                                 </div>
                               );
                             }
@@ -1974,22 +1977,41 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4 text-center">
                           {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadMachos !== undefined ? (
-                            <input 
-                              type="number" 
-                              value={inlineEditData.cantidadMachos ?? ''} 
-                              onChange={(e) => {
-                                const m = parseInt(e.target.value) || 0;
-                                setInlineEditData(prev => ({ ...prev, cantidadMachos: m, cantidad: m + (prev.cantidadHembras || 0) }));
-                              }}
-                              onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
-                              className="w-20 px-2 py-2 bg-blue-900/30 border border-blue-500/40 rounded-lg text-blue-300 text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                              autoFocus
-                            />
+                            <div className="flex flex-col items-center gap-1">
+                              <input 
+                                type="number" 
+                                value={inlineEditData.cantidadMachos ?? ''} 
+                                onChange={(e) => {
+                                  const m = parseInt(e.target.value) || 0;
+                                  setInlineEditData(prev => ({ ...prev, cantidadMachos: m, cantidad: m + (prev.cantidadHembras || 0) }));
+                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
+                                className="w-20 px-2 py-2 bg-blue-900/30 border border-blue-500/40 rounded-lg text-blue-300 text-center text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none" 
+                                autoFocus
+                                placeholder="jabas"
+                              />
+                              {pedido.presentacion?.toLowerCase().includes('vivo') && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px]" style={{ color: c.textMuted }}>×</span>
+                                  <input type="number" min="1" value={inlineEditData.unidadesPorJabaMachos || ''} placeholder="u/j"
+                                    onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJabaMachos: parseInt(e.target.value) || 0 }))}
+                                    onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
+                                    className="w-14 px-1.5 py-1 bg-blue-900/30 border border-blue-500/30 rounded text-blue-300 text-xs text-center focus:ring-1 focus:ring-blue-500 focus:outline-none" />
+                                </div>
+                              )}
+                            </div>
                           ) : pedido.cantidadMachos !== undefined ? (
-                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
-                              style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(30,58,138,0.4), rgba(30,64,175,0.3))' : 'rgba(219,234,254,0.8)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(59,130,246,0.4)' }}
+                            <div className={`inline-flex flex-col items-center gap-0.5 ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
                               onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>{pedido.cantidadMachos}</span>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>{pedido.cantidadMachos}{pedido.presentacion?.toLowerCase().includes('vivo') && <span className="text-[9px] font-normal ml-0.5" style={{ color: isDark ? '#60a5fa' : '#3b82f6' }}>jabas</span>}</span>
+                              {pedido.presentacion?.toLowerCase().includes('vivo') && pedido.unidadesPorJabaMachos && pedido.unidadesPorJabaMachos > 0 && (
+                                <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
+                                  background: 'rgba(59,130,246,0.15)', color: isDark ? '#93c5fd' : '#1d4ed8',
+                                  border: '1px solid rgba(59,130,246,0.3)'
+                                }}>
+                                  × {pedido.unidadesPorJabaMachos} = {pedido.cantidadMachos * pedido.unidadesPorJabaMachos} aves
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="font-mono" style={{ color: c.textMuted }}>—</span>
@@ -1997,21 +2019,40 @@ export function ListaPedidos() {
                         </td>
                         <td className="px-6 py-4 text-center">
                           {inlineEditId === pedido.id && pedido.estado === 'Pendiente' && pedido.cantidadHembras !== undefined ? (
-                            <input 
-                              type="number" 
-                              value={inlineEditData.cantidadHembras ?? ''} 
-                              onChange={(e) => {
-                                const h = parseInt(e.target.value) || 0;
-                                setInlineEditData(prev => ({ ...prev, cantidadHembras: h, cantidad: (prev.cantidadMachos || 0) + h }));
-                              }}
-                              onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
-                              className="w-20 px-2 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-amber-300 text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" 
-                            />
+                            <div className="flex flex-col items-center gap-1">
+                              <input 
+                                type="number" 
+                                value={inlineEditData.cantidadHembras ?? ''} 
+                                onChange={(e) => {
+                                  const h = parseInt(e.target.value) || 0;
+                                  setInlineEditData(prev => ({ ...prev, cantidadHembras: h, cantidad: (prev.cantidadMachos || 0) + h }));
+                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
+                                className="w-20 px-2 py-2 bg-amber-900/30 border border-amber-500/40 rounded-lg text-amber-300 text-center text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none" 
+                                placeholder="jabas"
+                              />
+                              {pedido.presentacion?.toLowerCase().includes('vivo') && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px]" style={{ color: c.textMuted }}>×</span>
+                                  <input type="number" min="1" value={inlineEditData.unidadesPorJabaHembras || ''} placeholder="u/j"
+                                    onChange={(e) => setInlineEditData(prev => ({ ...prev, unidadesPorJabaHembras: parseInt(e.target.value) || 0 }))}
+                                    onKeyDown={(e) => e.key === 'Enter' && guardarEdicionInline(pedido.id)}
+                                    className="w-14 px-1.5 py-1 bg-amber-900/30 border border-amber-500/30 rounded text-amber-300 text-xs text-center focus:ring-1 focus:ring-amber-500 focus:outline-none" />
+                                </div>
+                              )}
+                            </div>
                           ) : pedido.cantidadHembras !== undefined ? (
-                            <div className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg shadow-lg ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
-                              style={{ background: isDark ? 'linear-gradient(to bottom right, rgba(120,53,15,0.4), rgba(146,64,14,0.3))' : 'rgba(254,243,199,0.8)', border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.4)' }}
+                            <div className={`inline-flex flex-col items-center gap-0.5 ${pedido.estado === 'Pendiente' ? 'cursor-pointer' : ''}`}
                               onClick={() => pedido.estado === 'Pendiente' && iniciarEdicionInline(pedido)}>
-                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>{pedido.cantidadHembras}</span>
+                              <span className="font-black text-base tabular-nums drop-shadow" style={{ color: isDark ? '#fcd34d' : '#b45309' }}>{pedido.cantidadHembras}{pedido.presentacion?.toLowerCase().includes('vivo') && <span className="text-[9px] font-normal ml-0.5" style={{ color: isDark ? '#fbbf24' : '#d97706' }}>jabas</span>}</span>
+                              {pedido.presentacion?.toLowerCase().includes('vivo') && pedido.unidadesPorJabaHembras && pedido.unidadesPorJabaHembras > 0 && (
+                                <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{
+                                  background: 'rgba(245,158,11,0.2)', color: '#fbbf24',
+                                  border: '1px solid rgba(245,158,11,0.3)'
+                                }}>
+                                  × {pedido.unidadesPorJabaHembras} = {pedido.cantidadHembras * pedido.unidadesPorJabaHembras} aves
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="font-mono" style={{ color: c.textMuted }}>—</span>
@@ -2092,20 +2133,24 @@ export function ListaPedidos() {
                                 >
                                   <Eye className="w-4 h-4" style={{ color: c.textSecondary }} />
                                 </button>
-                                <button 
-                                  onClick={() => abrirEdicionPedido(pedido)} 
-                                  className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" 
-                                  title="Editar pedido"
-                                >
-                                  <Edit2 className="w-4 h-4 text-blue-400" />
-                                </button>
-                                <button 
-                                  onClick={() => eliminarPedido(pedido.id)} 
-                                  className="p-2 bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 rounded-lg hover:from-red-900/50 hover:to-red-800/40 transition-all shadow-lg hover:shadow-xl" 
-                                  title="Eliminar pedido"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-400" />
-                                </button>
+                                {pedido.estado === 'Pendiente' && (
+                                  <button 
+                                    onClick={() => abrirEdicionPedido(pedido)} 
+                                    className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" 
+                                    title="Editar pedido"
+                                  >
+                                    <Edit2 className="w-4 h-4 text-blue-400" />
+                                  </button>
+                                )}
+                                {pedido.estado === 'Pendiente' && (
+                                  <button 
+                                    onClick={() => eliminarPedido(pedido.id)} 
+                                    className="p-2 bg-gradient-to-r from-red-900/40 to-red-800/30 border border-red-500/30 rounded-lg hover:from-red-900/50 hover:to-red-800/40 transition-all shadow-lg hover:shadow-xl" 
+                                    title="Eliminar pedido"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-400" />
+                                  </button>
+                                )}
                               </>
                             )}
                               </>

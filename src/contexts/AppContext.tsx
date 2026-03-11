@@ -74,6 +74,8 @@ export interface PedidoConfirmado {
   cantidad: number;
   cantidadJabas?: number;
   unidadesPorJaba?: number;
+  unidadesPorJabaMachos?: number;
+  unidadesPorJabaHembras?: number;
   contenedor: string; // Referencia del tipo de contenedor (criterio interno)
   fecha: string;
   hora: string;
