@@ -465,9 +465,19 @@ export function DashboardSecretaria() {
     if (fila.contenedorRecalculado && fila.recalcLines && fila.recalcLines.length > 0) {
       lines = fila.recalcLines.map(l => ({ ...l }));
     } else {
-      lines = fila.cantidadContenedores > 0
-        ? [{ tipoContenedor: fila.contenedorTipo || 'Jaba Estándar', pesoUnit: fila.contenedorPesoUnit || JABA_ESTANDAR_PESO, cantidad: fila.cantidadContenedores }]
-        : [{ tipoContenedor: 'Jaba Estándar', pesoUnit: JABA_ESTANDAR_PESO, cantidad: 0 }];
+      // Try to load multi-container detail from PedidoConfirmado
+      const pedido = pedidosConfirmados.find(p => p.id === filaId);
+      if (pedido?.contenedoresDetalle && pedido.contenedoresDetalle.length > 0) {
+        lines = pedido.contenedoresDetalle.map(d => ({
+          tipoContenedor: d.tipo,
+          pesoUnit: d.pesoUnit,
+          cantidad: d.cantidad,
+        }));
+      } else if (fila.cantidadContenedores > 0) {
+        lines = [{ tipoContenedor: fila.contenedorTipo || 'Jaba Estándar', pesoUnit: fila.contenedorPesoUnit || JABA_ESTANDAR_PESO, cantidad: fila.cantidadContenedores }];
+      } else {
+        lines = [{ tipoContenedor: 'Jaba Estándar', pesoUnit: JABA_ESTANDAR_PESO, cantidad: 0 }];
+      }
     }
     setRecalcModal({ open: true, filaId, lines });
   };

@@ -43,16 +43,27 @@ interface ContenedorOpcion {
   id: string;
   tipo: string;
   peso: number;
+  stock: number;
+}
+
+// Entry in the multi-container selection for non-Vivo
+interface ContenedorSeleccion {
+  contenedorId: string;
+  cantidad: number;
 }
 
 interface SubPedidoEstado {
   pesadas: PesadaParcial[];
   completado: boolean;
+  // Vivo flow: single jaba reference
   contenedorId: string;
   cantidadContenedores: number;
   pesoJabaEditable: number;
   faseConfirmandoContenedor: boolean;
   cantidadContenedoresInput: string;
+  // Non-Vivo flow: multiple container types
+  contenedoresMultiple: ContenedorSeleccion[];
+  stockInsuficiente: boolean;
 }
 
 interface SlotData {
@@ -77,6 +88,8 @@ interface ResultadoPesajeOrden {
   pesoUnitarioContenedor: number;
   pesoContenedoresTotal: number;
   pesoNetoTotal: number;
+  // For multi-container (non-Vivo)
+  contenedoresDetalle: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
 }
 
 interface ConsolidatedTicketData {
@@ -127,12 +140,18 @@ function crearSubEstado(pedido: PedidoConfirmado, allContenedores: ContenedorOpc
   let contenedorId = '';
   let cantidadContenedores = 0;
   let cantidadContenedoresInput = '';
+  let stockInsuficiente = false;
 
   if (esVivo) {
     contenedorId = JABA_ESTANDAR.id;
     if (pedido.cantidadJabas && pedido.cantidadJabas > 0) {
       cantidadContenedores = pedido.cantidadJabas;
       cantidadContenedoresInput = String(pedido.cantidadJabas);
+      // Check jaba stock
+      const jabaEnAlmacen = allContenedores.find(ct => ct.tipo.toLowerCase().includes('jaba'));
+      if (jabaEnAlmacen) {
+        stockInsuficiente = (jabaEnAlmacen.stock ?? 0) < pedido.cantidadJabas;
+      }
     }
   } else if (pedido.contenedor) {
     const contDef = allContenedores.find(ct => ct.tipo === pedido.contenedor);
@@ -147,6 +166,8 @@ function crearSubEstado(pedido: PedidoConfirmado, allContenedores: ContenedorOpc
     pesoJabaEditable: JABA_ESTANDAR.peso,
     faseConfirmandoContenedor: false,
     cantidadContenedoresInput,
+    contenedoresMultiple: [],
+    stockInsuficiente,
   };
 }
 
@@ -232,7 +253,7 @@ function useSerialScale() {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function PesajeOperador() {
-  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, clientes } = useApp();
+  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, setContenedores, clientes } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
   const scale = useSerialScale();
@@ -490,18 +511,63 @@ export function PesajeOperador() {
     if (!slot) return;
     const subEst = slot.subEstados[pedidoId];
     if (!subEst) return;
-    if (!subEst.contenedorId) { toast.error('Seleccione un contenedor'); return; }
-    const cant = parseInt(subEst.cantidadContenedoresInput) || 0;
-    if (cant <= 0) { toast.error('Ingrese cantidad de contenedores'); return; }
-    updateSlot(slotIdx, s => ({
-      ...s,
-      subEstados: {
-        ...s.subEstados,
-        [pedidoId]: { ...s.subEstados[pedidoId], completado: true, faseConfirmandoContenedor: false, cantidadContenedores: cant },
-      },
-    }));
+    const pedido = slot.pedidos.find(p => p.id === pedidoId);
+    const esVivo = !!pedido?.presentacion?.toLowerCase().includes('vivo');
+
+    if (esVivo) {
+      // Vivo: single jaba type
+      if (!subEst.contenedorId) { toast.error('Seleccione un contenedor'); return; }
+      const cant = parseInt(subEst.cantidadContenedoresInput) || 0;
+      if (cant <= 0) { toast.error('Ingrese cantidad de contenedores'); return; }
+      // Consume stock from global
+      const jabaEnAlmacen = contenedores.find(ct => ct.tipo.toLowerCase().includes('jaba'));
+      if (jabaEnAlmacen) {
+        if ((jabaEnAlmacen.stock ?? 0) < cant) {
+          toast.error(`Stock insuficiente de jabas. Disponible: ${jabaEnAlmacen.stock ?? 0}, Requerido: ${cant}`);
+          return;
+        }
+        setContenedores(contenedores.map(ct =>
+          ct.id === jabaEnAlmacen.id ? { ...ct, stock: (ct.stock ?? 0) - cant } : ct
+        ));
+      }
+      updateSlot(slotIdx, s => ({
+        ...s,
+        subEstados: {
+          ...s.subEstados,
+          [pedidoId]: { ...s.subEstados[pedidoId], completado: true, faseConfirmandoContenedor: false, cantidadContenedores: cant, stockInsuficiente: false },
+        },
+      }));
+    } else {
+      // Non-Vivo: multiple container types
+      const selecciones = subEst.contenedoresMultiple.filter(s => s.contenedorId && s.cantidad > 0);
+      if (selecciones.length === 0) { toast.error('Agregue al menos un tipo de contenedor'); return; }
+      // Validate stock
+      for (const sel of selecciones) {
+        const ct = contenedores.find(c => c.id === sel.contenedorId);
+        if (!ct) { toast.error('Contenedor no encontrado'); return; }
+        if ((ct.stock ?? 0) < sel.cantidad) {
+          toast.error(`Stock insuficiente de "${ct.tipo}". Disponible: ${ct.stock ?? 0}, Requerido: ${sel.cantidad}`);
+          return;
+        }
+      }
+      // Consume stock
+      const nuevosCont = contenedores.map(ct => {
+        const sel = selecciones.find(s => s.contenedorId === ct.id);
+        if (sel) return { ...ct, stock: (ct.stock ?? 0) - sel.cantidad };
+        return ct;
+      });
+      setContenedores(nuevosCont);
+      const totalCant = selecciones.reduce((s, sel) => s + sel.cantidad, 0);
+      updateSlot(slotIdx, s => ({
+        ...s,
+        subEstados: {
+          ...s.subEstados,
+          [pedidoId]: { ...s.subEstados[pedidoId], completado: true, faseConfirmandoContenedor: false, cantidadContenedores: totalCant, contenedoresMultiple: selecciones },
+        },
+      }));
+    }
     toast.success('Sub-pedido pesado y confirmado');
-  }, [slots, updateSlot]);
+  }, [slots, updateSlot, contenedores, setContenedores]);
 
   const cancelarConfirmacion = useCallback(() => {
     if (activeSlotIdx === null || !activeSubPedido) return;
@@ -525,6 +591,35 @@ export function PesajeOperador() {
     }));
   }, [updateSlot]);
 
+  // Helper to add/update/remove entries in contenedoresMultiple
+  const updateMultiContenedor = useCallback((slotIdx: number, pedidoId: string, index: number, field: 'contenedorId' | 'cantidad', value: string | number) => {
+    updateSlot(slotIdx, s => {
+      const subEst = s.subEstados[pedidoId];
+      if (!subEst) return s;
+      const arr = [...subEst.contenedoresMultiple];
+      if (!arr[index]) arr[index] = { contenedorId: '', cantidad: 0 };
+      arr[index] = { ...arr[index], [field]: field === 'cantidad' ? (parseInt(String(value)) || 0) : value };
+      return { ...s, subEstados: { ...s.subEstados, [pedidoId]: { ...subEst, contenedoresMultiple: arr } } };
+    });
+  }, [updateSlot]);
+
+  const addMultiContenedor = useCallback((slotIdx: number, pedidoId: string) => {
+    updateSlot(slotIdx, s => {
+      const subEst = s.subEstados[pedidoId];
+      if (!subEst) return s;
+      return { ...s, subEstados: { ...s.subEstados, [pedidoId]: { ...subEst, contenedoresMultiple: [...subEst.contenedoresMultiple, { contenedorId: '', cantidad: 0 }] } } };
+    });
+  }, [updateSlot]);
+
+  const removeMultiContenedor = useCallback((slotIdx: number, pedidoId: string, index: number) => {
+    updateSlot(slotIdx, s => {
+      const subEst = s.subEstados[pedidoId];
+      if (!subEst) return s;
+      const arr = subEst.contenedoresMultiple.filter((_, i) => i !== index);
+      return { ...s, subEstados: { ...s.subEstados, [pedidoId]: { ...subEst, contenedoresMultiple: arr } } };
+    });
+  }, [updateSlot]);
+
   // ── Build resultado ──
 
   const buildResultado = useCallback((pedido: PedidoConfirmado, subEst: SubPedidoEstado): ResultadoPesajeOrden => {
@@ -532,21 +627,44 @@ export function PesajeOperador() {
     const pesoBrutoTotal = subEst.pesadas.reduce((s, p) => s + p.peso, 0);
     let tipoContenedor = '';
     let pesoUnitContenedor = 0;
+    let pesoContenedoresTotal = 0;
+    let cantidad = subEst.cantidadContenedores;
+    const contenedoresDetalle: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[] = [];
+
     if (esVivo) {
       tipoContenedor = JABA_ESTANDAR.tipo;
       pesoUnitContenedor = subEst.pesoJabaEditable;
+      pesoContenedoresTotal = pesoUnitContenedor * cantidad;
+      contenedoresDetalle.push({ tipo: tipoContenedor, cantidad, pesoUnit: pesoUnitContenedor, pesoTotal: pesoContenedoresTotal });
     } else {
-      const cont = contenedores.find(ct => ct.id === subEst.contenedorId);
-      tipoContenedor = cont?.tipo || '';
-      pesoUnitContenedor = cont?.peso || 0;
+      // Multi-container: sum each type's weight contribution
+      const selecciones = subEst.contenedoresMultiple.filter(s => s.contenedorId && s.cantidad > 0);
+      if (selecciones.length > 0) {
+        for (const sel of selecciones) {
+          const ct = contenedores.find(c => c.id === sel.contenedorId);
+          if (ct) {
+            const pesoSel = ct.peso * sel.cantidad;
+            pesoContenedoresTotal += pesoSel;
+            contenedoresDetalle.push({ tipo: ct.tipo, cantidad: sel.cantidad, pesoUnit: ct.peso, pesoTotal: pesoSel });
+          }
+        }
+        tipoContenedor = contenedoresDetalle.map(d => `${d.cantidad}x ${d.tipo}`).join(', ');
+        pesoUnitContenedor = contenedoresDetalle.length === 1 ? contenedoresDetalle[0].pesoUnit : 0;
+      } else {
+        // Fallback: single container (legacy)
+        const cont = contenedores.find(ct => ct.id === subEst.contenedorId);
+        tipoContenedor = cont?.tipo || '';
+        pesoUnitContenedor = cont?.peso || 0;
+        pesoContenedoresTotal = pesoUnitContenedor * cantidad;
+        if (cont) contenedoresDetalle.push({ tipo: cont.tipo, cantidad, pesoUnit: pesoUnitContenedor, pesoTotal: pesoContenedoresTotal });
+      }
     }
-    const cantidad = subEst.cantidadContenedores;
-    const pesoContenedoresTotal = pesoUnitContenedor * cantidad;
     const pesoNetoTotal = pesoBrutoTotal - pesoContenedoresTotal;
     return {
       pedidoId: pedido.id, pedido, pesadas: subEst.pesadas, pesoBrutoTotal,
       contenedorId: subEst.contenedorId, tipoContenedor, cantidadContenedores: cantidad,
       pesoUnitarioContenedor: pesoUnitContenedor, pesoContenedoresTotal, pesoNetoTotal,
+      contenedoresDetalle,
     };
   }, [contenedores]);
 
@@ -583,7 +701,9 @@ export function PesajeOperador() {
 
       const bloquesPesaje: BloquePesaje[] = resultado.pesadas.map((p, i) => ({
         numero: i + 1, tamano: 0, pesoBruto: p.peso,
-        tipoContenedor: resultado.tipoContenedor, pesoContenedor: 0, cantidadContenedores: 0,
+        tipoContenedor: resultado.tipoContenedor,
+        pesoContenedor: resultado.pesoContenedoresTotal,
+        cantidadContenedores: resultado.cantidadContenedores,
       }));
 
       updatePedidoConfirmado(pedido.id, {
@@ -594,6 +714,7 @@ export function PesajeOperador() {
         pesoKg: resultado.pesoNetoTotal,
         pesoTotalContenedores: resultado.pesoContenedoresTotal,
         cantidadTotalContenedores: resultado.cantidadContenedores,
+        contenedoresDetalle: resultado.contenedoresDetalle,
         bloquesPesaje,
         conductor: conductor.nombre,
         zonaEntrega: zona?.nombre || '',
@@ -968,15 +1089,22 @@ export function PesajeOperador() {
                             </span>
                           </div>
 
-                          {/* Jabas info for Vivo */}
+                          {/* Jabas info for Vivo + stock warning */}
                           {esVivo && (subPed.cantidadJabas || 0) > 0 && (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-                                <Lock className="w-2.5 h-2.5 inline mr-0.5" />{subPed.cantidadJabas}j
-                              </span>
-                              {!subEst.completado && (
-                                <span className="text-[9px]" style={{ color: c.textMuted }}>
-                                  restan {(subPed.cantidadJabas || 0) - subEst.pesadas.reduce((s, p) => s + (p.jabas || 0), 0)}
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                                  <Lock className="w-2.5 h-2.5 inline mr-0.5" />{subPed.cantidadJabas}j
+                                </span>
+                                {!subEst.completado && (
+                                  <span className="text-[9px]" style={{ color: c.textMuted }}>
+                                    restan {(subPed.cantidadJabas || 0) - subEst.pesadas.reduce((s, p) => s + (p.jabas || 0), 0)}
+                                  </span>
+                                )}
+                              </div>
+                              {subEst.stockInsuficiente && !subEst.completado && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-red-900/20 text-red-400 border border-red-700/30">
+                                  ⚠ Stock insuficiente — use Pendiente
                                 </span>
                               )}
                             </div>
@@ -1016,24 +1144,89 @@ export function PesajeOperador() {
 
                           {subEst.faseConfirmandoContenedor && !subEst.completado && (
                             <div className="space-y-2 mt-auto rounded-xl p-2.5" style={{ background: c.bgCardAlt, border: `1px solid rgba(245,158,11,0.3)` }} onClick={(e) => e.stopPropagation()}>
-                              <div className="text-[10px] font-bold text-amber-400 uppercase text-center">Confirmar Contenedor</div>
-                              {!esVivo && (
-                                <select
-                                  value={subEst.contenedorId}
-                                  onChange={(e) => updateSubField(idx, subPed.id, 'contenedorId', e.target.value)}
-                                  className="w-full px-2 py-1.5 rounded-lg text-[11px] appearance-none"
-                                  style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}>
-                                  <option value="">Tipo...</option>
-                                  {contenedores.map(ct => <option key={ct.id} value={ct.id} className="bg-gray-900">{ct.tipo}</option>)}
-                                </select>
+                              <div className="text-[10px] font-bold text-amber-400 uppercase text-center">
+                                {esVivo ? 'Confirmar Jabas' : 'Seleccionar Contenedores'}
+                              </div>
+
+                              {esVivo ? (
+                                /* ── Vivo: single jaba with quantity ── */
+                                <>
+                                  <input type="number" min="1"
+                                    value={subEst.cantidadContenedoresInput}
+                                    onChange={(e) => updateSubField(idx, subPed.id, 'cantidadContenedoresInput', e.target.value)}
+                                    placeholder="Cantidad jabas"
+                                    className="w-full px-2 py-1.5 rounded-lg text-sm font-mono text-center"
+                                    style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}
+                                  />
+                                  {(() => {
+                                    const jabaStock = contenedores.find(ct => ct.tipo.toLowerCase().includes('jaba'));
+                                    return jabaStock ? (
+                                      <div className="text-[9px] text-center" style={{ color: (jabaStock.stock ?? 0) >= (parseInt(subEst.cantidadContenedoresInput) || 0) ? '#4ade80' : '#ef4444' }}>
+                                        Stock: {jabaStock.stock ?? 0} jabas
+                                      </div>
+                                    ) : null;
+                                  })()}
+                                </>
+                              ) : (
+                                /* ── Non-Vivo: multi-container selection ── */
+                                <>
+                                  {subEst.contenedoresMultiple.map((sel, selIdx) => {
+                                    const ctSel = contenedores.find(ct => ct.id === sel.contenedorId);
+                                    return (
+                                      <div key={selIdx} className="flex gap-1 items-center">
+                                        <select
+                                          value={sel.contenedorId}
+                                          onChange={(e) => updateMultiContenedor(idx, subPed.id, selIdx, 'contenedorId', e.target.value)}
+                                          className="flex-1 px-1.5 py-1.5 rounded-lg text-[10px] appearance-none min-w-0"
+                                          style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}>
+                                          <option value="">Tipo...</option>
+                                          {contenedores.map(ct => (
+                                            <option key={ct.id} value={ct.id} className="bg-gray-900">
+                                              {ct.tipo} ({ct.stock ?? 0})
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <input type="number" min="1"
+                                          value={sel.cantidad || ''}
+                                          onChange={(e) => updateMultiContenedor(idx, subPed.id, selIdx, 'cantidad', e.target.value)}
+                                          placeholder="#"
+                                          className="w-14 px-1.5 py-1.5 rounded-lg text-[10px] font-mono text-center"
+                                          style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}
+                                        />
+                                        <button onClick={(e) => { e.stopPropagation(); removeMultiContenedor(idx, subPed.id, selIdx); }}
+                                          className="p-1 rounded-md hover:bg-red-900/20 flex-shrink-0">
+                                          <X className="w-3 h-3 text-red-400" />
+                                        </button>
+                                        {ctSel && sel.cantidad > 0 && (
+                                          <span className="text-[8px] font-mono flex-shrink-0" style={{ color: (ctSel.stock ?? 0) >= sel.cantidad ? '#4ade80' : '#ef4444' }}>
+                                            {(ctSel.stock ?? 0) >= sel.cantidad ? '✓' : '✗'}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  <button onClick={(e) => { e.stopPropagation(); addMultiContenedor(idx, subPed.id); }}
+                                    className="w-full py-1 rounded-lg text-[9px] font-bold flex items-center justify-center gap-1 hover:bg-white/5 transition-colors"
+                                    style={{ border: `1px dashed ${c.border}`, color: c.textSecondary }}>
+                                    <Plus className="w-3 h-3" /> Agregar tipo
+                                  </button>
+                                  {/* Tara preview */}
+                                  {subEst.contenedoresMultiple.filter(s => s.contenedorId && s.cantidad > 0).length > 0 && (
+                                    <div className="text-[9px] text-center py-1 rounded-lg" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', color: '#60a5fa' }}>
+                                      Tara: {subEst.contenedoresMultiple.reduce((sum, s) => {
+                                        const ct = contenedores.find(c => c.id === s.contenedorId);
+                                        return sum + (ct ? ct.peso * s.cantidad : 0);
+                                      }, 0).toFixed(2)} kg
+                                      {' · Neto: '}
+                                      {(brutoSub - subEst.contenedoresMultiple.reduce((sum, s) => {
+                                        const ct = contenedores.find(c => c.id === s.contenedorId);
+                                        return sum + (ct ? ct.peso * s.cantidad : 0);
+                                      }, 0)).toFixed(2)} kg
+                                    </div>
+                                  )}
+                                </>
                               )}
-                              <input type="number" min="1"
-                                value={subEst.cantidadContenedoresInput}
-                                onChange={(e) => updateSubField(idx, subPed.id, 'cantidadContenedoresInput', e.target.value)}
-                                placeholder="Cantidad"
-                                className="w-full px-2 py-1.5 rounded-lg text-sm font-mono text-center"
-                                style={{ background: c.bgCard, border: `1px solid ${c.border}`, color: c.text }}
-                              />
+
                               <div className="flex gap-1.5">
                                 <button onClick={(e) => { e.stopPropagation(); cancelarConfirmacion(); }}
                                   className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"

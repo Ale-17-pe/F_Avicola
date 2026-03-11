@@ -95,6 +95,8 @@ export interface PedidoConfirmado {
   // Totales de contenedores
   pesoTotalContenedores?: number;
   cantidadTotalContenedores?: number;
+  // Detalle multi-contenedor (para Cartera de Cobro)
+  contenedoresDetalle?: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
   
   // Datos de entrega
   conductor?: string;
@@ -128,6 +130,7 @@ export interface Contenedor {
   id: string;
   tipo: string;
   peso: number;
+  stock: number;
 }
 
 export interface Pago {
