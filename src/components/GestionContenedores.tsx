@@ -10,6 +10,7 @@ interface Contenedor {
   id: string;
   tipo: string;
   peso: number;
+  stock: number;
 }
 
 export function GestionContenedores() {
@@ -21,6 +22,8 @@ export function GestionContenedores() {
   const [editTipo, setEditTipo] = useState('');
   const [editPeso, setEditPeso] = useState('');
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [editandoStockId, setEditandoStockId] = useState<string | null>(null);
+  const [editStockValue, setEditStockValue] = useState('');
 
   // Cálculos precisos con estadísticas avanzadas
   const totalContenedores = contenedores.length;
@@ -393,9 +396,7 @@ export function GestionContenedores() {
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">#</th>
                 <th className="px-6 py-4 text-left font-bold text-xs tracking-wider uppercase text-amber-400">Tipo de Contenedor</th>
                 <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">Peso Unitario</th>
-                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">×10 unid.</th>
-                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">×50 unid.</th>
-                <th className="px-6 py-4 text-right font-bold text-xs tracking-wider uppercase text-amber-400">×100 unid.</th>
+                <th className="px-6 py-4 text-center font-bold text-xs tracking-wider uppercase text-amber-400">Cantidad Disponible</th>
                 <th className="px-6 py-4 text-center font-bold text-xs tracking-wider uppercase text-amber-400">Acciones</th>
               </tr>
             </thead>
@@ -445,14 +446,8 @@ export function GestionContenedores() {
                           placeholder="0.00"
                         />
                       </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(parseFloat(editPeso || '0') * 10).toFixed(2)} kg
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(parseFloat(editPeso || '0') * 50).toFixed(2)} kg
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(parseFloat(editPeso || '0') * 100).toFixed(2)} kg
+                      <td className="px-6 py-4 text-center text-sm" style={{ color: c.textSecondary }}>
+                        {contenedor.stock ?? 0}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
@@ -487,14 +482,39 @@ export function GestionContenedores() {
                           {contenedor.peso.toFixed(2)} kg
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(contenedor.peso * 10).toFixed(2)} kg
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(contenedor.peso * 50).toFixed(2)} kg
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm" style={{ color: c.textSecondary }}>
-                        {(contenedor.peso * 100).toFixed(2)} kg
+                      <td className="px-6 py-4 text-center">
+                        {editandoStockId === contenedor.id ? (
+                          <input
+                            type="number"
+                            min="0"
+                            value={editStockValue}
+                            onChange={(e) => setEditStockValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const val = parseInt(editStockValue) || 0;
+                                const updated = contenedores.map(ct => ct.id === contenedor.id ? { ...ct, stock: val } : ct);
+                                setContenedores(updated);
+                                setEditandoStockId(null);
+                                toast.success(`Stock de ${contenedor.tipo} actualizado a ${val}`);
+                              } else if (e.key === 'Escape') {
+                                setEditandoStockId(null);
+                              }
+                            }}
+                            onBlur={() => setEditandoStockId(null)}
+                            autoFocus
+                            className="w-20 border border-amber-600/50 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-amber-400"
+                            style={{ background: c.bgInput, color: c.text }}
+                          />
+                        ) : (
+                          <span
+                            onClick={() => { setEditandoStockId(contenedor.id); setEditStockValue(String(contenedor.stock ?? 0)); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg cursor-pointer hover:bg-amber-900/20 transition-colors font-bold text-sm"
+                            style={{ color: (contenedor.stock ?? 0) > 0 ? '#4ade80' : '#ef4444' }}
+                            title="Clic para editar stock">
+                            {contenedor.stock ?? 0}
+                            <Edit3 className="w-3 h-3 opacity-40" />
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
@@ -553,19 +573,9 @@ export function GestionContenedores() {
                       {pesoTotalFlota.toFixed(2)} kg
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
-                      {(pesoTotalFlota * 10).toFixed(2)} kg
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
-                      {(pesoTotalFlota * 50).toFixed(2)} kg
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-medium text-sm" style={{ color: c.textSecondary }}>
-                      {(pesoTotalFlota * 100).toFixed(2)} kg
+                  <td className="px-6 py-4 text-center">
+                    <span className="font-bold text-sm" style={{ color: '#4ade80' }}>
+                      {contenedores.reduce((acc, ct) => acc + (ct.stock ?? 0), 0)}
                     </span>
                   </td>
                   <td></td>
@@ -705,22 +715,41 @@ export function GestionContenedores() {
                   </div>
                 </div>
 
-                {/* Datos calculados con diseño mejorado */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
-                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×10</p>
-                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 10).toFixed(2)}</p>
-                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
-                  </div>
-                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
-                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×50</p>
-                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 50).toFixed(2)}</p>
-                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
-                  </div>
-                  <div className="p-2.5 rounded-lg text-center border border-amber-800/20" style={{ background: c.bgCardAlt }}>
-                    <p className="text-[10px] mb-1" style={{ color: c.textSecondary }}>×100</p>
-                    <p className="text-xs font-bold" style={{ color: c.text }}>{(contenedor.peso * 100).toFixed(2)}</p>
-                    <p className="text-[10px]" style={{ color: c.textMuted }}>kg</p>
+                {/* Stock disponible */}
+                <div className="mt-3 p-3 rounded-lg border border-amber-800/20" style={{ background: c.bgCardAlt }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-medium" style={{ color: c.textSecondary }}>Stock Disponible</p>
+                    {editandoStockId === contenedor.id ? (
+                      <input
+                        type="number"
+                        min="0"
+                        value={editStockValue}
+                        onChange={(e) => setEditStockValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseInt(editStockValue) || 0;
+                            const updated = contenedores.map(ct => ct.id === contenedor.id ? { ...ct, stock: val } : ct);
+                            setContenedores(updated);
+                            setEditandoStockId(null);
+                            toast.success(`Stock de ${contenedor.tipo} actualizado a ${val}`);
+                          } else if (e.key === 'Escape') {
+                            setEditandoStockId(null);
+                          }
+                        }}
+                        onBlur={() => setEditandoStockId(null)}
+                        autoFocus
+                        className="w-20 border border-amber-600/50 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-amber-400"
+                        style={{ background: c.bgInput, color: c.text }}
+                      />
+                    ) : (
+                      <span
+                        onClick={() => { setEditandoStockId(contenedor.id); setEditStockValue(String(contenedor.stock ?? 0)); }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-amber-900/20 transition-colors font-bold text-lg"
+                        style={{ color: (contenedor.stock ?? 0) > 0 ? '#4ade80' : '#ef4444' }}>
+                        {contenedor.stock ?? 0}
+                        <Edit3 className="w-3 h-3 opacity-40" />
+                      </span>
+                    )}
                   </div>
                 </div>
               </>

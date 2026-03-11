@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Package, Scale, Box, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Package, Scale, Box, Check, Layers } from 'lucide-react';
 import type { Contenedor } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 
@@ -19,7 +19,8 @@ export function ModalContenedores({
   const [editingContenedor, setEditingContenedor] = useState<Contenedor | null>(null);
   const [formData, setFormData] = useState({
     tipo: '',
-    peso: ''
+    peso: '',
+    stock: ''
   });
 
   const { isDark } = useTheme();
@@ -35,20 +36,22 @@ export function ModalContenedores({
       const contenedorActualizado: Contenedor = {
         id: editingContenedor.id,
         tipo: formData.tipo.trim(),
-        peso: parseFloat(formData.peso)
+        peso: parseFloat(formData.peso),
+        stock: parseInt(formData.stock) || 0
       };
       setContenedores(contenedores.map(c => c.id === editingContenedor.id ? contenedorActualizado : c));
       setEditingContenedor(null);
-      setFormData({ tipo: '', peso: '' });
+      setFormData({ tipo: '', peso: '', stock: '' });
     } else {
       // Agregar nuevo contenedor
       const nuevoContenedor: Contenedor = {
         id: Date.now().toString(),
         tipo: formData.tipo.trim(),
-        peso: parseFloat(formData.peso)
+        peso: parseFloat(formData.peso),
+        stock: parseInt(formData.stock) || 0
       };
       setContenedores([...contenedores, nuevoContenedor]);
-      setFormData({ tipo: '', peso: '' });
+      setFormData({ tipo: '', peso: '', stock: '' });
     }
   };
 
@@ -56,7 +59,8 @@ export function ModalContenedores({
     setEditingContenedor(contenedor);
     setFormData({
       tipo: contenedor.tipo,
-      peso: contenedor.peso.toString()
+      peso: contenedor.peso.toString(),
+      stock: String(contenedor.stock ?? 0)
     });
   };
 
@@ -68,7 +72,7 @@ export function ModalContenedores({
 
   const handleCancelarEdicion = () => {
     setEditingContenedor(null);
-    setFormData({ tipo: '', peso: '' });
+    setFormData({ tipo: '', peso: '', stock: '' });
   };
 
   return (
@@ -216,6 +220,34 @@ export function ModalContenedores({
                     <p className="text-xs mt-2 flex items-center gap-2" style={{ color: c.textSecondary }}>
                       <span>💡</span>
                       <span>Peso unitario del contenedor vacío</span>
+                    </p>
+                  </div>
+
+                  {/* Cantidad en Stock */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3" style={{ color: '#ccaa00' }}>
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-3 h-3 sm:w-4 sm:h-4" />
+                        Cantidad Disponible (Stock)
+                      </div>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.stock}
+                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                      className="w-full px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base placeholder-gray-400 transition-all focus:ring-2 focus:ring-offset-2"
+                      style={{
+                        background: c.bgInput,
+                        border: '1.5px solid rgba(204, 170, 0, 0.3)',
+                        outlineColor: '#ccaa00',
+                        color: c.text,
+                      }}
+                      placeholder="Ej: 50, 100, 200"
+                    />
+                    <p className="text-xs mt-2 flex items-center gap-2" style={{ color: c.textSecondary }}>
+                      <span>📦</span>
+                      <span>Unidades disponibles en almacén</span>
                     </p>
                   </div>
 
