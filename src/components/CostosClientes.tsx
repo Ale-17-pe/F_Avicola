@@ -105,9 +105,7 @@ export function CostosClientes() {
 
   // ============ ESTADOS DE FECHA ============
   const [fechaGeneral, setFechaGeneral] = useState(hoyStr());
-  const [fechaClientes, setFechaClientes] = useState(hoyStr());
   const esHoyGeneral = fechaGeneral === hoyStr();
-  const esHoyClientes = fechaClientes === hoyStr();
 
   // ============ AVES ACTIVAS ============
   const avesActivas = useMemo(
@@ -1103,60 +1101,9 @@ export function CostosClientes() {
       </div>
 
       {/* ========== SECCION 3: TARJETAS DE CLIENTES ========== */}
-      {/* Navegación de fechas para costos de clientes */}
-      <div
-        className="backdrop-blur-xl rounded-xl p-3 sm:p-4"
-        style={{ background: c.bgCard, border: '1px solid ' + c.border }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFechaClientes(addDays(fechaClientes, -1))}
-              className="p-1.5 rounded-lg transition-all hover:scale-110"
-              style={{ background: c.g10, border: '1px solid ' + c.g20 }}
-            >
-              <ChevronLeft className="w-4 h-4" style={{ color: c.textSecondary }} />
-            </button>
-            <div className="text-center px-2">
-              <span className="text-sm font-bold" style={{ color: esHoyClientes ? '#22c55e' : '#ccaa00' }}>
-                {esHoyClientes ? '● HOY' : fmtDate(fechaClientes)}
-              </span>
-            </div>
-            <button
-              onClick={() => !esHoyClientes && setFechaClientes(addDays(fechaClientes, 1))}
-              className="p-1.5 rounded-lg transition-all hover:scale-110"
-              style={{ background: c.g10, border: '1px solid ' + c.g20, opacity: esHoyClientes ? 0.3 : 1 }}
-              disabled={esHoyClientes}
-            >
-              <ChevronRight className="w-4 h-4" style={{ color: c.textSecondary }} />
-            </button>
-            {!esHoyClientes && (
-              <button
-                onClick={() => setFechaClientes(hoyStr())}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all hover:scale-105"
-                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}
-              >
-                Ir a Hoy
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5" style={{ color: c.textSecondary }} />
-            <input
-              type="date"
-              value={fechaClientes}
-              onChange={(e) => e.target.value && setFechaClientes(e.target.value)}
-              max={hoyStr()}
-              className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-              style={{ background: c.bgInput, border: '1px solid ' + c.border, color: c.text }}
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-4">
         {filteredClientes.map((cliente) => {
-          const preciosClienteAll = getPreciosCliente(cliente.id, fechaClientes);
+          const preciosClienteAll = getPreciosCliente(cliente.id, fechaGeneral);
           const preciosCliente = preciosClienteAll.filter((p) => {
             if (filterTipoAve !== "all" && p.tipoAveId !== filterTipoAve) return false;
             if (filterVariedad !== "all" && p.variedad !== filterVariedad) return false;
@@ -1346,7 +1293,7 @@ export function CostosClientes() {
                                   const isEditingThis = editingClientCell === cellKey;
                                   return (
                                     <td key={field} className="px-3 py-2.5 text-right">
-                                      {isEditingThis && esHoyClientes ? (
+                                      {isEditingThis && esHoyGeneral ? (
                                         <div className="flex items-center justify-end gap-1">
                                           <input
                                             type="number"
@@ -1377,16 +1324,16 @@ export function CostosClientes() {
                                         </div>
                                       ) : (
                                         <span
-                                          className={`px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${esHoyClientes ? "cursor-pointer hover:bg-amber-500/10" : ""}`}
+                                          className={`px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${esHoyGeneral ? "cursor-pointer hover:bg-amber-500/10" : ""}`}
                                           style={{ color: precio[field] > 0 ? c.text : c.textMuted }}
                                           onClick={() =>
-                                            esHoyClientes && handleEditClientCell(
+                                            esHoyGeneral && handleEditClientCell(
                                               precio.id,
                                               field,
                                               precio[field]
                                             )
                                           }
-                                          title={esHoyClientes ? "Clic para editar" : "Solo lectura (fecha pasada)"}
+                                          title={esHoyGeneral ? "Clic para editar" : "Solo lectura (fecha pasada)"}
                                         >
                                           {precio[field] > 0
                                             ? `S/ ${precio[field].toFixed(2)}`
@@ -1397,7 +1344,7 @@ export function CostosClientes() {
                                   );
                                 })}
                                 <td className="px-3 py-2.5 text-center">
-                                  {esHoyClientes && (
+                                  {esHoyGeneral && (
                                     <button
                                       onClick={() =>
                                         handleEliminarPrecioCliente(precio.id, cliente.nombre)
