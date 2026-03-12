@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Plus, Edit2, Trash2, X, Save, Search, Phone, CreditCard, Truck, KeyRound } from 'lucide-react';
+import { User, Plus, Edit2, Trash2, X, Save, Search, Phone, CreditCard, KeyRound, Truck } from 'lucide-react';
 import { useApp, ConductorRegistrado } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -12,11 +12,10 @@ export function ConductoresSecretaria() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<ConductorRegistrado | null>(null);
-  const [form, setForm] = useState({ nombre: '', placa: '', telefono: '', licencia: '', usuario: '', clave: '' });
+  const [form, setForm] = useState({ nombre: '', telefono: '', licencia: '', usuario: '', clave: '' });
 
   const filtered = conductoresRegistrados.filter(cd =>
     cd.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cd.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cd.licencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cd.usuario.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -24,10 +23,10 @@ export function ConductoresSecretaria() {
   const handleOpen = (conductor?: ConductorRegistrado) => {
     if (conductor) {
       setEditingConductor(conductor);
-      setForm({ nombre: conductor.nombre, placa: conductor.placa, telefono: conductor.telefono, licencia: conductor.licencia, usuario: conductor.usuario, clave: conductor.clave });
+      setForm({ nombre: conductor.nombre, telefono: conductor.telefono, licencia: conductor.licencia, usuario: conductor.usuario, clave: conductor.clave });
     } else {
       setEditingConductor(null);
-      setForm({ nombre: '', placa: '', telefono: '', licencia: '', usuario: '', clave: '' });
+      setForm({ nombre: '', telefono: '', licencia: '', usuario: '', clave: '' });
     }
     setIsModalOpen(true);
   };
@@ -35,7 +34,7 @@ export function ConductoresSecretaria() {
   const handleClose = () => {
     setIsModalOpen(false);
     setEditingConductor(null);
-    setForm({ nombre: '', placa: '', telefono: '', licencia: '', usuario: '', clave: '' });
+    setForm({ nombre: '', telefono: '', licencia: '', usuario: '', clave: '' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,7 +54,6 @@ export function ConductoresSecretaria() {
       const nuevo: ConductorRegistrado = {
         id: Date.now().toString(),
         nombre: form.nombre,
-        placa: form.placa,
         telefono: form.telefono,
         licencia: form.licencia,
         usuario: form.usuario,
@@ -108,7 +106,7 @@ export function ConductoresSecretaria() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid ' + c.g20 }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Total</p>
@@ -138,7 +136,7 @@ export function ConductoresSecretaria() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar conductor por nombre, placa o licencia..."
+            placeholder="Buscar conductor por nombre, licencia o usuario..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
@@ -156,7 +154,6 @@ export function ConductoresSecretaria() {
                 <tr style={{ background: isDark ? 'rgba(204,170,0,0.08)' : 'rgba(204,170,0,0.05)', borderBottom: '1px solid ' + c.borderGold }}>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>ID</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Nombre</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Placa</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Teléfono</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Licencia</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Usuario</th>
@@ -179,11 +176,6 @@ export function ConductoresSecretaria() {
                         </div>
                         <span className="font-medium" style={{ color: c.text }}>{conductor.nombre}</span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs px-2 py-1 rounded" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>
-                        {conductor.placa}
-                      </span>
                     </td>
                     <td className="px-4 py-3" style={{ color: c.textSecondary }}>
                       <div className="flex items-center gap-1">
@@ -312,41 +304,31 @@ export function ConductoresSecretaria() {
                   placeholder="Ej: Juan Pérez"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Placa del Vehículo *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.placa}
-                  onChange={(e) => setForm({ ...form, placa: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
-                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
-                  placeholder="Ej: ABC-123"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Teléfono *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.telefono}
-                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
-                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
-                  placeholder="Ej: 999 888 777"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Nro. de Licencia *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.licencia}
-                  onChange={(e) => setForm({ ...form, licencia: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
-                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
-                  placeholder="Ej: Q12345678"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Teléfono *</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.telefono}
+                    onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                    style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
+                    placeholder="Ej: 999 888 777"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Nro. de Licencia *</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.licencia}
+                    onChange={(e) => setForm({ ...form, licencia: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                    style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
+                    placeholder="Ej: Q12345678"
+                  />
+                </div>
               </div>
               <div className="pt-2 border-t" style={{ borderColor: c.borderGold }}>
                 <div className="flex items-center gap-2 mb-3">

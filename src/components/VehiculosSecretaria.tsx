@@ -1,8 +1,21 @@
 import { useState } from 'react';
-import { Car, Plus, Edit2, Trash2, X, Save, Search, Calendar, Weight } from 'lucide-react';
+import { Car, Plus, Edit2, Trash2, X, Save, Search, Calendar, Weight, MapPin, Palette, Truck } from 'lucide-react';
 import { useApp, Vehiculo } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+
+const ZONAS = [
+  { id: '1', nombre: 'Zona 1 - Independencia' },
+  { id: '2', nombre: 'Zona 2 - Provincia' },
+  { id: '3', nombre: 'Zona 3 - Jicamarca' },
+  { id: '4', nombre: 'Zona 4 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
+  { id: '5', nombre: 'Zona 5 - Vencedores' },
+  { id: '6', nombre: 'Zona 6 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
+  { id: '7', nombre: 'Zona 7 - Valle Sagrado, Saruta' },
+  { id: '8', nombre: 'Zona 8 - Bayovar, Huáscar, Peladero, Sta. María' },
+];
+
+const TIPOS_VEHICULO = ['Camión', 'Camioneta', 'Furgón', 'Mototaxi', 'Moto Carguera', 'Van', 'Otro'];
 
 export function VehiculosSecretaria() {
   const { vehiculos, addVehiculo, updateVehiculo, deleteVehiculo } = useApp();
@@ -12,21 +25,23 @@ export function VehiculosSecretaria() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null);
-  const [form, setForm] = useState({ placa: '', marca: '', modelo: '', anio: '', capacidadKg: '', estado: 'Disponible' as Vehiculo['estado'] });
+  const [form, setForm] = useState({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' as Vehiculo['estado'] });
 
   const filtered = vehiculos.filter(v =>
     v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.modelo.toLowerCase().includes(searchTerm.toLowerCase())
+    v.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.zona.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpen = (vehiculo?: Vehiculo) => {
     if (vehiculo) {
       setEditingVehiculo(vehiculo);
-      setForm({ placa: vehiculo.placa, marca: vehiculo.marca, modelo: vehiculo.modelo, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString(), estado: vehiculo.estado });
+      setForm({ placa: vehiculo.placa, tipo: vehiculo.tipo, marca: vehiculo.marca, modelo: vehiculo.modelo, color: vehiculo.color, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString(), zona: vehiculo.zona, estado: vehiculo.estado });
     } else {
       setEditingVehiculo(null);
-      setForm({ placa: '', marca: '', modelo: '', anio: '', capacidadKg: '', estado: 'Disponible' });
+      setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' });
     }
     setIsModalOpen(true);
   };
@@ -34,11 +49,19 @@ export function VehiculosSecretaria() {
   const handleClose = () => {
     setIsModalOpen(false);
     setEditingVehiculo(null);
-    setForm({ placa: '', marca: '', modelo: '', anio: '', capacidadKg: '', estado: 'Disponible' });
+    setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Validar placa única
+    const placaExistente = vehiculos.find(
+      v => v.placa.toLowerCase() === form.placa.toLowerCase() && v.id !== editingVehiculo?.id
+    );
+    if (placaExistente) {
+      toast.error('Ya existe un vehículo con esa placa');
+      return;
+    }
     if (editingVehiculo) {
       updateVehiculo({ ...editingVehiculo, ...form, capacidadKg: parseFloat(form.capacidadKg) || 0 });
       toast.success('Vehículo actualizado');
@@ -46,10 +69,13 @@ export function VehiculosSecretaria() {
       const nuevo: Vehiculo = {
         id: Date.now().toString(),
         placa: form.placa,
+        tipo: form.tipo,
         marca: form.marca,
         modelo: form.modelo,
+        color: form.color,
         anio: form.anio,
         capacidadKg: parseFloat(form.capacidadKg) || 0,
+        zona: form.zona,
         estado: form.estado,
       };
       addVehiculo(nuevo);
@@ -101,7 +127,7 @@ export function VehiculosSecretaria() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid ' + c.g20 }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Total</p>
@@ -119,9 +145,16 @@ export function VehiculosSecretaria() {
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.3)' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>En Ruta</p>
-            <Car className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
+            <Truck className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
           </div>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#3b82f6' }}>{enRuta}</p>
+        </div>
+        <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid rgba(239,68,68,0.3)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Mantenimiento</p>
+            <Car className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ef4444' }} />
+          </div>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#ef4444' }}>{vehiculos.filter(v => v.estado === 'Mantenimiento').length}</p>
         </div>
       </div>
 
@@ -131,7 +164,7 @@ export function VehiculosSecretaria() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por placa, marca o modelo..."
+            placeholder="Buscar por placa, marca, modelo, tipo o zona..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
@@ -148,10 +181,12 @@ export function VehiculosSecretaria() {
               <thead>
                 <tr style={{ background: isDark ? 'rgba(204,170,0,0.08)' : 'rgba(204,170,0,0.05)', borderBottom: '1px solid ' + c.borderGold }}>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Placa</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Marca</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Modelo</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Tipo</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Marca / Modelo</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Color</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Año</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Capacidad</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Zona Asignada</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Estado</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Acciones</th>
                 </tr>
@@ -159,6 +194,7 @@ export function VehiculosSecretaria() {
               <tbody>
                 {filtered.map((vehiculo, idx) => {
                   const ec = estadoColor(vehiculo.estado);
+                  const zonaNombre = ZONAS.find(z => z.id === vehiculo.zona)?.nombre || vehiculo.zona || '—';
                   return (
                     <tr key={vehiculo.id} style={{ borderBottom: '1px solid ' + c.borderSubtle, background: idx % 2 === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}>
                       <td className="px-4 py-3">
@@ -166,18 +202,39 @@ export function VehiculosSecretaria() {
                           {vehiculo.placa}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium" style={{ color: c.text }}>{vehiculo.marca}</td>
-                      <td className="px-4 py-3" style={{ color: c.textSecondary }}>{vehiculo.modelo}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                          {vehiculo.tipo}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <span className="font-medium text-sm" style={{ color: c.text }}>{vehiculo.marca}</span>
+                          <span className="text-xs ml-1" style={{ color: c.textSecondary }}>{vehiculo.modelo}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3" style={{ color: c.textSecondary }}>
+                        <div className="flex items-center gap-1">
+                          <Palette className="w-3 h-3" />
+                          {vehiculo.color || '—'}
+                        </div>
+                      </td>
                       <td className="px-4 py-3" style={{ color: c.textSecondary }}>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {vehiculo.anio}
+                          {vehiculo.anio || '—'}
                         </div>
                       </td>
                       <td className="px-4 py-3" style={{ color: c.textSecondary }}>
                         <div className="flex items-center gap-1">
                           <Weight className="w-3 h-3" />
-                          {vehiculo.capacidadKg} kg
+                          {vehiculo.capacidadKg ? `${vehiculo.capacidadKg} kg` : '—'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                          <span className="text-xs" style={{ color: c.text }}>{zonaNombre}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -273,6 +330,31 @@ export function VehiculosSecretaria() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Tipo de Vehículo *</label>
+                  <select
+                    required
+                    value={form.tipo}
+                    onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm appearance-none"
+                    style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
+                  >
+                    {TIPOS_VEHICULO.map(tv => <option key={tv} value={tv}>{tv}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Color</label>
+                  <input
+                    type="text"
+                    value={form.color}
+                    onChange={(e) => setForm({ ...form, color: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
+                    style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
+                    placeholder="Ej: Blanco"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Marca *</label>
                   <input
                     type="text"
@@ -320,6 +402,22 @@ export function VehiculosSecretaria() {
                     placeholder="Ej: 3000"
                   />
                 </div>
+              </div>
+              <div className="pt-2 border-t" style={{ borderColor: c.borderGold }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin className="w-4 h-4" style={{ color: '#a855f7' }} />
+                  <span className="text-sm font-bold" style={{ color: '#a855f7' }}>Zona Asignada</span>
+                </div>
+                <select
+                  required
+                  value={form.zona}
+                  onChange={(e) => setForm({ ...form, zona: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg text-sm appearance-none"
+                  style={{ background: c.g08, border: '1.5px solid rgba(168,85,247,0.3)', color: c.text }}
+                >
+                  <option value="">Seleccionar zona...</option>
+                  {ZONAS.map(z => <option key={z.id} value={z.id}>{z.nombre}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Estado</label>

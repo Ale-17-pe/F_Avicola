@@ -96,6 +96,7 @@ interface ConsolidatedTicketData {
   };
   conductor: string;
   conductorPlaca: string;
+  conductorVehiculo: string;
   zona: string;
   fechaEmision: string;
   horaEmision: string;
@@ -246,7 +247,7 @@ function useSerialScale() {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function PesajeOperador() {
-  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, setContenedores, clientes, conductoresRegistrados } = useApp();
+  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, setContenedores, clientes, conductoresRegistrados, vehiculos } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
   const scale = useSerialScale();
@@ -258,7 +259,7 @@ export function PesajeOperador() {
   const CONDUCTORES = useMemo(() =>
     conductoresRegistrados
       .filter(cd => cd.estado === 'Esperando')
-      .map(cd => ({ id: cd.id, nombre: cd.nombre, placa: cd.placa })),
+      .map(cd => ({ id: cd.id, nombre: cd.nombre })),
     [conductoresRegistrados]
   );
 
@@ -689,6 +690,9 @@ export function PesajeOperador() {
     const zona = ZONAS.find(z => z.id === slot.zonaId);
     if (!conductor) { toast.error('Asigne un conductor'); return null; }
 
+    // Buscar vehículo asignado a la zona seleccionada
+    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId && v.estado !== 'Mantenimiento');
+
     const ahora = new Date();
     const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const fechaPeru = `${peru.getFullYear()}-${String(peru.getMonth() + 1).padStart(2, '0')}-${String(peru.getDate()).padStart(2, '0')}`;
@@ -738,7 +742,8 @@ export function PesajeOperador() {
 
     const ticketData: ConsolidatedTicketData = {
       grupoId: slot.grupoId, cliente: slot.cliente, pedidos: resultados, totales,
-      conductor: conductor.nombre, conductorPlaca: conductor.placa,
+      conductor: conductor.nombre, conductorPlaca: vehiculoZona?.placa || '—',
+      conductorVehiculo: vehiculoZona ? `${vehiculoZona.marca} ${vehiculoZona.modelo} (${vehiculoZona.placa})` : '—',
       zona: zona?.nombre || '',
       fechaEmision: ahora.toLocaleDateString('es-PE'),
       horaEmision: ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
@@ -747,7 +752,7 @@ export function PesajeOperador() {
 
     broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
     return ticketData;
-  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados]);
+  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados, vehiculos]);
 
   const confirmarSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
@@ -1351,15 +1356,23 @@ export function PesajeOperador() {
                     className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
                     style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)', color: c.text }}>
                     <option value="">Asignar conductor...</option>
-                    {CONDUCTORES.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre} — {cd.placa}</option>)}
+                    {CONDUCTORES.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre}</option>)}
                   </select>
                 </div>
                 {activeSlot.zonaBloqueada ? (
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)' }}>
                     <Lock className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-[9px] text-purple-500 font-bold uppercase">Zona</div>
                       <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{ZONAS.find(z => z.id === activeSlot.zonaId)?.nombre || '—'}</div>
+                      {(() => {
+                        const veh = vehiculos.find(v => v.zona === activeSlot.zonaId && v.estado !== 'Mantenimiento');
+                        return veh ? (
+                          <div className="text-[9px] mt-0.5 truncate" style={{ color: '#3b82f6' }}>
+                            🚛 {veh.marca} {veh.modelo} — {veh.placa}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 ) : (
@@ -1616,7 +1629,7 @@ export function PesajeOperador() {
                     <p className="text-[9px] text-gray-600 uppercase tracking-[0.15em] mb-1.5">Datos de Entrega</p>
                     {[
                       ['Conductor', ticketVisible.conductor],
-                      ['Placa', ticketVisible.conductorPlaca],
+                      ['Vehículo', ticketVisible.conductorVehiculo],
                       ['Zona', ticketVisible.zona],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between text-[11px]">
