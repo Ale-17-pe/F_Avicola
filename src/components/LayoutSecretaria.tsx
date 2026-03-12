@@ -73,8 +73,8 @@ export function LayoutSecretaria() {
       icon: Users,
     },
     {
-      label: "Envíos",
-      path: "/dashboard-secretaria/envios",
+      label: "Gestión Logística",
+      path: "/dashboard-secretaria/logistica",
       icon: Truck,
     },
     {

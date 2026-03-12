@@ -6,6 +6,7 @@ import {
   ChevronDown, Layers, Hash, Minus, Eye, ShoppingCart, Trash2,
 } from "lucide-react";
 import { useApp, PedidoConfirmado } from "../contexts/AppContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme, t } from "../contexts/ThemeContext";
 import { toast } from "sonner";
 
@@ -51,9 +52,18 @@ interface GrupoDespacho {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function GestionConductor() {
-  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes } = useApp();
+  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes, conductoresRegistrados } = useApp();
+  const { user } = useAuth();
   const { isDark } = useTheme();
   const c = t(isDark);
+
+  // ── Estado del conductor ──
+  const conductorActual = useMemo(() => {
+    if (!user?.conductorRegistradoId) return null;
+    return conductoresRegistrados.find(cd => cd.id === user.conductorRegistradoId) || null;
+  }, [user, conductoresRegistrados]);
+
+  const estaConduciendo = conductorActual?.estado === 'Conduciendo';
 
   // ── Vista ──
   const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'NUEVO_PEDIDO'>('LISTA');
@@ -518,8 +528,24 @@ export function GestionConductor() {
         )}
       </div>
 
+      {/* ═══════ BLOQUEO: Conductor debe estar "Conduciendo" ═══════ */}
+      {!estaConduciendo && modo === 'LISTA' && (
+        <div className="rounded-2xl p-8 sm:p-12 text-center" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)' }}>
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)' }}>
+            <Truck className="w-10 h-10" style={{ color: '#f59e0b' }} />
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: c.text }}>Debes activar tu estado</h2>
+          <p className="text-sm mb-4" style={{ color: c.textSecondary }}>
+            Para acceder a los despachos, primero cambia tu estado a <strong style={{ color: '#22c55e' }}>"Conduciendo"</strong> usando el botón en la barra superior.
+          </p>
+          <p className="text-xs" style={{ color: c.textMuted }}>
+            Esto indica que estás en camino al local y listo para recibir despachos.
+          </p>
+        </div>
+      )}
+
       {/* ═══════ LISTA DE DESPACHOS ═══════ */}
-      {modo === 'LISTA' && (
+      {modo === 'LISTA' && estaConduciendo && (
         <div className="space-y-5">
 
           {gruposDespacho.length > 0 && (
