@@ -138,7 +138,6 @@ export interface Contenedor {
 export interface ConductorRegistrado {
   id: string;
   nombre: string;
-  placa: string;
   telefono: string;
   licencia: string;
   usuario: string;
@@ -149,10 +148,13 @@ export interface ConductorRegistrado {
 export interface Vehiculo {
   id: string;
   placa: string;
+  tipo: string;
   marca: string;
   modelo: string;
+  color: string;
   anio: string;
   capacidadKg: number;
+  zona: string;
   estado: 'Disponible' | 'En Ruta' | 'Mantenimiento';
 }
 
