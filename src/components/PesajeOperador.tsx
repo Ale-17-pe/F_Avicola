@@ -10,13 +10,6 @@ import { toast } from 'sonner';
 
 // ===================== CONSTANTES =====================
 
-const CONDUCTORES = [
-  { id: '1', nombre: 'Juan Pérez', placa: 'ABC-123' },
-  { id: '2', nombre: 'Miguel Torres', placa: 'DEF-456' },
-  { id: '3', nombre: 'Roberto Sánchez', placa: 'GHI-789' },
-  { id: '4', nombre: 'Luis García', placa: 'JKL-012' },
-];
-
 const ZONAS = [
   { id: '1', nombre: 'Zona 1 - Independencia' },
   { id: '2', nombre: 'Zona 2 - Provincia' },
@@ -253,13 +246,21 @@ function useSerialScale() {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function PesajeOperador() {
-  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, setContenedores, clientes } = useApp();
+  const { pedidosConfirmados, updatePedidoConfirmado, contenedores, setContenedores, clientes, conductoresRegistrados } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
   const scale = useSerialScale();
   const broadcastRef = useRef<BroadcastChannel | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
   const balanzaInputRef = useRef<HTMLInputElement>(null);
+
+  // Conductores disponibles (solo los que están en estado "Esperando")
+  const CONDUCTORES = useMemo(() =>
+    conductoresRegistrados
+      .filter(cd => cd.estado === 'Esperando')
+      .map(cd => ({ id: cd.id, nombre: cd.nombre, placa: cd.placa })),
+    [conductoresRegistrados]
+  );
 
   useEffect(() => {
     broadcastRef.current = new BroadcastChannel('pesaje-display');
@@ -683,7 +684,8 @@ export function PesajeOperador() {
   }, [slots, slotTodosCompletos]);
 
   const generarTicketYDespachar = useCallback((slot: SlotData, pedidosADespachar: PedidoConfirmado[], slotIdx: number) => {
-    const conductor = CONDUCTORES.find(cd => cd.id === slot.conductorId);
+    // Buscar en todos los conductores registrados (no solo los disponibles)
+    const conductor = conductoresRegistrados.find(cd => cd.id === slot.conductorId);
     const zona = ZONAS.find(z => z.id === slot.zonaId);
     if (!conductor) { toast.error('Asigne un conductor'); return null; }
 
@@ -745,7 +747,7 @@ export function PesajeOperador() {
 
     broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
     return ticketData;
-  }, [buildResultado, updatePedidoConfirmado]);
+  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados]);
 
   const confirmarSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];

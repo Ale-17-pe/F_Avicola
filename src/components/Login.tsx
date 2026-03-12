@@ -9,7 +9,7 @@ import avicolaBackground from '../assets/fondo.png';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, logout } = useAuth()
+  const { login, logout, user: loggedUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +76,18 @@ export function Login() {
         { username: 'conductor', rol: 'conductor' },
         { username: 'cobranza', rol: 'cobranza' },
       ].find(u => u.username === email);
+
+      // Detectar conductores dinámicos (registrados por Secretaría)
+      const esConductorDinamico = !usuarioInfo && (() => {
+        try {
+          const conductoresStr = localStorage.getItem('avicola_conductoresRegistrados');
+          if (conductoresStr) {
+            const conductores = JSON.parse(conductoresStr) as { usuario: string }[];
+            return conductores.some(c => c.usuario === email);
+          }
+        } catch (_) { /* ignore */ }
+        return false;
+      })();
       
       if (usuarioInfo?.rol === 'operador') {
         setIsLoading(false);
@@ -83,7 +95,7 @@ export function Login() {
         return;
       }
 
-      if (usuarioInfo?.rol === 'conductor') {
+      if (usuarioInfo?.rol === 'conductor' || esConductorDinamico) {
         setIsLoading(false);
         navigate('/dashboard-conductor');
         return;

@@ -135,6 +135,27 @@ export interface Contenedor {
   stock: number;
 }
 
+export interface ConductorRegistrado {
+  id: string;
+  nombre: string;
+  placa: string;
+  telefono: string;
+  licencia: string;
+  usuario: string;
+  clave: string;
+  estado: 'Esperando' | 'Conduciendo';
+}
+
+export interface Vehiculo {
+  id: string;
+  placa: string;
+  marca: string;
+  modelo: string;
+  anio: string;
+  capacidadKg: number;
+  estado: 'Disponible' | 'En Ruta' | 'Mantenimiento';
+}
+
 export interface Pago {
   id: string;
   clienteId: string;
@@ -213,6 +234,20 @@ interface AppContextType {
   addPago: (pago: Pago) => void;
   updatePago: (pago: Pago) => void;
   deletePago: (id: string) => void;
+
+  // Conductores Registrados
+  conductoresRegistrados: ConductorRegistrado[];
+  setConductoresRegistrados: (conductores: ConductorRegistrado[]) => void;
+  addConductorRegistrado: (conductor: ConductorRegistrado) => void;
+  updateConductorRegistrado: (conductor: ConductorRegistrado) => void;
+  deleteConductorRegistrado: (id: string) => void;
+
+  // Vehículos
+  vehiculos: Vehiculo[];
+  setVehiculos: (vehiculos: Vehiculo[]) => void;
+  addVehiculo: (vehiculo: Vehiculo) => void;
+  updateVehiculo: (vehiculo: Vehiculo) => void;
+  deleteVehiculo: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -278,6 +313,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage('avicola_pagos', [])
   );
 
+  // Estado inicial de Conductores Registrados
+  const [conductoresRegistrados, setConductoresRegistrados] = useState<ConductorRegistrado[]>(() =>
+    loadFromStorage('avicola_conductoresRegistrados', [] as ConductorRegistrado[])
+  );
+
+  // Estado inicial de Vehículos
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>(() =>
+    loadFromStorage('avicola_vehiculos', [] as Vehiculo[])
+  );
+
   // Efectos para guardar en localStorage cuando cambian los estados
   useEffect(() => localStorage.setItem('avicola_clientes', JSON.stringify(clientes)), [clientes]);
   useEffect(() => localStorage.setItem('avicola_tiposAve', JSON.stringify(tiposAve)), [tiposAve]);
@@ -287,6 +332,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_presentaciones', JSON.stringify(presentaciones)), [presentaciones]);
   useEffect(() => localStorage.setItem('avicola_contenedores', JSON.stringify(contenedores)), [contenedores]);
   useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
+  useEffect(() => localStorage.setItem('avicola_conductoresRegistrados', JSON.stringify(conductoresRegistrados)), [conductoresRegistrados]);
+  useEffect(() => localStorage.setItem('avicola_vehiculos', JSON.stringify(vehiculos)), [vehiculos]);
 
   // MIGRACIÓN removida: las presentaciones ahora se crean desde cero por el usuario
 
@@ -321,6 +368,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           case 'avicola_empleados':
             setEmpleados(data);
+            break;
+          case 'avicola_conductoresRegistrados':
+            setConductoresRegistrados(data);
+            break;
+          case 'avicola_vehiculos':
+            setVehiculos(data);
             break;
         }
       } catch (err) {
@@ -358,6 +411,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const empleadosStr = localStorage.getItem('avicola_empleados');
         if (empleadosStr) setEmpleados(JSON.parse(empleadosStr));
+
+        const conductoresRegStr = localStorage.getItem('avicola_conductoresRegistrados');
+        if (conductoresRegStr) setConductoresRegistrados(JSON.parse(conductoresRegStr));
+
+        const vehiculosStr = localStorage.getItem('avicola_vehiculos');
+        if (vehiculosStr) setVehiculos(JSON.parse(vehiculosStr));
       } catch (err) {
         console.error('Error recargando datos desde localStorage:', err);
       }
@@ -389,6 +448,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setPagos(prev => {
             const prevStr = JSON.stringify(prev);
             if (prevStr !== freshPagos) return parsedPagos;
+            return prev;
+          });
+        }
+        // Sync conductores registrados en tiempo real
+        const freshConductores = localStorage.getItem('avicola_conductoresRegistrados');
+        if (freshConductores) {
+          const parsedConductores = JSON.parse(freshConductores);
+          setConductoresRegistrados(prev => {
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== freshConductores) return parsedConductores;
             return prev;
           });
         }
@@ -551,6 +620,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPagos(prev => prev.filter(p => p.id !== id));
   };
 
+  // ============ FUNCIONES PARA CONDUCTORES REGISTRADOS ============
+  const addConductorRegistrado = (conductor: ConductorRegistrado) => {
+    setConductoresRegistrados(prev => [...prev, conductor]);
+  };
+
+  const updateConductorRegistrado = (conductor: ConductorRegistrado) => {
+    setConductoresRegistrados(prev => prev.map(c => c.id === conductor.id ? conductor : c));
+  };
+
+  const deleteConductorRegistrado = (id: string) => {
+    setConductoresRegistrados(prev => prev.filter(c => c.id !== id));
+  };
+
+  // ============ FUNCIONES PARA VEHÍCULOS ============
+  const addVehiculo = (vehiculo: Vehiculo) => {
+    setVehiculos(prev => [...prev, vehiculo]);
+  };
+
+  const updateVehiculo = (vehiculo: Vehiculo) => {
+    setVehiculos(prev => prev.map(v => v.id === vehiculo.id ? vehiculo : v));
+  };
+
+  const deleteVehiculo = (id: string) => {
+    setVehiculos(prev => prev.filter(v => v.id !== id));
+  };
+
   const value: AppContextType = {
     // Clientes
     clientes,
@@ -608,6 +703,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addPago,
     updatePago,
     deletePago,
+
+    // Conductores Registrados
+    conductoresRegistrados,
+    setConductoresRegistrados,
+    addConductorRegistrado,
+    updateConductorRegistrado,
+    deleteConductorRegistrado,
+
+    // Vehículos
+    vehiculos,
+    setVehiculos,
+    addVehiculo,
+    updateVehiculo,
+    deleteVehiculo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

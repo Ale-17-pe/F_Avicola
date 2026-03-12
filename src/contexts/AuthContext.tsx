@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-interface User {
+export interface User {
   id: string;
   username: string;
   nombre: string;
   apellido: string;
   rol: 'administrador' | 'secretaria' | 'vendedor' | 'contador' | 'operador' | 'conductor' | 'cobranza';
   email?: string;
+  conductorRegistradoId?: string;
 }
 
 interface AuthContextType {
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const login = (username: string, password: string): boolean => {
+    // Primero buscar en usuarios fijos del sistema
     const usuarioEncontrado = usuarios.find(
       u => u.username === username && u.password === password
     );
@@ -80,6 +82,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userWithoutPassword);
       return true;
     }
+
+    // Buscar en conductores registrados dinámicamente
+    try {
+      const conductoresStr = localStorage.getItem('avicola_conductoresRegistrados');
+      if (conductoresStr) {
+        const conductores = JSON.parse(conductoresStr) as { id: string; nombre: string; usuario: string; clave: string; placa: string }[];
+        const conductorEncontrado = conductores.find(
+          c => c.usuario === username && c.clave === password
+        );
+        if (conductorEncontrado) {
+          const partes = conductorEncontrado.nombre.trim().split(' ');
+          const nombre = partes[0] || conductorEncontrado.nombre;
+          const apellido = partes.slice(1).join(' ') || '';
+          setUser({
+            id: `conductor-${conductorEncontrado.id}`,
+            username: conductorEncontrado.usuario,
+            nombre,
+            apellido,
+            rol: 'conductor',
+            conductorRegistradoId: conductorEncontrado.id,
+          });
+          return true;
+        }
+      }
+    } catch (_) { /* ignore parse errors */ }
     
     return false;
   };

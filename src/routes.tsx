@@ -13,6 +13,7 @@ import { Login } from "./components/Login";
 import { Configuracion } from "./components/Configuracion";
 import { ComingSoon } from "./components/ComingSoon";
 import { Envios } from "./components/Envios";
+import { GestionLogistica } from "./components/GestionLogistica";
 import { Control } from "./components/Control";
 import { Finanzas } from "./components/Finanzas";
 import { Empleados } from "./components/Empleados";
@@ -163,10 +164,16 @@ export const router = createBrowserRouter([
         Component: Clientes 
       },
       
-      // Distribución - Envíos
+      // Distribución - Gestión Logística (Envíos + Conductores + Vehículos)
+      { 
+        path: "logistica", 
+        Component: GestionLogistica 
+      },
+      
+      // Redirigir ruta antigua de envíos
       { 
         path: "envios", 
-        Component: Envios 
+        element: <Navigate to="/dashboard-secretaria/logistica" replace /> 
       },
       
       // Distribución - Control
