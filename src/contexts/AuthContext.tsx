@@ -5,7 +5,7 @@ export interface User {
   username: string;
   nombre: string;
   apellido: string;
-  rol: 'administrador' | 'secretaria' | 'vendedor' | 'contador' | 'operador' | 'conductor' | 'cobranza';
+  rol: 'administrador' | 'super-secretaria' | 'secretaria' | 'vendedor' | 'contador' | 'operador' | 'conductor' | 'cobranza' | 'seguridad';
   email?: string;
   conductorRegistradoId?: string;
 }
@@ -32,39 +32,12 @@ const usuarios = [
   },
   {
     id: '2',
-    username: 'secretaria',
-    password: 'secretaria123',
-    nombre: 'Ana',
-    apellido: 'García López',
-    rol: 'secretaria' as const,
-    email: 'ana.garcia@avicolajossy.com'
-  },
-  {
-    id: '3',
-    username: 'operador',
-    password: 'operador123',
-    nombre: 'Carlos',
-    apellido: 'Mendoza Torres',
-    rol: 'operador' as const,
-    email: 'carlos.mendoza@avicolajossy.com'
-  },
-  {
-    id: '4',
-    username: 'conductor',
-    password: 'conductor123',
-    nombre: 'Jorge',
-    apellido: 'Pérez Silva',
-    rol: 'conductor' as const,
-    email: 'jorge.perez@avicolajossy.com'
-  },
-  {
-    id: '5',
-    username: 'cobranza',
-    password: 'cobranza123',
-    nombre: 'Maria',
-    apellido: 'Lopez',
-    rol: 'cobranza' as const,
-    email: 'maria.lopez@avicolajossy.com'
+    username: 'supersecretaria',
+    password: 'super123',
+    nombre: 'Super',
+    apellido: 'Secretaria',
+    rol: 'super-secretaria' as const,
+    email: 'super.secretaria@avicolajossy.com'
   }
 ];
 
@@ -83,11 +56,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
 
+    // Buscar en empleados registrados dinámicamente (RRHH)
+    try {
+      const empleadosStr = localStorage.getItem('avicola_empleados');
+      if (empleadosStr) {
+        const empleados = JSON.parse(empleadosStr) as {
+          id: string;
+          nombre: string;
+          apellidos: string;
+          usuario?: string;
+          clave?: string;
+          estado: 'Activo' | 'Descanso';
+          rolSistema?: 'secretaria' | 'operador' | 'cobranza' | 'seguridad' | 'conductor';
+          cargo?: 'Secretaria' | 'Producción' | 'Pesaje' | 'Seguridad' | 'Operadora' | 'Cobranza' | 'Conductor';
+        }[];
+
+        const emp = empleados.find(e => e.usuario === username && e.clave === password && e.estado === 'Activo');
+        if (emp) {
+          const rolMapFromCargo: Record<string, User['rol']> = {
+            Secretaria: 'secretaria',
+            Operadora: 'operador',
+            Seguridad: 'seguridad',
+            Cobranza: 'cobranza',
+            Conductor: 'conductor',
+          };
+
+          const rol = (emp.rolSistema as User['rol'] | undefined) || (emp.cargo ? rolMapFromCargo[emp.cargo] : undefined);
+          if (rol) {
+            setUser({
+              id: `empleado-${emp.id}`,
+              username: emp.usuario || username,
+              nombre: emp.nombre,
+              apellido: emp.apellidos,
+              rol,
+              conductorRegistradoId: rol === 'conductor' ? emp.id : undefined,
+            });
+            return true;
+          }
+        }
+      }
+    } catch (_) { /* ignore parse errors */ }
+
     // Buscar en conductores registrados dinámicamente
     try {
       const conductoresStr = localStorage.getItem('avicola_conductoresRegistrados');
       if (conductoresStr) {
-        const conductores = JSON.parse(conductoresStr) as { id: string; nombre: string; usuario: string; clave: string; placa: string }[];
+        const conductores = JSON.parse(conductoresStr) as { id: string; nombre: string; usuario: string; clave: string }[];
         const conductorEncontrado = conductores.find(
           c => c.usuario === username && c.clave === password
         );

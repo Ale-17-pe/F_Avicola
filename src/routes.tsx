@@ -30,7 +30,12 @@ import { LayoutOperador } from "./components/LayoutOperador";
 import { LayoutConductor } from "./components/LayoutConductor";
 import { GestionConductor } from "./components/GestionConductor";
 import { LayoutCobranza } from "./components/LayoutCobranza";
-import { GestionCobranza } from "./components/GestionCobranza";import { ValidacionPagos } from './components/ValidacionPagos';import { History as HistoryIcon } from "lucide-react";
+import { GestionCobranza } from "./components/GestionCobranza";
+import { ValidacionPagos } from './components/ValidacionPagos';
+import { LayoutSeguridad } from "./components/LayoutSeguridad";
+import { EntradaVehicular } from "./components/EntradaVehicular";
+import { RRHHSecretaria } from "./components/RRHHSecretaria";
+import { History as HistoryIcon } from "lucide-react";
 
 export const router = createBrowserRouter([
   {
@@ -182,6 +187,12 @@ export const router = createBrowserRouter([
         Component: Control 
       },
 
+      // RRHH (solo super-secretaria)
+      {
+        path: "rrhh",
+        Component: RRHHSecretaria
+      },
+
       // Validación de Pagos (Secretaría)
       {
         path: "validacion-pagos",
@@ -248,6 +259,20 @@ export const router = createBrowserRouter([
       {
         path: "historial",
         element: <ComingSoon title="Historial de Pagos" description="Próximamente: Historial detallado de transacciones" icon={HistoryIcon} />
+      }
+    ]
+  },
+  {
+    path: "/dashboard-seguridad",
+    Component: LayoutSeguridad,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard-seguridad/entrada-vehicular" replace />
+      },
+      {
+        path: "entrada-vehicular",
+        Component: EntradaVehicular
       }
     ]
   },

@@ -25,7 +25,7 @@ export function VehiculosSecretaria() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null);
-  const [form, setForm] = useState({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' as Vehiculo['estado'] });
+  const [form, setForm] = useState({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
 
   const filtered = vehiculos.filter(v =>
     v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,10 +38,10 @@ export function VehiculosSecretaria() {
   const handleOpen = (vehiculo?: Vehiculo) => {
     if (vehiculo) {
       setEditingVehiculo(vehiculo);
-      setForm({ placa: vehiculo.placa, tipo: vehiculo.tipo, marca: vehiculo.marca, modelo: vehiculo.modelo, color: vehiculo.color, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString(), zona: vehiculo.zona, estado: vehiculo.estado });
+      setForm({ placa: vehiculo.placa, tipo: vehiculo.tipo, marca: vehiculo.marca, modelo: vehiculo.modelo, color: vehiculo.color, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString(), zona: vehiculo.zona });
     } else {
       setEditingVehiculo(null);
-      setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' });
+      setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
     }
     setIsModalOpen(true);
   };
@@ -49,7 +49,7 @@ export function VehiculosSecretaria() {
   const handleClose = () => {
     setIsModalOpen(false);
     setEditingVehiculo(null);
-    setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '', estado: 'Disponible' });
+    setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,7 +63,7 @@ export function VehiculosSecretaria() {
       return;
     }
     if (editingVehiculo) {
-      updateVehiculo({ ...editingVehiculo, ...form, capacidadKg: parseFloat(form.capacidadKg) || 0 });
+      updateVehiculo({ ...editingVehiculo, ...form, capacidadKg: parseFloat(form.capacidadKg) || 0, estado: editingVehiculo.estado });
       toast.success('Vehículo actualizado');
     } else {
       const nuevo: Vehiculo = {
@@ -76,7 +76,7 @@ export function VehiculosSecretaria() {
         anio: form.anio,
         capacidadKg: parseFloat(form.capacidadKg) || 0,
         zona: form.zona,
-        estado: form.estado,
+        estado: 'Disponible',
       };
       addVehiculo(nuevo);
       toast.success('Vehículo registrado');
@@ -417,19 +417,6 @@ export function VehiculosSecretaria() {
                 >
                   <option value="">Seleccionar zona...</option>
                   {ZONAS.map(z => <option key={z.id} value={z.id}>{z.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#ccaa00' }}>Estado</label>
-                <select
-                  value={form.estado}
-                  onChange={(e) => setForm({ ...form, estado: e.target.value as Vehiculo['estado'] })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm appearance-none"
-                  style={{ background: c.g08, border: '1.5px solid rgba(204,170,0,0.3)', color: c.text }}
-                >
-                  <option value="Disponible">Disponible</option>
-                  <option value="En Ruta">En Ruta</option>
-                  <option value="Mantenimiento">Mantenimiento</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
