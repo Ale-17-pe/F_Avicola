@@ -9,7 +9,7 @@ import avicolaBackground from '../assets/fondo.png';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, logout, user: loggedUser } = useAuth();
+  const { login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +54,42 @@ export function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const resolverRolPorUsuario = (username: string): 'administrador' | 'super-secretaria' | 'secretaria' | 'operador' | 'conductor' | 'cobranza' | 'seguridad' | null => {
+    if (username === 'admin') return 'administrador';
+    if (username === 'supersecretaria') return 'super-secretaria';
+
+    try {
+      const empleadosStr = localStorage.getItem('avicola_empleados');
+      if (empleadosStr) {
+        const empleados = JSON.parse(empleadosStr) as {
+          usuario?: string;
+          rolSistema?: 'secretaria' | 'operador' | 'cobranza' | 'seguridad' | 'conductor';
+          cargo?: 'Secretaria' | 'Producción' | 'Pesaje' | 'Seguridad' | 'Operadora' | 'Cobranza' | 'Conductor';
+          estado: 'Activo' | 'Descanso';
+        }[];
+        const empleado = empleados.find(e => e.usuario === username && e.estado === 'Activo');
+        if (empleado) {
+          if (empleado.rolSistema) return empleado.rolSistema;
+          if (empleado.cargo === 'Operadora') return 'operador';
+          if (empleado.cargo === 'Seguridad') return 'seguridad';
+          if (empleado.cargo === 'Cobranza') return 'cobranza';
+          if (empleado.cargo === 'Conductor') return 'conductor';
+          if (empleado.cargo === 'Secretaria') return 'secretaria';
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    try {
+      const conductoresStr = localStorage.getItem('avicola_conductoresRegistrados');
+      if (conductoresStr) {
+        const conductores = JSON.parse(conductoresStr) as { usuario: string }[];
+        if (conductores.some(c => c.usuario === username)) return 'conductor';
+      }
+    } catch (_) { /* ignore */ }
+
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -68,42 +104,29 @@ export function Login() {
     const loginExitoso = login(email, password);
     
     if (loginExitoso) {
-      // Obtener el rol del usuario que acaba de hacer login
-      const usuarioInfo = [
-        { username: 'admin', rol: 'administrador' },
-        { username: 'secretaria', rol: 'secretaria' },
-        { username: 'operador', rol: 'operador' },
-        { username: 'conductor', rol: 'conductor' },
-        { username: 'cobranza', rol: 'cobranza' },
-      ].find(u => u.username === email);
+      const rolUsuario = resolverRolPorUsuario(email);
 
-      // Detectar conductores dinámicos (registrados por Secretaría)
-      const esConductorDinamico = !usuarioInfo && (() => {
-        try {
-          const conductoresStr = localStorage.getItem('avicola_conductoresRegistrados');
-          if (conductoresStr) {
-            const conductores = JSON.parse(conductoresStr) as { usuario: string }[];
-            return conductores.some(c => c.usuario === email);
-          }
-        } catch (_) { /* ignore */ }
-        return false;
-      })();
-      
-      if (usuarioInfo?.rol === 'operador') {
+      if (rolUsuario === 'operador') {
         setIsLoading(false);
         navigate('/dashboard-operador');
         return;
       }
 
-      if (usuarioInfo?.rol === 'conductor' || esConductorDinamico) {
+      if (rolUsuario === 'conductor') {
         setIsLoading(false);
         navigate('/dashboard-conductor');
         return;
       }
 
-      if (usuarioInfo?.rol === 'cobranza') {
+      if (rolUsuario === 'cobranza') {
         setIsLoading(false);
         navigate('/dashboard-cobranza');
+        return;
+      }
+
+      if (rolUsuario === 'seguridad') {
+        setIsLoading(false);
+        navigate('/dashboard-seguridad');
         return;
       }
       
@@ -143,13 +166,16 @@ export function Login() {
         const loginExitoso = login(credencialesTemporales.username, credencialesTemporales.password);
         
         if (loginExitoso) {
+          const rolUsuario = resolverRolPorUsuario(credencialesTemporales.username);
           setIsLoading(false);
-          if (credencialesTemporales.username === 'secretaria') {
+          if (rolUsuario === 'secretaria' || rolUsuario === 'super-secretaria') {
             navigate('/dashboard-secretaria');
-          } else if (credencialesTemporales.username === 'conductor') {
+          } else if (rolUsuario === 'conductor') {
             navigate('/dashboard-conductor');
-          } else if (credencialesTemporales.username === 'cobranza') {
+          } else if (rolUsuario === 'cobranza') {
             navigate('/dashboard-cobranza');
+          } else if (rolUsuario === 'seguridad') {
+            navigate('/dashboard-seguridad');
           } else {
             navigate('/dashboard');
           }

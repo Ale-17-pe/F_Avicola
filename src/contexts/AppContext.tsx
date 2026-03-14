@@ -48,12 +48,16 @@ export interface Empleado {
   dni: string;
   telefono: string;
   direccion: string;
-  cargo: 'Secretaria' | 'Producción' | 'Pesaje' | 'Seguridad' | 'Operadora';
+  cargo: 'Secretaria' | 'Producción' | 'Pesaje' | 'Seguridad' | 'Operadora' | 'Cobranza' | 'Conductor';
   fechaContratacion: string;
   salario: number;
   estado: 'Activo' | 'Descanso';
   email?: string;
   foto?: string;
+  usuario?: string;
+  clave?: string;
+  licencia?: string;
+  rolSistema?: 'secretaria' | 'operador' | 'cobranza' | 'seguridad' | 'conductor';
 }
 
 export interface BloquePesaje {
