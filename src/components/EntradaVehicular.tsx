@@ -1,4 +1,4 @@
-import { Car, Search, ShieldCheck, MapPin, Wrench, Route } from 'lucide-react';
+import { Car, Search, ShieldCheck, MapPin, Wrench, Route, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useApp, Vehiculo } from '../contexts/AppContext';
@@ -16,7 +16,7 @@ const ZONAS = [
 ];
 
 export function EntradaVehicular() {
-  const { vehiculos, updateVehiculo } = useApp();
+  const { vehiculos, pedidosConfirmados, updateVehiculo } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
@@ -55,6 +55,39 @@ export function EntradaVehicular() {
     updateVehiculo({ ...vehiculo, estado });
     toast.success(`Estado actualizado: ${vehiculo.placa} -> ${estado}`);
   };
+
+  const toggleDisponibleRuta = (vehiculo: Vehiculo) => {
+    if (vehiculo.estado === 'Mantenimiento') {
+      toast.error('Este vehículo está en mantenimiento. Sáquelo de mantenimiento para enviarlo en ruta.');
+      return;
+    }
+    const nuevo = vehiculo.estado === 'Disponible' ? 'En Ruta' : 'Disponible';
+    updateEstado(vehiculo, nuevo);
+  };
+
+  const toggleMantenimiento = (vehiculo: Vehiculo) => {
+    const nuevo = vehiculo.estado === 'Mantenimiento' ? 'Disponible' : 'Mantenimiento';
+    updateEstado(vehiculo, nuevo);
+  };
+
+  const conductorPorZona = useMemo(() => {
+    const mapa = new Map<string, { conductor: string; timestamp: number }>();
+
+    pedidosConfirmados.forEach((pedido) => {
+      if (!pedido.ticketEmitido || !pedido.zonaEntrega || !pedido.conductor) return;
+
+      const timestamp = pedido.fechaPesaje
+        ? new Date(`${pedido.fechaPesaje}T${pedido.horaPesaje || '00:00'}`).getTime() || 0
+        : 0;
+
+      const actual = mapa.get(pedido.zonaEntrega);
+      if (!actual || timestamp >= actual.timestamp) {
+        mapa.set(pedido.zonaEntrega, { conductor: pedido.conductor, timestamp });
+      }
+    });
+
+    return mapa;
+  }, [pedidosConfirmados]);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
@@ -125,16 +158,17 @@ export function EntradaVehicular() {
                 <tr style={{ background: isDark ? 'rgba(204,170,0,0.08)' : 'rgba(204,170,0,0.05)', borderBottom: '1px solid ' + c.borderGold }}>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Placa</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Tipo</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Marca / Modelo</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Vehículo</th>
+                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Conductor</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Zona Asignada</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Estado</th>
-                  <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Cambiar Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((vehiculo, idx) => {
-                  const ec = estadoColor(vehiculo.estado);
                   const zonaNombre = ZONAS.find((z) => z.id === vehiculo.zona)?.nombre || vehiculo.zona || '—';
+                  const conductorZona = conductorPorZona.get(zonaNombre)?.conductor || 'Sin asignar';
+                  const enRutaActivo = vehiculo.estado === 'En Ruta';
 
                   return (
                     <tr
@@ -152,27 +186,73 @@ export function EntradaVehicular() {
                       <td className="px-4 py-3" style={{ color: c.text }}>{vehiculo.tipo}</td>
                       <td className="px-4 py-3" style={{ color: c.textSecondary }}>{vehiculo.marca} {vehiculo.modelo}</td>
                       <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3 text-blue-400" />
+                          <span className="text-xs font-medium" style={{ color: conductorZona === 'Sin asignar' ? c.textMuted : c.text }}>
+                            {conductorZona}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-purple-400 flex-shrink-0" />
                           <span className="text-xs" style={{ color: c.text }}>{zonaNombre}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ background: ec.bg, color: ec.color, border: `1px solid ${ec.border}` }}>
-                          {vehiculo.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <select
-                          value={vehiculo.estado}
-                          onChange={(e) => updateEstado(vehiculo, e.target.value as Vehiculo['estado'])}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold appearance-none"
-                          style={{ background: c.bgInput, border: '1px solid ' + c.border, color: c.text }}
-                        >
-                          <option value="Disponible">Disponible</option>
-                          <option value="En Ruta">En Ruta</option>
-                          <option value="Mantenimiento">Mantenimiento</option>
-                        </select>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => toggleDisponibleRuta(vehiculo)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105 cursor-pointer"
+                            style={{
+                              background: vehiculo.estado === 'Mantenimiento'
+                                ? 'rgba(239,68,68,0.15)'
+                                : enRutaActivo
+                                  ? 'rgba(59,130,246,0.15)'
+                                  : 'rgba(34,197,94,0.15)',
+                              color: vehiculo.estado === 'Mantenimiento'
+                                ? '#ef4444'
+                                : enRutaActivo
+                                  ? '#3b82f6'
+                                  : '#22c55e',
+                              border: `1px solid ${vehiculo.estado === 'Mantenimiento' ? 'rgba(239,68,68,0.3)' : enRutaActivo ? 'rgba(59,130,246,0.3)' : 'rgba(34,197,94,0.3)'}`,
+                            }}
+                            title="Disponible ↔ En Ruta"
+                          >
+                            <div
+                              className="relative w-8 h-4 rounded-full transition-all"
+                              style={{
+                                background: vehiculo.estado === 'Mantenimiento'
+                                  ? 'rgba(239,68,68,0.4)'
+                                  : enRutaActivo
+                                    ? 'rgba(59,130,246,0.4)'
+                                    : 'rgba(34,197,94,0.4)'
+                              }}
+                            >
+                              <div
+                                className="absolute top-0.5 w-3 h-3 rounded-full transition-all"
+                                style={{
+                                  background: vehiculo.estado === 'Mantenimiento' ? '#ef4444' : enRutaActivo ? '#3b82f6' : '#22c55e',
+                                  left: enRutaActivo ? '18px' : '2px',
+                                }}
+                              />
+                            </div>
+                            {vehiculo.estado === 'Mantenimiento' ? 'Mantenimiento' : enRutaActivo ? 'En Ruta' : 'Disponible'}
+                          </button>
+
+                          <button
+                            onClick={() => toggleMantenimiento(vehiculo)}
+                            className="px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:scale-105"
+                            style={{
+                              background: vehiculo.estado === 'Mantenimiento' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+                              color: vehiculo.estado === 'Mantenimiento' ? '#ef4444' : '#f59e0b',
+                              border: `1px solid ${vehiculo.estado === 'Mantenimiento' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                            }}
+                            title={vehiculo.estado === 'Mantenimiento' ? 'Sacar de mantenimiento' : 'Poner en mantenimiento'}
+                          >
+                            <Wrench className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

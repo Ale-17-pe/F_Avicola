@@ -255,13 +255,19 @@ export function PesajeOperador() {
   const ticketRef = useRef<HTMLDivElement>(null);
   const balanzaInputRef = useRef<HTMLInputElement>(null);
 
-  // Conductores disponibles (solo los que están en estado "Esperando")
-  const CONDUCTORES = useMemo(() =>
-    conductoresRegistrados
-      .filter(cd => cd.estado === 'Esperando')
-      .map(cd => ({ id: cd.id, nombre: cd.nombre })),
-    [conductoresRegistrados]
-  );
+  // Conductores disponibles (sin despachos activos)
+  const CONDUCTORES = useMemo(() => {
+    const conductoresOcupados = new Set(
+      pedidosConfirmados
+        .filter(p => p.ticketEmitido && (p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' || p.estado === 'Con Incidencia' || p.estado === 'Devolución'))
+        .map(p => p.conductorId)
+        .filter(Boolean)
+    );
+
+    return conductoresRegistrados
+      .filter(cd => !conductoresOcupados.has(cd.id))
+      .map(cd => ({ id: cd.id, nombre: cd.nombre }));
+  }, [conductoresRegistrados, pedidosConfirmados]);
 
   useEffect(() => {
     broadcastRef.current = new BroadcastChannel('pesaje-display');
@@ -681,8 +687,10 @@ export function PesajeOperador() {
   const slotListoParaConfirmar = useCallback((slotIdx: number): boolean => {
     const slot = slots[slotIdx];
     if (!slot) return false;
-    return slotTodosCompletos(slotIdx) && !!slot.conductorId;
-  }, [slots, slotTodosCompletos]);
+    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
+    const vehiculoDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
+    return slotTodosCompletos(slotIdx) && !!slot.conductorId && vehiculoDisponible;
+  }, [slots, slotTodosCompletos, vehiculos]);
 
   const generarTicketYDespachar = useCallback((slot: SlotData, pedidosADespachar: PedidoConfirmado[], slotIdx: number) => {
     // Buscar en todos los conductores registrados (no solo los disponibles)
@@ -690,8 +698,13 @@ export function PesajeOperador() {
     const zona = ZONAS.find(z => z.id === slot.zonaId);
     if (!conductor) { toast.error('Asigne un conductor'); return null; }
 
-    // Buscar vehículo asignado a la zona seleccionada
-    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId && v.estado !== 'Mantenimiento');
+    // Buscar vehículo asignado a la zona seleccionada y validar disponibilidad
+    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
+    if (!vehiculoZona) { toast.error('No hay vehículo asignado a esta zona'); return null; }
+    if (vehiculoZona.estado !== 'Disponible') {
+      toast.error(`No se puede emitir ticket: vehículo en estado ${vehiculoZona.estado}`);
+      return null;
+    }
 
     const ahora = new Date();
     const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
@@ -722,7 +735,9 @@ export function PesajeOperador() {
         cantidadTotalContenedores: resultado.cantidadContenedores,
         contenedoresDetalle: resultado.contenedoresDetalle,
         bloquesPesaje,
+        conductorId: conductor.id,
         conductor: conductor.nombre,
+        zonaEntregaId: zona?.id || slot.zonaId,
         zonaEntrega: zona?.nombre || '',
         estado: 'En Despacho',
         ticketEmitido: true,
@@ -758,7 +773,10 @@ export function PesajeOperador() {
     const slot = slots[slotIdx];
     if (!slot) return;
     if (!slotListoParaConfirmar(slotIdx)) {
+      const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
       if (!slot.conductorId) toast.error('Asigne un conductor en el panel inferior');
+      else if (!vehiculoZona) toast.error('No hay vehículo asignado a esta zona');
+      else if (vehiculoZona.estado !== 'Disponible') toast.error(`El vehículo de la zona está ${vehiculoZona.estado}. No se puede emitir ticket.`);
       else toast.error('No todos los sub-pedidos están completados');
       return;
     }
@@ -769,7 +787,7 @@ export function PesajeOperador() {
       if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
       toast.success(`Ticket ${ticketData.numeroTicket} emitido — ${ticketData.pedidos.length} pedido(s)`);
     }
-  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar]);
+  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar, vehiculos]);
 
   const pendienteSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
@@ -1351,13 +1369,26 @@ export function PesajeOperador() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="relative">
                   <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                  {(() => {
+                    const vehiculoZona = vehiculos.find(v => v.zona === activeSlot.zonaId);
+                    const zonaDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
+                    const conductoresDisponibles = zonaDisponible ? CONDUCTORES : [];
+                    return (
                   <select value={activeSlot.conductorId}
                     onChange={(e) => updateSlot(activeSlotIdx, s => ({ ...s, conductorId: e.target.value }))}
+                    disabled={!zonaDisponible}
                     className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
-                    style={{ background: c.bgCard, border: '1px solid rgba(59,130,246,0.2)', color: c.text }}>
-                    <option value="">Asignar conductor...</option>
-                    {CONDUCTORES.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre}</option>)}
+                    style={{
+                      background: c.bgCard,
+                      border: '1px solid rgba(59,130,246,0.2)',
+                      color: c.text,
+                      opacity: zonaDisponible ? 1 : 0.6,
+                    }}>
+                    <option value="">{zonaDisponible ? 'Asignar conductor...' : 'Zona no disponible para despacho'}</option>
+                    {conductoresDisponibles.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre}</option>)}
                   </select>
+                    );
+                  })()}
                 </div>
                 {activeSlot.zonaBloqueada ? (
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)' }}>
@@ -1388,6 +1419,21 @@ export function PesajeOperador() {
                   </div>
                 )}
               </div>
+
+              {(() => {
+                const vehZona = vehiculos.find(v => v.zona === activeSlot.zonaId);
+                if (!vehZona || vehZona.estado === 'Disponible') return null;
+                return (
+                  <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+                    <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
+                      Vehiculo en uso
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: c.text }}>
+                      La zona está ocupada: {vehZona.marca} {vehZona.modelo} ({vehZona.placa}) está en estado {vehZona.estado}. No se puede emitir ticket.
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Sub-orders summary */}
               <div className="space-y-2">

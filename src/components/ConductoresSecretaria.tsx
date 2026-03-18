@@ -1,11 +1,22 @@
 import { useMemo, useState } from 'react';
 import { User, Search, Phone, CreditCard, Truck } from 'lucide-react';
-import { useApp, ConductorRegistrado } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
-import { toast } from 'sonner';
+
+const ESTADOS_VEHICULO = ['Disponible', 'En Ruta', 'Mantenimiento', 'Sin Vehiculo'] as const;
+type EstadoVistaConductor = (typeof ESTADOS_VEHICULO)[number];
+
+const ESTADOS_RUTA_PEDIDO = new Set(['En Despacho', 'Despachando', 'En Ruta', 'Con Incidencia', 'Devolucion', 'Devolución']);
+
+const extraerZonaId = (zona?: string, zonaId?: string) => {
+  if (zonaId) return zonaId;
+  if (!zona) return '';
+  const match = zona.match(/Zona\s*(\d+)/i);
+  return match?.[1] || '';
+};
 
 export function ConductoresSecretaria() {
-  const { conductoresRegistrados, empleados, updateConductorRegistrado } = useApp();
+  const { conductoresRegistrados, empleados, pedidosConfirmados, vehiculos } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
@@ -32,15 +43,65 @@ export function ConductoresSecretaria() {
     [conductoresRRHH, searchTerm]
   );
 
-  const toggleEstado = (conductor: ConductorRegistrado) => {
-    const nuevoEstado = conductor.estado === 'Esperando' ? 'Conduciendo' : 'Esperando';
-    updateConductorRegistrado({ ...conductor, estado: nuevoEstado });
-    toast.success(`${conductor.nombre} ahora está ${nuevoEstado}`);
-  };
+  const estadoConductorPorId = useMemo(() => {
+    const mapa = new Map<string, { estado: EstadoVistaConductor; timestamp: number }>();
+
+    pedidosConfirmados.forEach((pedido) => {
+      if (!pedido.conductorId || !pedido.ticketEmitido || !ESTADOS_RUTA_PEDIDO.has(pedido.estado || '')) return;
+
+      const zonaId = extraerZonaId(pedido.zonaEntrega, pedido.zonaEntregaId);
+      if (!zonaId) return;
+
+      const vehiculoZona = vehiculos.find((v) => v.zona === zonaId);
+      const estadoVehiculo: EstadoVistaConductor = vehiculoZona?.estado || 'Sin Vehiculo';
+      const timestamp = pedido.fechaPesaje
+        ? new Date(`${pedido.fechaPesaje}T${pedido.horaPesaje || '00:00'}`).getTime() || 0
+        : 0;
+
+      const actual = mapa.get(pedido.conductorId);
+      if (!actual || timestamp >= actual.timestamp) {
+        mapa.set(pedido.conductorId, { estado: estadoVehiculo, timestamp });
+      }
+    });
+
+    return mapa;
+  }, [pedidosConfirmados, vehiculos]);
 
   const totalConductores = conductoresRRHH.length;
-  const conduciendo = conductoresRRHH.filter(c => c.estado === 'Conduciendo').length;
-  const esperando = conductoresRRHH.filter(c => c.estado === 'Esperando').length;
+  const enRuta = conductoresRRHH.filter(cd => estadoConductorPorId.get(cd.id)?.estado === 'En Ruta').length;
+  const disponibles = conductoresRRHH.filter(cd => (estadoConductorPorId.get(cd.id)?.estado || 'Disponible') === 'Disponible').length;
+
+  const estiloEstado = (estado: EstadoVistaConductor) => {
+    if (estado === 'En Ruta') {
+      return {
+        background: 'rgba(59,130,246,0.15)',
+        color: '#3b82f6',
+        border: 'rgba(59,130,246,0.3)',
+        rail: 'rgba(59,130,246,0.4)',
+        dot: '#3b82f6',
+        left: '18px',
+      };
+    }
+    if (estado === 'Mantenimiento' || estado === 'Sin Vehiculo') {
+      return {
+        background: 'rgba(239,68,68,0.15)',
+        color: '#ef4444',
+        border: 'rgba(239,68,68,0.3)',
+        rail: 'rgba(239,68,68,0.4)',
+        dot: '#ef4444',
+        left: '2px',
+      };
+    }
+
+    return {
+      background: 'rgba(34,197,94,0.15)',
+      color: '#22c55e',
+      border: 'rgba(34,197,94,0.3)',
+      rail: 'rgba(34,197,94,0.4)',
+      dot: '#22c55e',
+      left: '2px',
+    };
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
@@ -63,17 +124,17 @@ export function ConductoresSecretaria() {
         </div>
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid rgba(34,197,94,0.3)' }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Conduciendo</p>
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Disponibles</p>
             <Truck className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#22c55e' }}>{conduciendo}</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#22c55e' }}>{disponibles}</p>
         </div>
         <div className="backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)' }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Esperando</p>
-            <User className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#f59e0b' }} />
+            <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>En Ruta</p>
+            <Truck className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#3b82f6' }} />
           </div>
-          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#f59e0b' }}>{esperando}</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold" style={{ color: '#3b82f6' }}>{enRuta}</p>
         </div>
       </div>
 
@@ -139,26 +200,34 @@ export function ConductoresSecretaria() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => toggleEstado(conductor)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105 cursor-pointer"
-                        style={{
-                          background: conductor.estado === 'Conduciendo' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
-                          color: conductor.estado === 'Conduciendo' ? '#22c55e' : '#f59e0b',
-                          border: `1px solid ${conductor.estado === 'Conduciendo' ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                        }}
-                      >
-                        <div className="relative w-8 h-4 rounded-full transition-all" style={{ background: conductor.estado === 'Conduciendo' ? 'rgba(34,197,94,0.4)' : 'rgba(245,158,11,0.4)' }}>
-                          <div
-                            className="absolute top-0.5 w-3 h-3 rounded-full transition-all"
+                      {(() => {
+                        const estado = estadoConductorPorId.get(conductor.id)?.estado || 'Disponible';
+                        const estilo = estiloEstado(estado);
+
+                        return (
+                          <span
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold cursor-not-allowed"
                             style={{
-                              background: conductor.estado === 'Conduciendo' ? '#22c55e' : '#f59e0b',
-                              left: conductor.estado === 'Conduciendo' ? '18px' : '2px',
+                              background: estilo.background,
+                              color: estilo.color,
+                              border: `1px solid ${estilo.border}`,
+                              opacity: 0.95,
                             }}
-                          />
-                        </div>
-                        {conductor.estado}
-                      </button>
+                            title="Solo Seguridad puede cambiar este estado"
+                          >
+                            <span className="relative w-8 h-4 rounded-full" style={{ background: estilo.rail }}>
+                              <span
+                                className="absolute top-0.5 w-3 h-3 rounded-full"
+                                style={{
+                                  background: estilo.dot,
+                                  left: estilo.left,
+                                }}
+                              />
+                            </span>
+                            {estado}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

@@ -105,7 +105,9 @@ export interface PedidoConfirmado {
   contenedoresDetalle?: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
   
   // Datos de entrega
+  conductorId?: string;
   conductor?: string;
+  zonaEntregaId?: string;
   zonaEntrega?: string;
   ticketEmitido?: boolean;
   fechaPesaje?: string;
