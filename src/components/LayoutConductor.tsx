@@ -8,37 +8,16 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useApp } from "../contexts/AppContext";
 import { useTheme, t } from '../contexts/ThemeContext';
 import logoImage from "../assets/AvicolaLogo.png";
-import { toast } from 'sonner';
 
 export function LayoutConductor() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { conductoresRegistrados, updateConductorRegistrado } = useApp();
   const { isDark, toggleTheme } = useTheme();
   const c = t(isDark);
-
-  // Buscar al conductor actual por su ID de registro
-  const conductorActual = useMemo(() => {
-    if (!user?.conductorRegistradoId) return null;
-    return conductoresRegistrados.find(cd => cd.id === user.conductorRegistradoId) || null;
-  }, [user, conductoresRegistrados]);
-
-  const estaConduciendo = conductorActual?.estado === 'Conduciendo';
-
-  const toggleEstadoConductor = () => {
-    if (!conductorActual) {
-      toast.error('No estás registrado como conductor en el sistema');
-      return;
-    }
-    const nuevoEstado = estaConduciendo ? 'Esperando' : 'Conduciendo';
-    updateConductorRegistrado({ ...conductorActual, estado: nuevoEstado });
-    toast.success(nuevoEstado === 'Conduciendo' ? '¡En camino! Estado actualizado a Conduciendo' : 'Estado actualizado a Esperando');
-  };
 
   const handleLogout = () => {
     logout();
@@ -87,35 +66,8 @@ export function LayoutConductor() {
               </div>
             </div>
 
-            {/* Status Toggle + User */}
+            {/* User */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={toggleEstadoConductor}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all hover:scale-105 cursor-pointer"
-                style={{
-                  background: estaConduciendo ? "rgba(34, 197, 94, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                  border: `1px solid ${estaConduciendo ? "rgba(34, 197, 94, 0.3)" : "rgba(245, 158, 11, 0.3)"}`,
-                }}
-                title={estaConduciendo ? 'Cambiar a Esperando' : 'Cambiar a Conduciendo'}
-              >
-                <div
-                  className="relative w-8 h-4 rounded-full transition-all"
-                  style={{ background: estaConduciendo ? 'rgba(34,197,94,0.4)' : 'rgba(245,158,11,0.4)' }}
-                >
-                  <div
-                    className="absolute top-0.5 w-3 h-3 rounded-full transition-all"
-                    style={{
-                      background: estaConduciendo ? '#22c55e' : '#f59e0b',
-                      left: estaConduciendo ? '18px' : '2px',
-                    }}
-                  />
-                </div>
-                {estaConduciendo && <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
-                <span className="text-xs font-medium" style={{ color: estaConduciendo ? '#22c55e' : '#f59e0b' }}>
-                  {estaConduciendo ? 'Conduciendo' : 'Esperando'}
-                </span>
-              </button>
-
               {user && (
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: c.g04 }}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #22c55e, #166534)" }}>

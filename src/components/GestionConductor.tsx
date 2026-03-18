@@ -52,18 +52,14 @@ interface GrupoDespacho {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function GestionConductor() {
-  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes, conductoresRegistrados } = useApp();
+  const { pedidosConfirmados, clientes, vehiculos, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes } = useApp();
   const { user } = useAuth();
   const { isDark } = useTheme();
   const c = t(isDark);
 
-  // ── Estado del conductor ──
-  const conductorActual = useMemo(() => {
-    if (!user?.conductorRegistradoId) return null;
-    return conductoresRegistrados.find(cd => cd.id === user.conductorRegistradoId) || null;
-  }, [user, conductoresRegistrados]);
-
-  const estaConduciendo = conductorActual?.estado === 'Conduciendo';
+  // ── Identidad del conductor logueado ──
+  const conductorIdActual = user?.conductorRegistradoId || null;
+  const conductorNombreActual = `${user?.nombre || ''} ${user?.apellido || ''}`.trim();
 
   // ── Vista ──
   const [modo, setModo] = useState<'LISTA' | 'GRUPO' | 'DETALLE' | 'REPESADA' | 'DEVOLUCION' | 'NUEVO_PEDIDO'>('LISTA');
@@ -116,11 +112,38 @@ export function GestionConductor() {
     localStorage.setItem('registrosConductor', JSON.stringify(registros));
   }, [registros]);
 
-  // ── Pedidos en ruta ──
-  const pedidosRuta = pedidosConfirmados.filter((p) =>
-    p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' ||
-    p.estado === 'Con Incidencia' || p.estado === 'Devolución'
-  );
+  const extraerZonaId = (zona?: string, zonaId?: string) => {
+    if (zonaId) return zonaId;
+    if (!zona) return '';
+    const match = zona.match(/Zona\s*(\d+)/i);
+    return match?.[1] || '';
+  };
+
+  // ── Pedidos asignados al conductor ──
+  const pedidosAsignadosConductor = pedidosConfirmados.filter((p) => {
+    const esEstadoRuta =
+      p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' ||
+      p.estado === 'Con Incidencia' || p.estado === 'Devolución';
+
+    if (!esEstadoRuta) return false;
+    if (!conductorIdActual && !conductorNombreActual) return false;
+
+    // Priorizar vínculo por ID para evitar cruces entre conductores
+    if (p.conductorId && conductorIdActual) return p.conductorId === conductorIdActual;
+
+    // Fallback legacy por nombre para pedidos antiguos
+    return p.conductor === conductorNombreActual;
+  });
+
+  // Apertura real: solo cuando Seguridad pone el vehículo de la zona en "En Ruta"
+  const pedidosRuta = pedidosAsignadosConductor.filter((pedido) => {
+    const zonaId = extraerZonaId(pedido.zonaEntrega, pedido.zonaEntregaId);
+    if (!zonaId) return false;
+    const vehiculoZona = vehiculos.find((v) => v.zona === zonaId);
+    return vehiculoZona?.estado === 'En Ruta';
+  });
+
+  const tieneDespachosAsignadosSinApertura = pedidosAsignadosConductor.length > 0 && pedidosRuta.length === 0;
 
   // ── Agrupar por grupoDespacho ──
   const gruposDespacho: GrupoDespacho[] = useMemo(() => {
@@ -528,24 +551,24 @@ export function GestionConductor() {
         )}
       </div>
 
-      {/* ═══════ BLOQUEO: Conductor debe estar "Conduciendo" ═══════ */}
-      {!estaConduciendo && modo === 'LISTA' && (
+      {/* ═══════ BLOQUEO: apertura desde Seguridad (vehiculo en ruta) ═══════ */}
+      {tieneDespachosAsignadosSinApertura && modo === 'LISTA' && (
         <div className="rounded-2xl p-8 sm:p-12 text-center" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)' }}>
           <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)' }}>
             <Truck className="w-10 h-10" style={{ color: '#f59e0b' }} />
           </div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: c.text }}>Debes activar tu estado</h2>
+          <h2 className="text-xl font-bold mb-2" style={{ color: c.text }}>Despacho aun no aperturado</h2>
           <p className="text-sm mb-4" style={{ color: c.textSecondary }}>
-            Para acceder a los despachos, primero cambia tu estado a <strong style={{ color: '#22c55e' }}>"Conduciendo"</strong> usando el botón en la barra superior.
+            Seguridad debe cambiar el vehiculo de tu zona a <strong style={{ color: '#3b82f6' }}>&quot;En Ruta&quot;</strong> para habilitar tus despachos.
           </p>
           <p className="text-xs" style={{ color: c.textMuted }}>
-            Esto indica que estás en camino al local y listo para recibir despachos.
+            Si el vehiculo esta en &quot;Disponible&quot;, este panel permanece cerrado.
           </p>
         </div>
       )}
 
       {/* ═══════ LISTA DE DESPACHOS ═══════ */}
-      {modo === 'LISTA' && estaConduciendo && (
+      {modo === 'LISTA' && !tieneDespachosAsignadosSinApertura && (
         <div className="space-y-5">
 
           {gruposDespacho.length > 0 && (
