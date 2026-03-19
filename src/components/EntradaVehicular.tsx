@@ -16,7 +16,7 @@ const ZONAS = [
 ];
 
 export function EntradaVehicular() {
-  const { vehiculos, pedidosConfirmados, updateVehiculo } = useApp();
+  const { vehiculos, pedidosConfirmados, updateVehiculo, procesarRecojosPendientesPorZona } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
@@ -53,6 +53,14 @@ export function EntradaVehicular() {
   const updateEstado = (vehiculo: Vehiculo, estado: Vehiculo['estado']) => {
     if (vehiculo.estado === estado) return;
     updateVehiculo({ ...vehiculo, estado });
+
+    if (estado === 'Disponible') {
+      const ingresados = procesarRecojosPendientesPorZona(vehiculo.zona);
+      if (ingresados > 0) {
+        toast.success(`Ingreso a almacen aplicado: ${ingresados} recojo(s) procesado(s)`);
+      }
+    }
+
     toast.success(`Estado actualizado: ${vehiculo.placa} -> ${estado}`);
   };
 

@@ -164,6 +164,21 @@ export interface Vehiculo {
   estado: 'Disponible' | 'En Ruta' | 'Mantenimiento';
 }
 
+export interface RecojoContenedor {
+  id: string;
+  pedidoId: string;
+  cliente: string;
+  conductorId: string;
+  conductor?: string;
+  zonaEntregaId: string;
+  zonaEntrega?: string;
+  numeroTicket?: string;
+  contenedores: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
+  fechaRecepcion: string;
+  fechaIngreso?: string;
+  estado: 'Pendiente Ingreso' | 'Ingresado Almacen';
+}
+
 export interface Pago {
   id: string;
   clienteId: string;
@@ -256,6 +271,13 @@ interface AppContextType {
   addVehiculo: (vehiculo: Vehiculo) => void;
   updateVehiculo: (vehiculo: Vehiculo) => void;
   deleteVehiculo: (id: string) => void;
+
+  // Recojo de contenedores (Conductor)
+  recojosContenedores: RecojoContenedor[];
+  setRecojosContenedores: (recojos: RecojoContenedor[]) => void;
+  addRecojoContenedor: (recojo: RecojoContenedor) => void;
+  updateRecojoContenedor: (recojo: RecojoContenedor) => void;
+  procesarRecojosPendientesPorZona: (zonaId: string) => number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -331,6 +353,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage('avicola_vehiculos', [] as Vehiculo[])
   );
 
+  // Estado inicial de recojos de contenedores (conductor)
+  const [recojosContenedores, setRecojosContenedores] = useState<RecojoContenedor[]>(() =>
+    loadFromStorage('avicola_recojosContenedores', [] as RecojoContenedor[])
+  );
+
   // Efectos para guardar en localStorage cuando cambian los estados
   useEffect(() => localStorage.setItem('avicola_clientes', JSON.stringify(clientes)), [clientes]);
   useEffect(() => localStorage.setItem('avicola_tiposAve', JSON.stringify(tiposAve)), [tiposAve]);
@@ -342,6 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
   useEffect(() => localStorage.setItem('avicola_conductoresRegistrados', JSON.stringify(conductoresRegistrados)), [conductoresRegistrados]);
   useEffect(() => localStorage.setItem('avicola_vehiculos', JSON.stringify(vehiculos)), [vehiculos]);
+  useEffect(() => localStorage.setItem('avicola_recojosContenedores', JSON.stringify(recojosContenedores)), [recojosContenedores]);
 
   // MIGRACIÓN removida: las presentaciones ahora se crean desde cero por el usuario
 
@@ -382,6 +410,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           case 'avicola_vehiculos':
             setVehiculos(data);
+            break;
+          case 'avicola_recojosContenedores':
+            setRecojosContenedores(data);
             break;
         }
       } catch (err) {
@@ -425,6 +456,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const vehiculosStr = localStorage.getItem('avicola_vehiculos');
         if (vehiculosStr) setVehiculos(JSON.parse(vehiculosStr));
+
+        const recojosStr = localStorage.getItem('avicola_recojosContenedores');
+        if (recojosStr) setRecojosContenedores(JSON.parse(recojosStr));
       } catch (err) {
         console.error('Error recargando datos desde localStorage:', err);
       }
@@ -466,6 +500,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setConductoresRegistrados(prev => {
             const prevStr = JSON.stringify(prev);
             if (prevStr !== freshConductores) return parsedConductores;
+            return prev;
+          });
+        }
+
+        const freshRecojos = localStorage.getItem('avicola_recojosContenedores');
+        if (freshRecojos) {
+          const parsedRecojos = JSON.parse(freshRecojos);
+          setRecojosContenedores(prev => {
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== freshRecojos) return parsedRecojos;
             return prev;
           });
         }
@@ -654,6 +698,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setVehiculos(prev => prev.filter(v => v.id !== id));
   };
 
+  // ============ FUNCIONES PARA RECOJO DE CONTENEDORES ============
+  const addRecojoContenedor = (recojo: RecojoContenedor) => {
+    setRecojosContenedores(prev => [...prev, recojo]);
+  };
+
+  const updateRecojoContenedor = (recojo: RecojoContenedor) => {
+    setRecojosContenedores(prev => prev.map(r => r.id === recojo.id ? recojo : r));
+  };
+
+  const procesarRecojosPendientesPorZona = (zonaId: string) => {
+    if (!zonaId) return 0;
+
+    const pendientes = recojosContenedores.filter(
+      r => r.zonaEntregaId === zonaId && r.estado === 'Pendiente Ingreso'
+    );
+
+    if (pendientes.length === 0) return 0;
+
+    setContenedores(prev => {
+      const next = [...prev];
+
+      pendientes.forEach((recojo) => {
+        recojo.contenedores.forEach((item) => {
+          const idx = next.findIndex(
+            c => c.tipo.trim().toLowerCase() === item.tipo.trim().toLowerCase()
+          );
+
+          if (idx >= 0) {
+            const actual = next[idx];
+            next[idx] = {
+              ...actual,
+              stock: (actual.stock || 0) + item.cantidad,
+            };
+          }
+        });
+      });
+
+      return next;
+    });
+
+    const fechaIngreso = new Date().toISOString();
+    const idsPendientes = new Set(pendientes.map(p => p.id));
+    setRecojosContenedores(prev => prev.map(r =>
+      idsPendientes.has(r.id)
+        ? { ...r, estado: 'Ingresado Almacen', fechaIngreso }
+        : r
+    ));
+
+    return pendientes.length;
+  };
+
   const value: AppContextType = {
     // Clientes
     clientes,
@@ -725,6 +820,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addVehiculo,
     updateVehiculo,
     deleteVehiculo,
+
+    // Recojo de contenedores
+    recojosContenedores,
+    setRecojosContenedores,
+    addRecojoContenedor,
+    updateRecojoContenedor,
+    procesarRecojosPendientesPorZona,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

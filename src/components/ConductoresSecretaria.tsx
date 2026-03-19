@@ -52,8 +52,13 @@ export function ConductoresSecretaria() {
       const zonaId = extraerZonaId(pedido.zonaEntrega, pedido.zonaEntregaId);
       if (!zonaId) return;
 
-      const vehiculoZona = vehiculos.find((v) => v.zona === zonaId);
-      const estadoVehiculo: EstadoVistaConductor = vehiculoZona?.estado || 'Sin Vehiculo';
+      const vehiculosZona = vehiculos.filter((v) => v.zona === zonaId);
+      let estadoVehiculo: EstadoVistaConductor = 'Sin Vehiculo';
+
+      if (vehiculosZona.some(v => v.estado === 'En Ruta')) estadoVehiculo = 'En Ruta';
+      else if (vehiculosZona.some(v => v.estado === 'Disponible')) estadoVehiculo = 'Disponible';
+      else if (vehiculosZona.length > 0) estadoVehiculo = 'Mantenimiento';
+
       const timestamp = pedido.fechaPesaje
         ? new Date(`${pedido.fechaPesaje}T${pedido.horaPesaje || '00:00'}`).getTime() || 0
         : 0;

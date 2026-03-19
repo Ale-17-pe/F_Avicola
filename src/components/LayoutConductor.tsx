@@ -1,8 +1,10 @@
 import {
+  NavLink,
   Outlet,
   useNavigate,
 } from "react-router";
 import {
+  ClipboardList,
   LogOut,
   Truck,
   Sun,
@@ -95,6 +97,32 @@ export function LayoutConductor() {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 pb-3">
+            <NavLink
+              to="/dashboard-conductor/entregas"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={({ isActive }) => ({
+                background: isActive ? 'rgba(34,197,94,0.12)' : c.g04,
+                color: isActive ? '#22c55e' : c.textSecondary,
+                border: `1px solid ${isActive ? 'rgba(34,197,94,0.35)' : c.borderSubtle}`,
+              })}
+            >
+              Entregas
+            </NavLink>
+
+            <NavLink
+              to="/dashboard-conductor/recojo-contenedores"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              style={({ isActive }) => ({
+                background: isActive ? 'rgba(59,130,246,0.12)' : c.g04,
+                color: isActive ? '#3b82f6' : c.textSecondary,
+                border: `1px solid ${isActive ? 'rgba(59,130,246,0.35)' : c.borderSubtle}`,
+              })}
+            >
+              <ClipboardList className="w-3.5 h-3.5" /> Recojo de contenedores
+            </NavLink>
           </div>
         </div>
       </header>

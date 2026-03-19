@@ -139,8 +139,7 @@ export function GestionConductor() {
   const pedidosRuta = pedidosAsignadosConductor.filter((pedido) => {
     const zonaId = extraerZonaId(pedido.zonaEntrega, pedido.zonaEntregaId);
     if (!zonaId) return false;
-    const vehiculoZona = vehiculos.find((v) => v.zona === zonaId);
-    return vehiculoZona?.estado === 'En Ruta';
+    return vehiculos.some((v) => v.zona === zonaId && v.estado === 'En Ruta');
   });
 
   const tieneDespachosAsignadosSinApertura = pedidosAsignadosConductor.length > 0 && pedidosRuta.length === 0;

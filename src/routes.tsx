@@ -29,6 +29,7 @@ import { PesajeDisplay } from "./components/PesajeDisplay";
 import { LayoutOperador } from "./components/LayoutOperador";
 import { LayoutConductor } from "./components/LayoutConductor";
 import { GestionConductor } from "./components/GestionConductor";
+import { RecojoContenedoresConductor } from "./components/RecojoContenedoresConductor";
 import { LayoutCobranza } from "./components/LayoutCobranza";
 import { GestionCobranza } from "./components/GestionCobranza";
 import { ValidacionPagos } from './components/ValidacionPagos';
@@ -241,6 +242,10 @@ export const router = createBrowserRouter([
       {
         path: "entregas",
         Component: GestionConductor
+      },
+      {
+        path: "recojo-contenedores",
+        Component: RecojoContenedoresConductor
       },
     ]
   },
