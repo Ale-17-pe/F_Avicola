@@ -274,6 +274,19 @@ export function PesajeOperador() {
     return () => broadcastRef.current?.close();
   }, []);
 
+  const getVehiculosZona = useCallback((zonaId: string) => {
+    if (!zonaId) return [] as typeof vehiculos;
+    return vehiculos.filter(v => v.zona === zonaId);
+  }, [vehiculos]);
+
+  const getVehiculoDisponibleZona = useCallback((zonaId: string) => {
+    return getVehiculosZona(zonaId).find(v => v.estado === 'Disponible');
+  }, [getVehiculosZona]);
+
+  const getVehiculoActivoZona = useCallback((zonaId: string) => {
+    return getVehiculosZona(zonaId).find(v => v.estado !== 'Mantenimiento');
+  }, [getVehiculosZona]);
+
   // ── State ──
   const [slots, setSlots] = useState<(SlotData | null)[]>(Array(NUM_SLOTS).fill(null));
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
@@ -358,7 +371,7 @@ export function PesajeOperador() {
       toast.error('Todos los slots están ocupados. Retire un pedido primero.');
       return;
     }
-    const contsDisp: ContenedorOpcion[] = contenedores.map(ct => ({ id: ct.id, tipo: ct.tipo, peso: ct.peso }));
+    const contsDisp: ContenedorOpcion[] = contenedores.map(ct => ({ id: ct.id, tipo: ct.tipo, peso: ct.peso, stock: ct.stock }));
     const subEstados: Record<string, SubPedidoEstado> = {};
     grupo.pedidos.forEach(p => {
       subEstados[p.id] = crearSubEstado(p, contsDisp);
@@ -687,10 +700,10 @@ export function PesajeOperador() {
   const slotListoParaConfirmar = useCallback((slotIdx: number): boolean => {
     const slot = slots[slotIdx];
     if (!slot) return false;
-    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
+    const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
     const vehiculoDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
     return slotTodosCompletos(slotIdx) && !!slot.conductorId && vehiculoDisponible;
-  }, [slots, slotTodosCompletos, vehiculos]);
+  }, [slots, slotTodosCompletos, getVehiculoDisponibleZona]);
 
   const generarTicketYDespachar = useCallback((slot: SlotData, pedidosADespachar: PedidoConfirmado[], slotIdx: number) => {
     // Buscar en todos los conductores registrados (no solo los disponibles)
@@ -698,11 +711,15 @@ export function PesajeOperador() {
     const zona = ZONAS.find(z => z.id === slot.zonaId);
     if (!conductor) { toast.error('Asigne un conductor'); return null; }
 
-    // Buscar vehículo asignado a la zona seleccionada y validar disponibilidad
-    const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
-    if (!vehiculoZona) { toast.error('No hay vehículo asignado a esta zona'); return null; }
-    if (vehiculoZona.estado !== 'Disponible') {
-      toast.error(`No se puede emitir ticket: vehículo en estado ${vehiculoZona.estado}`);
+    // Buscar un vehículo disponible dentro de la zona seleccionada
+    const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
+    if (!vehiculoZona) {
+      const totalVehiculosZona = getVehiculosZona(slot.zonaId).length;
+      if (totalVehiculosZona === 0) {
+        toast.error('No hay vehículos asignados a esta zona');
+      } else {
+        toast.error('No hay vehículos disponibles en esta zona');
+      }
       return null;
     }
 
@@ -767,16 +784,17 @@ export function PesajeOperador() {
 
     broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
     return ticketData;
-  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados, vehiculos]);
+  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados, getVehiculoDisponibleZona, getVehiculosZona]);
 
   const confirmarSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
     if (!slot) return;
     if (!slotListoParaConfirmar(slotIdx)) {
-      const vehiculoZona = vehiculos.find(v => v.zona === slot.zonaId);
+      const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
+      const totalVehiculosZona = getVehiculosZona(slot.zonaId).length;
       if (!slot.conductorId) toast.error('Asigne un conductor en el panel inferior');
-      else if (!vehiculoZona) toast.error('No hay vehículo asignado a esta zona');
-      else if (vehiculoZona.estado !== 'Disponible') toast.error(`El vehículo de la zona está ${vehiculoZona.estado}. No se puede emitir ticket.`);
+      else if (totalVehiculosZona === 0) toast.error('No hay vehículos asignados a esta zona');
+      else if (!vehiculoZona) toast.error('No hay vehículos disponibles en esta zona');
       else toast.error('No todos los sub-pedidos están completados');
       return;
     }
@@ -787,7 +805,7 @@ export function PesajeOperador() {
       if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
       toast.success(`Ticket ${ticketData.numeroTicket} emitido — ${ticketData.pedidos.length} pedido(s)`);
     }
-  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar, vehiculos]);
+  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar, getVehiculoDisponibleZona, getVehiculosZona]);
 
   const pendienteSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
@@ -1370,7 +1388,7 @@ export function PesajeOperador() {
                 <div className="relative">
                   <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
                   {(() => {
-                    const vehiculoZona = vehiculos.find(v => v.zona === activeSlot.zonaId);
+                    const vehiculoZona = getVehiculoDisponibleZona(activeSlot.zonaId);
                     const zonaDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
                     const conductoresDisponibles = zonaDisponible ? CONDUCTORES : [];
                     return (
@@ -1397,7 +1415,7 @@ export function PesajeOperador() {
                       <div className="text-[9px] text-purple-500 font-bold uppercase">Zona</div>
                       <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{ZONAS.find(z => z.id === activeSlot.zonaId)?.nombre || '—'}</div>
                       {(() => {
-                        const veh = vehiculos.find(v => v.zona === activeSlot.zonaId && v.estado !== 'Mantenimiento');
+                        const veh = getVehiculoActivoZona(activeSlot.zonaId);
                         return veh ? (
                           <div className="text-[9px] mt-0.5 truncate" style={{ color: '#3b82f6' }}>
                             🚛 {veh.marca} {veh.modelo} — {veh.placa}
@@ -1421,15 +1439,18 @@ export function PesajeOperador() {
               </div>
 
               {(() => {
-                const vehZona = vehiculos.find(v => v.zona === activeSlot.zonaId);
-                if (!vehZona || vehZona.estado === 'Disponible') return null;
+                const vehiculosZona = getVehiculosZona(activeSlot.zonaId);
+                const vehDisponible = vehiculosZona.find(v => v.estado === 'Disponible');
+                if (vehDisponible) return null;
+                const vehZona = vehiculosZona[0];
+                if (!vehZona) return null;
                 return (
                   <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
                     <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
                       Vehiculo en uso
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: c.text }}>
-                      La zona está ocupada: {vehZona.marca} {vehZona.modelo} ({vehZona.placa}) está en estado {vehZona.estado}. No se puede emitir ticket.
+                      La zona no tiene vehiculos disponibles. Revise Seguridad o reasigne vehiculos en Secretaria.
                     </div>
                   </div>
                 );
