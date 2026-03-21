@@ -580,19 +580,49 @@ export function CostosClientes() {
 
   const handleSaveClientCell = (
     costoId: string,
-    field: "precioVivo" | "precioPelado" | "precioDestripado"
+    field: "precioVivo" | "precioPelado" | "precioDestripado",
+    clienteId: string
   ) => {
     const valor = parseFloat(editingClientValue) || 0;
-    const costosActualizados = costosClientes.map((c) => {
-      if (c.id === costoId) {
-        const updated = { ...c, [field]: valor };
-        updated.precioPorKg =
-          updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
-        return updated;
+
+    if (esHoyGeneral) {
+      const costosActualizados = costosClientes.map((c) => {
+        if (c.id === costoId) {
+          const updated = { ...c, [field]: valor };
+          updated.precioPorKg =
+            updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
+          return updated;
+        }
+        return c;
+      });
+      setCostosClientes(costosActualizados);
+    } else {
+      const snapshotKey = `avicola_costosCliente_${clienteId}_${fechaGeneral}`;
+      let snapshot = [] as any[];
+      const saved = localStorage.getItem(snapshotKey);
+
+      if (saved) {
+        try { snapshot = JSON.parse(saved); } catch { snapshot = []; }
       }
-      return c;
-    });
-    setCostosClientes(costosActualizados);
+
+      if (!Array.isArray(snapshot) || snapshot.length === 0) {
+        snapshot = costosClientes.filter(c => c.clienteId === clienteId);
+      }
+
+      const updatedSnapshot = snapshot.map((c) => {
+        if (c.id === costoId) {
+          const updated = { ...c, [field]: valor };
+          updated.precioPorKg =
+            updated.precioVivo || updated.precioPelado || updated.precioDestripado || 0;
+          return updated;
+        }
+        return c;
+      });
+
+      localStorage.setItem(snapshotKey, JSON.stringify(updatedSnapshot));
+      toast.success(`Precio actualizado para ${fmtDate(fechaGeneral)}`);
+    }
+
     setEditingClientCell(null);
   };
 
@@ -1293,7 +1323,7 @@ export function CostosClientes() {
                                   const isEditingThis = editingClientCell === cellKey;
                                   return (
                                     <td key={field} className="px-3 py-2.5 text-right">
-                                      {isEditingThis && esHoyGeneral ? (
+                                      {isEditingThis ? (
                                         <div className="flex items-center justify-end gap-1">
                                           <input
                                             type="number"
@@ -1305,7 +1335,7 @@ export function CostosClientes() {
                                             }
                                             onKeyDown={(e) => {
                                               if (e.key === "Enter")
-                                                handleSaveClientCell(precio.id, field);
+                                                handleSaveClientCell(precio.id, field, cliente.id);
                                               if (e.key === "Escape")
                                                 setEditingClientCell(null);
                                             }}
@@ -1315,7 +1345,7 @@ export function CostosClientes() {
                                           />
                                           <button
                                             onClick={() =>
-                                              handleSaveClientCell(precio.id, field)
+                                              handleSaveClientCell(precio.id, field, cliente.id)
                                             }
                                             className="p-0.5 rounded hover:bg-green-500/20"
                                           >
@@ -1324,16 +1354,16 @@ export function CostosClientes() {
                                         </div>
                                       ) : (
                                         <span
-                                          className={`px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums ${esHoyGeneral ? "cursor-pointer hover:bg-amber-500/10" : ""}`}
+                                          className="px-2 py-1 rounded transition-colors text-sm font-bold tabular-nums cursor-pointer hover:bg-amber-500/10"
                                           style={{ color: precio[field] > 0 ? c.text : c.textMuted }}
                                           onClick={() =>
-                                            esHoyGeneral && handleEditClientCell(
+                                            handleEditClientCell(
                                               precio.id,
                                               field,
                                               precio[field]
                                             )
                                           }
-                                          title={esHoyGeneral ? "Clic para editar" : "Solo lectura (fecha pasada)"}
+                                          title="Clic para editar"
                                         >
                                           {precio[field] > 0
                                             ? `S/ ${precio[field].toFixed(2)}`

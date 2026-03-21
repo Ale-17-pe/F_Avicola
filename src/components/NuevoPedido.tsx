@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 
 interface SubPedido {
   id: string;
-  tipoAve: string;
   variedad?: string;
   cantidadMachos?: string;
   cantidadHembras?: string;
@@ -52,6 +51,13 @@ interface PedidoEnCola {
   subNumero: number;
 }
 
+interface ZonaDisponible {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  color?: string;
+}
+
 const emptySubForm = (): Partial<SubPedido> => ({
   tipoAve: '', variedad: '', cantidadMachos: '', cantidadHembras: '',
   cantidadTotal: '', unidadesPorJaba: '', unidadesPorJabaMachos: '', unidadesPorJabaHembras: '', totalAves: '', presentacion: '',
@@ -66,13 +72,20 @@ export function NuevoPedido() {
   const tiposAveActivos = tiposAve.filter(t => t.estado !== 'Inactivo');
 
   // Zonas desde localStorage
-  const [zonasDisponibles, setZonasDisponibles] = useState<string[]>([]);
+  const [zonasDisponibles, setZonasDisponibles] = useState<ZonaDisponible[]>([]);
   useEffect(() => {
     try {
       const saved = localStorage.getItem('avicola_zonas');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setZonasDisponibles(parsed.map((z: { nombre: string }) => z.nombre));
+        if (Array.isArray(parsed)) {
+          setZonasDisponibles(parsed.map((z: any, idx: number) => ({
+            id: z?.id ? String(z.id) : String(idx + 1),
+            nombre: z?.nombre || `Zona ${idx + 1}`,
+            descripcion: z?.descripcion || '',
+            color: z?.color || '#3b82f6'
+          })));
+        }
       }
     } catch { }
   }, []);
@@ -200,10 +213,41 @@ export function NuevoPedido() {
   }, [pedidosEnCola]);
 
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoEnCola | null>(null);
+  const [pedidosColaSeleccionados, setPedidosColaSeleccionados] = useState<Set<string>>(new Set());
   const [nuevoSubPedido, setNuevoSubPedido] = useState<Partial<SubPedido>>(emptySubForm());
   const [editandoSubId, setEditandoSubId] = useState<string | null>(null);
   const [editandoSubData, setEditandoSubData] = useState<Partial<SubPedido>>(emptySubForm());
   const [searchTerm, setSearchTerm] = useState('');
+
+  const formatearNombreZona = (zona?: string) => {
+    if (!zona) return '';
+    const directa = zonasDisponibles.find(z => z.nombre === zona || z.id === zona);
+    const matchNum = zona.match(/(\d+)/);
+    const porNumero = matchNum ? zonasDisponibles.find(z => z.id === matchNum[1] || z.nombre.includes(`Zona ${matchNum[1]}`)) : undefined;
+    const z = directa || porNumero;
+    if (!z) return zona;
+    return z.descripcion ? `${z.nombre} - ${z.descripcion}` : z.nombre;
+  };
+
+  const toggleSeleccionPedidoCola = (pedidoId: string) => {
+    setPedidosColaSeleccionados(prev => {
+      const n = new Set(prev);
+      if (n.has(pedidoId)) n.delete(pedidoId);
+      else n.add(pedidoId);
+      return n;
+    });
+  };
+
+  const toggleSeleccionTodosCola = () => {
+    setPedidosColaSeleccionados(prev => {
+      if (prev.size === pedidosEnCola.length) return new Set();
+      return new Set(pedidosEnCola.map(p => p.id));
+    });
+  };
+
+  useEffect(() => {
+    setPedidosColaSeleccionados(prev => new Set([...prev].filter(id => pedidosEnCola.some(p => p.id === id))));
+  }, [pedidosEnCola]);
 
   const limpiarTodoLosDatos = () => {
     if (window.confirm('¿Está seguro de limpiar TODOS los datos?')) {
@@ -456,11 +500,13 @@ export function NuevoPedido() {
 
   const confirmarPedidos = () => {
     if (!pedidosEnCola.length) { toast.error('No hay pedidos en la cola para confirmar'); return; }
+    if (!pedidosColaSeleccionados.size) { toast.error('Seleccione al menos un pedido en cola para confirmar'); return; }
     const ahora = new Date();
     const fecha = ahora.toISOString().split('T')[0];
     const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
 
-    const ordenados = [...pedidosEnCola].sort((a, b) =>
+    const pedidosAConfirmar = pedidosEnCola.filter(p => pedidosColaSeleccionados.has(p.id));
+    const ordenados = [...pedidosAConfirmar].sort((a, b) =>
       a.prioridadBase !== b.prioridadBase ? a.prioridadBase - b.prioridadBase : a.subNumero - b.subNumero
     );
 
@@ -517,8 +563,8 @@ export function NuevoPedido() {
 
     addMultiplePedidosConfirmados(confirmar);
     localStorage.removeItem('nuevoPedidoDraft');
-    localStorage.removeItem('pedidosEnCola');
-    setPedidosEnCola([]);
+    setPedidosEnCola(prev => prev.filter(p => !pedidosColaSeleccionados.has(p.id)));
+    setPedidosColaSeleccionados(new Set());
     toast.success(`${confirmar.length} pedido(s) confirmado(s) y enviado(s) a Lista de Pedidos`);
   };
 
@@ -950,7 +996,11 @@ export function NuevoPedido() {
                     className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-all"
                     style={{ background: c.bgCard, borderColor: c.border, color: c.text }}>
                     <option value="" style={{ background: c.bgPage, color: c.text }}>Todas las zonas</option>
-                    {zonasDisponibles.map(z => <option key={z} value={z} style={{ background: c.bgPage, color: c.text }}>{z}</option>)}
+                    {zonasDisponibles.map(z => (
+                      <option key={z.id} value={z.nombre} style={{ background: c.bgPage, color: c.text }}>
+                        {formatearNombreZona(z.nombre)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -999,7 +1049,7 @@ export function NuevoPedido() {
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = isDark ? '#2a2a2a' : '#f3f4f6'; }}
                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isDark ? '#1a1a1a' : '#ffffff'; }}>
                             <span>{cl.nombre}</span>
-                            {cl.zona && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{cl.zona}</span>}
+                            {cl.zona && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>{formatearNombreZona(cl.zona)}</span>}
                           </button>
                         ))}
                       </div>
@@ -1161,21 +1211,21 @@ export function NuevoPedido() {
           <ChevronRight className="w-5 h-5 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
 
-        <button onClick={confirmarPedidos} disabled={pedidosEnCola.length === 0}
+        <button onClick={confirmarPedidos} disabled={pedidosColaSeleccionados.size === 0}
           className={`px-6 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group border ${pedidosEnCola.length > 0
             ? 'border-amber-700/30 hover:border-amber-600/50'
             : 'cursor-not-allowed'}`}
-          style={pedidosEnCola.length > 0
+          style={pedidosColaSeleccionados.size > 0
             ? { background: c.bgCardAlt, color: c.text }
             : { background: c.bgCard, borderColor: c.border, color: c.textMuted }}>
-          <div className={`p-2 rounded-lg ${pedidosEnCola.length > 0 ? '' : ''}`} style={pedidosEnCola.length > 0 ? { background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)' } : { background: isDark ? 'rgba(31,41,55,0.3)' : 'rgba(0,0,0,0.05)' }}>
-            <CheckCircle className="w-5 h-5" style={{ color: pedidosEnCola.length > 0 ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#4b5563' : '#9ca3af') }} />
+          <div className={`p-2 rounded-lg ${pedidosEnCola.length > 0 ? '' : ''}`} style={pedidosColaSeleccionados.size > 0 ? { background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)' } : { background: isDark ? 'rgba(31,41,55,0.3)' : 'rgba(0,0,0,0.05)' }}>
+            <CheckCircle className="w-5 h-5" style={{ color: pedidosColaSeleccionados.size > 0 ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#4b5563' : '#9ca3af') }} />
           </div>
           <span className="flex items-center gap-2">
             Confirmar Pedidos
-            {pedidosEnCola.length > 0 && <span className="px-2 py-1 text-xs rounded-lg" style={{ background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)', color: isDark ? '#fcd34d' : '#92400e' }}>{pedidosEnCola.reduce((acc, p) => acc + p.subPedidos.length, 0)}</span>}
+            {pedidosColaSeleccionados.size > 0 && <span className="px-2 py-1 text-xs rounded-lg" style={{ background: isDark ? 'rgba(120,53,15,0.3)' : 'rgba(245,158,11,0.1)', color: isDark ? '#fcd34d' : '#92400e' }}>{pedidosEnCola.filter(p => pedidosColaSeleccionados.has(p.id)).reduce((acc, p) => acc + p.subPedidos.length, 0)}</span>}
           </span>
-          {pedidosEnCola.length > 0 && <ChevronRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: isDark ? '#fbbf24' : '#d97706' }} />}
+          {pedidosColaSeleccionados.size > 0 && <ChevronRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: isDark ? '#fbbf24' : '#d97706' }} />}
         </button>
       </div>
 
@@ -1199,21 +1249,64 @@ export function NuevoPedido() {
             </div>
           </div>
 
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={toggleSeleccionTodosCola}
+              className="px-3 py-2 rounded-lg text-xs font-semibold border transition-all hover:scale-[1.02]"
+              style={{
+                borderColor: pedidosColaSeleccionados.size === pedidosEnCola.length ? 'rgba(34,197,94,0.5)' : c.border,
+                background: pedidosColaSeleccionados.size === pedidosEnCola.length
+                  ? (isDark ? 'rgba(22,163,74,0.2)' : 'rgba(34,197,94,0.12)')
+                  : c.bgCard,
+                color: pedidosColaSeleccionados.size === pedidosEnCola.length ? '#16a34a' : c.text
+              }}
+            >
+              {pedidosColaSeleccionados.size === pedidosEnCola.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            </button>
+            <span className="text-xs" style={{ color: c.textMuted }}>
+              {pedidosColaSeleccionados.size} seleccionado(s)
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {pedidosEnCola
               .filter(p => !searchTerm || p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) || p.numeroPedido.toLowerCase().includes(searchTerm.toLowerCase()))
               .map(pedido => (
-                <div key={pedido.id} className="border rounded-xl p-4 transition-all group relative overflow-hidden"
-                  style={{ background: c.bgCard, borderColor: c.border }}>
-                  <button onClick={() => eliminarDeCola(pedido.id)}
+                <div key={pedido.id} className="border rounded-xl p-4 transition-all group relative overflow-hidden cursor-pointer"
+                  onClick={() => toggleSeleccionPedidoCola(pedido.id)}
+                  style={{
+                    background: c.bgCard,
+                    borderColor: pedidosColaSeleccionados.has(pedido.id) ? '#16a34a' : c.border,
+                    boxShadow: pedidosColaSeleccionados.has(pedido.id)
+                      ? (isDark ? '0 0 0 1px rgba(34,197,94,0.5), 0 8px 18px rgba(0,0,0,0.35)' : '0 0 0 1px rgba(34,197,94,0.35), 0 8px 18px rgba(22,163,74,0.15)')
+                      : 'none'
+                  }}>
+                  <button onClick={(e) => { e.stopPropagation(); eliminarDeCola(pedido.id); }}
                     className="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-900/20 border border-red-700/30 flex items-center justify-center transition-all hover:bg-red-900/30 hover:scale-110 z-10">
                     <X className="w-4 h-4 text-red-400" />
                   </button>
 
-                  <div className="mb-4">
+                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-semibold border"
+                    style={pedidosColaSeleccionados.has(pedido.id)
+                      ? { color: '#16a34a', borderColor: 'rgba(34,197,94,0.5)', background: isDark ? 'rgba(20,83,45,0.25)' : 'rgba(220,252,231,0.9)' }
+                      : { color: c.textMuted, borderColor: c.border, background: c.bgCardAlt }}>
+                    {pedidosColaSeleccionados.has(pedido.id) ? 'Seleccionado' : 'Toque para seleccionar'}
+                  </div>
+
+                  <div className="mb-4 mt-7">
                     <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-400" /><span className="text-xs" style={{ color: c.textSecondary }}>Cliente</span></div>
                     <p className="font-medium truncate" style={{ color: c.text }}>{pedido.cliente}</p>
                     <p className="text-xs text-blue-400 font-mono mt-1">{pedido.numeroPedido}</p>
+                    {(() => {
+                      const clientePedido = clientes.find(cl => cl.nombre === pedido.cliente);
+                      const zona = formatearNombreZona(clientePedido?.zona);
+                      if (!zona) return null;
+                      return (
+                        <p className="text-[11px] mt-1 flex items-center gap-1" style={{ color: c.textMuted }}>
+                          <MapPin className="w-3 h-3" /> {zona}
+                        </p>
+                      );
+                    })()}
                   </div>
 
                   <div className="mb-4">
@@ -1247,7 +1340,7 @@ export function NuevoPedido() {
 
                   <Dialog>
                     <DialogTrigger asChild>
-                      <button onClick={() => abrirDetalle(pedido)}
+                      <button onClick={(e) => { e.stopPropagation(); abrirDetalle(pedido); }}
                         className="w-full px-4 py-2.5 border rounded-lg font-medium transition-all hover:scale-[1.02] flex items-center justify-center gap-2 group"
                         style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
                         <Eye className="w-4 h-4" /> Ver / Editar
