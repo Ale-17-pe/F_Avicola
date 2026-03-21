@@ -1320,6 +1320,39 @@ export function ListaPedidos() {
     }
   };
 
+  const regresarAPendiente = (pedido: PedidoLista) => {
+    if (pedido.estado !== 'En Producción') {
+      toast.error('Solo se pueden regresar a pendiente pedidos en producción');
+      return;
+    }
+
+    const pedidoOriginal = pedidosConfirmados?.find(p => p.id === pedido.id);
+    if (!pedidoOriginal) return;
+
+    updatePedidoConfirmado(pedido.id, {
+      ...pedidoOriginal,
+      estado: 'Pendiente'
+    });
+
+    const ahora = new Date();
+    const fecha = ahora.toISOString().split('T')[0];
+    const hora = ahora.toTimeString().split(' ')[0].slice(0, 5);
+
+    setModificacionesHistorial(prev => [...prev, {
+      id: `volver-pendiente-${Date.now()}-${pedido.id}`,
+      pedidoOriginalId: pedido.id,
+      tipo: 'MODIFICACION',
+      cantidadAnterior: pedido.cantidad,
+      cantidadNueva: pedido.cantidad,
+      fecha,
+      hora,
+      motivo: 'Regresado a pendiente',
+      detalles: `Pedido ${pedido.numeroPedido} regresado de producción a pendiente`
+    }]);
+
+    toast.success(`Pedido ${pedido.numeroPedido} regresado a pendiente`);
+  };
+
   // Editar múltiples pedidos manualmente (seleccionando checkboxes)
   const iniciarEdicionMultiple = () => {
     const pedidosPendientes = pedidosLista.filter(p => p.estado === 'Pendiente');
@@ -2116,13 +2149,22 @@ export function ListaPedidos() {
                               </button>
                             )}
                             {pedido.estado === 'En Producción' && !editandoMultiple && (
-                              <button 
-                                onClick={() => moverAPesaje(pedido)} 
-                                className="p-2 bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 rounded-lg hover:from-purple-900/50 hover:to-purple-800/40 transition-all shadow-lg hover:shadow-xl" 
-                                title="Mover a pesaje"
-                              >
-                                <Weight className="w-4 h-4 text-purple-400" />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => regresarAPendiente(pedido)}
+                                  className="p-2 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-lg hover:from-amber-900/50 hover:to-amber-800/40 transition-all shadow-lg hover:shadow-xl"
+                                  title="Regresar a pendiente"
+                                >
+                                  <RotateCcw className="w-4 h-4 text-amber-400" />
+                                </button>
+                                <button 
+                                  onClick={() => moverAPesaje(pedido)} 
+                                  className="p-2 bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 rounded-lg hover:from-purple-900/50 hover:to-purple-800/40 transition-all shadow-lg hover:shadow-xl" 
+                                  title="Mover a pesaje"
+                                >
+                                  <Weight className="w-4 h-4 text-purple-400" />
+                                </button>
+                              </>
                             )}
                             {!editandoMultiple && (
                               <>
