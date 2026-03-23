@@ -5,17 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
-const extraerZonaId = (zona?: string, zonaId?: string) => {
-  if (zonaId) return zonaId;
-  if (!zona) return '';
-  const match = zona.match(/Zona\s*(\d+)/i);
-  return match?.[1] || '';
-};
-
 export function RecojoContenedoresConductor() {
   const {
     pedidosConfirmados,
-    vehiculos,
     recojosContenedores,
     addRecojoContenedor,
   } = useApp();
@@ -37,18 +29,6 @@ export function RecojoContenedoresConductor() {
       return p.conductor === conductorNombreActual;
     });
   }, [pedidosConfirmados, conductorIdActual, conductorNombreActual]);
-
-  const moduloHabilitado = useMemo(() => {
-    const zonasConductor = new Set(
-      pedidosAsignadosConductor
-        .map((p) => extraerZonaId(p.zonaEntrega, p.zonaEntregaId))
-        .filter(Boolean)
-    );
-
-    return Array.from(zonasConductor).some((zonaId) =>
-      vehiculos.some((v) => v.zona === zonaId && v.estado === 'En Ruta')
-    );
-  }, [pedidosAsignadosConductor, vehiculos]);
 
   const recojosPorPedidoId = useMemo(() => {
     const map = new Map<string, RecojoContenedor>();
@@ -77,11 +57,6 @@ export function RecojoContenedoresConductor() {
   }, [recojosContenedores, conductorIdActual, conductorNombreActual]);
 
   const registrarRecojo = (pedido: PedidoConfirmado) => {
-    if (!moduloHabilitado) {
-      toast.error('Recojo inhabilitado: Seguridad debe mantener el vehiculo en En Ruta');
-      return;
-    }
-
     if (!pedido.conductorId || !pedido.zonaEntregaId) {
       toast.error('Pedido sin asignacion completa de conductor o zona');
       return;
@@ -108,7 +83,7 @@ export function RecojoContenedoresConductor() {
     };
 
     addRecojoContenedor(nuevo);
-    toast.success('Recojo registrado. Se ingresara al almacen cuando Seguridad cambie a Disponible');
+    toast.success('Recojo registrado correctamente');
   };
 
   return (
@@ -119,25 +94,11 @@ export function RecojoContenedoresConductor() {
             <ClipboardList className="text-blue-400" /> Recojo de Contenedores
           </h1>
           <p className="text-sm" style={{ color: c.textSecondary }}>
-            Registra contenedores recibidos en clientes. El ingreso al almacen se aplica cuando Seguridad cambia a Disponible.
+            Registra contenedores recibidos en clientes sin dependencia del estado de vehiculos.
           </p>
         </div>
       </div>
-
-      {!moduloHabilitado && (
-        <div className="rounded-2xl p-8 sm:p-10 text-center" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)' }}>
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)' }}>
-            <Truck className="w-8 h-8" style={{ color: '#f59e0b' }} />
-          </div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: c.text }}>Recojo no aperturado</h2>
-          <p className="text-sm" style={{ color: c.textSecondary }}>
-            Seguridad debe tener el vehiculo de tu zona en <strong style={{ color: '#3b82f6' }}>En Ruta</strong> para habilitar este modulo.
-          </p>
-        </div>
-      )}
-
-      {moduloHabilitado && (
-        <>
+      <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-xl p-4" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: c.textMuted }}>Pendientes de Recepcion</p>
@@ -282,8 +243,7 @@ export function RecojoContenedoresConductor() {
               </div>
             )}
           </div>
-        </>
-      )}
+      </>
     </div>
   );
 }

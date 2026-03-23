@@ -66,6 +66,7 @@ interface SlotData {
   currentSubIdx: number;
   subEstados: Record<string, SubPedidoEstado>;
   conductorId: string;
+  vehiculoId: string;
   zonaId: string;
   zonaBloqueada: boolean;
 }
@@ -255,37 +256,19 @@ export function PesajeOperador() {
   const ticketRef = useRef<HTMLDivElement>(null);
   const balanzaInputRef = useRef<HTMLInputElement>(null);
 
-  // Conductores disponibles (sin despachos activos)
+  // Conductores libres para seleccionar manualmente
   const CONDUCTORES = useMemo(() => {
-    const conductoresOcupados = new Set(
-      pedidosConfirmados
-        .filter(p => p.ticketEmitido && (p.estado === 'En Despacho' || p.estado === 'Despachando' || p.estado === 'En Ruta' || p.estado === 'Con Incidencia' || p.estado === 'Devolución'))
-        .map(p => p.conductorId)
-        .filter(Boolean)
-    );
-
-    return conductoresRegistrados
-      .filter(cd => !conductoresOcupados.has(cd.id))
-      .map(cd => ({ id: cd.id, nombre: cd.nombre }));
-  }, [conductoresRegistrados, pedidosConfirmados]);
+    return conductoresRegistrados.map(cd => ({ id: cd.id, nombre: cd.nombre }));
+  }, [conductoresRegistrados]);
 
   useEffect(() => {
     broadcastRef.current = new BroadcastChannel('pesaje-display');
     return () => broadcastRef.current?.close();
   }, []);
 
-  const getVehiculosZona = useCallback((zonaId: string) => {
-    if (!zonaId) return [] as typeof vehiculos;
-    return vehiculos.filter(v => v.zona === zonaId);
+  const getVehiculoPorId = useCallback((vehiculoId: string) => {
+    return vehiculos.find(v => v.id === vehiculoId);
   }, [vehiculos]);
-
-  const getVehiculoDisponibleZona = useCallback((zonaId: string) => {
-    return getVehiculosZona(zonaId).find(v => v.estado === 'Disponible');
-  }, [getVehiculosZona]);
-
-  const getVehiculoActivoZona = useCallback((zonaId: string) => {
-    return getVehiculosZona(zonaId).find(v => v.estado !== 'Mantenimiento');
-  }, [getVehiculosZona]);
 
   // ── State ──
   const [slots, setSlots] = useState<(SlotData | null)[]>(Array(NUM_SLOTS).fill(null));
@@ -395,6 +378,7 @@ export function PesajeOperador() {
       currentSubIdx: 0,
       subEstados,
       conductorId: '',
+      vehiculoId: '',
       zonaId,
       zonaBloqueada,
     };
@@ -700,28 +684,16 @@ export function PesajeOperador() {
   const slotListoParaConfirmar = useCallback((slotIdx: number): boolean => {
     const slot = slots[slotIdx];
     if (!slot) return false;
-    const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
-    const vehiculoDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
-    return slotTodosCompletos(slotIdx) && !!slot.conductorId && vehiculoDisponible;
-  }, [slots, slotTodosCompletos, getVehiculoDisponibleZona]);
+    return slotTodosCompletos(slotIdx) && !!slot.conductorId && !!slot.vehiculoId;
+  }, [slots, slotTodosCompletos]);
 
   const generarTicketYDespachar = useCallback((slot: SlotData, pedidosADespachar: PedidoConfirmado[], slotIdx: number) => {
     // Buscar en todos los conductores registrados (no solo los disponibles)
     const conductor = conductoresRegistrados.find(cd => cd.id === slot.conductorId);
+    const vehiculoSeleccionado = getVehiculoPorId(slot.vehiculoId);
     const zona = ZONAS.find(z => z.id === slot.zonaId);
     if (!conductor) { toast.error('Asigne un conductor'); return null; }
-
-    // Buscar un vehículo disponible dentro de la zona seleccionada
-    const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
-    if (!vehiculoZona) {
-      const totalVehiculosZona = getVehiculosZona(slot.zonaId).length;
-      if (totalVehiculosZona === 0) {
-        toast.error('No hay vehículos asignados a esta zona');
-      } else {
-        toast.error('No hay vehículos disponibles en esta zona');
-      }
-      return null;
-    }
+    if (!vehiculoSeleccionado) { toast.error('Asigne un vehículo'); return null; }
 
     const ahora = new Date();
     const peru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
@@ -774,8 +746,8 @@ export function PesajeOperador() {
 
     const ticketData: ConsolidatedTicketData = {
       grupoId: slot.grupoId, cliente: slot.cliente, pedidos: resultados, totales,
-      conductor: conductor.nombre, conductorPlaca: vehiculoZona?.placa || '—',
-      conductorVehiculo: vehiculoZona ? `${vehiculoZona.marca} ${vehiculoZona.modelo} (${vehiculoZona.placa})` : '—',
+      conductor: conductor.nombre, conductorPlaca: vehiculoSeleccionado.placa,
+      conductorVehiculo: `${vehiculoSeleccionado.marca} ${vehiculoSeleccionado.modelo} (${vehiculoSeleccionado.placa})`,
       zona: zona?.nombre || '',
       fechaEmision: ahora.toLocaleDateString('es-PE'),
       horaEmision: ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
@@ -784,17 +756,14 @@ export function PesajeOperador() {
 
     broadcastRef.current?.postMessage({ type: 'ticket-emitido', ticket: numeroTicket, pesoTotal: totales.pesoBrutoTotal });
     return ticketData;
-  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados, getVehiculoDisponibleZona, getVehiculosZona]);
+  }, [buildResultado, updatePedidoConfirmado, conductoresRegistrados, getVehiculoPorId]);
 
   const confirmarSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
     if (!slot) return;
     if (!slotListoParaConfirmar(slotIdx)) {
-      const vehiculoZona = getVehiculoDisponibleZona(slot.zonaId);
-      const totalVehiculosZona = getVehiculosZona(slot.zonaId).length;
       if (!slot.conductorId) toast.error('Asigne un conductor en el panel inferior');
-      else if (totalVehiculosZona === 0) toast.error('No hay vehículos asignados a esta zona');
-      else if (!vehiculoZona) toast.error('No hay vehículos disponibles en esta zona');
+      else if (!slot.vehiculoId) toast.error('Asigne un vehículo en el panel inferior');
       else toast.error('No todos los sub-pedidos están completados');
       return;
     }
@@ -805,7 +774,7 @@ export function PesajeOperador() {
       if (activeSlotIdx === slotIdx) { setActiveSlotIdx(null); setBottomMode('clientes'); }
       toast.success(`Ticket ${ticketData.numeroTicket} emitido — ${ticketData.pedidos.length} pedido(s)`);
     }
-  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar, getVehiculoDisponibleZona, getVehiculosZona]);
+  }, [slots, activeSlotIdx, slotListoParaConfirmar, generarTicketYDespachar]);
 
   const pendienteSlot = useCallback((slotIdx: number) => {
     const slot = slots[slotIdx];
@@ -820,14 +789,14 @@ export function PesajeOperador() {
       return;
     }
 
-    if (slot.conductorId) {
+    if (slot.conductorId && slot.vehiculoId) {
       const ticketData = generarTicketYDespachar(slot, completados, slotIdx);
       if (ticketData) {
         setTicketVisible(ticketData);
         toast.success(`${completados.length} pedido(s) despachados, ${noCompletados.length} devueltos a pendiente`);
       }
     } else {
-      toast.info(`${noCompletados.length} sub-pedido(s) devueltos a pendiente`);
+      toast.info('Asigne conductor y vehículo para despachar; los no completados volverán a pendiente.');
     }
 
     setSlots(prev => { const next = [...prev]; next[slotIdx] = null; return next; });
@@ -926,36 +895,55 @@ export function PesajeOperador() {
         </div>
 
         {/* Weight input area */}
-        <div className="px-5 py-4">
-          {modoManual ? (
-            <div className="relative max-w-2xl mx-auto">
-              <Scale className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-blue-400/30" />
-              <input
-                ref={balanzaInputRef}
-                type="number" step="0.01" min="0"
-                value={pesoManualInput}
-                onChange={(e) => setPesoManualInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
-                placeholder="0.00"
-                disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor}
-                className="w-full pl-14 pr-14 py-5 rounded-2xl text-5xl font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-40"
-                style={{ background: c.bgCardAlt, border: '1px solid rgba(59,130,246,0.25)', color: c.text }}
-                autoFocus
-              />
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-blue-400/30">Kg</span>
+        <div className="px-5 pt-2 pb-4">
+          <div className="max-w-6xl mx-auto flex items-start gap-12 md:gap-16">
+            <div className="flex-1">
+              {modoManual ? (
+                <div className="relative w-full">
+                  <Scale className="absolute left-5 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/30" />
+                  <input
+                    ref={balanzaInputRef}
+                    type="number" step="0.01" min="0"
+                    value={pesoManualInput}
+                    onChange={(e) => setPesoManualInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                    placeholder="0.00"
+                    disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor}
+                    className="w-full min-h-[320px] pl-16 pr-16 py-12 rounded-2xl text-[12rem] leading-none font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-40"
+                    style={{ background: c.bgCardAlt, border: '2px solid rgba(59,130,246,0.28)', color: c.text }}
+                    autoFocus
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
+                </div>
+              ) : (
+                <div className="text-center rounded-2xl py-12 min-h-[320px]" style={{ background: c.bgCardAlt, border: '2px solid rgba(34,197,94,0.28)' }}>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className={`w-2 h-2 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                    <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? (scale.stable ? 'Estable' : 'Estabilizando...') : 'Sin conexión'}</span>
+                  </div>
+                  <p className="text-[12rem] leading-none font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
+                    {scale.currentWeight.toFixed(2)}
+                  </p>
+                  <p className="text-base font-semibold" style={{ color: c.textMuted }}>Kg</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <div className={`w-2 h-2 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? (scale.stable ? 'Estable' : 'Estabilizando...') : 'Sin conexión'}</span>
-              </div>
-              <p className="text-5xl font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
-                {scale.currentWeight.toFixed(2)}
-              </p>
-              <p className="text-sm font-light" style={{ color: c.textMuted }}>Kg</p>
-            </div>
-          )}
+
+            <button
+              onClick={sumarPesada}
+              disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor || pesoActual <= 0}
+              className="w-24 h-24 sm:w-[6.5rem] sm:h-[6.5rem] md:w-28 md:h-28 shrink-0 self-start mt-2 ml-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #0d4a24, #22c55e)',
+                color: '#ffffff',
+                border: '2px solid rgba(34,197,94,0.55)',
+                boxShadow: '0 10px 24px rgba(34,197,94,0.28)',
+              }}
+              title="Presionar para registrar la pesada"
+            >
+              <CheckCircle className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11" />
+            </button>
+          </div>
 
           {/* Jabas input (only for active Vivo sub-order) */}
           {activeSubPedido && esVivoActivo && totalJabasActivo > 0 && !activeSubEstado?.completado && !activeSubEstado?.faseConfirmandoContenedor && (
@@ -982,9 +970,6 @@ export function PesajeOperador() {
 
           {/* Quick info & actions */}
           <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
-            <p className="text-[10px]" style={{ color: c.textMuted }}>
-              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: c.bgCard, color: c.text }}>Enter</kbd> sumar pesada
-            </p>
             {activeSubEstado && activeSubEstado.pesadas.length > 0 && !activeSubEstado.completado && (
               <button onClick={quitarUltimaPesada} className="text-[10px] flex items-center gap-1 hover:text-amber-400 transition-colors" style={{ color: c.textMuted }}>
                 <RotateCcw className="w-3 h-3" /> Deshacer
@@ -1383,45 +1368,46 @@ export function PesajeOperador() {
                 </button>
               </div>
 
-              {/* Conductor & Zona assignment */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Conductor y vehículo (selección libre) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="relative">
                   <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                  {(() => {
-                    const vehiculoZona = getVehiculoDisponibleZona(activeSlot.zonaId);
-                    const zonaDisponible = !!vehiculoZona && vehiculoZona.estado === 'Disponible';
-                    const conductoresDisponibles = zonaDisponible ? CONDUCTORES : [];
-                    return (
                   <select value={activeSlot.conductorId}
                     onChange={(e) => updateSlot(activeSlotIdx, s => ({ ...s, conductorId: e.target.value }))}
-                    disabled={!zonaDisponible}
                     className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
                     style={{
                       background: c.bgCard,
                       border: '1px solid rgba(59,130,246,0.2)',
                       color: c.text,
-                      opacity: zonaDisponible ? 1 : 0.6,
                     }}>
-                    <option value="">{zonaDisponible ? 'Asignar conductor...' : 'Zona no disponible para despacho'}</option>
-                    {conductoresDisponibles.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre}</option>)}
+                    <option value="">Asignar conductor...</option>
+                    {CONDUCTORES.map(cd => <option key={cd.id} value={cd.id} className="bg-gray-900">{cd.nombre}</option>)}
                   </select>
-                    );
-                  })()}
                 </div>
+
+                <div className="relative">
+                  <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-400" />
+                  <select
+                    value={activeSlot.vehiculoId}
+                    onChange={(e) => updateSlot(activeSlotIdx, s => ({ ...s, vehiculoId: e.target.value }))}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm appearance-none"
+                    style={{ background: c.bgCard, border: '1px solid rgba(34,197,94,0.2)', color: c.text }}
+                  >
+                    <option value="">Asignar vehículo...</option>
+                    {vehiculos.map(v => (
+                      <option key={v.id} value={v.id} className="bg-gray-900">
+                        {v.placa} - {v.marca} {v.modelo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {activeSlot.zonaBloqueada ? (
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)' }}>
                     <Lock className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-[9px] text-purple-500 font-bold uppercase">Zona</div>
                       <div className="text-xs font-semibold truncate" style={{ color: c.text }}>{ZONAS.find(z => z.id === activeSlot.zonaId)?.nombre || '—'}</div>
-                      {(() => {
-                        const veh = getVehiculoActivoZona(activeSlot.zonaId);
-                        return veh ? (
-                          <div className="text-[9px] mt-0.5 truncate" style={{ color: '#3b82f6' }}>
-                            🚛 {veh.marca} {veh.modelo} — {veh.placa}
-                          </div>
-                        ) : null;
-                      })()}
                     </div>
                   </div>
                 ) : (
@@ -1437,24 +1423,6 @@ export function PesajeOperador() {
                   </div>
                 )}
               </div>
-
-              {(() => {
-                const vehiculosZona = getVehiculosZona(activeSlot.zonaId);
-                const vehDisponible = vehiculosZona.find(v => v.estado === 'Disponible');
-                if (vehDisponible) return null;
-                const vehZona = vehiculosZona[0];
-                if (!vehZona) return null;
-                return (
-                  <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
-                    <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>
-                      Vehiculo en uso
-                    </div>
-                    <div className="text-xs mt-0.5" style={{ color: c.text }}>
-                      La zona no tiene vehiculos disponibles. Revise Seguridad o reasigne vehiculos en Secretaria.
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Sub-orders summary */}
               <div className="space-y-2">

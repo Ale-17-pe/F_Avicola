@@ -1,22 +1,11 @@
-import { Car, Search, ShieldCheck, MapPin, Wrench, Route, User } from 'lucide-react';
+import { Car, Search, ShieldCheck, Wrench, Route } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useApp, Vehiculo } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 
-const ZONAS = [
-  { id: '1', nombre: 'Zona 1 - Independencia' },
-  { id: '2', nombre: 'Zona 2 - Provincia' },
-  { id: '3', nombre: 'Zona 3 - Jicamarca' },
-  { id: '4', nombre: 'Zona 4 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
-  { id: '5', nombre: 'Zona 5 - Vencedores' },
-  { id: '6', nombre: 'Zona 6 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
-  { id: '7', nombre: 'Zona 7 - Valle Sagrado, Saruta' },
-  { id: '8', nombre: 'Zona 8 - Bayovar, Huáscar, Peladero, Sta. María' },
-];
-
 export function EntradaVehicular() {
-  const { vehiculos, pedidosConfirmados, updateVehiculo, procesarRecojosPendientesPorZona } = useApp();
+  const { vehiculos, updateVehiculo } = useApp();
   const { isDark } = useTheme();
   const c = t(isDark);
 
@@ -25,7 +14,7 @@ export function EntradaVehicular() {
   const filtered = useMemo(
     () =>
       vehiculos.filter((v) =>
-        [v.placa, v.tipo, v.marca, v.modelo, v.zona]
+        [v.placa, v.tipo, v.marca, v.modelo]
           .join(' ')
           .toLowerCase()
           .includes(searchTerm.toLowerCase())
@@ -53,14 +42,6 @@ export function EntradaVehicular() {
   const updateEstado = (vehiculo: Vehiculo, estado: Vehiculo['estado']) => {
     if (vehiculo.estado === estado) return;
     updateVehiculo({ ...vehiculo, estado });
-
-    if (estado === 'Disponible') {
-      const ingresados = procesarRecojosPendientesPorZona(vehiculo.zona);
-      if (ingresados > 0) {
-        toast.success(`Ingreso a almacen aplicado: ${ingresados} recojo(s) procesado(s)`);
-      }
-    }
-
     toast.success(`Estado actualizado: ${vehiculo.placa} -> ${estado}`);
   };
 
@@ -77,25 +58,6 @@ export function EntradaVehicular() {
     const nuevo = vehiculo.estado === 'Mantenimiento' ? 'Disponible' : 'Mantenimiento';
     updateEstado(vehiculo, nuevo);
   };
-
-  const conductorPorZona = useMemo(() => {
-    const mapa = new Map<string, { conductor: string; timestamp: number }>();
-
-    pedidosConfirmados.forEach((pedido) => {
-      if (!pedido.ticketEmitido || !pedido.zonaEntrega || !pedido.conductor) return;
-
-      const timestamp = pedido.fechaPesaje
-        ? new Date(`${pedido.fechaPesaje}T${pedido.horaPesaje || '00:00'}`).getTime() || 0
-        : 0;
-
-      const actual = mapa.get(pedido.zonaEntrega);
-      if (!actual || timestamp >= actual.timestamp) {
-        mapa.set(pedido.zonaEntrega, { conductor: pedido.conductor, timestamp });
-      }
-    });
-
-    return mapa;
-  }, [pedidosConfirmados]);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
@@ -149,7 +111,7 @@ export function EntradaVehicular() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por placa, tipo, marca, modelo o zona..."
+            placeholder="Buscar por placa, tipo, marca o modelo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
@@ -167,15 +129,11 @@ export function EntradaVehicular() {
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Placa</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Tipo</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Vehículo</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Conductor</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Zona Asignada</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((vehiculo, idx) => {
-                  const zonaNombre = ZONAS.find((z) => z.id === vehiculo.zona)?.nombre || vehiculo.zona || '—';
-                  const conductorZona = conductorPorZona.get(zonaNombre)?.conductor || 'Sin asignar';
                   const enRutaActivo = vehiculo.estado === 'En Ruta';
 
                   return (
@@ -193,20 +151,6 @@ export function EntradaVehicular() {
                       </td>
                       <td className="px-4 py-3" style={{ color: c.text }}>{vehiculo.tipo}</td>
                       <td className="px-4 py-3" style={{ color: c.textSecondary }}>{vehiculo.marca} {vehiculo.modelo}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3 h-3 text-blue-400" />
-                          <span className="text-xs font-medium" style={{ color: conductorZona === 'Sin asignar' ? c.textMuted : c.text }}>
-                            {conductorZona}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                          <span className="text-xs" style={{ color: c.text }}>{zonaNombre}</span>
-                        </div>
-                      </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
