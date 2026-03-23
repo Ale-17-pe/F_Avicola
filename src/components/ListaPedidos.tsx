@@ -192,7 +192,7 @@ export function ListaPedidos() {
       return [];
     }
   });
-  const [vistaGrupos, setVistaGrupos] = useState(true);
+  const [vistaGrupos, setVistaGrupos] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarDetallePedido, setMostrarDetallePedido] = useState<PedidoLista | null>(null);
 
@@ -1484,6 +1484,13 @@ export function ListaPedidos() {
   const pedidosPesaje = pedidosMostrar.filter(p => p.estado === 'En Pesaje');
   const pedidosEnEntrega = pedidosMostrar.filter(p => ['En Despacho', 'Despachando', 'En Ruta', 'Con Incidencia'].includes(p.estado || ''));
   const pedidosEntregados = pedidosMostrar.filter(p => ['Entregado', 'Completado', 'Completado con alerta', 'Devolución'].includes(p.estado));
+  const pedidosEntregadosRecientes = [...pedidosEntregados]
+    .sort((a, b) => {
+      const tsA = new Date(`${a.fecha || '1970-01-01'}T${a.hora || '00:00'}`).getTime();
+      const tsB = new Date(`${b.fecha || '1970-01-01'}T${b.hora || '00:00'}`).getTime();
+      return tsB - tsA;
+    })
+    .slice(0, 5);
 
   // Tabla de producción combinada (para backward compat)
   const pedidosProduccion = pedidosLista.filter(p => p.estado !== 'Completado');
@@ -1566,18 +1573,6 @@ export function ListaPedidos() {
 
         {/* Controles de Vista */}
         <div className="flex flex-wrap gap-3 mb-4">
-          <button
-            onClick={() => setVistaGrupos(!vistaGrupos)}
-            className={`px-4 py-2 rounded-lg border flex items-center gap-2 transition-all duration-300`}
-            style={vistaGrupos
-              ? { background: isDark ? 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(120,53,15,0.2))' : 'linear-gradient(to right, rgba(245,158,11,0.12), rgba(245,158,11,0.06))', borderColor: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.3)', color: isDark ? '#fcd34d' : '#92400e' }
-              : { background: isDark ? 'linear-gradient(to right, rgba(30,58,138,0.3), rgba(30,58,138,0.2))' : 'linear-gradient(to right, rgba(59,130,246,0.12), rgba(59,130,246,0.06))', borderColor: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(37,99,235,0.3)', color: isDark ? '#93c5fd' : '#1d4ed8' }
-            }
-          >
-            <Layers className="w-4 h-4" />
-            {vistaGrupos ? 'Vista Consolidada' : 'Vista Individual'}
-          </button>
-
           {consolidacionesSugeridas.length > 0 && (
             <button
               onClick={() => setMostrarSugerencias(!mostrarSugerencias)}
@@ -1860,7 +1855,7 @@ export function ListaPedidos() {
                       <tr
                         key={pedido.id}
                         className={`border-b hover:bg-white/5 transition-colors duration-200 ${pedido.estado === 'Cancelado' ? 'opacity-60' : ''
-                          } ${pedido.esSubPedido && vistaGrupos ? 'bg-green-900/20' : ''}`}
+                          }`}
                         style={{ borderColor: c.borderSubtle }}
                       >
                         {editandoMultiple && (
@@ -1896,12 +1891,7 @@ export function ListaPedidos() {
                           <div className="space-y-1">
                             <div className="font-mono font-bold drop-shadow" style={{ color: c.text }}>{pedido.numeroPedido}</div>
                             <div className="text-xs" style={{ color: c.textSecondary }}>{pedido.fecha} {pedido.hora}</div>
-                            {pedido.esSubPedido && vistaGrupos && (
-                              <div className="text-xs text-green-400 flex items-center gap-1">
-                                <Merge className="w-3 h-3" />
-                                Consolidado
-                              </div>
-                            )}
+
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -2134,7 +2124,7 @@ export function ListaPedidos() {
                                   className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" 
                                   title="Editar producto/presentación"
                                 >
-                                  <Edit2 className="w-4 h-4 text-blue-400" />
+                                  <Eye className="w-4 h-4 text-blue-400" />
                                 </button>
                               </>
                             ) : (
@@ -2150,19 +2140,19 @@ export function ListaPedidos() {
                             )}
                             {pedido.estado === 'En Producción' && !editandoMultiple && (
                               <>
-                                <button
-                                  onClick={() => regresarAPendiente(pedido)}
-                                  className="p-2 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-lg hover:from-amber-900/50 hover:to-amber-800/40 transition-all shadow-lg hover:shadow-xl"
-                                  title="Regresar a pendiente"
-                                >
-                                  <RotateCcw className="w-4 h-4 text-amber-400" />
-                                </button>
                                 <button 
                                   onClick={() => moverAPesaje(pedido)} 
                                   className="p-2 bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 rounded-lg hover:from-purple-900/50 hover:to-purple-800/40 transition-all shadow-lg hover:shadow-xl" 
                                   title="Mover a pesaje"
                                 >
                                   <Weight className="w-4 h-4 text-purple-400" />
+                                </button>
+                                <button
+                                  onClick={() => regresarAPendiente(pedido)}
+                                  className="p-2 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-lg hover:from-amber-900/50 hover:to-amber-800/40 transition-all shadow-lg hover:shadow-xl"
+                                  title="Regresar a pendiente"
+                                >
+                                  <RotateCcw className="w-4 h-4 text-amber-400" />
                                 </button>
                               </>
                             )}
@@ -2175,15 +2165,7 @@ export function ListaPedidos() {
                                 >
                                   <Eye className="w-4 h-4" style={{ color: c.textSecondary }} />
                                 </button>
-                                {pedido.estado === 'Pendiente' && (
-                                  <button 
-                                    onClick={() => abrirEdicionPedido(pedido)} 
-                                    className="p-2 bg-gradient-to-r from-blue-900/40 to-blue-800/30 border border-blue-500/30 rounded-lg hover:from-blue-900/50 hover:to-blue-800/40 transition-all shadow-lg hover:shadow-xl" 
-                                    title="Editar pedido"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-blue-400" />
-                                  </button>
-                                )}
+
                                 {pedido.estado === 'Pendiente' && (
                                   <button 
                                     onClick={() => eliminarPedido(pedido.id)} 
@@ -2268,20 +2250,14 @@ export function ListaPedidos() {
                     <div className="text-[10px] font-bold uppercase tracking-wider drop-shadow" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>Hembra</div>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Contenedor</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
                     <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Estado</div>
-                  </th>
-                  <th className="px-6 py-4 text-left">
-                    <div className="text-xs font-semibold uppercase tracking-wider drop-shadow" style={{ color: c.text }}>Acciones</div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {pedidosPesaje.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center">
+                    <td colSpan={9} className="px-6 py-12 text-center">
                       <div style={{ color: c.textSecondary }}>
                         No hay pedidos en proceso de pesaje
                       </div>
@@ -2370,15 +2346,6 @@ export function ListaPedidos() {
                       </td>
 
                       <td className="px-6 py-4">
-                         <div className="flex flex-col">
-                            <span className="text-sm font-bold" style={{ color: c.text }}>{pedido.contenedor}</span>
-                            {pedido.cantidadTotalContenedores && (
-                              <span className="text-[10px]" style={{ color: c.textMuted }}>{pedido.cantidadTotalContenedores} tandas</span>
-                            )}
-                          </div>
-                      </td>
-
-                      <td className="px-6 py-4">
                         <div className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-block shadow-lg ${
                           pedido.estado === 'En Pesaje'
                             ? 'bg-gradient-to-r from-purple-900/40 to-purple-800/30 border border-purple-500/30 shadow-purple-500/20'
@@ -2388,17 +2355,7 @@ export function ListaPedidos() {
                         </div>
                       </td>
 
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => eliminarDePesaje(pedido.id)}
-                            className="p-2 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-lg hover:from-amber-900/50 hover:to-amber-800/40 transition-all shadow-lg hover:shadow-xl"
-                            title="Regresar a producción"
-                          >
-                            <RotateCcw className="w-4 h-4 text-amber-400" />
-                          </button>
-                        </div>
-                      </td>
+
                     </tr>
                   ))
                 )}
@@ -2424,7 +2381,7 @@ export function ListaPedidos() {
         },
         { 
           titulo: 'Pedidos Entregados', 
-          datos: pedidosEntregados, 
+          datos: pedidosEntregadosRecientes, 
           color: '#22c55e', 
           borderColor: 'border-green-500/50', 
           bgGlow: 'rgba(34,197,94,0.1)', 
