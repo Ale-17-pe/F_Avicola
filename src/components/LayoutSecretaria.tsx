@@ -79,7 +79,7 @@ export function LayoutSecretaria() {
       icon: Truck,
     },
     {
-      label: "Control de Pesaje",
+      label: "Control de Pedidos",
       path: "/dashboard-secretaria/control",
       icon: FileSpreadsheet,
     },

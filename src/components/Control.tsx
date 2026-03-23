@@ -40,6 +40,7 @@ export function Control() {
   const { isDark } = useTheme();
   const c = t(isDark);
   const [pedidosPesaje, setPedidosPesaje] = useState<PedidoConfirmado[]>([]);
+  const [subModulo, setSubModulo] = useState<'pesaje' | 'entregados'>('pesaje');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('all');
   const [filterFecha, setFilterFecha] = useState(() => {
@@ -62,25 +63,33 @@ export function Control() {
       p.estado === 'En Despacho' || 
       p.estado === 'Despachando' || 
       p.estado === 'En Ruta' || 
-      p.estado === 'Entregado' || 
-      p.estado === 'Completado' ||
+      p.estado === 'Con Incidencia' ||
       (p.pesoBrutoTotal || 0) > 0
     );
     setPedidosPesaje(pesados);
   }, [pedidosConfirmados]);
 
+  const pedidosEntregadosControl = pedidosConfirmados.filter((p) =>
+    p.estado === 'Entregado' ||
+    p.estado === 'Completado' ||
+    p.estado === 'Completado con alerta' ||
+    p.estado === 'Devolución'
+  );
+
+  const registrosActivos = subModulo === 'pesaje' ? pedidosPesaje : pedidosEntregadosControl;
+
   // Clientes únicos para filtro
-  const clientesUnicos = Array.from(new Set(pedidosPesaje.map(p => p.cliente))).sort();
+  const clientesUnicos = Array.from(new Set(registrosActivos.map(p => p.cliente))).sort();
 
   // Filtrar y buscar
-  const pedidosFiltrados = pedidosPesaje.filter(p => {
+  const pedidosFiltrados = registrosActivos.filter(p => {
     const matchSearch = searchTerm === '' ||
       (p.numeroPedido || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.tipoAve.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.conductor || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchCliente = filterCliente === 'all' || p.cliente === filterCliente;
-    const matchFecha = !filterFecha || p.fechaPesaje === filterFecha;
+    const matchFecha = !filterFecha || (p.fechaPesaje === filterFecha || p.fecha === filterFecha);
     return matchSearch && matchCliente && matchFecha;
   });
 
@@ -120,10 +129,10 @@ export function Control() {
   };
 
   // Estadísticas
-  const totalPedidos = pedidosPesaje.length;
-  const totalAves = pedidosPesaje.reduce((acc, p) => acc + p.cantidad, 0);
-  const totalPesoBruto = pedidosPesaje.reduce((acc, p) => acc + (p.pesoBrutoTotal || 0), 0);
-  const totalPesoContenedores = pedidosPesaje.reduce((acc, p) => acc + (p.pesoTotalContenedores || 0), 0);
+  const totalPedidos = registrosActivos.length;
+  const totalAves = registrosActivos.reduce((acc, p) => acc + p.cantidad, 0);
+  const totalPesoBruto = registrosActivos.reduce((acc, p) => acc + (p.pesoBrutoTotal || 0), 0);
+  const totalPesoContenedores = registrosActivos.reduce((acc, p) => acc + (p.pesoTotalContenedores || 0), 0);
   const totalPesoPedido = totalPesoBruto - totalPesoContenedores;
 
   // Función para extraer número de zona (ej: "Zona Norte 1" -> "Zona 1")
@@ -135,8 +144,9 @@ export function Control() {
 
   // Limpiar registros (solo oculta localmente o elimina si se desea)
   const limpiarRegistros = () => {
-    if (confirm('¿Estás seguro de que deseas limpiar los registros de pesaje? Se eliminarán permanentemente del sistema.')) {
-      pedidosPesaje.forEach(p => removePedidoConfirmado(p.id));
+    const tipoRegistro = subModulo === 'pesaje' ? 'de pesaje' : 'de pedidos entregados';
+    if (confirm(`¿Estás seguro de que deseas limpiar los registros ${tipoRegistro}? Se eliminarán permanentemente del sistema.`)) {
+      registrosActivos.forEach(p => removePedidoConfirmado(p.id));
       toast.success('Registros eliminados');
     }
   };
@@ -155,9 +165,13 @@ export function Control() {
             <div className="p-2.5 rounded-xl" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 20px rgba(168,85,247,0.1)' }}>
               <FileSpreadsheet className="w-6 h-6 text-purple-400" />
             </div>
-            Control de Pesaje
+            Control de Pedidos
           </h1>
-          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>Registro detallado de todos los pedidos pesados · Datos tipo Excel</p>
+          <p className="text-xs sm:text-sm" style={{ color: c.textSecondary }}>
+            {subModulo === 'pesaje'
+              ? 'Submódulo: Control de Pesaje'
+              : 'Submódulo: Control de Pedidos Entregados'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -177,6 +191,27 @@ export function Control() {
             <span className="hidden sm:inline">Limpiar</span>
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setSubModulo('pesaje')}
+          className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+          style={subModulo === 'pesaje'
+            ? { background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }
+            : { background: c.bgInput, border: `1px solid ${c.border}`, color: c.textSecondary }}
+        >
+          Control de Pesaje
+        </button>
+        <button
+          onClick={() => setSubModulo('entregados')}
+          className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+          style={subModulo === 'entregados'
+            ? { background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e' }
+            : { background: c.bgInput, border: `1px solid ${c.border}`, color: c.textSecondary }}
+        >
+          Control de Pedidos Entregados
+        </button>
       </div>
 
       {/* Dashboard de Métricas - Collapsible */}
@@ -275,7 +310,7 @@ export function Control() {
         }}>
           <h2 className="text-sm sm:text-base md:text-lg font-bold flex items-center gap-2" style={{ color: c.text }}>
             <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#a855f7' }} />
-            Registro de Pesajes Completados
+            {subModulo === 'pesaje' ? 'Registro de Pesajes' : 'Registro de Pedidos Entregados'}
           </h2>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)' }}>
             <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
@@ -286,8 +321,14 @@ export function Control() {
         {pedidosOrdenados.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <FileSpreadsheet className="w-16 h-16 mx-auto mb-4" style={{ color: c.textMuted }} />
-            <p className="text-base mb-2" style={{ color: c.textSecondary }}>No hay registros de pesaje</p>
-            <p className="text-sm" style={{ color: c.textMuted }}>Los pedidos pesados aparecerán aquí automáticamente</p>
+            <p className="text-base mb-2" style={{ color: c.textSecondary }}>
+              {subModulo === 'pesaje' ? 'No hay registros de pesaje' : 'No hay registros de pedidos entregados'}
+            </p>
+            <p className="text-sm" style={{ color: c.textMuted }}>
+              {subModulo === 'pesaje'
+                ? 'Los pedidos pesados aparecerán aquí automáticamente'
+                : 'Los pedidos entregados aparecerán aquí automáticamente'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
