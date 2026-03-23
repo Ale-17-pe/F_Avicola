@@ -1,19 +1,8 @@
 import { useState } from 'react';
-import { Car, Plus, Edit2, Trash2, X, Save, Search, Calendar, Weight, MapPin, Palette, Truck } from 'lucide-react';
+import { Car, Plus, Edit2, Trash2, X, Save, Search, Calendar, Weight, Palette, Truck } from 'lucide-react';
 import { useApp, Vehiculo } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-
-const ZONAS = [
-  { id: '1', nombre: 'Zona 1 - Independencia' },
-  { id: '2', nombre: 'Zona 2 - Provincia' },
-  { id: '3', nombre: 'Zona 3 - Jicamarca' },
-  { id: '4', nombre: 'Zona 4 - Sedapal, Zona Alta, Zona Baja, Corralito, Plumas' },
-  { id: '5', nombre: 'Zona 5 - Vencedores' },
-  { id: '6', nombre: 'Zona 6 - Montenegro, 10 de Octubre, Motupe, Mariscal, Mariátegui, Trébol' },
-  { id: '7', nombre: 'Zona 7 - Valle Sagrado, Saruta' },
-  { id: '8', nombre: 'Zona 8 - Bayovar, Huáscar, Peladero, Sta. María' },
-];
 
 const TIPOS_VEHICULO = ['Camión', 'Camioneta', 'Furgón', 'Mototaxi', 'Moto Carguera', 'Van', 'Otro'];
 
@@ -25,23 +14,22 @@ export function VehiculosSecretaria() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null);
-  const [form, setForm] = useState({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
+  const [form, setForm] = useState({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '' });
 
   const filtered = vehiculos.filter(v =>
     v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.zona.toLowerCase().includes(searchTerm.toLowerCase())
+    v.tipo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpen = (vehiculo?: Vehiculo) => {
     if (vehiculo) {
       setEditingVehiculo(vehiculo);
-      setForm({ placa: vehiculo.placa, tipo: vehiculo.tipo, marca: vehiculo.marca, modelo: vehiculo.modelo, color: vehiculo.color, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString(), zona: vehiculo.zona });
+      setForm({ placa: vehiculo.placa, tipo: vehiculo.tipo, marca: vehiculo.marca, modelo: vehiculo.modelo, color: vehiculo.color, anio: vehiculo.anio, capacidadKg: vehiculo.capacidadKg.toString() });
     } else {
       setEditingVehiculo(null);
-      setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
+      setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '' });
     }
     setIsModalOpen(true);
   };
@@ -49,7 +37,7 @@ export function VehiculosSecretaria() {
   const handleClose = () => {
     setIsModalOpen(false);
     setEditingVehiculo(null);
-    setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '', zona: '' });
+    setForm({ placa: '', tipo: 'Camión', marca: '', modelo: '', color: '', anio: '', capacidadKg: '' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,7 +51,7 @@ export function VehiculosSecretaria() {
       return;
     }
     if (editingVehiculo) {
-      updateVehiculo({ ...editingVehiculo, ...form, capacidadKg: parseFloat(form.capacidadKg) || 0, estado: editingVehiculo.estado });
+      updateVehiculo({ ...editingVehiculo, ...form, capacidadKg: parseFloat(form.capacidadKg) || 0, zona: '', estado: editingVehiculo.estado });
       toast.success('Vehículo actualizado');
     } else {
       const nuevo: Vehiculo = {
@@ -75,7 +63,7 @@ export function VehiculosSecretaria() {
         color: form.color,
         anio: form.anio,
         capacidadKg: parseFloat(form.capacidadKg) || 0,
-        zona: form.zona,
+        zona: '',
         estado: 'Disponible',
       };
       addVehiculo(nuevo);
@@ -164,7 +152,7 @@ export function VehiculosSecretaria() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por placa, marca, modelo, tipo o zona..."
+            placeholder="Buscar por placa, marca, modelo o tipo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm placeholder-gray-400"
@@ -186,7 +174,6 @@ export function VehiculosSecretaria() {
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Color</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Año</th>
                   <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Capacidad</th>
-                  <th className="text-left px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Zona Asignada</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Estado</th>
                   <th className="text-center px-4 py-3 font-bold text-xs uppercase tracking-wider" style={{ color: '#ccaa00' }}>Acciones</th>
                 </tr>
@@ -194,7 +181,6 @@ export function VehiculosSecretaria() {
               <tbody>
                 {filtered.map((vehiculo, idx) => {
                   const ec = estadoColor(vehiculo.estado);
-                  const zonaNombre = ZONAS.find(z => z.id === vehiculo.zona)?.nombre || vehiculo.zona || '—';
                   return (
                     <tr key={vehiculo.id} style={{ borderBottom: '1px solid ' + c.borderSubtle, background: idx % 2 === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}>
                       <td className="px-4 py-3">
@@ -229,12 +215,6 @@ export function VehiculosSecretaria() {
                         <div className="flex items-center gap-1">
                           <Weight className="w-3 h-3" />
                           {vehiculo.capacidadKg ? `${vehiculo.capacidadKg} kg` : '—'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                          <span className="text-xs" style={{ color: c.text }}>{zonaNombre}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -402,22 +382,6 @@ export function VehiculosSecretaria() {
                     placeholder="Ej: 3000"
                   />
                 </div>
-              </div>
-              <div className="pt-2 border-t" style={{ borderColor: c.borderGold }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="w-4 h-4" style={{ color: '#a855f7' }} />
-                  <span className="text-sm font-bold" style={{ color: '#a855f7' }}>Zona Asignada</span>
-                </div>
-                <select
-                  required
-                  value={form.zona}
-                  onChange={(e) => setForm({ ...form, zona: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm appearance-none"
-                  style={{ background: c.g08, border: '1.5px solid rgba(168,85,247,0.3)', color: c.text }}
-                >
-                  <option value="">Seleccionar zona...</option>
-                  {ZONAS.map(z => <option key={z.id} value={z.id}>{z.nombre}</option>)}
-                </select>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleClose}

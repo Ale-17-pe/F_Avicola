@@ -52,7 +52,7 @@ interface GrupoDespacho {
 // ===================== COMPONENTE PRINCIPAL =====================
 
 export function GestionConductor() {
-  const { pedidosConfirmados, clientes, vehiculos, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes } = useApp();
+  const { pedidosConfirmados, clientes, updatePedidoConfirmado, addMultiplePedidosConfirmados, tiposAve, presentaciones, costosClientes } = useApp();
   const { user } = useAuth();
   const { isDark } = useTheme();
   const c = t(isDark);
@@ -112,13 +112,6 @@ export function GestionConductor() {
     localStorage.setItem('registrosConductor', JSON.stringify(registros));
   }, [registros]);
 
-  const extraerZonaId = (zona?: string, zonaId?: string) => {
-    if (zonaId) return zonaId;
-    if (!zona) return '';
-    const match = zona.match(/Zona\s*(\d+)/i);
-    return match?.[1] || '';
-  };
-
   // ── Pedidos asignados al conductor ──
   const pedidosAsignadosConductor = pedidosConfirmados.filter((p) => {
     const esEstadoRuta =
@@ -135,19 +128,10 @@ export function GestionConductor() {
     return p.conductor === conductorNombreActual;
   });
 
-  // Apertura real: solo cuando Seguridad pone el vehículo de la zona en "En Ruta"
-  const pedidosRuta = pedidosAsignadosConductor.filter((pedido) => {
-    const zonaId = extraerZonaId(pedido.zonaEntrega, pedido.zonaEntregaId);
-    if (!zonaId) return false;
-    return vehiculos.some((v) => v.zona === zonaId && v.estado === 'En Ruta');
-  });
-
-  const tieneDespachosAsignadosSinApertura = pedidosAsignadosConductor.length > 0 && pedidosRuta.length === 0;
-
   // ── Agrupar por grupoDespacho ──
   const gruposDespacho: GrupoDespacho[] = useMemo(() => {
     const map = new Map<string, PedidoConfirmado[]>();
-    pedidosRuta.forEach(p => {
+    pedidosAsignadosConductor.forEach(p => {
       const key = p.grupoDespacho || `individual-${p.id}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
@@ -171,7 +155,7 @@ export function GestionConductor() {
         todosEntregados: sorted.every(p => p.estado === 'Entregado'),
       };
     });
-  }, [pedidosRuta]);
+  }, [pedidosAsignadosConductor]);
 
   // ── Helpers ──
   function checkEsVivo(pedido: PedidoConfirmado) {
@@ -550,31 +534,15 @@ export function GestionConductor() {
         )}
       </div>
 
-      {/* ═══════ BLOQUEO: apertura desde Seguridad (vehiculo en ruta) ═══════ */}
-      {tieneDespachosAsignadosSinApertura && modo === 'LISTA' && (
-        <div className="rounded-2xl p-8 sm:p-12 text-center" style={{ background: c.bgCard, border: '1px solid rgba(245,158,11,0.3)' }}>
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.3)' }}>
-            <Truck className="w-10 h-10" style={{ color: '#f59e0b' }} />
-          </div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: c.text }}>Despacho aun no aperturado</h2>
-          <p className="text-sm mb-4" style={{ color: c.textSecondary }}>
-            Seguridad debe cambiar el vehiculo de tu zona a <strong style={{ color: '#3b82f6' }}>&quot;En Ruta&quot;</strong> para habilitar tus despachos.
-          </p>
-          <p className="text-xs" style={{ color: c.textMuted }}>
-            Si el vehiculo esta en &quot;Disponible&quot;, este panel permanece cerrado.
-          </p>
-        </div>
-      )}
-
       {/* ═══════ LISTA DE DESPACHOS ═══════ */}
-      {modo === 'LISTA' && !tieneDespachosAsignadosSinApertura && (
+      {modo === 'LISTA' && (
         <div className="space-y-5">
 
           {gruposDespacho.length > 0 && (
             <div className="flex items-center justify-between rounded-xl px-5 py-3" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
               <span className="text-sm flex items-center gap-2" style={{ color: c.textSecondary }}>
                 <Package className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold" style={{ color: c.text }}>{gruposDespacho.length}</span> despacho{gruposDespacho.length !== 1 && 's'} en ruta
+                <span className="font-semibold" style={{ color: c.text }}>{gruposDespacho.length}</span> despacho{gruposDespacho.length !== 1 && 's'} disponible{gruposDespacho.length !== 1 && 's'}
               </span>
               <span className="text-xs hidden sm:block" style={{ color: c.textMuted }}>Toque un despacho para gestionar</span>
             </div>
