@@ -13,6 +13,7 @@ import {
 import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme, t } from '../contexts/ThemeContext';
+import { toast } from 'sonner';
 import logoImage from "../assets/AvicolaLogo.png";
 
 export function LayoutConductor() {
@@ -41,6 +42,53 @@ export function LayoutConductor() {
     document.body.style.backgroundColor = isDark ? '#000000' : '#f3f4f6';
     return () => { document.head.removeChild(style); };
   }, [isDark, c.borderGold]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const conductorId = user.conductorRegistradoId || user.id;
+    const conductorNombre = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+    const seenKey = `avicola_recojo_rechazo_seen_${conductorId}`;
+
+    const revisarRechazos = () => {
+      try {
+        const raw = localStorage.getItem('avicola_recojosContenedores');
+        if (!raw) return;
+
+        const rows = JSON.parse(raw) as Array<{
+          conductorId?: string;
+          conductor?: string;
+          estadoRevision?: string;
+          fechaRevision?: string;
+          fechaRecepcion?: string;
+          notificadoConductor?: boolean;
+        }>;
+
+        const miosRechazados = rows.filter((r) => {
+          const isMineById = !!r.conductorId && r.conductorId === conductorId;
+          const isMineByName = !!r.conductor && r.conductor === conductorNombre;
+          return (isMineById || isMineByName) && r.estadoRevision === 'Rechazado';
+        });
+
+        if (miosRechazados.length === 0) return;
+
+        const lastTs = Math.max(
+          ...miosRechazados.map((r) => new Date(r.fechaRevision || r.fechaRecepcion || 0).getTime()),
+        );
+        const seenTs = Number(localStorage.getItem(seenKey) || '0');
+        if (lastTs > seenTs) {
+          toast.error('Tienes recojos de contenedores rechazados. Revisa y corrige en Recojo de Contenedores.');
+          localStorage.setItem(seenKey, String(lastTs));
+        }
+      } catch {
+        // noop
+      }
+    };
+
+    revisarRechazos();
+    const interval = setInterval(revisarRechazos, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: c.bgPage, color: c.text, transition: 'background 0.25s ease, color 0.25s ease' }}>
@@ -122,6 +170,18 @@ export function LayoutConductor() {
               })}
             >
               <ClipboardList className="w-3.5 h-3.5" /> Recojo de contenedores
+            </NavLink>
+
+            <NavLink
+              to="/dashboard-conductor/registro-devoluciones"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              style={({ isActive }) => ({
+                background: isActive ? 'rgba(168,85,247,0.14)' : c.g04,
+                color: isActive ? '#a78bfa' : c.textSecondary,
+                border: `1px solid ${isActive ? 'rgba(168,85,247,0.35)' : c.borderSubtle}`,
+              })}
+            >
+              <ClipboardList className="w-3.5 h-3.5" /> Registro devoluciones
             </NavLink>
           </div>
         </div>

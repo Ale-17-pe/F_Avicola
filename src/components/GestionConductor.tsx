@@ -88,7 +88,11 @@ export function GestionConductor() {
     presentacion: string;
     cantidad: string;
     cantidadJabas?: string;
+    cantidadJabasMachos?: string;
+    cantidadJabasHembras?: string;
     unidadesPorJaba?: string;
+    unidadesPorJabaMachos?: string;
+    unidadesPorJabaHembras?: string;
   }
   const [npSubPedidos, setNpSubPedidos] = useState<SubPedidoConductor[]>([]);
   const [npTipoAve, setNpTipoAve] = useState('');
@@ -96,7 +100,11 @@ export function GestionConductor() {
   const [npPresentacion, setNpPresentacion] = useState('');
   const [npCantidad, setNpCantidad] = useState('');
   const [npCantidadJabas, setNpCantidadJabas] = useState('');
+  const [npCantidadJabasMachos, setNpCantidadJabasMachos] = useState('');
+  const [npCantidadJabasHembras, setNpCantidadJabasHembras] = useState('');
   const [npUnidadesPorJaba, setNpUnidadesPorJaba] = useState('');
+  const [npUnidadesPorJabaMachos, setNpUnidadesPorJabaMachos] = useState('');
+  const [npUnidadesPorJabaHembras, setNpUnidadesPorJabaHembras] = useState('');
 
   // ── UI ──
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
@@ -188,7 +196,19 @@ export function GestionConductor() {
 
   const resetRepesaje = () => { setTandasRepesaje([]); setFormWeight(""); setCapturedPhoto(""); };
   const resetDevolucion = () => { setDevCantidad(""); setDevPeso(""); setDevFotos([]); setDevFotoActual(""); setDevMotivo(""); setDevStep('datos'); };
-  const resetNuevoPedido = () => { setNpSubPedidos([]); setNpTipoAve(''); setNpVariedad(''); setNpPresentacion(''); setNpCantidad(''); setNpCantidadJabas(''); setNpUnidadesPorJaba(''); };
+  const resetNuevoPedido = () => {
+    setNpSubPedidos([]);
+    setNpTipoAve('');
+    setNpVariedad('');
+    setNpPresentacion('');
+    setNpCantidad('');
+    setNpCantidadJabas('');
+    setNpCantidadJabasMachos('');
+    setNpCantidadJabasHembras('');
+    setNpUnidadesPorJaba('');
+    setNpUnidadesPorJabaMachos('');
+    setNpUnidadesPorJabaHembras('');
+  };
 
   // ── UI Helpers ──
   const getEstadoBadge = (estado: string) => {
@@ -354,29 +374,66 @@ export function GestionConductor() {
   };
 
   const npEsVivo = npPresentacion?.toLowerCase().includes('vivo');
+  const npTipoInfo = tiposAve.find(t => t.nombre === npTipoAve);
+  const npVivoConSexo = npEsVivo && !!npTipoInfo?.tieneSexo;
 
   const handleAgregarSubPedido = () => {
     if (!npTipoAve) { toast.error('Seleccione tipo de ave'); return; }
     if (!npPresentacion) { toast.error('Seleccione presentación'); return; }
     if (npEsVivo) {
-      if (!npCantidadJabas || parseInt(npCantidadJabas) <= 0) { toast.error('Ingrese cantidad de jabas'); return; }
-      if (!npUnidadesPorJaba || parseInt(npUnidadesPorJaba) <= 0) { toast.error('Ingrese unidades por jaba'); return; }
+      if (npVivoConSexo) {
+        const jabasM = parseInt(npCantidadJabasMachos || '0') || 0;
+        const jabasH = parseInt(npCantidadJabasHembras || '0') || 0;
+        const avesPorJabaM = parseInt(npUnidadesPorJabaMachos || '0') || 0;
+        const avesPorJabaH = parseInt(npUnidadesPorJabaHembras || '0') || 0;
+
+        if (jabasM + jabasH <= 0) { toast.error('Ingrese jabas de machos y/o hembras'); return; }
+        if (jabasM > 0 && avesPorJabaM <= 0) { toast.error('Ingrese aves por jaba para machos'); return; }
+        if (jabasH > 0 && avesPorJabaH <= 0) { toast.error('Ingrese aves por jaba para hembras'); return; }
+      } else {
+        if (!npCantidadJabas || parseInt(npCantidadJabas) <= 0) { toast.error('Ingrese cantidad de jabas'); return; }
+        if (!npUnidadesPorJaba || parseInt(npUnidadesPorJaba) <= 0) { toast.error('Ingrese unidades por jaba'); return; }
+      }
     } else {
       if (!npCantidad || parseInt(npCantidad) <= 0) { toast.error('Ingrese cantidad'); return; }
     }
+
+    const jabasM = parseInt(npCantidadJabasMachos || '0') || 0;
+    const jabasH = parseInt(npCantidadJabasHembras || '0') || 0;
+    const avesPorJabaM = parseInt(npUnidadesPorJabaMachos || '0') || 0;
+    const avesPorJabaH = parseInt(npUnidadesPorJabaHembras || '0') || 0;
+    const totalJabasSexo = jabasM + jabasH;
+    const totalAvesSexo = (jabasM * avesPorJabaM) + (jabasH * avesPorJabaH);
 
     const nuevo: SubPedidoConductor = {
       id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       tipoAve: npTipoAve,
       variedad: npVariedad || undefined,
       presentacion: npPresentacion,
-      cantidad: npEsVivo ? String(parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)) : npCantidad,
-      cantidadJabas: npEsVivo ? npCantidadJabas : undefined,
-      unidadesPorJaba: npEsVivo ? npUnidadesPorJaba : undefined,
+      cantidad: npEsVivo
+        ? (npVivoConSexo
+          ? String(totalAvesSexo)
+          : String(parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)))
+        : npCantidad,
+      cantidadJabas: npEsVivo ? (npVivoConSexo ? String(totalJabasSexo) : npCantidadJabas) : undefined,
+      cantidadJabasMachos: npEsVivo && npVivoConSexo && jabasM > 0 ? String(jabasM) : undefined,
+      cantidadJabasHembras: npEsVivo && npVivoConSexo && jabasH > 0 ? String(jabasH) : undefined,
+      unidadesPorJaba: npEsVivo && !npVivoConSexo ? npUnidadesPorJaba : undefined,
+      unidadesPorJabaMachos: npEsVivo && npVivoConSexo && avesPorJabaM > 0 ? String(avesPorJabaM) : undefined,
+      unidadesPorJabaHembras: npEsVivo && npVivoConSexo && avesPorJabaH > 0 ? String(avesPorJabaH) : undefined,
     };
     setNpSubPedidos(prev => [...prev, nuevo]);
-    setNpTipoAve(''); setNpVariedad(''); setNpPresentacion(''); setNpCantidad(''); setNpCantidadJabas(''); setNpUnidadesPorJaba('');
-    toast.success('Sub-pedido agregado');
+    setNpTipoAve('');
+    setNpVariedad('');
+    setNpPresentacion('');
+    setNpCantidad('');
+    setNpCantidadJabas('');
+    setNpCantidadJabasMachos('');
+    setNpCantidadJabasHembras('');
+    setNpUnidadesPorJaba('');
+    setNpUnidadesPorJabaMachos('');
+    setNpUnidadesPorJabaHembras('');
+    toast.success('Producto confirmado en el pedido');
   };
 
   const handleConfirmarNuevoPedido = () => {
@@ -404,17 +461,24 @@ export function GestionConductor() {
 
     const confirmar = npSubPedidos.map((sub, idx) => {
       const subNum = clienteData!.siguienteSubNumero + idx;
+      const jabasMachos = parseInt(sub.cantidadJabasMachos || '0') || 0;
+      const jabasHembras = parseInt(sub.cantidadJabasHembras || '0') || 0;
+      const detalleSexo = (jabasMachos > 0 || jabasHembras > 0)
+        ? ` (M:${jabasMachos}, H:${jabasHembras})`
+        : '';
       return {
         id: `confirmed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         numeroPedido: `${clienteData!.numeroCliente}.${subNum}`,
         numeroCliente: clienteData!.numeroCliente,
         cliente: grupoSeleccionado.cliente,
-        tipoAve: sub.tipoAve + (sub.variedad ? ` - ${sub.variedad}` : ''),
+        tipoAve: sub.tipoAve + (sub.variedad ? ` - ${sub.variedad}` : '') + detalleSexo,
         variedad: sub.variedad,
         presentacion: sub.presentacion,
         cantidad: parseInt(sub.cantidad),
         cantidadJabas: sub.cantidadJabas ? parseInt(sub.cantidadJabas) : undefined,
         unidadesPorJaba: sub.unidadesPorJaba ? parseInt(sub.unidadesPorJaba) : undefined,
+        unidadesPorJabaMachos: sub.unidadesPorJabaMachos ? parseInt(sub.unidadesPorJabaMachos) : undefined,
+        unidadesPorJabaHembras: sub.unidadesPorJabaHembras ? parseInt(sub.unidadesPorJabaHembras) : undefined,
         contenedor: '',
         fecha, hora,
         prioridad: parseInt(clienteData!.numeroCliente.replace('C', '')),
@@ -1303,12 +1367,23 @@ export function GestionConductor() {
 
               {/* Formulario sub-pedido */}
               <div className="space-y-3 rounded-xl p-4" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Agregar Producto</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Confirmar Producto</p>
 
                 {/* Tipo de Ave */}
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Tipo de Ave <span className="text-red-400">*</span></label>
-                  <select value={npTipoAve} onChange={e => { setNpTipoAve(e.target.value); setNpVariedad(''); setNpPresentacion(''); }}
+                  <select value={npTipoAve} onChange={e => {
+                    setNpTipoAve(e.target.value);
+                    setNpVariedad('');
+                    setNpPresentacion('');
+                    setNpCantidad('');
+                    setNpCantidadJabas('');
+                    setNpCantidadJabasMachos('');
+                    setNpCantidadJabasHembras('');
+                    setNpUnidadesPorJaba('');
+                    setNpUnidadesPorJabaMachos('');
+                    setNpUnidadesPorJabaHembras('');
+                  }}
                     className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                     style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
                     <option value="">Seleccionar...</option>
@@ -1322,7 +1397,17 @@ export function GestionConductor() {
                 {npTipoAve && getVariedadesParaCliente(grupoSeleccionado.cliente, npTipoAve).length > 0 && (
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Variedad</label>
-                    <select value={npVariedad} onChange={e => { setNpVariedad(e.target.value); setNpPresentacion(''); }}
+                    <select value={npVariedad} onChange={e => {
+                      setNpVariedad(e.target.value);
+                      setNpPresentacion('');
+                      setNpCantidad('');
+                      setNpCantidadJabas('');
+                      setNpCantidadJabasMachos('');
+                      setNpCantidadJabasHembras('');
+                      setNpUnidadesPorJaba('');
+                      setNpUnidadesPorJabaMachos('');
+                      setNpUnidadesPorJabaHembras('');
+                    }}
                       className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                       style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
                       <option value="">Seleccionar...</option>
@@ -1337,7 +1422,16 @@ export function GestionConductor() {
                 {npTipoAve && (
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Presentación <span className="text-red-400">*</span></label>
-                    <select value={npPresentacion} onChange={e => setNpPresentacion(e.target.value)}
+                    <select value={npPresentacion} onChange={e => {
+                      setNpPresentacion(e.target.value);
+                      setNpCantidad('');
+                      setNpCantidadJabas('');
+                      setNpCantidadJabasMachos('');
+                      setNpCantidadJabasHembras('');
+                      setNpUnidadesPorJaba('');
+                      setNpUnidadesPorJabaMachos('');
+                      setNpUnidadesPorJabaHembras('');
+                    }}
                       className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                       style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }}>
                       <option value="">Seleccionar...</option>
@@ -1351,27 +1445,71 @@ export function GestionConductor() {
                 {/* Cantidad */}
                 {npPresentacion && (
                   npEsVivo ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Jabas <span className="text-red-400">*</span></label>
-                        <input type="number" inputMode="numeric" min="1" value={npCantidadJabas}
-                          onChange={e => setNpCantidadJabas(e.target.value)} placeholder="0"
-                          className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
-                          style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Aves/Jaba <span className="text-red-400">*</span></label>
-                        <input type="number" inputMode="numeric" min="1" value={npUnidadesPorJaba}
-                          onChange={e => setNpUnidadesPorJaba(e.target.value)} placeholder="0"
-                          className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
-                          style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
-                      </div>
-                      {npCantidadJabas && npUnidadesPorJaba && parseInt(npCantidadJabas) > 0 && parseInt(npUnidadesPorJaba) > 0 && (
-                        <div className="col-span-2 text-center text-xs font-bold text-violet-400">
-                          Total: {parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)} aves
+                    npVivoConSexo ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Jabas Machos <span className="text-red-400">*</span></label>
+                            <input type="number" inputMode="numeric" min="0" value={npCantidadJabasMachos}
+                              onChange={e => setNpCantidadJabasMachos(e.target.value)} placeholder="0"
+                              className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Jabas Hembras <span className="text-red-400">*</span></label>
+                            <input type="number" inputMode="numeric" min="0" value={npCantidadJabasHembras}
+                              onChange={e => setNpCantidadJabasHembras(e.target.value)} placeholder="0"
+                              className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Aves/Jaba Machos <span className="text-red-400">*</span></label>
+                            <input type="number" inputMode="numeric" min="0" value={npUnidadesPorJabaMachos}
+                              onChange={e => setNpUnidadesPorJabaMachos(e.target.value)} placeholder="0"
+                              className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Aves/Jaba Hembras <span className="text-red-400">*</span></label>
+                            <input type="number" inputMode="numeric" min="0" value={npUnidadesPorJabaHembras}
+                              onChange={e => setNpUnidadesPorJabaHembras(e.target.value)} placeholder="0"
+                              className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                              style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                          </div>
+                        </div>
+
+                        {((parseInt(npCantidadJabasMachos || '0') || 0) + (parseInt(npCantidadJabasHembras || '0') || 0)) > 0 && (
+                          <div className="text-center text-xs font-bold text-violet-400">
+                            Total: {((parseInt(npCantidadJabasMachos || '0') || 0) * (parseInt(npUnidadesPorJabaMachos || '0') || 0)) + ((parseInt(npCantidadJabasHembras || '0') || 0) * (parseInt(npUnidadesPorJabaHembras || '0') || 0))} aves
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Jabas <span className="text-red-400">*</span></label>
+                          <input type="number" inputMode="numeric" min="1" value={npCantidadJabas}
+                            onChange={e => setNpCantidadJabas(e.target.value)} placeholder="0"
+                            className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Aves/Jaba <span className="text-red-400">*</span></label>
+                          <input type="number" inputMode="numeric" min="1" value={npUnidadesPorJaba}
+                            onChange={e => setNpUnidadesPorJaba(e.target.value)} placeholder="0"
+                            className="w-full rounded-lg px-3 py-2.5 text-lg font-black text-center focus:outline-none"
+                            style={{ background: c.bgInput, border: `1px solid ${c.border}`, color: c.text }} />
+                        </div>
+                        {npCantidadJabas && npUnidadesPorJaba && parseInt(npCantidadJabas) > 0 && parseInt(npUnidadesPorJaba) > 0 && (
+                          <div className="col-span-2 text-center text-xs font-bold text-violet-400">
+                            Total: {parseInt(npCantidadJabas) * parseInt(npUnidadesPorJaba)} aves
+                          </div>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: c.textMuted }}>Cantidad (unids.) <span className="text-red-400">*</span></label>
@@ -1391,7 +1529,7 @@ export function GestionConductor() {
                     ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa' }
                     : { background: isDark ? '#1f2937' : '#e5e7eb', color: c.textMuted, opacity: 0.6 }
                   }>
-                  <Plus className="w-4 h-4" /> AGREGAR SUB-PEDIDO
+                  <Plus className="w-4 h-4" /> CONFIRMAR PRODUCTO
                 </button>
               </div>
 
@@ -1403,6 +1541,13 @@ export function GestionConductor() {
                   </p>
                   {npSubPedidos.map((sub, idx) => {
                     const esVivo = sub.presentacion?.toLowerCase().includes('vivo');
+                    const jabasMachos = parseInt(sub.cantidadJabasMachos || '0') || 0;
+                    const jabasHembras = parseInt(sub.cantidadJabasHembras || '0') || 0;
+                    const avesPorJabaMachos = parseInt(sub.unidadesPorJabaMachos || '0') || 0;
+                    const avesPorJabaHembras = parseInt(sub.unidadesPorJabaHembras || '0') || 0;
+                    const detalleVivo = (jabasMachos > 0 || jabasHembras > 0)
+                      ? `M:${jabasMachos} jabas × ${avesPorJabaMachos} + H:${jabasHembras} jabas × ${avesPorJabaHembras} = ${sub.cantidad} aves`
+                      : `${sub.cantidadJabas} jabas × ${sub.unidadesPorJaba} = ${sub.cantidad} aves`;
                     return (
                       <div key={sub.id} className="flex items-center justify-between rounded-xl p-3"
                         style={{ background: c.bgCardAlt, border: `1px solid ${c.border}` }}>
@@ -1419,7 +1564,7 @@ export function GestionConductor() {
                               <span className="text-[10px] text-blue-400">{sub.presentacion}</span>
                               <span className="text-[10px]" style={{ color: c.textMuted }}>·</span>
                               <span className={`text-[10px] font-bold ${esVivo ? 'text-amber-400' : 'text-purple-400'}`}>
-                                {esVivo ? `${sub.cantidadJabas} jabas × ${sub.unidadesPorJaba} = ${sub.cantidad} aves` : `${sub.cantidad} unids.`}
+                                {esVivo ? detalleVivo : `${sub.cantidad} unids.`}
                               </span>
                             </div>
                           </div>
