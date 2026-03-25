@@ -176,7 +176,17 @@ export interface RecojoContenedor {
   contenedores: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
   fechaRecepcion: string;
   fechaIngreso?: string;
-  estado: 'Pendiente Ingreso' | 'Ingresado Almacen';
+  // Compatibilidad con datos antiguos
+  estado?: 'Pendiente Ingreso' | 'Ingresado Almacen';
+  // Flujo actual de revision administrativa del recojo
+  estadoRevision?: 'Pendiente' | 'Confirmado' | 'Rechazado';
+  esParcial?: boolean;
+  cantidadRecogida?: number;
+  cantidadPendiente?: number;
+  motivoRechazo?: string;
+  fechaRevision?: string;
+  revisadoPor?: string;
+  notificadoConductor?: boolean;
 }
 
 export interface Pago {

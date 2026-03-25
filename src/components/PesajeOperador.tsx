@@ -896,43 +896,41 @@ export function PesajeOperador() {
 
         {/* Weight input area */}
         <div className="px-5 pt-2 pb-4">
-          <div className="max-w-6xl mx-auto flex items-start gap-12 md:gap-16">
-            <div className="flex-1">
-              {modoManual ? (
-                <div className="relative w-full">
-                  <Scale className="absolute left-5 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/30" />
-                  <input
-                    ref={balanzaInputRef}
-                    type="number" step="0.01" min="0"
-                    value={pesoManualInput}
-                    onChange={(e) => setPesoManualInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
-                    placeholder="0.00"
-                    disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor}
-                    className="w-full min-h-[320px] pl-16 pr-16 py-12 rounded-2xl text-[12rem] leading-none font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-40"
-                    style={{ background: c.bgCardAlt, border: '2px solid rgba(59,130,246,0.28)', color: c.text }}
-                    autoFocus
-                  />
-                  <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
+          <div className="max-w-6xl mx-auto w-full space-y-4">
+            {modoManual ? (
+              <div className="relative w-full">
+                <Scale className="absolute left-5 top-1/2 -translate-y-1/2 w-8 h-8 text-blue-400/30" />
+                <input
+                  ref={balanzaInputRef}
+                  type="number" step="0.01" min="0"
+                  value={pesoManualInput}
+                  onChange={(e) => setPesoManualInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && pesoActual > 0) sumarPesada(); }}
+                  placeholder="0.00"
+                  disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor}
+                  className="w-full min-h-[320px] pl-16 pr-16 py-12 rounded-2xl text-[12rem] leading-none font-black font-mono text-center placeholder-gray-700 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-40"
+                  style={{ background: c.bgCardAlt, border: '2px solid rgba(59,130,246,0.28)', color: c.text }}
+                  autoFocus
+                />
+                <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xl font-bold text-blue-400/30">Kg</span>
+              </div>
+            ) : (
+              <div className="text-center rounded-2xl py-12 min-h-[320px]" style={{ background: c.bgCardAlt, border: '2px solid rgba(34,197,94,0.28)' }}>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className={`w-2 h-2 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                  <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? (scale.stable ? 'Estable' : 'Estabilizando...') : 'Sin conexión'}</span>
                 </div>
-              ) : (
-                <div className="text-center rounded-2xl py-12 min-h-[320px]" style={{ background: c.bgCardAlt, border: '2px solid rgba(34,197,94,0.28)' }}>
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <div className={`w-2 h-2 rounded-full ${scale.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                    <span className="text-xs" style={{ color: c.textMuted }}>{scale.connected ? (scale.stable ? 'Estable' : 'Estabilizando...') : 'Sin conexión'}</span>
-                  </div>
-                  <p className="text-[12rem] leading-none font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
-                    {scale.currentWeight.toFixed(2)}
-                  </p>
-                  <p className="text-base font-semibold" style={{ color: c.textMuted }}>Kg</p>
-                </div>
-              )}
-            </div>
+                <p className="text-[12rem] leading-none font-black font-mono tabular-nums" style={{ color: scale.stable ? '#22c55e' : '#f59e0b' }}>
+                  {scale.currentWeight.toFixed(2)}
+                </p>
+                <p className="text-base font-semibold" style={{ color: c.textMuted }}>Kg</p>
+              </div>
+            )}
 
             <button
               onClick={sumarPesada}
               disabled={activeSlotIdx === null || !activeSubEstado || activeSubEstado.completado || activeSubEstado.faseConfirmandoContenedor || pesoActual <= 0}
-              className="w-24 h-24 sm:w-[6.5rem] sm:h-[6.5rem] md:w-28 md:h-28 shrink-0 self-start mt-2 ml-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full h-16 sm:h-[4.5rem] md:h-20 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, #0d4a24, #22c55e)',
                 color: '#ffffff',
@@ -941,7 +939,7 @@ export function PesajeOperador() {
               }}
               title="Presionar para registrar la pesada"
             >
-              <CheckCircle className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11" />
+              <span className="text-2xl sm:text-3xl font-black tracking-wider">PESAR</span>
             </button>
           </div>
 

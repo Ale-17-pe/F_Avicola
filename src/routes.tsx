@@ -36,6 +36,7 @@ import { ValidacionPagos } from './components/ValidacionPagos';
 import { LayoutSeguridad } from "./components/LayoutSeguridad";
 import { EntradaVehicular } from "./components/EntradaVehicular";
 import { RRHHSecretaria } from "./components/RRHHSecretaria";
+import { RegistroDevolucionContenedoresAdmin } from "./components/RegistroDevolucionContenedoresAdmin";
 import { History as HistoryIcon } from "lucide-react";
 
 export const router = createBrowserRouter([
@@ -90,6 +91,10 @@ export const router = createBrowserRouter([
       { 
         path: "distribucion/control", 
         Component: Control
+      },
+      {
+        path: "distribucion/registro-devoluciones",
+        Component: RegistroDevolucionContenedoresAdmin,
       },
       
       // Finanzas
@@ -246,6 +251,10 @@ export const router = createBrowserRouter([
       {
         path: "recojo-contenedores",
         Component: RecojoContenedoresConductor
+      },
+      {
+        path: "registro-devoluciones",
+        element: <RegistroDevolucionContenedoresAdmin readOnly />,
       },
     ]
   },

@@ -5,10 +5,10 @@ import {
   useNavigate,
 } from "react-router";
 import {
-  Users,
-  Bird,
   LayoutDashboard,
   LogOut,
+  Users,
+  Bird,
   Package,
   ShoppingCart,
   DollarSign,
@@ -18,18 +18,19 @@ import {
   Truck,
   Users as UsersIcon,
   PackageOpen,
+  ClipboardList,
+  SlidersHorizontal,
   Sun,
   Moon,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTheme, t } from "../contexts/ThemeContext";
 import logoImage from "../assets/AvicolaLogo.png";
 
 interface MenuItem {
   label: string;
-  path?: string;
+  path: string;
   icon: any;
-  children?: { label: string; path: string; icon: any }[];
 }
 
 export function Layout() {
@@ -37,24 +38,6 @@ export function Layout() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const c = t(isDark);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Cerrar dropdown al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Cerrar dropdown al cambiar de ruta
-  useEffect(() => {
-    setOpenDropdown(null);
-  }, [location.pathname]);
 
   const handleLogout = () => {
     navigate("/");
@@ -67,124 +50,88 @@ export function Layout() {
       icon: LayoutDashboard,
     },
     {
+      label: "Proveedores",
+      path: "/dashboard/proveedores",
+      icon: Users,
+    },
+    {
+      label: "Aves",
+      path: "/dashboard/aves",
+      icon: Bird,
+    },
+    {
       label: "Inventario",
+      path: "/dashboard/inventario-completo",
       icon: Package,
-      children: [
-        {
-          label: "Proveedores",
-          path: "/dashboard/proveedores",
-          icon: Users,
-        },
-        {
-          label: "Aves",
-          path: "/dashboard/aves",
-          icon: Bird
-        },
-        {
-          label: "Contenedores",
-          path: "/dashboard-secretaria/contenedores",
-          icon: PackageOpen,
-        },
-      ],
     },
     {
-      label: "Ventas",
+      label: "Pedidos",
+      path: "/dashboard/ventas/pedidos",
       icon: ShoppingCart,
-      children: [
-        {
-          label: "Pedidos",
-          path: "/dashboard/ventas/pedidos",
-          icon: ShoppingCart,
-        },
-        {
-          label: "Clientes",
-          path: "/dashboard/ventas/clientes",
-          icon: UsersIcon,
-        },
-      ],
     },
     {
-      label: "Distribución",
-      icon: Truck,
-      children: [
-        {
-          label: "Envíos",
-          path: "/dashboard/distribucion/envios",
-          icon: Truck,
-        },
-        {
-          label: "Control",
-          path: "/dashboard/distribucion/control",
-          icon: FileText,
-        },
-      ],
-    },
-    {
-      label: "Finanzas",
-      icon: DollarSign,
-      children: [
-        {
-          label: "Ingresos",
-          path: "/dashboard/finanzas/ingresos",
-          icon: TrendingUp,
-        },
-        {
-          label: "Gastos",
-          path: "/dashboard/finanzas/gastos",
-          icon: DollarSign,
-        },
-      ],
-    },
-    {
-      label: "Recursos Humanos",
+      label: "Clientes",
+      path: "/dashboard/ventas/clientes",
       icon: UsersIcon,
-      children: [
-        {
-          label: "Empleados",
-          path: "/dashboard/rrhh/empleados",
-          icon: UsersIcon,
-        },
-        {
-          label: "Asistencia",
-          path: "/dashboard/rrhh/asistencia",
-          icon: FileText,
-        },
-      ],
     },
     {
-      label: "Reportes",
+      label: "Envíos",
+      path: "/dashboard/distribucion/envios",
+      icon: Truck,
+    },
+    {
+      label: "Control",
+      path: "/dashboard/distribucion/control",
       icon: FileText,
-      children: [
-        {
-          label: "Informes",
-          path: "/dashboard/reportes/informes",
-          icon: FileText,
-        },
-      ],
+    },
+    {
+      label: "Reg. Devoluciones",
+      path: "/dashboard/distribucion/registro-devoluciones",
+      icon: ClipboardList,
+    },
+    {
+      label: "Ingresos",
+      path: "/dashboard/finanzas/ingresos",
+      icon: TrendingUp,
+    },
+    {
+      label: "Gastos",
+      path: "/dashboard/finanzas/gastos",
+      icon: DollarSign,
+    },
+    {
+      label: "Empleados",
+      path: "/dashboard/rrhh/empleados",
+      icon: UsersIcon,
+    },
+    {
+      label: "Asistencia",
+      path: "/dashboard/rrhh/asistencia",
+      icon: ClipboardList,
+    },
+    {
+      label: "Informes",
+      path: "/dashboard/reportes/informes",
+      icon: FileText,
     },
     {
       label: "Auditoría",
       path: "/dashboard/auditoria",
       icon: Settings,
     },
+    {
+      label: "Configuración",
+      path: "/dashboard/configuracion",
+      icon: SlidersHorizontal,
+    },
   ];
 
   const isActive = (path: string) => location.pathname === path;
-  const isGroupActive = (children?: { path: string }[]) => {
-    if (!children) return false;
-    return children.some(
-      (child) => location.pathname === child.path
-    );
-  };
 
   // Obtener el título de la página actual
   const getCurrentTitle = () => {
     for (const item of menuItems) {
-      if (item.path && location.pathname === item.path) return item.label;
-      if (item.children) {
-        const child = item.children.find(c => location.pathname === c.path);
-        if (child) return child.label;
-      }
+      if (location.pathname === item.path) return item.label;
     }
     if (location.pathname.includes('/configuracion')) return "Configuración";
     if (location.pathname === '/dashboard') return "Dashboard";
@@ -217,7 +164,7 @@ export function Layout() {
         }}
       >
         <div className="px-3 sm:px-4 lg:px-6">
-          <div className="flex items-center h-14 sm:h-16 gap-2 sm:gap-3">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
             {/* Logo */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <img
@@ -227,94 +174,6 @@ export function Layout() {
                 style={{ filter: "drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))" }}
               />
             </div>
-
-            {/* Separator */}
-            <div className="w-px h-8 flex-shrink-0" style={{ background: c.borderGold }} />
-
-            {/* Navigation Icons */}
-            <nav ref={dropdownRef} className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0 py-1">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const hasChildren = item.children && item.children.length > 0;
-                const groupActive = isGroupActive(item.children);
-
-                if (item.path) {
-                  // Direct link item
-                  return (
-                    <Link
-                      key={item.label}
-                      to={item.path}
-                      title={item.label}
-                      className="p-2 sm:p-2.5 rounded-lg transition-all flex-shrink-0 hover:scale-110"
-                      style={{
-                        background: isActive(item.path)
-                          ? "linear-gradient(to right, #0d4a24, #ccaa00)"
-                          : "transparent",
-                        color: isActive(item.path) ? "#ffffff" : c.inactiveNav,
-                      }}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </Link>
-                  );
-                }
-
-                // Group item with dropdown
-                return (
-                  <div key={item.label} className="relative flex-shrink-0">
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
-                      title={item.label}
-                      className="p-2 sm:p-2.5 rounded-lg transition-all hover:scale-110"
-                      style={{
-                        background: groupActive
-                          ? "rgba(34, 197, 94, 0.15)"
-                          : openDropdown === item.label
-                            ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)")
-                            : "transparent",
-                        color: groupActive ? "#22c55e" : c.inactiveNav,
-                      }}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </button>
-
-                    {/* Dropdown */}
-                    {openDropdown === item.label && hasChildren && (
-                      <div
-                        className="absolute top-full left-0 mt-1 py-1 rounded-lg border min-w-[180px] z-50"
-                        style={{
-                          background: isDark ? "rgba(15, 15, 15, 0.98)" : "rgba(255, 255, 255, 0.98)",
-                          borderColor: c.borderGold,
-                          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-                        }}
-                      >
-                        <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: c.textSecondary }}>
-                          {item.label}
-                        </div>
-                        {item.children!.map((child) => {
-                          const ChildIcon = child.icon;
-                          return (
-                            <Link
-                              key={child.path}
-                              to={child.path}
-                              className="flex items-center gap-2.5 px-3 py-2 mx-1 rounded-md transition-all"
-                              style={{
-                                background: isActive(child.path)
-                                  ? "linear-gradient(to right, #0d4a24, #ccaa00)"
-                                  : "transparent",
-                                color: isActive(child.path) ? "#ffffff" : c.text,
-                              }}
-                            >
-                              <ChildIcon className="w-4 h-4 flex-shrink-0" />
-                              <span className="text-sm font-medium">{child.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
 
             {/* Right side */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -357,6 +216,30 @@ export function Layout() {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          <div className="pb-3">
+            <nav className="flex flex-wrap items-center gap-1.5">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all inline-flex items-center gap-1.5"
+                    style={{
+                      background: active ? "linear-gradient(to right, #0d4a24, #ccaa00)" : c.g04,
+                      color: active ? "#ffffff" : c.textSecondary,
+                      border: `1px solid ${active ? 'rgba(204,170,0,0.35)' : c.borderSubtle}`,
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
       </header>
