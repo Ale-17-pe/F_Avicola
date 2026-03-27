@@ -7,6 +7,7 @@ import {
 import { useApp, PedidoConfirmado, BloquePesaje } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
+import { PesajeProveedores } from './PesajeProveedores';
 
 // ===================== CONSTANTES =====================
 
@@ -274,6 +275,7 @@ export function PesajeOperador() {
   const [slots, setSlots] = useState<(SlotData | null)[]>(Array(NUM_SLOTS).fill(null));
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [modoManual, setModoManual] = useState(true);
+  const [modoPesajeTipo, setModoPesajeTipo] = useState<'clientes' | 'proveedores'>('clientes');
   const [pesoManualInput, setPesoManualInput] = useState('');
   const [jabasEnEstaPesada, setJabasEnEstaPesada] = useState('');
   const [selectedClienteBottom, setSelectedClienteBottom] = useState<string | null>(null);
@@ -834,9 +836,66 @@ export function PesajeOperador() {
   // Number of loaded slots
   const slotsOcupados = slots.filter(s => s !== null).length;
 
+  if (modoPesajeTipo === 'proveedores') {
+    return (
+      <div className="flex flex-col gap-3" style={{ minHeight: 'calc(100vh - 80px)' }}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setModoPesajeTipo('clientes')}
+            className="px-4 py-2 rounded-xl font-bold text-sm"
+            style={{
+              background: c.g10,
+              color: c.textSecondary,
+              border: `1px solid ${c.border}`,
+            }}
+          >
+            Clientes
+          </button>
+          <button
+            onClick={() => setModoPesajeTipo('proveedores')}
+            className="px-4 py-2 rounded-xl font-bold text-sm"
+            style={{
+              background: 'linear-gradient(to right, #1e3a8a, #2563eb)',
+              color: '#ffffff',
+              border: 'none',
+            }}
+          >
+            Proveedores
+          </button>
+        </div>
+        <PesajeProveedores />
+      </div>
+    );
+  }
+
   // ===================== RENDER =====================
   return (
     <div className="flex flex-col gap-3" style={{ minHeight: 'calc(100vh - 80px)' }}>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setModoPesajeTipo('clientes')}
+          className="px-4 py-2 rounded-xl font-bold text-sm"
+          style={{
+            background: 'linear-gradient(to right, #0d4a24, #22c55e)',
+            color: '#ffffff',
+            border: 'none',
+          }}
+        >
+          Clientes
+        </button>
+        <button
+          onClick={() => setModoPesajeTipo('proveedores')}
+          className="px-4 py-2 rounded-xl font-bold text-sm"
+          style={{
+            background: c.g10,
+            color: c.textSecondary,
+            border: `1px solid ${c.border}`,
+          }}
+        >
+          Proveedores
+        </button>
+      </div>
 
       {/* ═══════ HEADER BAR ═══════ */}
       <div className="flex items-center justify-between flex-wrap gap-2">
