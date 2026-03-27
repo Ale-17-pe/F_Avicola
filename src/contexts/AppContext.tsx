@@ -141,6 +141,46 @@ export interface Contenedor {
   stock: number;
 }
 
+export interface Proveedor {
+  id: string;
+  nombre: string;
+  ruc: string;
+  direccion: string;
+  telefono: string;
+  contacto?: string;
+  estado: 'Activo' | 'Inactivo';
+}
+
+export interface PesadaProveedor {
+  numero: number;
+  peso: number;
+  jabas?: number;
+}
+
+export interface PedidoProveedor {
+  id: string;
+  proveedorId: string;
+  proveedorNombre: string;
+  tipoAve: string;
+  variedad?: string;
+  presentacion: string;
+  sexo?: 'Macho' | 'Hembra' | 'Mixto';
+  cantidad: number;
+  cantidadJabas?: number;
+  unidadesPorJaba?: number;
+  unidadesPorJabaMachos?: number;
+  unidadesPorJabaHembras?: number;
+  fecha: string;
+  hora: string;
+  prioridad: number;
+  estado: 'Pendiente Pesaje' | 'En Pesaje' | 'Pesado' | 'Cancelado';
+  pesadas?: PesadaProveedor[];
+  pesoBrutoTotal?: number;
+  pesoNetoTotal?: number;
+  fechaPesaje?: string;
+  horaPesaje?: string;
+}
+
 export interface ConductorRegistrado {
   id: string;
   nombre: string;
@@ -274,6 +314,20 @@ interface AppContextType {
   updateContenedor: (contenedor: Contenedor) => void;
   deleteContenedor: (id: string) => void;
 
+  // Proveedores
+  proveedores: Proveedor[];
+  setProveedores: (proveedores: Proveedor[]) => void;
+  addProveedor: (proveedor: Proveedor) => void;
+  updateProveedor: (proveedor: Proveedor) => void;
+  deleteProveedor: (id: string) => void;
+
+  // Pedidos de proveedor (flujo de ingreso)
+  pedidosProveedor: PedidoProveedor[];
+  setPedidosProveedor: (pedidos: PedidoProveedor[]) => void;
+  addPedidoProveedor: (pedido: PedidoProveedor) => void;
+  updatePedidoProveedor: (id: string, pedido: PedidoProveedor) => void;
+  removePedidoProveedor: (id: string) => void;
+
   // Pagos
   pagos: Pago[];
   setPagos: (pagos: Pago[]) => void;
@@ -361,6 +415,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage('avicola_contenedores', [] as Contenedor[])
   );
 
+  // Estado inicial de Proveedores
+  const [proveedores, setProveedores] = useState<Proveedor[]>(() =>
+    loadFromStorage('avicola_proveedores', [] as Proveedor[])
+  );
+
+  // Estado inicial de pedidos de proveedor
+  const [pedidosProveedor, setPedidosProveedor] = useState<PedidoProveedor[]>(() =>
+    loadFromStorage('avicola_pedidosProveedor', [] as PedidoProveedor[])
+  );
+
   // Estado inicial de Pagos
   const [pagos, setPagos] = useState<Pago[]>(() =>
     loadFromStorage('avicola_pagos', [])
@@ -389,6 +453,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => localStorage.setItem('avicola_pedidosConfirmados', JSON.stringify(pedidosConfirmados)), [pedidosConfirmados]);
   useEffect(() => localStorage.setItem('avicola_presentaciones', JSON.stringify(presentaciones)), [presentaciones]);
   useEffect(() => localStorage.setItem('avicola_contenedores', JSON.stringify(contenedores)), [contenedores]);
+  useEffect(() => localStorage.setItem('avicola_proveedores', JSON.stringify(proveedores)), [proveedores]);
+  useEffect(() => localStorage.setItem('avicola_pedidosProveedor', JSON.stringify(pedidosProveedor)), [pedidosProveedor]);
   useEffect(() => localStorage.setItem('avicola_pagos', JSON.stringify(pagos)), [pagos]);
   useEffect(() => localStorage.setItem('avicola_conductoresRegistrados', JSON.stringify(conductoresRegistrados)), [conductoresRegistrados]);
   useEffect(() => localStorage.setItem('avicola_vehiculos', JSON.stringify(vehiculos)), [vehiculos]);
@@ -424,6 +490,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           case 'avicola_presentaciones':
             setPresentaciones(data);
+            break;
+          case 'avicola_proveedores':
+            setProveedores(data);
+            break;
+          case 'avicola_pedidosProveedor':
+            setPedidosProveedor(data);
             break;
           case 'avicola_empleados':
             setEmpleados(data);
@@ -467,6 +539,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const contenedoresStr = localStorage.getItem('avicola_contenedores');
         if (contenedoresStr) setContenedores(JSON.parse(contenedoresStr));
+
+        const proveedoresStr = localStorage.getItem('avicola_proveedores');
+        if (proveedoresStr) setProveedores(JSON.parse(proveedoresStr));
+
+        const pedidosProveedorStr = localStorage.getItem('avicola_pedidosProveedor');
+        if (pedidosProveedorStr) setPedidosProveedor(JSON.parse(pedidosProveedorStr));
 
         const presentacionesStr = localStorage.getItem('avicola_presentaciones');
         if (presentacionesStr) setPresentaciones(JSON.parse(presentacionesStr));
@@ -513,6 +591,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setPagos(prev => {
             const prevStr = JSON.stringify(prev);
             if (prevStr !== freshPagos) return parsedPagos;
+            return prev;
+          });
+        }
+
+        const freshProveedores = localStorage.getItem('avicola_proveedores');
+        if (freshProveedores) {
+          const parsedProveedores = JSON.parse(freshProveedores);
+          setProveedores(prev => {
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== freshProveedores) return parsedProveedores;
+            return prev;
+          });
+        }
+
+        const freshPedidosProveedor = localStorage.getItem('avicola_pedidosProveedor');
+        if (freshPedidosProveedor) {
+          const parsedPedidosProveedor = JSON.parse(freshPedidosProveedor);
+          setPedidosProveedor(prev => {
+            const prevStr = JSON.stringify(prev);
+            if (prevStr !== freshPedidosProveedor) return parsedPedidosProveedor;
             return prev;
           });
         }
@@ -682,6 +780,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setContenedores(prev => prev.filter(c => c.id !== id));
   };
 
+  // ============ FUNCIONES PARA PROVEEDORES ============
+  const addProveedor = (proveedor: Proveedor) => {
+    setProveedores(prev => [...prev, proveedor]);
+  };
+
+  const updateProveedor = (proveedor: Proveedor) => {
+    setProveedores(prev => prev.map(p => p.id === proveedor.id ? proveedor : p));
+    setPedidosProveedor(prev => prev.map(p =>
+      p.proveedorId === proveedor.id
+        ? { ...p, proveedorNombre: proveedor.nombre }
+        : p
+    ));
+  };
+
+  const deleteProveedor = (id: string) => {
+    setProveedores(prev => prev.filter(p => p.id !== id));
+    setPedidosProveedor(prev => prev.filter(p => p.proveedorId !== id));
+  };
+
+  // ============ FUNCIONES PARA PEDIDOS DE PROVEEDOR ============
+  const addPedidoProveedor = (pedido: PedidoProveedor) => {
+    setPedidosProveedor(prev => [...prev, pedido]);
+  };
+
+  const updatePedidoProveedor = (id: string, pedido: PedidoProveedor) => {
+    setPedidosProveedor(prev => prev.map(p => p.id === id ? pedido : p));
+  };
+
+  const removePedidoProveedor = (id: string) => {
+    setPedidosProveedor(prev => prev.filter(p => p.id !== id));
+  };
+
   // ============ FUNCIONES PARA PAGOS ============
   const addPago = (pago: Pago) => {
     setPagos(prev => [...prev, pago]);
@@ -841,6 +971,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addContenedor,
     updateContenedor,
     deleteContenedor,
+
+    // Proveedores
+    proveedores,
+    setProveedores,
+    addProveedor,
+    updateProveedor,
+    deleteProveedor,
+
+    // Pedidos de proveedor
+    pedidosProveedor,
+    setPedidosProveedor,
+    addPedidoProveedor,
+    updatePedidoProveedor,
+    removePedidoProveedor,
 
     // Pagos
     pagos,

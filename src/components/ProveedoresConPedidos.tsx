@@ -1,695 +1,469 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, ShoppingCart, Calendar, Bird, Phone, MapPin, FileText } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Bird, Calendar, ClipboardList, Grid3x3, Plus, Search, Store, UserPlus, Users } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useTheme, t } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
 
-interface Proveedor {
-  id: string;
-  nombre: string;
-  ruc: string;
-  direccion: string;
-  telefono: string;
-  contacto?: string;
-}
-
-interface Pedido {
-  id: string;
-  proveedorId: string;
-  proveedorNombre: string;
-  tipoAve: string;
-  variedad?: string;
-  cantidadJavas: number;
-  avesPorJava: number;
-  cantidad: number;
-  cantidadMachos?: number;
-  cantidadHembras?: number;
-  fechaIngreso: string;
-  horaIngreso: string;
-}
+type SubTab = 'nuevo-proveedor' | 'nuevo-pedido';
 
 export function ProveedoresConPedidos() {
-  const { tiposAve } = useApp();
-  const { isDark } = useTheme(); const c = t(isDark);
-  
-  const [proveedores] = useState<Proveedor[]>([
-    {
-      id: '1',
-      nombre: 'Distribuidora San Martín',
-      ruc: '20123456789',
-      direccion: 'Av. Principal 123, Lima',
-      telefono: '987654321',
-      contacto: 'Juan Pérez'
-    },
-    {
-      id: '2',
-      nombre: 'Avícola del Norte SAC',
-      ruc: '20987654321',
-      direccion: 'Jr. Los Andes 456, Trujillo',
-      telefono: '945678912',
-      contacto: 'María García'
-    },
-    {
-      id: '3',
-      nombre: 'Granja La Esperanza EIRL',
-      ruc: '20456789123',
-      direccion: 'Calle Las Flores 789, Chiclayo',
-      telefono: '956123789',
-      contacto: 'Carlos López'
-    }
-  ]);
+  const { tiposAve, proveedores, addProveedor, pedidosProveedor, addPedidoProveedor } = useApp();
+  const { isDark } = useTheme();
+  const c = t(isDark);
 
-  const [pedidos, setPedidos] = useState<Pedido[]>([
-    {
-      id: '1',
-      proveedorId: '1',
-      proveedorNombre: 'Distribuidora San Martín',
-      tipoAve: 'Pollo',
-      variedad: 'Blancos',
-      cantidadJavas: 3,
-      avesPorJava: 50,
-      cantidad: 150,
-      fechaIngreso: '2025-02-01',
-      horaIngreso: '08:30'
-    },
-    {
-      id: '2',
-      proveedorId: '2',
-      proveedorNombre: 'Avícola del Norte SAC',
-      tipoAve: 'Gallina',
-      variedad: 'Rojas',
-      cantidadJavas: 2,
-      avesPorJava: 40,
-      cantidad: 80,
-      fechaIngreso: '2025-02-03',
-      horaIngreso: '09:00'
-    }
-  ]);
+  const [subTab, setSubTab] = useState<SubTab>('nuevo-proveedor');
+  const [searchPedido, setSearchPedido] = useState('');
 
-  const [isPedidoModalOpen, setIsPedidoModalOpen] = useState(false);
-  const [editingPedido, setEditingPedido] = useState<Pedido | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterProveedor, setFilterProveedor] = useState<string>('all');
-  
-  const [pedidoFormData, setPedidoFormData] = useState({
+  const [proveedorForm, setProveedorForm] = useState({
+    nombre: '',
+    ruc: '',
+    direccion: '',
+    telefono: '',
+    contacto: '',
+  });
+
+  const [pedidoForm, setPedidoForm] = useState({
     proveedorId: '',
-    tipoAve: 'Pollo',
-    variedad: undefined as string | undefined,
-    cantidadJavas: '',
-    avesPorJava: '',
-    cantidadMachos: '',
-    cantidadHembras: '',
-    fechaIngreso: new Date().toISOString().split('T')[0],
-    horaIngreso: new Date().toISOString().split('T')[1].slice(0, 5)
+    tipoAve: '',
+    variedad: '',
+    presentacion: '',
+    sexo: 'Mixto' as 'Macho' | 'Hembra' | 'Mixto',
+    cantidadJabas: '',
+    unidadesPorJaba: '',
+    unidadesPorJabaMachos: '',
+    unidadesPorJabaHembras: '',
+    cantidadDirecta: '',
   });
 
-  const filteredPedidos = pedidos.filter(pedido => {
-    const matchesSearch = pedido.proveedorNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          pedido.tipoAve.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterProveedor === 'all' || pedido.proveedorId === filterProveedor;
-    return matchesSearch && matchesFilter;
-  });
+  const tipoAveSeleccionado = useMemo(
+    () => tiposAve.find(t => t.nombre === pedidoForm.tipoAve),
+    [tiposAve, pedidoForm.tipoAve],
+  );
 
-  const stats = {
-    totalProveedores: proveedores.length,
-    pedidosPendientes: pedidos.length,
-    ultimoPedido: pedidos.length > 0 ? pedidos[pedidos.length - 1].fechaIngreso : '-'
-  };
+  const esVivo = pedidoForm.presentacion.toLowerCase().includes('vivo');
 
-  const handleOpenPedidoModal = (pedido?: Pedido) => {
-    if (pedido) {
-      setEditingPedido(pedido);
-      setPedidoFormData({
-        proveedorId: pedido.proveedorId,
-        tipoAve: pedido.tipoAve,
-        variedad: pedido.variedad,
-        cantidadJavas: pedido.cantidadJavas.toString(),
-        avesPorJava: pedido.avesPorJava.toString(),
-        cantidadMachos: pedido.cantidadMachos?.toString() || '',
-        cantidadHembras: pedido.cantidadHembras?.toString() || '',
-        fechaIngreso: pedido.fechaIngreso,
-        horaIngreso: pedido.horaIngreso
-      });
-    } else {
-      setEditingPedido(null);
-      setPedidoFormData({
-        proveedorId: '',
-        tipoAve: 'Pollo',
-        variedad: undefined,
-        cantidadJavas: '',
-        avesPorJava: '',
-        cantidadMachos: '',
-        cantidadHembras: '',
-        fechaIngreso: new Date().toISOString().split('T')[0],
-        horaIngreso: new Date().toISOString().split('T')[1].slice(0, 5)
-      });
+  const totalAvesEstimadas = useMemo(() => {
+    if (!esVivo) return parseInt(pedidoForm.cantidadDirecta, 10) || 0;
+    const jabas = parseInt(pedidoForm.cantidadJabas, 10) || 0;
+    if (jabas <= 0) return 0;
+
+    if (tipoAveSeleccionado?.tieneSexo && pedidoForm.sexo === 'Mixto') {
+      const m = parseInt(pedidoForm.unidadesPorJabaMachos, 10) || 0;
+      const h = parseInt(pedidoForm.unidadesPorJabaHembras, 10) || 0;
+      return jabas * (m + h);
     }
-    setIsPedidoModalOpen(true);
-  };
 
-  const handleClosePedidoModal = () => {
-    setIsPedidoModalOpen(false);
-    setEditingPedido(null);
+    const upj = parseInt(pedidoForm.unidadesPorJaba, 10) || 0;
+    return jabas * upj;
+  }, [
+    esVivo,
+    pedidoForm.cantidadDirecta,
+    pedidoForm.cantidadJabas,
+    pedidoForm.unidadesPorJaba,
+    pedidoForm.unidadesPorJabaMachos,
+    pedidoForm.unidadesPorJabaHembras,
+    pedidoForm.sexo,
+    tipoAveSeleccionado,
+  ]);
+
+  const historial = useMemo(() => {
+    return [...pedidosProveedor]
+      .filter(p => {
+        const q = searchPedido.trim().toLowerCase();
+        if (!q) return true;
+        return (
+          p.proveedorNombre.toLowerCase().includes(q) ||
+          p.tipoAve.toLowerCase().includes(q) ||
+          p.estado.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => b.prioridad - a.prioridad);
+  }, [pedidosProveedor, searchPedido]);
+
+  const handleSubmitProveedor = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!proveedorForm.nombre.trim() || !proveedorForm.ruc.trim()) {
+      toast.error('Ingrese nombre y RUC del proveedor');
+      return;
+    }
+
+    const existeRuc = proveedores.some(p => p.ruc.trim() === proveedorForm.ruc.trim());
+    if (existeRuc) {
+      toast.error('Ya existe un proveedor con ese RUC');
+      return;
+    }
+
+    addProveedor({
+      id: `prov-${Date.now()}`,
+      nombre: proveedorForm.nombre.trim(),
+      ruc: proveedorForm.ruc.trim(),
+      direccion: proveedorForm.direccion.trim(),
+      telefono: proveedorForm.telefono.trim(),
+      contacto: proveedorForm.contacto.trim() || undefined,
+      estado: 'Activo',
+    });
+
+    setProveedorForm({ nombre: '', ruc: '', direccion: '', telefono: '', contacto: '' });
+    toast.success('Proveedor registrado correctamente');
   };
 
   const handleSubmitPedido = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const proveedor = proveedores.find(p => p.id === pedidoFormData.proveedorId);
-    if (!proveedor) return;
 
-    const totalAves = parseInt(pedidoFormData.cantidadJavas) * parseInt(pedidoFormData.avesPorJava);
+    const proveedor = proveedores.find(p => p.id === pedidoForm.proveedorId);
+    if (!proveedor) {
+      toast.error('Seleccione un proveedor');
+      return;
+    }
+    if (!pedidoForm.tipoAve || !pedidoForm.presentacion) {
+      toast.error('Complete tipo de ave y presentacion');
+      return;
+    }
 
-    const pedidoData: Pedido = {
-      id: editingPedido?.id || Date.now().toString(),
-      proveedorId: pedidoFormData.proveedorId,
-      proveedorNombre: proveedor.nombre,
-      tipoAve: pedidoFormData.tipoAve,
-      variedad: pedidoFormData.variedad,
-      cantidadJavas: parseInt(pedidoFormData.cantidadJavas),
-      avesPorJava: parseInt(pedidoFormData.avesPorJava),
-      cantidad: totalAves,
-      cantidadMachos: pedidoFormData.cantidadMachos ? parseInt(pedidoFormData.cantidadMachos) : undefined,
-      cantidadHembras: pedidoFormData.cantidadHembras ? parseInt(pedidoFormData.cantidadHembras) : undefined,
-      fechaIngreso: pedidoFormData.fechaIngreso,
-      horaIngreso: pedidoFormData.horaIngreso
-    };
+    const ahora = new Date();
+    const fecha = ahora.toISOString().split('T')[0];
+    const hora = ahora.toTimeString().slice(0, 5);
 
-    if (editingPedido) {
-      setPedidos(pedidos.map(p => p.id === editingPedido.id ? pedidoData : p));
-      toast.success('Pedido actualizado exitosamente');
+    let cantidad = 0;
+    let cantidadJabas: number | undefined;
+    let unidadesPorJaba: number | undefined;
+    let unidadesPorJabaMachos: number | undefined;
+    let unidadesPorJabaHembras: number | undefined;
+
+    if (esVivo) {
+      const jabas = parseInt(pedidoForm.cantidadJabas, 10) || 0;
+      if (jabas <= 0) {
+        toast.error('Ingrese una cantidad de jabas valida');
+        return;
+      }
+      cantidadJabas = jabas;
+
+      if (tipoAveSeleccionado?.tieneSexo && pedidoForm.sexo === 'Mixto') {
+        const mach = parseInt(pedidoForm.unidadesPorJabaMachos, 10) || 0;
+        const hem = parseInt(pedidoForm.unidadesPorJabaHembras, 10) || 0;
+        if (mach <= 0 || hem <= 0) {
+          toast.error('Ingrese unidades por jaba de machos y hembras');
+          return;
+        }
+        unidadesPorJabaMachos = mach;
+        unidadesPorJabaHembras = hem;
+        cantidad = jabas * (mach + hem);
+      } else {
+        const upj = parseInt(pedidoForm.unidadesPorJaba, 10) || 0;
+        if (upj <= 0) {
+          toast.error('Ingrese unidades por jaba');
+          return;
+        }
+        unidadesPorJaba = upj;
+        cantidad = jabas * upj;
+      }
     } else {
-      setPedidos([...pedidos, pedidoData]);
-      toast.success('Pedido registrado exitosamente');
+      cantidad = parseInt(pedidoForm.cantidadDirecta, 10) || 0;
+      if (cantidad <= 0) {
+        toast.error('Ingrese una cantidad valida');
+        return;
+      }
     }
-    
-    handleClosePedidoModal();
+
+    addPedidoProveedor({
+      id: `pp-${Date.now()}`,
+      proveedorId: proveedor.id,
+      proveedorNombre: proveedor.nombre,
+      tipoAve: pedidoForm.tipoAve,
+      variedad: tipoAveSeleccionado?.tieneVariedad ? (pedidoForm.variedad || undefined) : undefined,
+      presentacion: pedidoForm.presentacion,
+      sexo: tipoAveSeleccionado?.tieneSexo ? pedidoForm.sexo : undefined,
+      cantidad,
+      cantidadJabas,
+      unidadesPorJaba,
+      unidadesPorJabaMachos,
+      unidadesPorJabaHembras,
+      fecha,
+      hora,
+      prioridad: Date.now(),
+      estado: 'Pendiente Pesaje',
+      pesadas: [],
+    });
+
+    setPedidoForm({
+      proveedorId: '',
+      tipoAve: '',
+      variedad: '',
+      presentacion: '',
+      sexo: 'Mixto',
+      cantidadJabas: '',
+      unidadesPorJaba: '',
+      unidadesPorJabaMachos: '',
+      unidadesPorJabaHembras: '',
+      cantidadDirecta: '',
+    });
+
+    toast.success('Pedido de proveedor enviado a Pesaje');
   };
 
-  const handleDeletePedido = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este pedido?')) {
-      setPedidos(pedidos.filter(p => p.id !== id));
-      toast.success('Pedido eliminado exitosamente');
-    }
-  };
-
-  const tipoAveSeleccionado = tiposAve.find(t => t.nombre === pedidoFormData.tipoAve);
+  const totalPendientes = pedidosProveedor.filter(p => p.estado === 'Pendiente Pesaje' || p.estado === 'En Pesaje').length;
+  const totalPesados = pedidosProveedor.filter(p => p.estado === 'Pesado').length;
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2" style={{ color: c.text }}>Gestión de Proveedores</h1>
-          <p style={{ color: c.textSecondary }}>Registro de pedidos de abastecimiento</p>
-        </div>
-        <button
-          onClick={() => handleOpenPedidoModal()}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all hover:scale-105"
-          style={{
-            background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-            color: '#ffffff',
-            boxShadow: '0 4px 12px rgba(204, 170, 0, 0.4)'
-          }}
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Pedido
-        </button>
-      </div>
-
-      {/* Métricas Clave */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: c.bgCard,
-          border: '1px solid rgba(34, 197, 94, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Total Proveedores</p>
-            <Phone className="w-5 h-5" style={{ color: '#22c55e' }} />
+    <div className="min-h-screen" style={{ color: c.text }}>
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black" style={{ color: c.text }}>Gestión de Proveedores</h1>
+            <p className="text-lg" style={{ color: c.textSecondary }}>Flujo de proveedores con diseño tipo Nuevo Pedido</p>
           </div>
-          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.totalProveedores}</p>
-          <p className="text-sm" style={{ color: '#22c55e' }}>Activos en el sistema</p>
-        </div>
 
-        <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: c.bgCard,
-          border: '1px solid rgba(204, 170, 0, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Pedidos Registrados</p>
-            <FileText className="w-5 h-5" style={{ color: '#ccaa00' }} />
-          </div>
-          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.pedidosPendientes}</p>
-          <p className="text-sm" style={{ color: '#ccaa00' }}>Total de pedidos</p>
-        </div>
-
-        <div className="backdrop-blur-xl rounded-xl p-6" style={{
-          background: c.bgCard,
-          border: '1px solid rgba(59, 130, 246, 0.3)'
-        }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium" style={{ color: c.textSecondary }}>Último Pedido</p>
-            <Calendar className="w-5 h-5" style={{ color: '#3b82f6' }} />
-          </div>
-          <p className="text-3xl font-bold mb-1" style={{ color: c.text }}>{stats.ultimoPedido}</p>
-          <p className="text-sm" style={{ color: '#3b82f6' }}>Fecha de ingreso</p>
-        </div>
-      </div>
-
-      {/* Lista de Proveedores */}
-      <div className="backdrop-blur-xl rounded-xl p-6" style={{
-        background: c.bgCard,
-        border: `1px solid ${c.border}`
-      }}>
-        <h2 className="text-xl font-bold mb-4" style={{ color: c.text }}>Proveedores Registrados</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
-                <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Nombre</th>
-                <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>RUC</th>
-                <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Contacto</th>
-                <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Teléfono</th>
-                <th className="px-6 py-3 text-left font-bold" style={{ color: '#ccaa00' }}>Dirección</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proveedores.map((proveedor) => (
-                <tr 
-                  key={proveedor.id}
-                  className="border-b transition-colors"
-                  style={{ borderColor: c.borderSubtle }}
-                >
-                  <td className="px-6 py-4 font-medium" style={{ color: c.text }}>{proveedor.nombre}</td>
-                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.ruc}</td>
-                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.contacto || '-'}</td>
-                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.telefono}</td>
-                  <td className="px-6 py-4" style={{ color: c.textSecondary }}>{proveedor.direccion}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pedidos */}
-      <div className="backdrop-blur-xl rounded-xl overflow-hidden" style={{
-        background: c.bgCard,
-        border: `1px solid ${c.border}`
-      }}>
-        <div className="p-4 border-b" style={{ borderColor: c.borderGold }}>
-          <h2 className="text-xl font-bold mb-4" style={{ color: c.text }}>Historial de Pedidos</h2>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: c.textSecondary }} />
-              <input
-                type="text"
-                placeholder="Buscar por proveedor o tipo de ave..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg"
-                style={{
-                  background: c.bgInput,
-                  border: `1px solid ${c.border}`,
-                  color: c.text
-                }}
-              />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="px-4 py-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <div className="text-xs uppercase font-bold" style={{ color: '#60a5fa' }}>En Pesaje</div>
+              <div className="text-2xl font-black" style={{ color: c.text }}>{totalPendientes}</div>
             </div>
-            <select
-              value={filterProveedor}
-              onChange={(e) => setFilterProveedor(e.target.value)}
-              className="px-4 py-3 rounded-lg"
-              style={{
-                background: c.bgInput,
-                border: `1px solid ${c.border}`,
-                color: c.text
-              }}
-            >
-              <option value="all" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Todos los proveedores</option>
-              {proveedores.map((proveedor) => (
-                <option key={proveedor.id} value={proveedor.id} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
-                  {proveedor.nombre}
-                </option>
-              ))}
-            </select>
+            <div className="px-4 py-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+              <div className="text-xs uppercase font-bold" style={{ color: '#22c55e' }}>Pesados</div>
+              <div className="text-2xl font-black" style={{ color: c.text }}>{totalPesados}</div>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ background: c.bgTableHeader, borderBottom: `1px solid ${c.borderGold}` }}>
-                <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Proveedor</th>
-                <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Tipo de Ave</th>
-                <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Detalle</th>
-                <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Cantidad</th>
-                <th className="px-6 py-4 text-left font-bold" style={{ color: '#ccaa00' }}>Fecha</th>
-                <th className="px-6 py-4 text-center font-bold" style={{ color: '#ccaa00' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPedidos.map((pedido) => {
-                const tipoAve = tiposAve.find(t => t.nombre === pedido.tipoAve);
-                return (
-                  <tr 
-                    key={pedido.id}
-                    className="border-b transition-colors"
-                    style={{ borderColor: c.borderSubtle }}
-                  >
-                    <td className="px-6 py-4" style={{ color: c.text }}>{pedido.proveedorNombre}</td>
-                    <td className="px-6 py-4">
-                      <span 
-                        className="px-2 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          background: tipoAve?.color ? `${tipoAve.color}20` : 'rgba(34, 197, 94, 0.2)',
-                          color: tipoAve?.color || '#22c55e',
-                          border: `1px solid ${tipoAve?.color ? `${tipoAve.color}40` : 'rgba(34, 197, 94, 0.3)'}`
-                        }}
-                      >
-                        {pedido.tipoAve}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm" style={{ color: c.textSecondary }}>
-                      {pedido.variedad && <div className="mb-1">{pedido.variedad}</div>}
-                      <div className="text-xs space-x-2">
-                        <span style={{ color: '#3b82f6' }}>Javas {pedido.cantidadJavas}</span>
-                        <span>|</span>
-                        <span style={{ color: '#ec4899' }}>Aves/Java {pedido.avesPorJava}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-bold" style={{ color: c.text }}>{pedido.cantidad}</td>
-                    <td className="px-6 py-4 text-sm" style={{ color: c.textSecondary }}>
-                      <div>{pedido.fechaIngreso}</div>
-                      <div className="text-xs">{pedido.horaIngreso}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenPedidoModal(pedido)}
-                          className="p-2 rounded-lg transition-all hover:scale-110"
-                          style={{
-                            background: 'rgba(34, 197, 94, 0.2)',
-                            border: '1px solid rgba(34, 197, 94, 0.3)'
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4" style={{ color: '#22c55e' }} />
-                        </button>
-                        <button
-                          onClick={() => handleDeletePedido(pedido.id)}
-                          className="p-2 rounded-lg transition-all hover:scale-110"
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.2)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setSubTab('nuevo-proveedor')}
+            className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-[1.02] flex items-center gap-2"
+            style={{
+              background: subTab === 'nuevo-proveedor' ? 'linear-gradient(to right, #0d4a24, #22c55e)' : c.g10,
+              color: subTab === 'nuevo-proveedor' ? '#ffffff' : c.textSecondary,
+              border: subTab === 'nuevo-proveedor' ? 'none' : `1px solid ${c.border}`,
+            }}
+          >
+            <UserPlus className="w-4 h-4" /> Nuevo Proveedor
+          </button>
+          <button
+            onClick={() => setSubTab('nuevo-pedido')}
+            className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-[1.02] flex items-center gap-2"
+            style={{
+              background: subTab === 'nuevo-pedido' ? 'linear-gradient(to right, #1e3a8a, #2563eb)' : c.g10,
+              color: subTab === 'nuevo-pedido' ? '#ffffff' : c.textSecondary,
+              border: subTab === 'nuevo-pedido' ? 'none' : `1px solid ${c.border}`,
+            }}
+          >
+            <Plus className="w-4 h-4" /> Nuevo Pedido
+          </button>
         </div>
       </div>
 
-      {/* Modal Nuevo Pedido */}
-      {isPedidoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: c.bgModalOverlay }}>
-          <div className="backdrop-blur-2xl rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden" style={{
-            background: isDark ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(13, 74, 36, 0.3) 50%, rgba(0, 0, 0, 0.7) 100%)' : '#ffffff',
-            border: `2px solid ${c.borderGold}`,
-            boxShadow: c.shadowLg
-          }}>
-            {/* Header */}
-            <div className="p-6 border-b" style={{ borderColor: c.borderGold }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #ccaa00, #b8941e)',
-                      boxShadow: '0 10px 30px rgba(204, 170, 0, 0.4)'
-                    }}
-                  >
-                    <ShoppingCart className="w-6 h-6 text-black" />
+      {subTab === 'nuevo-proveedor' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-2xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: c.text }}>
+              <UserPlus className="w-5 h-5 text-green-400" /> Registro de Proveedor
+            </h2>
+
+            <form onSubmit={handleSubmitProveedor} className="space-y-3">
+              <input value={proveedorForm.nombre} onChange={e => setProveedorForm(prev => ({ ...prev, nombre: e.target.value }))} placeholder="Nombre comercial" className="w-full px-4 py-3 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+              <input value={proveedorForm.ruc} onChange={e => setProveedorForm(prev => ({ ...prev, ruc: e.target.value }))} placeholder="RUC" className="w-full px-4 py-3 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+              <input value={proveedorForm.contacto} onChange={e => setProveedorForm(prev => ({ ...prev, contacto: e.target.value }))} placeholder="Contacto" className="w-full px-4 py-3 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+              <input value={proveedorForm.telefono} onChange={e => setProveedorForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="Telefono" className="w-full px-4 py-3 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+              <input value={proveedorForm.direccion} onChange={e => setProveedorForm(prev => ({ ...prev, direccion: e.target.value }))} placeholder="Direccion" className="w-full px-4 py-3 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+
+              <button type="submit" className="w-full px-4 py-3 rounded-xl font-semibold transition-all hover:scale-[1.02]" style={{ background: 'linear-gradient(to right, #0d4a24, #22c55e)', color: c.text }}>
+                Guardar Proveedor
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-2xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: c.text }}>
+              <Store className="w-5 h-5 text-blue-400" /> Proveedores Registrados
+            </h2>
+            <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+              {proveedores.length === 0 && <p className="text-sm" style={{ color: c.textMuted }}>No hay proveedores registrados.</p>}
+              {proveedores.map(p => (
+                <div key={p.id} className="p-4 rounded-xl" style={{ background: c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold" style={{ color: c.text }}>{p.nombre}</p>
+                    <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>{p.estado}</span>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold" style={{ color: c.text }}>
-                      {editingPedido ? 'Editar Pedido' : 'Nuevo Pedido de Abastecimiento'}
-                    </h2>
-                    <p className="text-sm" style={{ color: c.textSecondary }}>Registro de aves del proveedor</p>
-                  </div>
+                  <p className="text-xs mt-1" style={{ color: c.textSecondary }}>RUC: {p.ruc}</p>
+                  <p className="text-xs mt-1" style={{ color: c.textMuted }}>{p.contacto || '-'} · {p.telefono || '-'}</p>
                 </div>
-                <button
-                  onClick={handleClosePedidoModal}
-                  className="p-2 rounded-xl transition-all hover:scale-110 hover:rotate-90"
-                  style={{ 
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)'
-                  }}
-                >
-                  <X className="w-5 h-5" style={{ color: '#ef4444' }} />
-                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'nuevo-pedido' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl p-6" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Bird className="w-5 h-5 text-amber-400" />
+              <h2 className="text-xl font-bold" style={{ color: c.text }}>Nuevo Pedido de Proveedor</h2>
+            </div>
+
+            <form onSubmit={handleSubmitPedido} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Proveedor</label>
+                  <select value={pedidoForm.proveedorId} onChange={e => setPedidoForm(prev => ({ ...prev, proveedorId: e.target.value }))} className="w-full px-4 py-3 border rounded-lg text-sm" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+                    {proveedores.map(p => <option key={p.id} value={p.id} style={{ background: c.bgPage, color: c.text }}>{p.nombre}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Producto</label>
+                  <select value={pedidoForm.tipoAve} onChange={e => setPedidoForm(prev => ({ ...prev, tipoAve: e.target.value, variedad: '', presentacion: '', sexo: 'Mixto' }))} className="w-full px-4 py-3 border rounded-lg text-sm" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+                    {tiposAve.map(t => <option key={t.id} value={t.nombre} style={{ background: c.bgPage, color: c.text }}>{t.nombre}</option>)}
+                  </select>
+                </div>
               </div>
-            </div>
 
-            {/* Form */}
-            <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 100px)' }}>
-              <form onSubmit={handleSubmitPedido} className="space-y-6">
-                {/* Proveedor */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Proveedor *</label>
-                  <select
-                    required
-                    value={pedidoFormData.proveedorId}
-                    onChange={(e) => setPedidoFormData({ ...pedidoFormData, proveedorId: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg"
-                    style={{
-                      background: c.bgInput,
-                      border: `1px solid ${c.border}`,
-                      color: c.text
-                    }}
-                  >
-                    <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Seleccionar proveedor</option>
-                    {proveedores.map((proveedor) => (
-                      <option key={proveedor.id} value={proveedor.id} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
-                        {proveedor.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Tipo de Ave */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Tipo de Ave *</label>
-                  <select
-                    required
-                    value={pedidoFormData.tipoAve}
-                    onChange={(e) => setPedidoFormData({ ...pedidoFormData, tipoAve: e.target.value, variedad: undefined })}
-                    className="w-full px-4 py-3 rounded-lg"
-                    style={{
-                      background: c.bgInput,
-                      border: `1px solid ${c.border}`,
-                      color: c.text
-                    }}
-                  >
-                    {tiposAve.map((tipo) => (
-                      <option key={tipo.id} value={tipo.nombre} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
-                        {tipo.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Variedad (si aplica) */}
-                {tipoAveSeleccionado?.tieneVariedad && tipoAveSeleccionado.variedades && (
+              <div className="grid grid-cols-2 gap-4">
+                {tipoAveSeleccionado?.tieneVariedad && (
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Variedad *</label>
-                    <select
-                      required
-                      value={pedidoFormData.variedad || ''}
-                      onChange={(e) => setPedidoFormData({ ...pedidoFormData, variedad: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg"
-                      style={{
-                        background: c.bgInput,
-                        border: `1px solid ${c.border}`,
-                        color: c.text
-                      }}
-                    >
-                      <option value="" style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>Seleccionar variedad</option>
-                      {tipoAveSeleccionado.variedades.map((variedad) => (
-                        <option key={variedad} value={variedad} style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
-                          {variedad}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Variedad</label>
+                    <select value={pedidoForm.variedad} onChange={e => setPedidoForm(prev => ({ ...prev, variedad: e.target.value }))} className="w-full px-4 py-3 border rounded-lg text-sm" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+                      <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+                      {(tipoAveSeleccionado.variedades || []).map(v => <option key={v} value={v} style={{ background: c.bgPage, color: c.text }}>{v}</option>)}
                     </select>
                   </div>
                 )}
 
-                {/* Cantidad de Javas y Aves por Java */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad de Javas *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={pedidoFormData.cantidadJavas}
-                      onChange={(e) => setPedidoFormData({ ...pedidoFormData, cantidadJavas: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg"
-                      style={{
-                        background: c.bgInput,
-                        border: `1px solid ${c.border}`,
-                        color: c.text
-                      }}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Aves por Java *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={pedidoFormData.avesPorJava}
-                      onChange={(e) => setPedidoFormData({ ...pedidoFormData, avesPorJava: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg"
-                      style={{
-                        background: c.bgInput,
-                        border: `1px solid ${c.border}`,
-                        color: c.text
-                      }}
-                      placeholder="0"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Presentación</label>
+                  <select value={pedidoForm.presentacion} onChange={e => setPedidoForm(prev => ({ ...prev, presentacion: e.target.value }))} disabled={!pedidoForm.tipoAve} className="w-full px-4 py-3 border rounded-lg text-sm disabled:opacity-50" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }}>
+                    <option value="" style={{ background: c.bgPage, color: c.text }}>Seleccionar...</option>
+                    <option value="Vivo" style={{ background: c.bgPage, color: c.text }}>Vivo</option>
+                    <option value="Pelado" style={{ background: c.bgPage, color: c.text }}>Pelado</option>
+                    <option value="Destripado" style={{ background: c.bgPage, color: c.text }}>Destripado</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* Total calculado */}
-                {pedidoFormData.cantidadJavas && pedidoFormData.avesPorJava && (
-                  <div className="p-4 rounded-lg" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-                    <p className="text-sm" style={{ color: c.textSecondary }}>Total de aves:</p>
-                    <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
-                      {parseInt(pedidoFormData.cantidadJavas) * parseInt(pedidoFormData.avesPorJava)} aves
-                    </p>
-                  </div>
-                )}
-
-                {/* Sexo (si aplica) */}
-                {tipoAveSeleccionado?.tieneSexo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad Machos</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={pedidoFormData.cantidadMachos}
-                        onChange={(e) => {
-                          const machos = e.target.value;
-                          const totalAves = pedidoFormData.cantidadJavas && pedidoFormData.avesPorJava 
-                            ? parseInt(pedidoFormData.cantidadJavas) * parseInt(pedidoFormData.avesPorJava) 
-                            : 0;
-                          
-                          // Auto-rellenar hembras con el restante
-                          const hembras = machos && totalAves > 0 
-                            ? Math.max(0, totalAves - parseInt(machos)).toString() 
-                            : '';
-                          
-                          setPedidoFormData({ 
-                            ...pedidoFormData, 
-                            cantidadMachos: machos,
-                            cantidadHembras: hembras
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-lg"
+              {tipoAveSeleccionado?.tieneSexo && (
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Sexo</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['Mixto', 'Macho', 'Hembra'] as const).map(s => (
+                      <button key={s} type="button" onClick={() => setPedidoForm(prev => ({ ...prev, sexo: s }))}
+                        className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
                         style={{
-                          background: c.bgInput,
-                          border: `1px solid ${c.border}`,
-                          color: c.text
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
+                          background: pedidoForm.sexo === s ? 'rgba(59,130,246,0.16)' : c.bgCardAlt,
+                          color: pedidoForm.sexo === s ? '#60a5fa' : c.textSecondary,
+                          border: pedidoForm.sexo === s ? '1px solid rgba(59,130,246,0.45)' : `1px solid ${c.border}`,
+                        }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {esVivo ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Cantidad de Jabas</label>
+                    <input type="number" min="1" value={pedidoForm.cantidadJabas} onChange={e => setPedidoForm(prev => ({ ...prev, cantidadJabas: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg text-sm" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} placeholder="N° de jabas" />
+                  </div>
+
+                  {tipoAveSeleccionado?.tieneSexo && pedidoForm.sexo === 'Mixto' ? (
                     <div>
-                      <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Cantidad Hembras</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={pedidoFormData.cantidadHembras}
-                        onChange={(e) => setPedidoFormData({ ...pedidoFormData, cantidadHembras: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg"
-                        style={{
-                          background: c.bgInput,
-                          border: `1px solid ${c.border}`,
-                          color: c.text
-                        }}
-                        placeholder="0"
-                      />
+                      <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}>
+                        <Grid3x3 className="w-3 h-3" /> Aves por Jaba (por sexo)
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] mb-1" style={{ color: isDark ? '#60a5fa' : '#1d4ed8' }}>♂ Machos / jaba</label>
+                          <input type="number" min="1" value={pedidoForm.unidadesPorJabaMachos} onChange={e => setPedidoForm(prev => ({ ...prev, unidadesPorJabaMachos: e.target.value }))}
+                            className="w-full px-3 py-2.5 border border-blue-800/30 rounded-lg text-sm" style={{ background: c.bgCardAlt, color: c.text }} placeholder="Ej: 8" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] mb-1" style={{ color: isDark ? '#fbbf24' : '#b45309' }}>♀ Hembras / jaba</label>
+                          <input type="number" min="1" value={pedidoForm.unidadesPorJabaHembras} onChange={e => setPedidoForm(prev => ({ ...prev, unidadesPorJabaHembras: e.target.value }))}
+                            className="w-full px-3 py-2.5 border border-amber-800/30 rounded-lg text-sm" style={{ background: c.bgCardAlt, color: c.text }} placeholder="Ej: 8" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: c.textSecondary }}>
+                        <Grid3x3 className="w-3 h-3" /> Unidades por Jaba
+                      </label>
+                      <input type="number" min="1" value={pedidoForm.unidadesPorJaba} onChange={e => setPedidoForm(prev => ({ ...prev, unidadesPorJaba: e.target.value }))}
+                        className="w-full px-4 py-3 border border-amber-800/30 rounded-lg text-sm" style={{ background: c.bgCardAlt, color: c.text }} placeholder="Ej: 10" />
+                    </div>
+                  )}
 
-                {/* Fecha y Hora */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Fecha de Ingreso *</label>
-                    <input
-                      type="date"
-                      required
-                      value={pedidoFormData.fechaIngreso}
-                      onChange={(e) => setPedidoFormData({ ...pedidoFormData, fechaIngreso: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg"
-                      style={{
-                        background: c.bgInput,
-                        border: `1px solid ${c.border}`,
-                        color: c.text
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: c.text }}>Hora de Ingreso *</label>
-                    <input
-                      type="time"
-                      required
-                      value={pedidoFormData.horaIngreso}
-                      onChange={(e) => setPedidoFormData({ ...pedidoFormData, horaIngreso: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg"
-                      style={{
-                        background: c.bgInput,
-                        border: `1px solid ${c.border}`,
-                        color: c.text
-                      }}
-                    />
-                  </div>
+                  {totalAvesEstimadas > 0 && (
+                    <div className="px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                      <span style={{ color: c.textSecondary }}>Total aves estimadas</span>
+                      <span className="font-bold font-mono" style={{ color: isDark ? '#4ade80' : '#166534' }}>🐔 {totalAvesEstimadas} unidades</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: c.textSecondary }}>Cantidad Total</label>
+                  <input type="number" min="1" value={pedidoForm.cantidadDirecta} onChange={e => setPedidoForm(prev => ({ ...prev, cantidadDirecta: e.target.value }))}
+                    className="w-full px-4 py-3 border rounded-lg text-sm" style={{ background: c.bgCardAlt, borderColor: c.border, color: c.text }} placeholder="0" />
                 </div>
+              )}
 
-                {/* Botones */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleClosePedidoModal}
-                    className="flex-1 px-6 py-3 rounded-lg font-bold transition-all hover:scale-105"
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.2)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#ef4444'
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-3 rounded-lg font-bold transition-all hover:scale-105"
-                    style={{
-                      background: 'linear-gradient(to right, #0d4a24, #166534, #b8941e, #ccaa00)',
-                      color: 'white'
-                    }}
-                  >
-                    {editingPedido ? 'Actualizar Pedido' : 'Registrar Pedido'}
-                  </button>
-                </div>
-              </form>
+              <button type="submit" className="w-full px-4 py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2" style={{ background: 'linear-gradient(to right, #1e3a8a, #2563eb)', color: c.text }}>
+                <Plus className="w-4 h-4" /> Enviar Pedido a Pesaje
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
+            <div className="p-4 border-b" style={{ borderColor: c.borderGold }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: c.text }}>Historial de Pedidos de Proveedor</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: c.textMuted }} />
+                <input value={searchPedido} onChange={e => setSearchPedido(e.target.value)} placeholder="Buscar por proveedor, tipo o estado"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg" style={{ background: c.bgCardAlt, border: `1px solid ${c.border}`, color: c.text }} />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: c.bgTableHeader }}>
+                    <th className="px-4 py-3 text-left" style={{ color: c.textSecondary }}><Users className="w-3.5 h-3.5 inline mr-1" />Proveedor</th>
+                    <th className="px-4 py-3 text-left" style={{ color: c.textSecondary }}><Bird className="w-3.5 h-3.5 inline mr-1" />Producto</th>
+                    <th className="px-4 py-3 text-left" style={{ color: c.textSecondary }}>Detalle</th>
+                    <th className="px-4 py-3 text-left" style={{ color: c.textSecondary }}><Calendar className="w-3.5 h-3.5 inline mr-1" />Fecha</th>
+                    <th className="px-4 py-3 text-left" style={{ color: c.textSecondary }}><ClipboardList className="w-3.5 h-3.5 inline mr-1" />Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historial.map(p => (
+                    <tr key={p.id} className="border-t" style={{ borderColor: c.borderSubtle }}>
+                      <td className="px-4 py-3" style={{ color: c.text }}>{p.proveedorNombre}</td>
+                      <td className="px-4 py-3" style={{ color: c.textSecondary }}>{p.tipoAve}{p.variedad ? ` - ${p.variedad}` : ''}</td>
+                      <td className="px-4 py-3" style={{ color: c.textSecondary }}>{p.presentacion} · {p.cantidadJabas ? `${p.cantidadJabas} jabas` : p.cantidad} · {p.cantidad} aves</td>
+                      <td className="px-4 py-3" style={{ color: c.textMuted }}>{p.fecha} {p.hora}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-[11px] font-bold px-2 py-1 rounded-full"
+                          style={{
+                            background: p.estado === 'Pesado' ? 'rgba(34,197,94,0.16)' : p.estado === 'En Pesaje' ? 'rgba(245,158,11,0.16)' : 'rgba(59,130,246,0.16)',
+                            color: p.estado === 'Pesado' ? '#22c55e' : p.estado === 'En Pesaje' ? '#f59e0b' : '#60a5fa',
+                          }}>
+                          {p.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {historial.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center" style={{ color: c.textMuted }}>No hay pedidos para mostrar.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
