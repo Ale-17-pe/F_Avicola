@@ -234,6 +234,10 @@ export const router = createBrowserRouter([
         path: "envios", 
         Component: Envios 
       },
+      {
+        path: "registro-devoluciones",
+        Component: RegistroDevolucionContenedoresAdmin,
+      },
     ],
   },
   {

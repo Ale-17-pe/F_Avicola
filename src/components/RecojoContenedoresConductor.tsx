@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, CheckCircle2, ClipboardList, Eye, Package, Search, User } from 'lucide-react';
+import { Box, CheckCircle2, ClipboardList, Eye, Search, User } from 'lucide-react';
 import { useApp, PedidoConfirmado, RecojoContenedor } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, t } from '../contexts/ThemeContext';
@@ -7,31 +7,98 @@ import { toast } from 'sonner';
 
 type DetalleMap = Record<string, number>;
 
-interface DetallePendiente {
-  tipo: string;
-  cantidad: number;
-  pesoUnit: number;
+type DetalleItem = { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number };
+type Movimiento = NonNullable<RecojoContenedor['movimientos']>[number];
+
+interface PedidoPendienteRow {
+  pedido: PedidoConfirmado;
+  pendiente: DetalleItem[];
 }
 
-function totalContenedores(detalle: { tipo: string; cantidad: number }[] = []) {
-  return detalle.reduce((s, i) => s + (i.cantidad || 0), 0);
+function toMap(detalle: DetalleItem[] = []): DetalleMap {
+  return detalle.reduce<DetalleMap>((acc, d) => {
+    const k = (d.tipo || '').trim();
+    if (!k) return acc;
+    acc[k] = (acc[k] || 0) + (d.cantidad || 0);
+    return acc;
+  }, {});
 }
 
-function sumarPorTipo(
-  detalle: { tipo: string; cantidad: number; pesoUnit?: number }[] = [],
-  base?: DetalleMap,
-): DetalleMap {
-  const out: DetalleMap = base ? { ...base } : {};
-  detalle.forEach((d) => {
-    const key = (d.tipo || '').trim();
-    if (!key) return;
-    out[key] = (out[key] || 0) + (d.cantidad || 0);
+function sumMap(a: DetalleMap, b: DetalleMap): DetalleMap {
+  const out: DetalleMap = { ...a };
+  Object.entries(b).forEach(([k, v]) => {
+    out[k] = (out[k] || 0) + (v || 0);
   });
   return out;
 }
 
+function totalUnidades(detalle: DetalleItem[] = []) {
+  return detalle.reduce((s, d) => s + (d.cantidad || 0), 0);
+}
+
+function movimientosFromRecojo(r: RecojoContenedor): Movimiento[] {
+  if (r.movimientos && r.movimientos.length > 0) return r.movimientos;
+
+  const legacyEstado = r.estadoRevision === 'Rechazado'
+    ? 'Rechazado'
+    : r.estadoRevision === 'Confirmado' || r.estado === 'Ingresado Almacen'
+      ? 'Confirmado'
+      : 'Pendiente';
+
+  return [{
+    id: `${r.id}-legacy`,
+    fecha: r.fechaRecepcion,
+    conductorId: r.conductorId,
+    conductor: r.conductor || 'Conductor',
+    tipo: r.esParcial ? 'Parcial' : 'Completo',
+    estado: legacyEstado,
+    contenedores: r.contenedores || [],
+    motivoRechazo: r.motivoRechazo,
+    fechaRevision: r.fechaRevision,
+    revisadoPor: r.revisadoPor,
+  }];
+}
+
+function consolidateByPedido(recojos: RecojoContenedor[]) {
+  const map = new Map<string, RecojoContenedor>();
+
+  recojos.forEach((r) => {
+    const key = r.pedidoId;
+    const base = map.get(key);
+    const movs = movimientosFromRecojo(r);
+
+    if (!base) {
+      map.set(key, {
+        ...r,
+        id: `REC-${key}`,
+        movimientos: [...movs],
+        conductores: Array.from(new Set([...(r.conductores || []), r.conductor || 'Conductor'])).filter(Boolean),
+      });
+      return;
+    }
+
+    map.set(key, {
+      ...base,
+      fechaRecepcion: new Date(r.fechaRecepcion) > new Date(base.fechaRecepcion) ? r.fechaRecepcion : base.fechaRecepcion,
+      movimientos: [...(base.movimientos || []), ...movs],
+      conductores: Array.from(new Set([...(base.conductores || []), ...(r.conductores || []), r.conductor || '', base.conductor || ''])).filter(Boolean),
+    });
+  });
+
+  return map;
+}
+
+function expectedDetalle(pedido: PedidoConfirmado): DetalleItem[] {
+  return (pedido.contenedoresDetalle || []).map((d) => ({
+    tipo: d.tipo,
+    cantidad: d.cantidad,
+    pesoUnit: d.pesoUnit,
+    pesoTotal: d.pesoTotal,
+  }));
+}
+
 export function RecojoContenedoresConductor() {
-  const { pedidosConfirmados, recojosContenedores, addRecojoContenedor } = useApp();
+  const { pedidosConfirmados, recojosContenedores, addRecojoContenedor, updateRecojoContenedor } = useApp();
   const { user } = useAuth();
   const { isDark } = useTheme();
   const c = t(isDark);
@@ -42,7 +109,7 @@ export function RecojoContenedoresConductor() {
   const [cantidadesRecojo, setCantidadesRecojo] = useState<DetalleMap>({});
 
   const conductorIdActual = user?.conductorRegistradoId || user?.id || null;
-  const conductorNombreActual = `${user?.nombre || ''} ${user?.apellido || ''}`.trim();
+  const conductorNombreActual = `${user?.nombre || ''} ${user?.apellido || ''}`.trim() || 'Conductor';
 
   const pedidosEntregadosConContenedores = useMemo(() => {
     return pedidosConfirmados
@@ -51,15 +118,7 @@ export function RecojoContenedoresConductor() {
       .filter((p) => (p.contenedoresDetalle || []).length > 0);
   }, [pedidosConfirmados]);
 
-  const recojosPorPedido = useMemo(() => {
-    const map = new Map<string, RecojoContenedor[]>();
-    recojosContenedores.forEach((r) => {
-      const list = map.get(r.pedidoId) || [];
-      list.push(r);
-      map.set(r.pedidoId, list);
-    });
-    return map;
-  }, [recojosContenedores]);
+  const recojosConsolidados = useMemo(() => consolidateByPedido(recojosContenedores), [recojosContenedores]);
 
   const zonasDisponibles = useMemo(() => {
     return Array.from(
@@ -67,61 +126,54 @@ export function RecojoContenedoresConductor() {
     ).sort((a, b) => a.localeCompare(b));
   }, [pedidosEntregadosConContenedores]);
 
-  const getPendienteDetalle = (pedido: PedidoConfirmado): DetallePendiente[] => {
-    const base = pedido.contenedoresDetalle || [];
-    const recojos = recojosPorPedido.get(pedido.id) || [];
-    const validos = recojos.filter((r) => (r.estadoRevision || 'Pendiente') !== 'Rechazado');
+  const getDetallePendiente = (pedido: PedidoConfirmado): DetalleItem[] => {
+    const expected = expectedDetalle(pedido);
+    const expectedMap = toMap(expected);
 
-    const recogidoPorTipo = validos.reduce<DetalleMap>((acc, r) => {
-      return sumarPorTipo(r.contenedores || [], acc);
-    }, {});
+    const rec = recojosConsolidados.get(pedido.id);
+    const movs = rec ? (rec.movimientos || []) : [];
 
-    return base
-      .map((b) => {
-        const tipo = (b.tipo || '').trim();
-        const recogido = recogidoPorTipo[tipo] || 0;
-        const pendiente = Math.max(0, (b.cantidad || 0) - recogido);
+    const descontar = movs
+      .filter((m) => m.estado !== 'Rechazado')
+      .reduce((acc, m) => sumMap(acc, toMap(m.contenedores as DetalleItem[])), {} as DetalleMap);
+
+    return expected
+      .map((e) => {
+        const restante = Math.max(0, (expectedMap[e.tipo] || 0) - (descontar[e.tipo] || 0));
         return {
-          tipo,
-          cantidad: pendiente,
-          pesoUnit: b.pesoUnit || 0,
+          tipo: e.tipo,
+          cantidad: restante,
+          pesoUnit: e.pesoUnit,
+          pesoTotal: e.pesoUnit * restante,
         };
       })
       .filter((d) => d.cantidad > 0);
   };
 
-  const pedidosPendientes = useMemo(() => {
+  const pedidosPendientes = useMemo<PedidoPendienteRow[]>(() => {
     return pedidosEntregadosConContenedores
-      .map((p) => ({ pedido: p, pendiente: getPendienteDetalle(p) }))
-      .filter((x) => totalContenedores(x.pendiente) > 0)
+      .map((p) => ({ pedido: p, pendiente: getDetallePendiente(p) }))
+      .filter((x) => totalUnidades(x.pendiente) > 0)
       .filter((x) => {
         const okZona = !filtroZona || (x.pedido.zonaEntrega || 'Sin zona') === filtroZona;
         const okCliente = !filtroCliente || x.pedido.cliente.toLowerCase().includes(filtroCliente.toLowerCase());
         return okZona && okCliente;
       });
-  }, [pedidosEntregadosConContenedores, recojosPorPedido, filtroZona, filtroCliente]);
-
-  const historialRecojos = useMemo(() => {
-    return [...recojosContenedores].sort(
-      (a, b) => new Date(b.fechaRecepcion).getTime() - new Date(a.fechaRecepcion).getTime(),
-    );
-  }, [recojosContenedores]);
+  }, [pedidosEntregadosConContenedores, filtroZona, filtroCliente, recojosConsolidados]);
 
   useEffect(() => {
     if (!pedidoSeleccionado) {
       setCantidadesRecojo({});
       return;
     }
-    const pendiente = getPendienteDetalle(pedidoSeleccionado);
-    const inicial: DetalleMap = {};
-    pendiente.forEach((d) => {
-      inicial[d.tipo] = d.cantidad;
-    });
-    setCantidadesRecojo(inicial);
-  }, [pedidoSeleccionado, recojosPorPedido]);
+    const pendiente = getDetallePendiente(pedidoSeleccionado);
+    const initial: DetalleMap = {};
+    pendiente.forEach((d) => { initial[d.tipo] = d.cantidad; });
+    setCantidadesRecojo(initial);
+  }, [pedidoSeleccionado, recojosConsolidados]);
 
   const registrarRecojo = (pedido: PedidoConfirmado, forzarTotal: boolean) => {
-    const pendiente = getPendienteDetalle(pedido);
+    const pendiente = getDetallePendiente(pedido);
     if (pendiente.length === 0) {
       toast.info('Este pedido ya no tiene contenedores pendientes de recojo');
       return;
@@ -129,7 +181,9 @@ export function RecojoContenedoresConductor() {
 
     const detalleRecogido = pendiente
       .map((p) => {
-        const cantidad = forzarTotal ? p.cantidad : Math.max(0, Math.min(p.cantidad, Number(cantidadesRecojo[p.tipo] || 0)));
+        const cantidad = forzarTotal
+          ? p.cantidad
+          : Math.max(0, Math.min(p.cantidad, Number(cantidadesRecojo[p.tipo] || 0)));
         return {
           tipo: p.tipo,
           cantidad,
@@ -144,69 +198,86 @@ export function RecojoContenedoresConductor() {
       return;
     }
 
-    const totalPendienteAntes = totalContenedores(pendiente);
-    const totalRecogido = totalContenedores(detalleRecogido);
+    const totalPendienteAntes = totalUnidades(pendiente);
+    const totalRecogido = totalUnidades(detalleRecogido);
     const totalPendienteDespues = Math.max(0, totalPendienteAntes - totalRecogido);
 
-    const nuevo: RecojoContenedor = {
-      id: `REC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      pedidoId: pedido.id,
-      cliente: pedido.cliente,
+    const isCompleto = totalPendienteDespues === 0;
+    const confirmarTxt = isCompleto
+      ? `Confirmar recojo completo de ${totalRecogido} contenedores?`
+      : `Confirmar recojo parcial de ${totalRecogido} contenedores? Quedarán ${totalPendienteDespues} pendientes.`;
+
+    if (!window.confirm(confirmarTxt)) return;
+
+    const movimiento: Movimiento = {
+      id: `MOV-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      fecha: new Date().toISOString(),
       conductorId: conductorIdActual || 'SIN_CONDUCTOR',
-      conductor: conductorNombreActual || 'Conductor',
-      zonaEntregaId: pedido.zonaEntregaId || 'SIN_ZONA',
-      zonaEntrega: pedido.zonaEntrega,
-      numeroTicket: pedido.numeroTicket,
+      conductor: conductorNombreActual,
+      tipo: isCompleto ? 'Completo' : 'Parcial',
+      estado: 'Pendiente',
       contenedores: detalleRecogido,
-      fechaRecepcion: new Date().toISOString(),
-      estadoRevision: 'Pendiente',
-      esParcial: totalPendienteDespues > 0,
-      cantidadRecogida: totalRecogido,
-      cantidadPendiente: totalPendienteDespues,
-      notificadoConductor: true,
     };
 
-    addRecojoContenedor(nuevo);
-
-    if (totalPendienteDespues > 0) {
-      toast.success(`Recojo parcial registrado (${totalRecogido}). Quedan ${totalPendienteDespues} pendientes.`);
+    const existente = recojosConsolidados.get(pedido.id);
+    if (existente) {
+      const actualizado: RecojoContenedor = {
+        ...existente,
+        conductorId: existente.conductorId || (conductorIdActual || 'SIN_CONDUCTOR'),
+        conductor: Array.from(new Set([...(existente.conductores || []), conductorNombreActual])).join(', '),
+        conductores: Array.from(new Set([...(existente.conductores || []), conductorNombreActual])),
+        contenedores: detalleRecogido,
+        movimientos: [...(existente.movimientos || []), movimiento],
+        fechaRecepcion: movimiento.fecha,
+        estadoRevision: 'Pendiente',
+        esParcial: !isCompleto,
+        cantidadRecogida: totalRecogido,
+        cantidadPendiente: totalPendienteDespues,
+        motivoRechazo: undefined,
+        notificadoConductor: true,
+      };
+      updateRecojoContenedor(actualizado);
     } else {
-      toast.success('Recojo total registrado correctamente.');
+      const nuevo: RecojoContenedor = {
+        id: `REC-${pedido.id}`,
+        pedidoId: pedido.id,
+        cliente: pedido.cliente,
+        conductorId: conductorIdActual || 'SIN_CONDUCTOR',
+        conductor: conductorNombreActual,
+        conductores: [conductorNombreActual],
+        zonaEntregaId: pedido.zonaEntregaId || 'SIN_ZONA',
+        zonaEntrega: pedido.zonaEntrega,
+        numeroTicket: pedido.numeroTicket,
+        contenedores: detalleRecogido,
+        movimientos: [movimiento],
+        fechaRecepcion: movimiento.fecha,
+        estadoRevision: 'Pendiente',
+        esParcial: !isCompleto,
+        cantidadRecogida: totalRecogido,
+        cantidadPendiente: totalPendienteDespues,
+        notificadoConductor: true,
+      };
+      addRecojoContenedor(nuevo);
     }
 
-    const freshPendiente = getPendienteDetalle(pedido);
-    const freshTot = totalContenedores(freshPendiente);
-    if (freshTot - totalRecogido <= 0) {
+    toast.success(isCompleto ? 'Recojo completo enviado a revisión' : 'Recojo parcial enviado a revisión');
+
+    if (totalPendienteDespues === 0) {
       setPedidoSeleccionado(null);
       setCantidadesRecojo({});
       return;
     }
 
-    const nuevoMap: DetalleMap = {};
-    freshPendiente.forEach((d) => {
-      const recogidoAhora = detalleRecogido.find((x) => x.tipo === d.tipo)?.cantidad || 0;
-      nuevoMap[d.tipo] = Math.max(0, d.cantidad - recogidoAhora);
+    const newMap: DetalleMap = {};
+    pendiente.forEach((d) => {
+      const rec = detalleRecogido.find((x) => x.tipo === d.tipo)?.cantidad || 0;
+      newMap[d.tipo] = Math.max(0, d.cantidad - rec);
     });
-    setCantidadesRecojo(nuevoMap);
+    setCantidadesRecojo(newMap);
   };
-
-  const badgeEstado = (rec: RecojoContenedor) => {
-    const estado = rec.estadoRevision || 'Pendiente';
-    if (estado === 'Confirmado') return { txt: rec.esParcial ? 'Confirmado Parcial' : 'Confirmado Total', bg: 'rgba(34,197,94,0.15)', color: '#22c55e' };
-    if (estado === 'Rechazado') return { txt: 'Rechazado', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' };
-    return { txt: rec.esParcial ? 'Pendiente Parcial' : 'Pendiente', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' };
-  };
-
-  const totalPendienteUnidades = useMemo(() => {
-    return pedidosPendientes.reduce((s, p) => s + totalContenedores(p.pendiente), 0);
-  }, [pedidosPendientes]);
-
-  const totalRechazados = useMemo(() => {
-    return historialRecojos.filter((r) => (r.estadoRevision || 'Pendiente') === 'Rechazado').length;
-  }, [historialRecojos]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
+    <div className="max-w-7xl mx-auto space-y-5 pb-20 px-4">
       <div className="rounded-2xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
         <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg, #3b82f6, #22c55e, #a855f7)' }} />
         <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
@@ -215,11 +286,11 @@ export function RecojoContenedoresConductor() {
               <ClipboardList className="text-blue-400" /> Recojo de Contenedores
             </h1>
             <p className="text-xs sm:text-sm mt-0.5" style={{ color: c.textSecondary }}>
-              Vista global para todos los conductores, con registro total o parcial y seguimiento en tiempo real.
+              Vista global de clientes con pendientes para recojo total o parcial.
             </p>
           </div>
           <span className="text-[11px] px-2.5 py-1 rounded-full font-bold" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)' }}>
-            OPERACION GLOBAL
+            RECOJO GLOBAL
           </span>
         </div>
       </div>
@@ -254,39 +325,16 @@ export function RecojoContenedoresConductor() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="rounded-xl p-4" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-          <p className="text-[10px] uppercase tracking-wider" style={{ color: c.textMuted }}>Clientes con pendientes</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#f59e0b' }}>{pedidosPendientes.length}</p>
-        </div>
-        <div className="rounded-xl p-4" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-          <p className="text-[10px] uppercase tracking-wider" style={{ color: c.textMuted }}>Pendiente por recoger</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#a78bfa' }}>{totalPendienteUnidades}</p>
-        </div>
-        <div className="rounded-xl p-4" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-          <p className="text-[10px] uppercase tracking-wider" style={{ color: c.textMuted }}>Registros pendientes revisiÃ³n</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#3b82f6' }}>
-            {historialRecojos.filter(r => (r.estadoRevision || 'Pendiente') === 'Pendiente').length}
-          </p>
-        </div>
-        <div className="rounded-xl p-4" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-          <p className="text-[10px] uppercase tracking-wider" style={{ color: c.textMuted }}>Registros rechazados</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#ef4444' }}>
-            {totalRechazados}
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: c.bgCardAlt }}>
-            <h3 className="font-bold" style={{ color: c.text }}>Lista Global de Recojos Pendientes</h3>
+            <h3 className="font-bold" style={{ color: c.text }}>Clientes pendientes de recojo</h3>
           </div>
 
           {pedidosPendientes.length === 0 ? (
             <div className="p-6 text-center">
-              <Package className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
-              <p className="text-sm" style={{ color: c.textSecondary }}>No hay contenedores pendientes en este momento</p>
+              <User className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
+              <p className="text-sm" style={{ color: c.textSecondary }}>No hay clientes pendientes por recojo</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -296,8 +344,8 @@ export function RecojoContenedoresConductor() {
                     <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Cliente</th>
                     <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Zona</th>
                     <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Ticket</th>
-                    <th className="px-3 py-2 text-right text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Pend.</th>
-                    <th className="px-3 py-2 text-right text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>AcciÃ³n</th>
+                    <th className="px-3 py-2 text-right text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Pendiente</th>
+                    <th className="px-3 py-2 text-right text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Detalle</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -308,7 +356,7 @@ export function RecojoContenedoresConductor() {
                       <td className="px-3 py-2.5 text-xs" style={{ color: c.textSecondary }}>{pedido.numeroTicket || 'S/N'}</td>
                       <td className="px-3 py-2.5 text-right">
                         <span className="px-2 py-0.5 rounded-md text-xs font-bold" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                          {totalContenedores(pendiente)}
+                          {totalUnidades(pendiente)}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
@@ -317,7 +365,7 @@ export function RecojoContenedoresConductor() {
                           className="px-2.5 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1"
                           style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.35)' }}
                         >
-                          <Eye className="w-3.5 h-3.5" /> Detalle
+                          <Eye className="w-3.5 h-3.5" /> Ver
                         </button>
                       </td>
                     </tr>
@@ -330,28 +378,26 @@ export function RecojoContenedoresConductor() {
 
         <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: c.bgCardAlt }}>
-            <h3 className="font-bold" style={{ color: c.text }}>Detalle del Recojo</h3>
+            <h3 className="font-bold" style={{ color: c.text }}>Detalle y registro de recojo</h3>
           </div>
 
           {!pedidoSeleccionado ? (
             <div className="p-6 text-center">
-              <User className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
-              <p className="text-sm" style={{ color: c.textSecondary }}>Selecciona un cliente para registrar el recojo</p>
+              <Box className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
+              <p className="text-sm" style={{ color: c.textSecondary }}>Selecciona un cliente para registrar recojo</p>
             </div>
           ) : (
             <div className="p-4 space-y-4">
               <div className="rounded-lg p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
                 <p className="font-semibold" style={{ color: c.text }}>{pedidoSeleccionado.cliente}</p>
                 <p className="text-xs mt-1" style={{ color: c.textSecondary }}>
-                  Pedido: {pedidoSeleccionado.numeroPedido || 'S/N'} Â· Ticket: {pedidoSeleccionado.numeroTicket || 'S/N'}
+                  Pedido: {pedidoSeleccionado.numeroPedido || 'S/N'} · Ticket: {pedidoSeleccionado.numeroTicket || 'S/N'}
                 </p>
-                <p className="text-xs" style={{ color: c.textSecondary }}>
-                  Zona: {pedidoSeleccionado.zonaEntrega || 'Sin zona'}
-                </p>
+                <p className="text-xs" style={{ color: c.textSecondary }}>Zona: {pedidoSeleccionado.zonaEntrega || 'Sin zona'}</p>
               </div>
 
               <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-                {getPendienteDetalle(pedidoSeleccionado).map((item, idx) => (
+                {getDetallePendiente(pedidoSeleccionado).map((item, idx) => (
                   <div key={`${item.tipo}-${idx}`} className="rounded-lg px-3 py-2" style={{ background: c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
@@ -361,7 +407,9 @@ export function RecojoContenedoresConductor() {
                       <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>Pendiente: {item.cantidad}</span>
                     </div>
                     <div className="mt-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: c.textMuted }}>Cantidad a recoger ahora</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: c.textMuted }}>
+                        Cantidad a recoger ahora
+                      </label>
                       <input
                         type="number"
                         min={0}
@@ -398,61 +446,6 @@ export function RecojoContenedoresConductor() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="rounded-xl overflow-hidden" style={{ background: c.bgCard, border: `1px solid ${c.border}` }}>
-        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: c.bgCardAlt }}>
-          <h3 className="font-bold" style={{ color: c.text }}>Historial de Recojos Registrados</h3>
-        </div>
-
-        {historialRecojos.length === 0 ? (
-          <div className="p-6 text-center">
-            <Package className="w-10 h-10 mx-auto mb-2" style={{ color: c.textMuted }} />
-            <p className="text-sm" style={{ color: c.textSecondary }}>Aun no se registran recojos de contenedores</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full" style={{ minWidth: '900px' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: c.bgCardAlt }}>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Cliente</th>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Ticket</th>
-                  <th className="px-3 py-2 text-right text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Recogido</th>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Zona</th>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Conductor</th>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Fecha</th>
-                  <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest" style={{ color: c.textMuted }}>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historialRecojos.map((rec, idx) => {
-                  const badge = badgeEstado(rec);
-                  const total = totalContenedores(rec.contenedores);
-                  return (
-                    <tr key={rec.id} style={{ borderBottom: `1px solid ${c.borderSubtle}`, background: idx % 2 === 0 ? 'transparent' : c.bgCardAlt }}>
-                      <td className="px-3 py-2.5 text-sm font-semibold" style={{ color: c.text }}>{rec.cliente}</td>
-                      <td className="px-3 py-2.5 text-xs" style={{ color: c.textSecondary }}>{rec.numeroTicket || 'S/N'}</td>
-                      <td className="px-3 py-2.5 text-right">
-                        <span className="text-xs font-bold" style={{ color: '#3b82f6' }}>{total}</span>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs" style={{ color: c.textSecondary }}>{rec.zonaEntrega || 'Sin zona'}</td>
-                      <td className="px-3 py-2.5 text-xs" style={{ color: c.textSecondary }}>{rec.conductor || 'Sin conductor'}</td>
-                      <td className="px-3 py-2.5 text-xs" style={{ color: c.textMuted }}>{new Date(rec.fechaRecepcion).toLocaleString('es-PE')}</td>
-                      <td className="px-3 py-2.5">
-                        <span className="text-[11px] px-2 py-1 rounded-full" style={{ background: badge.bg, color: badge.color }}>
-                          {badge.txt}
-                        </span>
-                        {rec.motivoRechazo && (
-                          <p className="text-[11px] mt-1" style={{ color: '#f87171' }}>Motivo: {rec.motivoRechazo}</p>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
