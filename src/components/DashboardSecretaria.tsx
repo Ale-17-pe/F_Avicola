@@ -159,7 +159,7 @@ export function DashboardSecretaria() {
   const { isDark } = useTheme();
   const c = t(isDark);
   const context = useApp();
-  const { costosClientes, presentaciones, clientes, tiposAve, contenedores } = context;
+  const { costosClientes, presentaciones, clientes, tiposAve, contenedores, updatePedidoConfirmado } = context;
   const pedidosConfirmados = context.pedidosConfirmados || [];
 
   const [filasCartera, setFilasCartera]           = useState<FilaCartera[]>([]);
@@ -544,6 +544,8 @@ export function DashboardSecretaria() {
     const nuevoPeso = recalcNuevoPesoTotal;
     const lineasActivas = recalcModal.lines.filter(l => l.cantidad > 0);
     const resumen = lineasActivas.map(l => `${l.cantidad}×${l.tipoContenedor}`).join(', ');
+    const pedidoActual = pedidosConfirmados.find(p => p.id === recalcModal.filaId);
+
     setFilasCartera(prev => prev.map(f => {
       if (f.id !== recalcModal.filaId) return f;
       const updated = {
@@ -556,13 +558,31 @@ export function DashboardSecretaria() {
       };
       return recalcularFila(updated);
     }));
+
+    if (pedidoActual) {
+      const detalle = lineasActivas.map(l => ({
+        tipo: l.tipoContenedor,
+        cantidad: l.cantidad,
+        pesoUnit: l.pesoUnit,
+        pesoTotal: l.pesoUnit * l.cantidad,
+      }));
+
+      updatePedidoConfirmado(pedidoActual.id, {
+        ...pedidoActual,
+        contenedor: resumen || pedidoActual.contenedor,
+        contenedoresDetalle: detalle,
+        cantidadTotalContenedores: detalle.reduce((s, d) => s + d.cantidad, 0),
+        pesoTotalContenedores: detalle.reduce((s, d) => s + d.pesoTotal, 0),
+      });
+    }
+
     toast.success(`Contenedores recalculados: ${nuevoPeso.toFixed(2)} kg`);
     setRecalcModal({ open: false, filaId: null, lines: [] });
   };
 
   const exportarCSV = () => {
-    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','Tara','P.Bruto','Repesada','Merma','Devol','P.Neto','Precio','Total','Zona','Conductor'];
-    const rows=filasFiltradas.map(f=>[f.cliente,f.tipo,f.presentacion,`${f.cantidad} ${f.cantidadLabel}`,f.pesoPedido.toFixed(2),f.pesoContenedor.toFixed(2),f.pesoBruto.toFixed(2),f.repesada.toFixed(2),f.merma.toFixed(2),f.devolucionPeso.toFixed(2),f.pesoNeto.toFixed(2),f.precio.toFixed(2),f.total.toFixed(2),f.zona,f.conductor]);
+    const headers=['Cliente','Tipo','Pres','Cant','P.Pedido','Tara','P.Bruto','Repesada','Diferencia','Merma','Devol','P.Neto','Precio','Total','Zona'];
+    const rows=filasFiltradas.map(f=>[f.cliente,f.tipo,f.presentacion,`${f.cantidad} ${f.cantidadLabel}`,f.pesoPedido.toFixed(2),f.pesoContenedor.toFixed(2),f.pesoBruto.toFixed(2),f.repesada.toFixed(2),(f.pesoBruto - f.repesada).toFixed(2),f.merma.toFixed(2),f.devolucionPeso.toFixed(2),f.pesoNeto.toFixed(2),f.precio.toFixed(2),f.total.toFixed(2),f.zona]);
     const blob=new Blob([[headers.join(','),...rows.map(r=>r.join(','))].join('\n')],{type:'text/csv'});
     Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`cartera_${fechaSeleccionada}.csv`}).click();
   };
@@ -924,13 +944,13 @@ export function DashboardSecretaria() {
                     {key:'pesoContenedor', label:'TARA kg',      align:'right' as const},
                     {key:'pesoBruto',      label:'P.BRUTO kg',   align:'right' as const},
                     {key:'repesada',       label:'REPESADA kg',  align:'right' as const},
+                    {key:'diferencia',     label:'DIF. kg',      align:'right' as const},
                     {key:'merma',          label:'MERMA kg',     align:'right' as const},
                     {key:'devolucionPeso', label:'DEVOL. kg',    align:'right' as const},
                     {key:'pesoNeto',       label:'P.NETO kg',    align:'right' as const},
                     {key:'precio',         label:'PRECIO S/',    align:'right' as const},
                     {key:'total',          label:'TOTAL S/',     align:'right' as const},
                     {key:'zona',           label:'ZONA',         align:'left'  as const},
-                    {key:'conductor',      label:'CONDUCTOR',    align:'left'  as const},
                     {key:'acciones',       label:'',             align:'left'  as const},
                   ].map(col=>(
                     <th key={col.key}
@@ -1052,6 +1072,13 @@ export function DashboardSecretaria() {
                           </div>
                         </td>
 
+                        {/* DIFERENCIA (P.BRUTO - REPESADA) */}
+                        <td className="px-2 py-2 text-right whitespace-nowrap">
+                          <span className="font-bold text-xs tabular-nums" style={{color:'#fca5a5'}}>
+                            {(fila.pesoBruto - fila.repesada).toFixed(2)}
+                          </span>
+                        </td>
+
                         {/* MERMA — click-to-edit */}
                         <td className="px-2 py-2 text-right whitespace-nowrap" style={{minWidth:80}}>
                           <ClickEditCell value={fila.merma} onChange={v=>actualizarCampo(fila.id,'merma',v)} locked={bloqueado} color={COL.merma} />
@@ -1104,11 +1131,6 @@ export function DashboardSecretaria() {
                           <span className="text-[10px] font-semibold" style={{color:COL.zona}}>{fila.zona}</span>
                         </td>
 
-                        {/* CONDUCTOR */}
-                        <td className="px-2 py-2 whitespace-nowrap">
-                          <span className="text-[10px] truncate block max-w-[90px]" style={{color:c.text}}>{fila.conductor}</span>
-                        </td>
-
                         {/* ACCIONES */}
                         <td className="px-2 py-2 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
@@ -1146,6 +1168,7 @@ export function DashboardSecretaria() {
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.contenedor}}>{tot('pesoContenedor').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.bruto}}>{tot('pesoBruto').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.repesada}}>{tot('repesada').toFixed(2)}</span></td>
+                  <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:'#fca5a5'}}>{filasOrdenadas.reduce((s,f)=>s+(f.pesoBruto-f.repesada),0).toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:c.text}}>{tot('merma').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right"><span className="font-bold text-xs tabular-nums" style={{color:COL.devolucion}}>{tot('devolucionPeso').toFixed(2)}</span></td>
                   <td className="px-2 py-2.5 text-right">
@@ -1161,7 +1184,7 @@ export function DashboardSecretaria() {
                       S/{tot('total').toFixed(2)}
                     </span>
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
