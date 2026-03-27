@@ -170,16 +170,29 @@ export interface RecojoContenedor {
   cliente: string;
   conductorId: string;
   conductor?: string;
+  conductores?: string[];
   zonaEntregaId: string;
   zonaEntrega?: string;
   numeroTicket?: string;
   contenedores: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
+  movimientos?: {
+    id: string;
+    fecha: string;
+    conductorId: string;
+    conductor: string;
+    tipo: 'Parcial' | 'Completo';
+    estado: 'Pendiente' | 'Confirmado' | 'Rechazado';
+    contenedores: { tipo: string; cantidad: number; pesoUnit: number; pesoTotal: number }[];
+    motivoRechazo?: string;
+    fechaRevision?: string;
+    revisadoPor?: string;
+  }[];
   fechaRecepcion: string;
   fechaIngreso?: string;
   // Compatibilidad con datos antiguos
   estado?: 'Pendiente Ingreso' | 'Ingresado Almacen';
   // Flujo actual de revision administrativa del recojo
-  estadoRevision?: 'Pendiente' | 'Confirmado' | 'Rechazado';
+  estadoRevision?: 'Pendiente' | 'Confirmado' | 'Rechazado' | 'Confirmado Parcial' | 'Confirmado Completo' | 'Rechazado Parcial';
   esParcial?: boolean;
   cantidadRecogida?: number;
   cantidadPendiente?: number;
@@ -720,9 +733,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const procesarRecojosPendientesPorZona = (zonaId: string) => {
     if (!zonaId) return 0;
 
-    const pendientes = recojosContenedores.filter(
-      r => r.zonaEntregaId === zonaId && r.estado === 'Pendiente Ingreso'
-    );
+    const pendientes = recojosContenedores.filter((r) => {
+      if (r.zonaEntregaId !== zonaId) return false;
+
+      const legacyPendiente = r.estado === 'Pendiente Ingreso';
+      const pendientesMov = (r.movimientos || []).some((m) => m.estado === 'Pendiente');
+      return legacyPendiente || pendientesMov;
+    });
 
     if (pendientes.length === 0) return 0;
 
@@ -730,7 +747,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const next = [...prev];
 
       pendientes.forEach((recojo) => {
-        recojo.contenedores.forEach((item) => {
+        const pendientesDetalle = recojo.movimientos && recojo.movimientos.length > 0
+          ? recojo.movimientos
+              .filter((m) => m.estado === 'Pendiente')
+              .flatMap((m) => m.contenedores)
+          : recojo.contenedores;
+
+        pendientesDetalle.forEach((item) => {
           const idx = next.findIndex(
             c => c.tipo.trim().toLowerCase() === item.tipo.trim().toLowerCase()
           );
@@ -752,7 +775,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const idsPendientes = new Set(pendientes.map(p => p.id));
     setRecojosContenedores(prev => prev.map(r =>
       idsPendientes.has(r.id)
-        ? { ...r, estado: 'Ingresado Almacen', fechaIngreso }
+        ? {
+            ...r,
+            estado: 'Ingresado Almacen',
+            fechaIngreso,
+            movimientos: (r.movimientos || []).map((m) =>
+              m.estado === 'Pendiente'
+                ? { ...m, estado: 'Confirmado', fechaRevision: fechaIngreso, revisadoPor: 'Sistema' }
+                : m,
+            ),
+          }
         : r
     ));
 

@@ -7,6 +7,7 @@ import {
 import {
   LogOut,
   ClipboardList,
+  ClipboardCheck,
   Scale,
   Truck,
   Wrench,
@@ -64,6 +65,11 @@ export function LayoutOperador() {
       label: "Envíos",
       path: "/dashboard-operador/envios",
       icon: Truck,
+    },
+    {
+      label: "Registro Devoluciones",
+      path: "/dashboard-operador/registro-devoluciones",
+      icon: ClipboardCheck,
     },
   ];
 
