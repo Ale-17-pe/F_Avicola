@@ -15,6 +15,12 @@ interface PedidoPendienteRow {
   pendiente: DetalleItem[];
 }
 
+interface CarteraFilaLite {
+  id: string;
+  contenedorRecalculado?: boolean;
+  recalcLines?: { tipoContenedor: string; pesoUnit: number; cantidad: number }[];
+}
+
 function toMap(detalle: DetalleItem[] = []): DetalleMap {
   return detalle.reduce<DetalleMap>((acc, d) => {
     const k = (d.tipo || '').trim();
@@ -107,6 +113,7 @@ export function RecojoContenedoresConductor() {
   const [filtroZona, setFiltroZona] = useState('');
   const [filtroCliente, setFiltroCliente] = useState('');
   const [cantidadesRecojo, setCantidadesRecojo] = useState<DetalleMap>({});
+  const [carteraVersion, setCarteraVersion] = useState(0);
 
   const conductorIdActual = user?.conductorRegistradoId || user?.id || null;
   const conductorNombreActual = `${user?.nombre || ''} ${user?.apellido || ''}`.trim() || 'Conductor';
@@ -120,6 +127,46 @@ export function RecojoContenedoresConductor() {
 
   const recojosConsolidados = useMemo(() => consolidateByPedido(recojosContenedores), [recojosContenedores]);
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('carteraCobro_')) {
+        setCarteraVersion(v => v + 1);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const carteraDetallePorPedido = useMemo(() => {
+    const map = new Map<string, DetalleItem[]>();
+
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('carteraCobro_'))
+      .forEach((k) => {
+        try {
+          const raw = localStorage.getItem(k);
+          if (!raw) return;
+          const filas = JSON.parse(raw) as CarteraFilaLite[];
+          filas.forEach((f) => {
+            if (!f?.id || !f.contenedorRecalculado || !f.recalcLines || f.recalcLines.length === 0) return;
+            const detalle = f.recalcLines
+              .filter((l) => (l.cantidad || 0) > 0)
+              .map((l) => ({
+                tipo: l.tipoContenedor,
+                cantidad: l.cantidad,
+                pesoUnit: l.pesoUnit,
+                pesoTotal: l.pesoUnit * l.cantidad,
+              }));
+            if (detalle.length > 0) map.set(f.id, detalle);
+          });
+        } catch {
+          // ignore malformed entries
+        }
+      });
+
+    return map;
+  }, [carteraVersion, pedidosConfirmados.length]);
+
   const zonasDisponibles = useMemo(() => {
     return Array.from(
       new Set(pedidosEntregadosConContenedores.map((p) => p.zonaEntrega || 'Sin zona')),
@@ -127,7 +174,7 @@ export function RecojoContenedoresConductor() {
   }, [pedidosEntregadosConContenedores]);
 
   const getDetallePendiente = (pedido: PedidoConfirmado): DetalleItem[] => {
-    const expected = expectedDetalle(pedido);
+    const expected = carteraDetallePorPedido.get(pedido.id) || expectedDetalle(pedido);
     const expectedMap = toMap(expected);
 
     const rec = recojosConsolidados.get(pedido.id);
@@ -159,7 +206,7 @@ export function RecojoContenedoresConductor() {
         const okCliente = !filtroCliente || x.pedido.cliente.toLowerCase().includes(filtroCliente.toLowerCase());
         return okZona && okCliente;
       });
-  }, [pedidosEntregadosConContenedores, filtroZona, filtroCliente, recojosConsolidados]);
+  }, [pedidosEntregadosConContenedores, filtroZona, filtroCliente, recojosConsolidados, carteraDetallePorPedido]);
 
   useEffect(() => {
     if (!pedidoSeleccionado) {
@@ -205,7 +252,7 @@ export function RecojoContenedoresConductor() {
     const isCompleto = totalPendienteDespues === 0;
     const confirmarTxt = isCompleto
       ? `Confirmar recojo completo de ${totalRecogido} contenedores?`
-      : `Confirmar recojo parcial de ${totalRecogido} contenedores? Quedarán ${totalPendienteDespues} pendientes.`;
+      : `Confirmar recojo parcial de ${totalRecogido} contenedores? Quedarï¿½n ${totalPendienteDespues} pendientes.`;
 
     if (!window.confirm(confirmarTxt)) return;
 
@@ -260,7 +307,7 @@ export function RecojoContenedoresConductor() {
       addRecojoContenedor(nuevo);
     }
 
-    toast.success(isCompleto ? 'Recojo completo enviado a revisión' : 'Recojo parcial enviado a revisión');
+    toast.success(isCompleto ? 'Recojo completo enviado a revisiï¿½n' : 'Recojo parcial enviado a revisiï¿½n');
 
     if (totalPendienteDespues === 0) {
       setPedidoSeleccionado(null);
@@ -391,7 +438,7 @@ export function RecojoContenedoresConductor() {
               <div className="rounded-lg p-3" style={{ background: c.bgCardAlt, border: `1px solid ${c.borderSubtle}` }}>
                 <p className="font-semibold" style={{ color: c.text }}>{pedidoSeleccionado.cliente}</p>
                 <p className="text-xs mt-1" style={{ color: c.textSecondary }}>
-                  Pedido: {pedidoSeleccionado.numeroPedido || 'S/N'} · Ticket: {pedidoSeleccionado.numeroTicket || 'S/N'}
+                  Pedido: {pedidoSeleccionado.numeroPedido || 'S/N'} ï¿½ Ticket: {pedidoSeleccionado.numeroTicket || 'S/N'}
                 </p>
                 <p className="text-xs" style={{ color: c.textSecondary }}>Zona: {pedidoSeleccionado.zonaEntrega || 'Sin zona'}</p>
               </div>
